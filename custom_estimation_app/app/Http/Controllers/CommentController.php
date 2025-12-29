@@ -1,0 +1,128 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Estimate;
+use App\Models\EstimateComment;
+use Illuminate\Http\Request;
+
+class CommentController extends Controller
+{
+    /**
+     * Store a new comment
+     */
+    public function store(Request $request, Estimate $estimate)
+    {
+        $validated = $request->validate([
+            'commentable_type' => 'required|string',
+            'commentable_id' => 'nullable|integer',
+            'comment' => 'required|string|max:5000',
+            'client_name' => 'nullable|string|max:255',
+            'client_email' => 'nullable|email|max:255',
+            'parent_id' => 'nullable|exists:estimate_comments,id',
+        ]);
+
+        // Determine comment type
+        $type = auth()->check() ? 'internal' : 'client';
+
+        $comment = $estimate->comments()->create([
+            'commentable_type' => $validated['commentable_type'],
+            'commentable_id' => $validated['commentable_id'] ?? null,
+            'user_id' => auth()->id(),
+            'client_name' => $validated['client_name'] ?? null,
+            'client_email' => $validated['client_email'] ?? null,
+            'comment' => $validated['comment'],
+            'type' => $type,
+            'parent_id' => $validated['parent_id'] ?? null,
+        ]);
+
+        // Send notification if client comment
+        if ($type === 'client') {
+            $this->notifyTeam($estimate, $comment);
+        }
+
+        return response()->json([
+            'success' => true,
+            'comment' => $comment->load('user', 'replies'),
+            'message' => 'Comment added successfully',
+        ]);
+    }
+
+    /**
+     * Get all comments for an estimate
+     */
+    public function index(Estimate $estimate)
+    {
+        $comments = $estimate->comments()
+            ->with(['user', 'commentable', 'replies.user'])
+            ->whereNull('parent_id')
+            ->latest()
+            ->get();
+
+        return response()->json($comments);
+    }
+
+    /**
+     * Mark comment as read
+     */
+    public function markAsRead(EstimateComment $comment)
+    {
+        $comment->markAsRead();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Comment marked as read',
+        ]);
+    }
+
+    /**
+     * Mark all comments as read for an estimate
+     */
+    public function markAllAsRead(Estimate $estimate)
+    {
+        $estimate->comments()
+            ->unread()
+            ->clientComments()
+            ->update(['is_read' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All comments marked as read',
+        ]);
+    }
+
+    /**
+     * Delete a comment
+     */
+    public function destroy(EstimateComment $comment)
+    {
+        // Only allow deleting own comments or if admin
+        if (auth()->id() !== $comment->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        $comment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Comment deleted successfully',
+        ]);
+    }
+
+    /**
+     * Notify team of new client comment
+     */
+    private function notifyTeam($estimate, $comment)
+    {
+        // TODO: Implement email notification
+        // For now, just log it
+        \Log::info('New client comment on estimate', [
+            'estimate_id' => $estimate->id,
+            'comment_id' => $comment->id,
+            'client_name' => $comment->client_name,
+        ]);
+    }
+}
