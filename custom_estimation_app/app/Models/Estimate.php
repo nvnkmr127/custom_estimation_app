@@ -45,6 +45,8 @@ class Estimate extends Model
         'room_discounts_total',
         'perfex_proposal_id',
         'pdf_theme',
+        'view_count',
+        'nudge_task_created',
     ];
 
     public function client()

@@ -505,7 +505,14 @@
                                 <tbody class="divide-y divide-gray-200">
                                     @foreach($section->items as $item)
                                         <tr>
-                                            <td class="px-3 py-2 text-sm text-gray-900">{{ $item->name }}</td>
+                                            <td class="px-3 py-2 text-sm text-gray-900">
+                                                <div>{{ $item->name }}</div>
+                                                @if($item->length && $item->width)
+                                                    <div class="text-xs text-indigo-600">Dims: {{ $item->length + 0 }} &times; {{ $item->width + 0 }}</div>
+                                                @elseif($item->description)
+                                                    <div class="text-xs text-gray-500 truncate max-w-xs">{{ $item->description }}</div>
+                                                @endif
+                                            </td>
                                             <td class="px-3 py-2 text-sm text-right text-gray-500">
                                                 {{ number_format($item->unit_price, 2) }}</td>
                                             <td class="px-3 py-2 text-sm text-right text-gray-500">{{ $item->quantity }}
@@ -535,6 +542,9 @@
                                         <div class="font-medium text-gray-900">{{ $item->name }}</div>
                                         @if($item->description)
                                             <div class="text-gray-500 text-xs mt-0.5">{{ $item->description }}</div>
+                                        @endif
+                                        @if($item->length && $item->width)
+                                            <div class="text-xs text-indigo-600 mt-0.5">Dims: {{ $item->length + 0 }} &times; {{ $item->width + 0 }}</div>
                                         @endif
                                         <div class="text-gray-500 text-xs mt-1">
                                             {{ $item->quantity }} {{ $item->unit_type }} × 

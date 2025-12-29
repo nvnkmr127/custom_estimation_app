@@ -285,6 +285,9 @@ class EstimateController extends Controller
             'order_index' => $orderIndex,
             'is_complimentary' => $isComplimentary,
             'original_price' => $originalPrice,
+            'length' => $itemData['length'] ?? null,
+            'width' => $itemData['width'] ?? null,
+            'formula' => $itemData['formula'] ?? null,
         ]);
     }
 

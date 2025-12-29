@@ -97,6 +97,15 @@ class PerfexApiService
     }
 
     /**
+     * Create Task in Perfex
+     */
+    public function createTask($data)
+    {
+        // $data usually contains: name, description, rel_type (lead/proposal/customer), rel_id, etc.
+        return $this->request('post', 'tasks', $data);
+    }
+
+    /**
      * Core Request Handler
      */
     protected function request($method, $endpoint, $data = [])
@@ -122,7 +131,7 @@ class PerfexApiService
                 return $response->json();
             }
 
-            Log::error('Perfex API Error: ' . $response->status() . ' - ' . $response->body());
+            Log::error('Perfex API Error: ' . $response->status() . ' - ' . $response->body() . ' | Request: ' . json_encode($data) . ' | URL: ' . $url);
             return ['status' => false, 'error' => 'API Error: ' . $response->status()];
 
         } catch (\Exception $e) {

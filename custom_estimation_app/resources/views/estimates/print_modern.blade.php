@@ -371,6 +371,11 @@
                                     @if($item->description)
                                         <div style="font-size: 11px; color: #666; margin-top: 2px;">{{ $item->description }}</div>
                                     @endif
+                                    @if($item->length && $item->width)
+                                        <div style="font-size: 11px; color: #555; margin-top: 2px;">
+                                            Dims: {{ $item->length + 0 }} &times; {{ $item->width + 0 }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="center">{{ $item->unit_type }}</td>
                                 <td class="center">{{ $item->quantity + 0 }}</td>
@@ -394,6 +399,11 @@
                             <div><b>{{ $item->name }}</b></div>
                             @if($item->description)
                                 <div style="font-size: 11px; color: #666; margin-top: 2px;">{{ $item->description }}</div>
+                            @endif
+                            @if($item->length && $item->width)
+                                <div style="font-size: 11px; color: #555; margin-top: 2px;">
+                                    Dims: {{ $item->length + 0 }} &times; {{ $item->width + 0 }}
+                                </div>
                             @endif
                         </td>
                         <td class="center">{{ $item->unit_type }}</td>

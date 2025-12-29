@@ -229,6 +229,20 @@
                         </div>
 
                         <div class="sm:col-span-2">
+                            <label for="calculation_method"
+                                class="block text-sm font-medium leading-6 text-slate-900">Calculation Method</label>
+                            <div class="mt-2">
+                                <select name="calculation_method" id="calculation_method"
+                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                    <option value="standard" {{ old('calculation_method', $product->calculation_method) == 'standard' ? 'selected' : '' }}>Standard (Qty
+                                        Input)</option>
+                                    <option value="formula" {{ old('calculation_method', $product->calculation_method) == 'formula' ? 'selected' : '' }}>Formula (L x W)
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-2">
                             <label for="tax_1" class="block text-sm font-medium leading-6 text-slate-900">Tax 1
                                 (%)</label>
                             <div class="mt-2">

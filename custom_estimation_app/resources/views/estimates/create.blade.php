@@ -303,7 +303,21 @@
                                                 </td>
                                                 <td class="px-3 py-2">
                                                     <input type="text" x-model="item.size" placeholder="Size"
-                                                        class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent placeholder:text-slate-400">
+                                                        class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent placeholder:text-slate-400"
+                                                        x-show="!item.showCalculator">
+
+                                                    <div x-show="item.showCalculator" class="flex items-center gap-1"
+                                                        style="display: none;">
+                                                        <div class="flex flex-col">
+                                                            <input type="number" step="0.01" x-model="item.length"
+                                                                placeholder="L" @input="calculateQuantity(item)"
+                                                                class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center mb-0.5">
+                                                            <input type="number" step="0.01" x-model="item.width"
+                                                                placeholder="W" @input="calculateQuantity(item)"
+                                                                class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
+                                                        </div>
+                                                        <span class="text-xs text-slate-400" x-text="(item.length && item.width) ? (item.length * item.width).toFixed(2) : '='"></span>
+                                                    </div>
                                                 </td>
                                                 <td class="px-3 py-2">
                                                     <input type="number" step="0.01" x-model="item.unit_price"
@@ -311,9 +325,24 @@
                                                         class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-right">
                                                 </td>
                                                 <td class="px-3 py-2">
-                                                    <input type="number" step="0.01" x-model="item.quantity"
-                                                        @input="calculateTotals"
-                                                        class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-center">
+                                                    <div class="flex items-center gap-1">
+                                                        <input type="number" step="0.01" x-model="item.quantity"
+                                                            @input="calculateTotals"
+                                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-center"
+                                                            :readonly="item.showCalculator"
+                                                            :class="{'bg-slate-50': item.showCalculator}">
+                                                        <button type="button" @click="toggleCalculator(item)"
+                                                            class="text-slate-400 hover:text-indigo-600 transition-colors p-1"
+                                                            :class="{'text-indigo-600 bg-indigo-50 rounded': item.showCalculator}"
+                                                            title="Toggle Calculator">
+                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                                                stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                                 <td class="px-3 py-2">
                                                     <input type="text" x-model="item.unit_type"
@@ -449,7 +478,21 @@
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="text" x-model="item.size" placeholder="Size"
-                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent placeholder:text-slate-400">
+                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent placeholder:text-slate-400"
+                                            x-show="!item.showCalculator">
+
+                                        <div x-show="item.showCalculator" class="flex items-center gap-1"
+                                            style="display: none;">
+                                            <div class="flex flex-col">
+                                                <input type="number" step="0.01" x-model="item.length" placeholder="L"
+                                                    @input="calculateQuantity(item)"
+                                                    class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center mb-0.5">
+                                                <input type="number" step="0.01" x-model="item.width" placeholder="W"
+                                                    @input="calculateQuantity(item)"
+                                                    class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
+                                            </div>
+                                            <span class="text-xs text-slate-400">=</span>
+                                        </div>
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="number" step="0.01" x-model="item.unit_price"
@@ -457,9 +500,24 @@
                                             class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-right">
                                     </td>
                                     <td class="px-3 py-2">
-                                        <input type="number" step="0.01" x-model="item.quantity"
-                                            @input="calculateTotals"
-                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-center">
+                                        <div class="flex items-center gap-1">
+                                            <input type="number" step="0.01" x-model="item.quantity"
+                                                @input="calculateTotals"
+                                                class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-center"
+                                                :readonly="item.showCalculator"
+                                                :class="{'bg-slate-50': item.showCalculator}">
+                                            <button type="button" @click="toggleCalculator(item)"
+                                                class="text-slate-400 hover:text-indigo-600 transition-colors p-1"
+                                                :class="{'text-indigo-600 bg-indigo-50 rounded': item.showCalculator}"
+                                                title="Toggle Calculator">
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                                    stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="text" x-model="item.unit_type"
@@ -843,17 +901,34 @@
                 },
 
                 selectProduct(product) {
+                    const isFormula = product.calculation_method === 'formula';
+
+                    // Format dimensions string for standard items
+                    let sizeString = '';
+                    if (product.dimensions) {
+                        const dims = product.dimensions;
+                        if (dims.length && dims.width) {
+                            sizeString = `${dims.length} x ${dims.width}`;
+                            if (dims.unit) sizeString += ` ${dims.unit}`;
+                            if (dims.height) sizeString += ` x ${dims.height}`;
+                        }
+                    }
+
                     const newItem = {
                         name: product.name,
                         product_id: product.id,
                         unit_price: parseFloat(product.unit_price || 0),
                         quantity: 1,
-                        size: '',
+                        size: sizeString,
                         unit_type: product.unit_type || 'nos',
                         description: product.description || '',
                         tax_1: parseFloat(this.defaults.tax_1_rate || 0),
                         tax_2: parseFloat(this.defaults.tax_2_rate || 0),
-                        image_url: (product.images && product.images.length > 0) ? '/storage/' + product.images[0].image_path : null
+                        image_url: (product.images && product.images.length > 0) ? '/storage/' + product.images[0].image_path : null,
+                        length: '',
+                        width: '',
+                        formula: isFormula ? 'area' : '',
+                        showCalculator: isFormula
                     };
                     this.pushItem(newItem);
                     this.productPicker.isOpen = false;
@@ -868,7 +943,11 @@
                         size: '',
                         unit_type: 'nos',
                         tax_1: parseFloat(this.defaults.tax_1_rate || 0),
-                        tax_2: parseFloat(this.defaults.tax_2_rate || 0)
+                        tax_2: parseFloat(this.defaults.tax_2_rate || 0),
+                        length: '',
+                        width: '',
+                        formula: '',
+                        showCalculator: false
                     };
                     this.pushItem(newItem);
                     this.productPicker.isOpen = false;
@@ -1002,6 +1081,38 @@
                         discount,
                         grandTotal: subtotal + totalTax - discount
                     };
+                },
+
+                toggleCalculator(item) {
+                    item.showCalculator = !item.showCalculator;
+                    // Auto-focus logic could be added here if needed
+                },
+
+                calculateQuantity(item) {
+                    calculateQuantity(item) {
+                        // Validation: Prevent negative input
+                        if (item.length < 0) item.length = 0;
+                        if (item.width < 0) item.width = 0;
+
+                        if (item.length && item.width) {
+                            const l = parseFloat(item.length) || 0;
+                            const w = parseFloat(item.width) || 0;
+                            if (l >= 0 && w >= 0) {
+                                item.quantity = (l * w).toFixed(2);
+                                item.formula = 'area';
+
+                                // Visual feedback for area could be stored in a separate property if needed for UI, 
+                                // but here we are primarily updating quantity.
+                                // If we want to show '100 sq.ft' in the UI, we can access item.quantity directly.
+
+                                this.calculateTotals();
+                            }
+                        } else {
+                            // Reset if cleared? Or keep last valid? 
+                            // Let's keep existing behavior but maybe zero out if both empty?
+                            // item.quantity = 0; // Optional
+                        }
+                    },
                 },
 
                 previewPdf() {

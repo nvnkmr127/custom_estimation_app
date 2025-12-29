@@ -22,6 +22,9 @@ class EstimateItem extends Model
         'order_index',
         'is_complimentary',
         'original_price',
+        'length',
+        'width',
+        'formula',
     ];
 
     public function estimate()
