@@ -104,6 +104,10 @@
 
                 <div class="px-6 py-4 bg-white border-t border-gray-200">
                     <div class="flex items-center justify-end gap-3">
+                        <a href="{{ route('approval-chains.show', $chain) }}"
+                            class="text-sm font-medium text-gray-600 hover:text-gray-900">
+                            View
+                        </a>
                         <a href="{{ route('approval-chains.edit', $chain) }}"
                             class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
                             Edit

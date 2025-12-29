@@ -15,7 +15,9 @@ return new class extends Migration {
             // Using DB definition to ensure it works across different DB drivers if needed,
             // but for MySQL/MariaDB this is standard.
             // We use DB::statement because ->change() requires doctrine/dbal which might not be installed.
-            \DB::statement("ALTER TABLE users MODIFY role VARCHAR(255) DEFAULT 'estimator'");
+            if (DB::getDriverName() !== 'sqlite') {
+                \DB::statement("ALTER TABLE users MODIFY role VARCHAR(255) DEFAULT 'estimator'");
+            }
         });
     }
 

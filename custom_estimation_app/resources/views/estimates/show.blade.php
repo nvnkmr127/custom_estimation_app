@@ -177,15 +177,7 @@
                     <div x-show="open" @click.outside="open = false"
                         class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                         <div class="py-1">
-                            @php
-                                // Get root parent to find all siblings
-                                $root = $estimate->parent ?? $estimate;
-                                // Collect all versions: root + its children
-                                // Note: We need a way to get *all* versions of this 'family'.
-                                // For simplicity, let's just use the current logic which might be limited if we are in a child.
-                                // Ideal: $allVersions = Estimate::where('id', $root->id)->orWhere('parent_id', $root->id)->orderBy('version', 'desc')->get();
-                                $allVersions = \App\Models\Estimate::where('id', $root->id)->orWhere('parent_id', $root->id)->orderBy('version', 'desc')->get();
-                            @endphp
+                            {{-- $allVersions passed from controller --}}
 
                             @foreach($allVersions as $ver)
                                 <a href="{{ route('estimates.show', $ver) }}"

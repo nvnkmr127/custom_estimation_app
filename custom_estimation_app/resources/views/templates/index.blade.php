@@ -50,6 +50,8 @@
                                     </td>
                                     <td class="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                         <div class="flex justify-end gap-3">
+                                            <a href="{{ route('templates.show', $template) }}"
+                                                class="text-slate-600 hover:text-slate-900">View</a>
                                             <a href="{{ route('templates.edit', $template) }}"
                                                 class="text-indigo-600 hover:text-indigo-900">Edit</a>
                                             <form action="{{ route('templates.destroy', $template) }}" method="POST"

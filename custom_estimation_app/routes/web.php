@@ -154,16 +154,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/webhooks/perfex', [App\Http\Controllers\PerfexWebhookController::class, 'handle'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
-Route::get('/test-api', function () {
-    try {
-        $client = new \GuzzleHttp\Client();
-        $response = $client->request('GET', 'https://api.github.com/zen', [
-            'headers' => ['User-Agent' => 'Laravel-Test']
-        ]);
-        return ['status' => 'success', 'data' => (string) $response->getBody()];
-    } catch (\Exception $e) {
-        return ['status' => 'error', 'message' => $e->getMessage()];
-    }
-});
+
 
 require __DIR__ . '/auth.php';

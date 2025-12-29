@@ -15,6 +15,8 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Product::class);
+
         $query = Product::with('category');
 
         // Search
@@ -54,6 +56,8 @@ class ProductController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Product::class);
+
         $categories = ProductCategory::all();
         return view('products.create', compact('categories'));
     }
@@ -63,60 +67,18 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'category_id' => 'required|exists:product_categories,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'sku' => 'nullable|string|unique:products,sku',
-            'unit_price' => 'required|numeric|min:0',
-            'unit_type' => 'required|string',
-            'calculation_method' => 'nullable|string|in:standard,formula',
-            'is_featured' => 'nullable|boolean',
-            'images.*' => 'nullable|image|max:5120',
-            'dimensions' => 'nullable|array',
-            'attributes' => 'nullable|array',
-            'tags' => 'nullable|string', // Input is string "tag1, tag2"
-            'options' => 'nullable|array',
-            'options.*.name' => 'required|string',
-            'options.*.values' => 'required|array',
-            'options.*.values.*.value' => 'required|string',
-            'options.*.values.*.price_adjustment' => 'nullable|numeric',
-        ]);
+        $this->authorize('create', Product::class);
+
+        $validated = $this->validateProduct($request);
 
         $validated['status'] = 'active';
         $validated['is_featured'] = $request->boolean('is_featured');
-
-        // Handle tags: Convert comma-separated string to array for JSON column
-        if (!empty($validated['tags'])) {
-            $validated['tags'] = array_map('trim', explode(',', $validated['tags']));
-        } else {
-            $validated['tags'] = [];
-        }
+        $validated['tags'] = $this->parseTags($validated['tags'] ?? null);
 
         $product = Product::create($validated);
 
-        // Handle Images
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('products/' . $product->id, 'public');
-                $product->images()->create([
-                    'image_path' => $path,
-                ]);
-            }
-        }
-
-        // Handle Options (Variants)
-        if (!empty($validated['options'])) {
-            foreach ($validated['options'] as $optData) {
-                $option = $product->options()->create(['name' => $optData['name']]);
-                foreach ($optData['values'] as $valData) {
-                    $option->values()->create([
-                        'value' => $valData['value'],
-                        'price_adjustment' => $valData['price_adjustment'] ?? 0,
-                    ]);
-                }
-            }
-        }
+        $this->handleImages($request, $product);
+        $this->handleOptions($validated, $product);
 
         return redirect()->route('products.index')
             ->with('success', 'Product added successfully');
@@ -127,6 +89,8 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
+        $this->authorize('update', $product);
+
         $categories = ProductCategory::all();
         return view('products.edit', compact('product', 'categories'));
     }
@@ -136,62 +100,20 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        $validated = $request->validate([
-            'category_id' => 'required|exists:product_categories,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'sku' => 'nullable|string|unique:products,sku,' . $product->id,
-            'unit_price' => 'required|numeric|min:0',
-            'unit_type' => 'required|string',
-            'calculation_method' => 'nullable|string|in:standard,formula',
-            'is_featured' => 'nullable|boolean',
-            'images.*' => 'nullable|image|max:5120',
-            'dimensions' => 'nullable|array',
-            'attributes' => 'nullable|array',
-            'tags' => 'nullable|string',
-            'options' => 'nullable|array',
-            'options.*.name' => 'required|string',
-            'options.*.values' => 'required|array',
-            'options.*.values.*.value' => 'required|string',
-            'options.*.values.*.price_adjustment' => 'nullable|numeric',
-        ]);
+        $this->authorize('update', $product);
+
+        $validated = $this->validateProduct($request, $product->id);
 
         $validated['is_featured'] = $request->boolean('is_featured');
-
-        // Handle tags
-        if (!empty($validated['tags'])) {
-            $validated['tags'] = array_map('trim', explode(',', $validated['tags']));
-        } else {
-            $validated['tags'] = [];
-        }
-
-        // Handle Dimensions (ensure array structure matches expectations if needed, but model cast handles JSON)
-        // Handle Attributes (ensure array structure)
+        $validated['tags'] = $this->parseTags($validated['tags'] ?? null);
 
         $product->update($validated);
 
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('products/' . $product->id, 'public');
-                $product->images()->create([
-                    'image_path' => $path,
-                ]);
-            }
-        }
+        $this->handleImages($request, $product);
 
         // Sync Options: Full Replace
-        $product->options()->delete(); // Cascade deletes values
-        if (!empty($validated['options'])) {
-            foreach ($validated['options'] as $optData) {
-                $option = $product->options()->create(['name' => $optData['name']]);
-                foreach ($optData['values'] as $valData) {
-                    $option->values()->create([
-                        'value' => $valData['value'],
-                        'price_adjustment' => $valData['price_adjustment'] ?? 0,
-                    ]);
-                }
-            }
-        }
+        $product->options()->delete();
+        $this->handleOptions($validated, $product);
 
         return redirect()->route('products.index')
             ->with('success', 'Product updated successfully');
@@ -202,6 +124,8 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
+        $this->authorize('delete', $product);
+
         $product->delete();
 
         return redirect()->route('products.index')
@@ -213,6 +137,8 @@ class ProductController extends Controller
      */
     public function suggest(Request $request)
     {
+        // Assuming team members can suggest, so maybe specific permission or just auth check
+        // For now, minimal validation and create pending product
         $validated = $request->validate([
             'category_id' => 'required|exists:product_categories,id',
             'name' => 'required|string|max:255',
@@ -235,6 +161,9 @@ class ProductController extends Controller
      */
     public function pending()
     {
+        // View any implies index access, but maybe pending queue is restricted
+        $this->authorize('viewAny', Product::class);
+
         $products = Product::pending()
             ->with(['category', 'suggestedBy'])
             ->latest()
@@ -248,6 +177,8 @@ class ProductController extends Controller
      */
     public function approve(Product $product)
     {
+        $this->authorize('update', $product);
+
         $product->approve();
 
         return redirect()->route('products.pending')
@@ -259,6 +190,8 @@ class ProductController extends Controller
      */
     public function retire(Request $request, Product $product)
     {
+        $this->authorize('update', $product);
+
         $validated = $request->validate([
             'retirement_reason' => 'nullable|string|max:500',
         ]);
@@ -276,6 +209,8 @@ class ProductController extends Controller
      */
     public function activate(Product $product)
     {
+        $this->authorize('update', $product);
+
         $product->activate();
 
         return response()->json([
@@ -314,6 +249,8 @@ class ProductController extends Controller
      */
     public function import(Request $request)
     {
+        $this->authorize('create', Product::class);
+
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt|max:2048',
         ]);
@@ -362,7 +299,7 @@ class ProductController extends Controller
                     'category_id' => $category->id,
                     'unit_price' => $price,
                     'unit_type' => $unitType ?: 'nos', // Default to nos
-                    'tags' => $tags,
+                    'tags' => $this->parseTags($tags),
                     'description' => $description,
                     'status' => 'active',
                 ]);
@@ -385,4 +322,66 @@ class ProductController extends Controller
         return redirect()->route('products.index')
             ->with('success', "Successfully imported {$imported} products.");
     }
+
+    // START PRIVATE HELPERS
+
+    private function validateProduct(Request $request, $productId = null)
+    {
+        return $request->validate([
+            'category_id' => 'required|exists:product_categories,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'sku' => 'nullable|string|unique:products,sku' . ($productId ? ',' . $productId : ''),
+            'unit_price' => 'required|numeric|min:0',
+            'unit_type' => 'required|string',
+            'calculation_method' => 'nullable|string|in:standard,formula',
+            'is_featured' => 'nullable|boolean',
+            'images.*' => 'nullable|image|max:5120',
+            'dimensions' => 'nullable|array',
+            'attributes' => 'nullable|array',
+            'tags' => 'nullable|string', // Input is string "tag1, tag2"
+            'options' => 'nullable|array',
+            'options.*.name' => 'required|string',
+            'options.*.values' => 'required|array',
+            'options.*.values.*.value' => 'required|string',
+            'options.*.values.*.price_adjustment' => 'nullable|numeric',
+        ]);
+    }
+
+    private function parseTags($tagsString)
+    {
+        if (is_array($tagsString))
+            return $tagsString;
+        if (empty($tagsString))
+            return [];
+        return array_map('trim', explode(',', $tagsString));
+    }
+
+    private function handleImages(Request $request, Product $product)
+    {
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('products/' . $product->id, 'public');
+                $product->images()->create([
+                    'image_path' => $path,
+                ]);
+            }
+        }
+    }
+
+    private function handleOptions($validated, Product $product)
+    {
+        if (!empty($validated['options'])) {
+            foreach ($validated['options'] as $optData) {
+                $option = $product->options()->create(['name' => $optData['name']]);
+                foreach ($optData['values'] as $valData) {
+                    $option->values()->create([
+                        'value' => $valData['value'],
+                        'price_adjustment' => $valData['price_adjustment'] ?? 0,
+                    ]);
+                }
+            }
+        }
+    }
 }
+

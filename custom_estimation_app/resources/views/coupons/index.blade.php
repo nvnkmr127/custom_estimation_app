@@ -103,6 +103,8 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                             <div class="flex items-center justify-end gap-3">
+                                <a href="{{ route('coupons.show', $coupon) }}"
+                                    class="text-gray-600 hover:text-gray-900">View</a>
                                 <a href="{{ route('coupons.edit', $coupon) }}"
                                     class="text-indigo-600 hover:text-indigo-900">Edit</a>
                                 <form action="{{ route('coupons.destroy', $coupon) }}" method="POST" class="inline-block"

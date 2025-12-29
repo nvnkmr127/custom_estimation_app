@@ -73,6 +73,8 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                             <div class="flex items-center justify-end gap-3">
+                                <a href="{{ route('clients.show', $client) }}"
+                                    class="text-gray-600 hover:text-gray-900">View</a>
                                 <a href="{{ route('clients.edit', $client) }}"
                                     class="text-indigo-600 hover:text-indigo-900">Edit</a>
                                 <form action="{{ route('clients.destroy', $client) }}" method="POST" class="inline-block"

@@ -13,6 +13,11 @@ class RoomTemplateController extends Controller
         return view('templates.index', compact('templates'));
     }
 
+    public function show(RoomTemplate $template)
+    {
+        return view('templates.show', compact('template'));
+    }
+
     public function create()
     {
         $products = \App\Models\Product::orderBy('name', 'asc')->get();

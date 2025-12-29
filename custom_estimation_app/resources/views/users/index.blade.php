@@ -97,6 +97,8 @@
                                     </td>
                                     <td class="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                         <div class="flex justify-end gap-3">
+                                            <a href="{{ route('users.show', $user) }}"
+                                                class="text-gray-600 hover:text-gray-900 font-medium">View</a>
                                             <a href="{{ route('users.edit', $user) }}"
                                                 class="text-indigo-600 hover:text-indigo-900 font-medium">Edit</a>
                                             @if($user->id !== auth()->id())

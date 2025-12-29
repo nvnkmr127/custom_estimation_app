@@ -13,6 +13,11 @@ class ItemPackageController extends Controller
         return view('packages.index', compact('packages'));
     }
 
+    public function show(ItemPackage $package)
+    {
+        return view('packages.show', compact('package'));
+    }
+
     public function create()
     {
         return view('packages.create');

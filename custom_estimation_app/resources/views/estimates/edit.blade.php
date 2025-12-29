@@ -312,14 +312,21 @@
                                                     <div x-show="item.showCalculator" class="flex items-center gap-1"
                                                         style="display: none;">
                                                         <div class="flex flex-col">
-                                                            <input type="number" step="0.01" x-model="item.length"
-                                                                placeholder="L" @input="calculateQuantity(item)"
-                                                                class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center mb-0.5">
-                                                            <input type="number" step="0.01" x-model="item.width"
-                                                                placeholder="W" @input="calculateQuantity(item)"
-                                                                class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
+                                                            <div class="flex items-center gap-1 mb-0.5">
+                                                                <input type="number" step="0.01" x-model="item.length"
+                                                                    placeholder="L" @input="calculateQuantity(item)"
+                                                                    class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
+                                                                <span class="text-[10px] text-slate-400">ft</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-1">
+                                                                <input type="number" step="0.01" x-model="item.width"
+                                                                    placeholder="W" @input="calculateQuantity(item)"
+                                                                    class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
+                                                                <span class="text-[10px] text-slate-400">ft</span>
+                                                            </div>
                                                         </div>
-                                                        <span class="text-xs text-slate-400" x-text="(item.length && item.width) ? (item.length * item.width).toFixed(2) : '='"></span>
+                                                        <span class="text-xs text-slate-400"
+                                                            x-text="(item.length && item.width) ? (item.length * item.width).toFixed(2) : '='"></span>
                                                     </div>
                                                 </td>
                                                 <td class="px-3 py-2">
@@ -488,12 +495,18 @@
                                         <div x-show="item.showCalculator" class="flex items-center gap-1"
                                             style="display: none;">
                                             <div class="flex flex-col">
-                                                <input type="number" step="0.01" x-model="item.length" placeholder="L"
-                                                    @input="calculateQuantity(item)"
-                                                    class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center mb-0.5">
-                                                <input type="number" step="0.01" x-model="item.width" placeholder="W"
-                                                    @input="calculateQuantity(item)"
-                                                    class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
+                                                <div class="flex items-center gap-1 mb-0.5">
+                                                    <input type="number" step="0.01" x-model="item.length"
+                                                        placeholder="L" @input="calculateQuantity(item)"
+                                                        class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
+                                                    <span class="text-[10px] text-slate-400">ft</span>
+                                                </div>
+                                                <div class="flex items-center gap-1">
+                                                    <input type="number" step="0.01" x-model="item.width"
+                                                        placeholder="W" @input="calculateQuantity(item)"
+                                                        class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
+                                                    <span class="text-[10px] text-slate-400">ft</span>
+                                                </div>
                                             </div>
                                             <span class="text-xs text-slate-400">=</span>
                                         </div>
@@ -721,367 +734,6 @@
         </form>
     </div>
 
-    <!-- Build Logic -->
-    <script>
-        function estimateBuilder(config = {}) {
-            return {
-                templates: config.templates || [],
-                packages: config.packages || [],
-                products: config.products || [],
-                estimate: {
-                    title: '',
-                    client_id: '',
-                    estimate_date: new Date().toISOString().split('T')[0],
-                    expiry_date: '',
-                    currency: 'USD',
-                    type: 'room_based',
-                    discount_type: 'percentage',
-                    discount_value: 0,
-                    client_note: '',
-                    admin_note: '',
-                    terms: '',
-                    sections: [{ name: 'Room 1', items: [] }],
-                    items: []
-                },
-                totals: { subtotal: 0, totalTax: 0, discount: 0, grandTotal: 0 },
-                productPicker: {
-                    isOpen: false,
-                    search: '',
-                    sectionIndex: null
-                },
-
-                get filteredProducts() {
-                    if (!this.products) return [];
-                    const productsArr = Array.isArray(this.products) ? this.products : Object.values(this.products);
-                    const q = this.productPicker.search.toLowerCase();
-                    return productsArr.filter(p =>
-                        (p.name && p.name.toLowerCase().includes(q)) ||
-                        (p.sku && p.sku.toLowerCase().includes(q))
-                    );
-                },
-
-                init() {
-                    if (config.estimateData) {
-                        this.estimate = { ...this.estimate, ...config.estimateData };
-                        // Fix dates
-                        ['estimate_date', 'expiry_date'].forEach(f => {
-                            if (this.estimate[f] && this.estimate[f].includes('T')) this.estimate[f] = this.estimate[f].split('T')[0];
-                        });
-                        // Ensure defaults if empty arrays
-                        if (this.estimate.type === 'room_based' && (!this.estimate.sections || this.estimate.sections.length === 0)) {
-                            this.estimate.sections = [{ name: 'Room 1', items: [] }];
-                        }
-
-                        // Map images for existing items
-                        const mapItemImage = (item) => {
-                            if (item.product && item.product.images && item.product.images.length > 0) {
-                                item.image_url = '/storage/' + item.product.images[0].image_path;
-                            } else {
-                                item.image_url = null;
-                            }
-                            // Initialize calculator fields for existing items
-                            if (item.length && item.width) {
-                                item.showCalculator = true;
-                            } else {
-                                item.showCalculator = false;
-                                item.length = '';
-                                item.width = '';
-                            }
-                        };
-
-                        if (this.estimate.sections) {
-                            this.estimate.sections.forEach(s => {
-                                if (s.items) s.items.forEach(mapItemImage);
-                            });
-                        }
-                        if (this.estimate.items) {
-                            this.estimate.items.forEach(mapItemImage);
-                        }
-                    }
-                    this.calculateTotals();
-                    this.$nextTick(() => {
-                        this.initSortable();
-                        this.initClientSearch();
-                    });
-                },
-
-                initClientSearch() {
-                    const el = this.$refs.clientSearch;
-                    const choices = new Choices(el, {
-                        searchEnabled: true,
-                        searchPlaceholderValue: 'Type to search Perfex CRM...',
-                        noResultsText: 'No clients found',
-                        itemSelectText: '',
-                    });
-
-                    el.addEventListener('search', (event) => {
-                        const query = event.detail.value;
-                        if (query.length < 3) return;
-
-                        fetch(`{{ route('perfex.search') }}?q=${query}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                choices.setChoices(data, 'value', 'label', true);
-                            });
-                    });
-
-                    el.addEventListener('change', (event) => {
-                        this.estimate.client_id = event.detail.value;
-                    });
-                },
-
-                initSortable() {
-                    // Initialize Sortable for sections (Rooms)
-                    const sectionsContainer = this.$el.querySelector('.sections-container');
-                    if (sectionsContainer) {
-                        new Sortable(sectionsContainer, {
-                            animation: 150,
-                            handle: '.section-handle',
-                            onEnd: (evt) => {
-                                const movedItem = this.estimate.sections.splice(evt.oldIndex, 1)[0];
-                                this.estimate.sections.splice(evt.newIndex, 0, movedItem);
-                            }
-                        });
-                    }
-
-                    // Room-Based Items
-                    this.$el.querySelectorAll('.section-items-sortable').forEach(el => {
-                        new Sortable(el, {
-                            animation: 150,
-                            group: 'items',
-                            handle: '.handle',
-                            onEnd: (evt) => {
-                                const sectionIndex = Array.from(sectionsContainer.children).indexOf(evt.from.closest('.border.border-slate-200'));
-                                if (sectionIndex !== -1) {
-                                    const movedItem = this.estimate.sections[sectionIndex].items.splice(evt.oldIndex, 1)[0];
-                                    this.estimate.sections[sectionIndex].items.splice(evt.newIndex, 0, movedItem);
-                                }
-                            }
-                        });
-                    });
-
-                    // Standard List Items
-                    const standardList = this.$el.querySelector('.standard-items-sortable');
-                    if (standardList) {
-                        new Sortable(standardList, {
-                            animation: 150,
-                            handle: '.handle',
-                            onEnd: (evt) => {
-                                const movedItem = this.estimate.items.splice(evt.oldIndex, 1)[0];
-                                this.estimate.items.splice(evt.newIndex, 0, movedItem);
-                            }
-                        });
-                    }
-                },
-
-                // --- Core Actions ---
-                openProductPicker(sectionIndex) {
-                    this.productPicker.sectionIndex = sectionIndex;
-                    this.productPicker.search = '';
-                    this.productPicker.isOpen = true;
-                },
-
-                selectProduct(product) {
-                    const isFormula = product.calculation_method === 'formula';
-
-                    // Format dimensions string for standard items
-                    let sizeString = '';
-                    if (product.dimensions) {
-                        const dims = product.dimensions;
-                        if (dims.length && dims.width) {
-                            sizeString = `${dims.length} x ${dims.width}`;
-                            if (dims.unit) sizeString += ` ${dims.unit}`;
-                            if (dims.height) sizeString += ` x ${dims.height}`;
-                        }
-                    }
-
-                    const newItem = {
-                        name: product.name,
-                        product_id: product.id,
-                        unit_price: parseFloat(product.unit_price || 0),
-                        quantity: 1,
-                        size: sizeString,
-                        unit_type: product.unit_type || 'nos',
-                        description: product.description || '',
-                        tax_1: 0,
-                        tax_2: 0,
-                        image_url: (product.images && product.images.length > 0) ? '/storage/' + product.images[0].image_path : null,
-                        length: '',
-                        width: '',
-                        formula: isFormula ? 'area' : '',
-                        showCalculator: isFormula
-                    };
-                    this.pushItem(newItem);
-                    this.productPicker.isOpen = false;
-                    this.calculateTotals();
-                },
-
-                addCustomItem() {
-                    const newItem = {
-                        name: '',
-                        unit_price: 0,
-                        quantity: 1,
-                        unit_type: 'nos',
-                        tax_1: 0,
-                        tax_2: 0,
-                        length: '',
-                        width: '',
-                        formula: '',
-                        showCalculator: false
-                    };
-                    this.pushItem(newItem);
-                    this.productPicker.isOpen = false;
-                },
-
-                pushItem(item) {
-                    if (this.productPicker.sectionIndex !== null) {
-                        this.estimate.sections[this.productPicker.sectionIndex].items.push(item);
-                    } else {
-                        this.estimate.items.push(item);
-                    }
-                },
-
-                addSection() {
-                    const count = this.estimate.sections.length + 1;
-                    this.estimate.sections.push({ name: 'Room ' + count, items: [] });
-                },
-                removeSection(index) { if (confirm('Remove room?')) { this.estimate.sections.splice(index, 1); this.calculateTotals(); } },
-                addItem(sectionIndex) {
-                    this.openProductPicker(sectionIndex);
-                },
-                removeItem(sIdx, iIdx) {
-                    if (sIdx !== null) this.estimate.sections[sIdx].items.splice(iIdx, 1);
-                    else this.estimate.items.splice(iIdx, 1);
-                    this.calculateTotals();
-                },
-
-                // --- Importers ---
-                applyTemplate(template) {
-                    const newSection = { name: template.name, items: [] };
-                    if (Array.isArray(template.items)) {
-                        newSection.items = template.items.map(i => ({
-                            name: i.item_name, unit_price: parseFloat(i.unit_price || 0), quantity: parseFloat(i.quantity || 1), size: i.size || '', unit_type: i.unit_type || 'nos', description: '', tax_1: 0, tax_2: 0,
-                            length: '', width: '', formula: '', showCalculator: false
-                        }));
-                    }
-                    this.estimate.sections.push(newSection);
-                    this.calculateTotals();
-                },
-                applyPackage(pkg, sIdx) {
-                    if (!pkg.items) return;
-                    const newItems = pkg.items.map(i => ({
-                        name: i.item_name, unit_price: parseFloat(i.unit_price || 0), quantity: parseFloat(i.quantity || 1), size: i.size || '', unit_type: i.unit_type || 'nos', description: `Package: ${pkg.name}`, tax_1: 0, tax_2: 0,
-                        length: '', width: '', formula: '', showCalculator: false
-                    }));
-                    if (sIdx !== null) this.estimate.sections[sIdx].items.push(...newItems);
-                    else this.estimate.items.push(...newItems);
-                    this.calculateTotals();
-                },
-
-                // --- Calculations ---
-                calculateItemTotal(item) { return (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0); },
-                calculateSectionTotal(section) { return section.items.reduce((sum, i) => sum + this.calculateItemTotal(i), 0); },
-                calculateTotals() {
-                    let subtotal = 0;
-                    let totalTax = 0;
-                    const allItems = this.estimate.type === 'room_based' ? this.estimate.sections.flatMap(s => s.items) : this.estimate.items;
-                    allItems.forEach(item => {
-                        const itemTotal = this.calculateItemTotal(item);
-                        subtotal += itemTotal;
-                        const t1 = itemTotal * ((parseFloat(item.tax_1) || 0) / 100);
-                        const t2 = itemTotal * ((parseFloat(item.tax_2) || 0) / 100);
-                        totalTax += (t1 + t2);
-                    });
-
-                    let discount = 0;
-                    if (this.estimate.discount_value > 0) {
-                        discount = this.estimate.discount_type === 'percentage' ? subtotal * (this.estimate.discount_value / 100) : parseFloat(this.estimate.discount_value);
-                    }
-                    this.totals = { subtotal, totalTax, discount, grandTotal: subtotal + totalTax - discount };
-                },
-                toggleCalculator(item) {
-                    item.showCalculator = !item.showCalculator;
-                },
-                calculateQuantity(item) {
-                    // Validation: Prevent negative input
-                    if (item.length < 0) item.length = 0;
-                    if (item.width < 0) item.width = 0;
-
-                    if (item.length && item.width) {
-                        const l = parseFloat(item.length) || 0;
-                        const w = parseFloat(item.width) || 0;
-                        if (l >= 0 && w >= 0) {
-                            item.quantity = (l * w).toFixed(2);
-                            item.formula = 'area';
-                            this.calculateTotals();
-                        }
-                    }
-                },
-                previewPdf() {
-                    // Logic to open a preview window with the current state
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '{{ route("estimates.preview") }}';
-                    form.target = '_blank';
-                    form.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token() }}">';
-
-                    const app = (k, v) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; form.appendChild(i); };
-                    const fields = ['title', 'client_id', 'estimate_date', 'expiry_date', 'currency', 'type', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'status', 'pdf_theme'];
-                    fields.forEach(f => app(f, this.estimate[f] || ''));
-
-                    if (this.estimate.type === 'room_based') {
-                        this.estimate.sections.forEach((s, sIdx) => {
-                            app(`sections[${sIdx}][name]`, s.name);
-                            s.items.forEach((i, iIdx) => {
-                                for (const [k, v] of Object.entries(i)) {
-                                    app(`sections[${sIdx}][items][${iIdx}][${k}]`, v);
-                                }
-                            });
-                        });
-                    } else {
-                        this.estimate.items.forEach((i, iIdx) => {
-                            for (const [k, v] of Object.entries(i)) {
-                                app(`items[${iIdx}][${k}]`, v);
-                            }
-                        });
-                    }
-                    document.body.appendChild(form);
-                    form.submit();
-                    document.body.removeChild(form);
-                },
-
-                submitForm() {
-                    // Form Submission Logic (Hidden Inputs)
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '{{ route("estimates.update", $estimate) }}';
-                    form.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="PUT">';
-
-                    const app = (k, v) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; form.appendChild(i); };
-                    // Only specific editable fields
-                    const fields = ['title', 'client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme'];
-                    fields.forEach(f => app(f, this.estimate[f] || ''));
-
-                    if (this.estimate.type === 'room_based') {
-                        this.estimate.sections.forEach((s, sIdx) => {
-                            app(`sections[${sIdx}][name]`, s.name);
-                            s.items.forEach((i, iIdx) => {
-                                for (const [k, v] of Object.entries(i)) {
-                                    if (!['id', 'created_at', 'updated_at'].includes(k)) app(`sections[${sIdx}][items][${iIdx}][${k}]`, v);
-                                }
-                            });
-                        });
-                    } else {
-                        this.estimate.items.forEach((i, iIdx) => {
-                            for (const [k, v] of Object.entries(i)) {
-                                if (!['id', 'created_at', 'updated_at'].includes(k)) app(`items[${iIdx}][${k}]`, v);
-                            }
-                        });
-                    }
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            };
-        }
-    </script>
+    <!-- Shared Logic Component -->
+    @include('components.estimate-builder-script')
 </x-app-layout>

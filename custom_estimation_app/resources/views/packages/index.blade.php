@@ -53,6 +53,8 @@
                                     </td>
                                     <td class="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                         <div class="flex justify-end gap-3">
+                                            <a href="{{ route('packages.show', $package) }}"
+                                                class="text-slate-600 hover:text-slate-900">View</a>
                                             <a href="{{ route('packages.edit', $package) }}"
                                                 class="text-indigo-600 hover:text-indigo-900">Edit</a>
                                             <form action="{{ route('packages.destroy', $package) }}" method="POST"

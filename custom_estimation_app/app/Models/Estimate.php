@@ -9,6 +9,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Estimate extends Model
 {
     use HasFactory;
+
+    const STATUS_DRAFT = 'draft';
+    const STATUS_SENT = 'sent';
+    const STATUS_ACCEPTED = 'accepted';
+    const STATUS_DECLINED = 'declined';
+    const STATUS_EXPIRED = 'expired';
+    const STATUS_WAITING_APPROVAL = 'waiting_approval';
+
     protected $fillable = [
         'estimate_number',
         'title',

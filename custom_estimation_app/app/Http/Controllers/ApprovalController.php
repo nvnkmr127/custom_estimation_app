@@ -66,7 +66,10 @@ class ApprovalController extends Controller
 
         // Check if all approvals are complete
         if ($estimate->isFullyApproved()) {
-            $estimate->update(['approval_status' => 'approved']);
+            $estimate->update([
+                'approval_status' => 'approved',
+                'status' => 'approved'
+            ]);
         } else {
             // Create approval for next step
             $nextStep = $estimate->nextApprovalStep();

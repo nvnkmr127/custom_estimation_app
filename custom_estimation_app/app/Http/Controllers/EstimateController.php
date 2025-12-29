@@ -14,6 +14,8 @@ class EstimateController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Estimate::class);
+
         $query = Estimate::with(['client', 'sections'])->current()->latest();
 
         if ($request->has('status') && $request->status !== 'all') {
@@ -23,12 +25,12 @@ class EstimateController extends Controller
         $estimates = $query->paginate(15);
         $counts = [
             'all' => Estimate::count(),
-            'draft' => Estimate::where('status', 'draft')->count(),
-            'waiting_approval' => Estimate::where('status', 'waiting_approval')->count(),
-            'approved' => Estimate::where('status', 'approved')->count(),
-            'sent' => Estimate::where('status', 'sent')->count(),
-            'accepted' => Estimate::where('status', 'accepted')->count(),
-            'declined' => Estimate::where('status', 'declined')->count(),
+            'draft' => Estimate::where('status', Estimate::STATUS_DRAFT)->count(),
+            'waiting_approval' => Estimate::where('status', Estimate::STATUS_WAITING_APPROVAL)->count(),
+            'approved' => Estimate::where('status', 'approved')->count(), // approved status not in constants list but kept for compatibility
+            'sent' => Estimate::where('status', Estimate::STATUS_SENT)->count(),
+            'accepted' => Estimate::where('status', Estimate::STATUS_ACCEPTED)->count(),
+            'declined' => Estimate::where('status', Estimate::STATUS_DECLINED)->count(),
         ];
 
         return view('estimates.index', compact('estimates', 'counts'));
@@ -36,6 +38,8 @@ class EstimateController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Estimate::class);
+
         $products = Product::with('images')->get();
         $templates = RoomTemplate::all();
         $packages = ItemPackage::all();
@@ -43,7 +47,7 @@ class EstimateController extends Controller
         $approvalChains = \App\Models\ApprovalChain::where('is_active', true)->with('steps.user')->get();
 
         $settings = \App\Models\Setting::pluck('value', 'key');
-        // ... (rest of defaults) ...
+
         $defaults = [
             'currency' => $settings['currency_code'] ?? 'USD',
             'tax_1_name' => $settings['tax_1_name'] ?? 'Tax 1',
@@ -57,37 +61,22 @@ class EstimateController extends Controller
         return view('estimates.create', compact('products', 'templates', 'packages', 'defaults', 'clients', 'approvalChains'));
     }
 
-    // ...
-
-    public function show(Estimate $estimate)
+    public function store(Request $request)
     {
-        $estimate->load('items.product.images', 'sections.items.product.images', 'approvals.user');
-        $checklists = \App\Models\ApprovalChecklist::all();
-        $declineReasons = \App\Models\DeclineReason::where('is_active', true)->get();
-        return view('estimates.show', compact('estimate', 'checklists', 'declineReasons'));
-    }
+        $this->authorize('create', Estimate::class);
 
-    // ...
-
-    public function edit(Estimate $estimate)
-    {
-        $products = Product::with('images')->get();
-        $templates = RoomTemplate::all();
-        $packages = ItemPackage::all();
-        $clients = \App\Models\Client::orderBy('name')->get();
-        $approvalChains = \App\Models\ApprovalChain::where('is_active', true)->with('steps.user')->get();
-        $estimate->load(['sections.items.product.images', 'items.product.images']);
-        return view('estimates.edit', compact('estimate', 'products', 'templates', 'packages', 'clients', 'approvalChains'));
-    }
-
-    public function update(Request $request, Estimate $estimate)
-    {
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'client_id' => 'required|integer',
             'estimate_date' => 'required|date',
             'expiry_date' => 'nullable|date',
-            'status' => 'required|in:draft,sent,accepted,declined,expired',
+            'status' => 'required|in:' . implode(',', [
+                Estimate::STATUS_DRAFT,
+                Estimate::STATUS_SENT,
+                Estimate::STATUS_ACCEPTED,
+                Estimate::STATUS_DECLINED,
+                Estimate::STATUS_EXPIRED
+            ]),
             'currency' => 'required|string|max:10',
             'discount_type' => 'required|in:percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
@@ -97,15 +86,12 @@ class EstimateController extends Controller
             'pdf_theme' => 'nullable|string|in:modern,classic,minimal',
         ]);
 
+        $validated['estimate_number'] = 'EST-' . (Estimate::max('id') + 1001); // Simple number generation
+
         DB::beginTransaction();
         try {
-            $estimate->update($validated);
+            $estimate = Estimate::create($validated);
 
-            // Clear existing sections and items
-            $estimate->sections()->delete();
-            $estimate->items()->delete();
-
-            // Recreate based on type
             if ($estimate->type === 'room_based' && $request->has('sections')) {
                 foreach ($request->sections as $sectionIndex => $sectionData) {
                     $section = $estimate->sections()->create([
@@ -120,10 +106,131 @@ class EstimateController extends Controller
                         }
                     }
                 }
-            } elseif ($request->has('items')) {
+            } elseif ($request->has('items')) { // Standard Estimate
                 foreach ($request->items as $itemIndex => $itemData) {
                     $oi = $itemData['order_index'] ?? $itemIndex;
                     $this->createEstimateItem($estimate, null, $itemData, $oi);
+                }
+            }
+
+            $this->recalculateTotals($estimate);
+            $estimate->save(); // Save totals
+
+            DB::commit();
+            return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate created successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->withErrors(['error' => 'Failed to create estimate: ' . $e->getMessage()]);
+        }
+    }
+
+    public function show(Estimate $estimate)
+    {
+        $this->authorize('view', $estimate);
+
+        $estimate->load('items.product.images', 'sections.items.product.images', 'approvals.user');
+        $checklists = \App\Models\ApprovalChecklist::all();
+        $declineReasons = \App\Models\DeclineReason::where('is_active', true)->get();
+
+        // fetch version history
+        $root = $estimate->parent ?? $estimate;
+        $allVersions = Estimate::where('id', $root->id)->orWhere('parent_id', $root->id)->orderBy('version', 'desc')->get();
+
+        return view('estimates.show', compact('estimate', 'checklists', 'declineReasons', 'allVersions'));
+    }
+
+    public function edit(Estimate $estimate)
+    {
+        $this->authorize('update', $estimate);
+
+        $products = Product::with('images')->get();
+        $templates = RoomTemplate::all();
+        $packages = ItemPackage::all();
+        $clients = \App\Models\Client::orderBy('name')->get();
+        $approvalChains = \App\Models\ApprovalChain::where('is_active', true)->with('steps.user')->get();
+        $estimate->load(['sections.items.product.images', 'items.product.images']);
+        return view('estimates.edit', compact('estimate', 'products', 'templates', 'packages', 'clients', 'approvalChains'));
+    }
+
+    public function update(Request $request, Estimate $estimate)
+    {
+        $this->authorize('update', $estimate);
+
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'client_id' => 'required|integer',
+            'estimate_date' => 'required|date',
+            'expiry_date' => 'nullable|date',
+            'status' => 'required|in:' . implode(',', [
+                Estimate::STATUS_DRAFT,
+                Estimate::STATUS_SENT,
+                Estimate::STATUS_ACCEPTED,
+                Estimate::STATUS_DECLINED,
+                Estimate::STATUS_EXPIRED
+            ]),
+            'currency' => 'required|string|max:10',
+            'discount_type' => 'required|in:percentage,fixed',
+            'discount_value' => 'nullable|numeric|min:0',
+            'client_note' => 'nullable|string',
+            'admin_note' => 'nullable|string',
+            'terms' => 'nullable|string',
+            'pdf_theme' => 'nullable|string|in:modern,classic,minimal',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $estimate->update($validated);
+
+            if ($estimate->type === 'room_based' && $request->has('sections')) {
+                // Sync Sections
+                $inputSectionIds = array_filter(array_column($request->sections, 'id'));
+                $estimate->sections()->whereNotIn('id', $inputSectionIds)->delete();
+
+                foreach ($request->sections as $sectionIndex => $sectionData) {
+                    if (!empty($sectionData['id'])) {
+                        $section = $estimate->sections()->where('id', $sectionData['id'])->first();
+                        $section->update([
+                            'name' => $sectionData['name'],
+                            'order_index' => $sectionIndex,
+                        ]);
+                    } else {
+                        $section = $estimate->sections()->create([
+                            'name' => $sectionData['name'],
+                            'order_index' => $sectionIndex,
+                        ]);
+                    }
+
+                    // Sync Items within Section
+                    if (isset($sectionData['items'])) {
+                        $inputItemIds = array_filter(array_column($sectionData['items'], 'id'));
+                        $section->items()->whereNotIn('id', $inputItemIds)->delete();
+
+                        foreach ($sectionData['items'] as $itemIndex => $itemData) {
+                            $oi = $itemData['order_index'] ?? $itemIndex;
+                            if (!empty($itemData['id'])) {
+                                $item = $estimate->items()->where('id', $itemData['id'])->first();
+                                $this->updateEstimateItem($item, $section->id, $itemData, $oi);
+                            } else {
+                                $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
+                            }
+                        }
+                    } else {
+                        $section->items()->delete();
+                    }
+                }
+            } elseif ($request->has('items')) { // Standard Estimate
+                // Sync Items
+                $inputItemIds = array_filter(array_column($request->items, 'id'));
+                $estimate->items()->whereNotIn('id', $inputItemIds)->delete();
+
+                foreach ($request->items as $itemIndex => $itemData) {
+                    $oi = $itemData['order_index'] ?? $itemIndex;
+                    if (!empty($itemData['id'])) {
+                        $item = $estimate->items()->where('id', $itemData['id'])->first();
+                        $this->updateEstimateItem($item, null, $itemData, $oi);
+                    } else {
+                        $this->createEstimateItem($estimate, null, $itemData, $oi);
+                    }
                 }
             }
 
@@ -137,130 +244,48 @@ class EstimateController extends Controller
         }
     }
 
-    public function destroy(Estimate $estimate)
-    {
-        $estimate->delete();
-        return redirect()->route('estimates.index')->with('success', 'Estimate deleted successfully.');
-    }
-
-    /**
-     * Duplicate an estimate item
-     */
-    public function duplicateItem(EstimateItem $item)
-    {
-        // Clone the item with all its properties
-        $newItem = $item->replicate();
-        $newItem->save();
-
-        // Recalculate estimate totals
-        $item->estimate->recalculateTotals();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Item duplicated successfully',
-            'item' => $newItem->load('section'),
-        ]);
-    }
-
-    public function downloadPdf(Estimate $estimate, \App\Services\AnalyticsService $analytics)
-    {
-        // Track download
-        $analytics->logAccess($estimate, 'download');
-
-        $estimate->load(['sections.items', 'items', 'client']);
-        $settings = \App\Models\Setting::pluck('value', 'key');
-
-        // Check for Custom PDF Template
-        if ($estimate->pdf_template_id && $estimate->pdfTemplate) {
-            $template = $estimate->pdfTemplate;
-            $service = new \App\Services\PdfRenderingService();
-
-            // Attempt to use cached file
-            $cachedPath = $service->renderAndCache($template, $estimate);
-
-            if ($cachedPath && file_exists($cachedPath)) {
-                return response()->download($cachedPath, 'estimate_' . $estimate->estimate_number . '.pdf');
-            } else {
-                return back()->with('error', 'PDF generation failed.');
-            }
-        }
-
-        $theme = $estimate->pdf_theme ?: ($settings['pdf_theme'] ?? 'modern');
-        $view = 'estimates.print_' . $theme;
-
-        if (!view()->exists($view)) {
-            $view = 'estimates.print_modern';
-        }
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, compact('estimate', 'settings'));
-
-        // Default for standard templates
-        $pdf->setPaper('a4', 'portrait');
-
-        return $pdf->download('estimate_' . $estimate->estimate_number . '.pdf');
-    }
-
-    public function preview(Request $request)
-    {
-        // Create an ephemeral Estimate object from request data
-        $estimateData = $request->all();
-        $estimate = new Estimate($estimateData);
-        $estimate->estimate_number = 'PREVIEW-' . date('Ymd');
-
-        // Mock sections and items relationship for the view
-        $sections = collect();
-        if ($request->type === 'room_based' && $request->has('sections')) {
-            foreach ($request->sections as $sIdx => $sData) {
-                $section = new \App\Models\EstimateSection(['name' => $sData['name'], 'order_index' => $sIdx]);
-                $section->id = $sIdx + 1; // Temporary ID
-                $sectionItems = collect();
-                if (isset($sData['items'])) {
-                    foreach ($sData['items'] as $iIdx => $iData) {
-                        $item = new \App\Models\EstimateItem($iData);
-                        $item->order_index = $iIdx;
-                        $sectionItems->push($item);
-                    }
-                }
-                $section->setRelation('items', $sectionItems);
-                $sections->push($section);
-            }
-        }
-        $estimate->setRelation('sections', $sections);
-
-        $items = collect();
-        if ($request->type === 'standard' && $request->has('items')) {
-            foreach ($request->items as $iIdx => $iData) {
-                $item = new \App\Models\EstimateItem($iData);
-                $item->order_index = $iIdx;
-                $items->push($item);
-            }
-        }
-        $estimate->setRelation('items', $items);
-
-        // Mock client if present
-        if ($request->client_id) {
-            $estimate->setRelation('client', \App\Models\Client::find($request->client_id));
-        }
-
-        $settings = \App\Models\Setting::pluck('value', 'key');
-        $theme = $estimate->pdf_theme ?: ($settings['pdf_theme'] ?? 'modern');
-        $view = 'estimates.print_' . $theme;
-
-        if (!view()->exists($view)) {
-            $view = 'estimates.print_modern';
-        }
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, compact('estimate', 'settings'));
-        return $pdf->stream($estimate->estimate_number . '.pdf');
-    }
-
-    private function createEstimateItem($estimate, $sectionId, $itemData, $orderIndex)
+    private function updateEstimateItem(EstimateItem $item, $sectionId, $itemData, $orderIndex)
     {
         $unitPrice = $itemData['unit_price'];
         $originalPrice = null;
         $isComplimentary = isset($itemData['is_complimentary']) && $itemData['is_complimentary'];
 
-        // If complimentary, store original price and set unit price to 0
+        if ($isComplimentary) {
+            $originalPrice = $unitPrice;
+            $unitPrice = 0;
+        }
+
+        $itemSubtotal = $unitPrice * $itemData['quantity'];
+        $tax1Amount = $itemSubtotal * ($itemData['tax_1'] ?? 0) / 100;
+        $tax2Amount = $itemSubtotal * ($itemData['tax_2'] ?? 0) / 100;
+        $total = $itemSubtotal + $tax1Amount + $tax2Amount;
+
+        $item->update([
+            'estimate_section_id' => $sectionId,
+            'product_id' => $itemData['product_id'] ?? null,
+            'name' => $itemData['name'],
+            'description' => $itemData['description'] ?? null,
+            'unit_price' => $unitPrice,
+            'quantity' => $itemData['quantity'],
+            'unit_type' => $itemData['unit_type'] ?? 'nos',
+            'tax_1' => $itemData['tax_1'] ?? 0,
+            'tax_2' => $itemData['tax_2'] ?? 0,
+            'total' => $total,
+            'order_index' => $orderIndex,
+            'is_complimentary' => $isComplimentary,
+            'original_price' => $originalPrice,
+            'length' => $itemData['length'] ?? null,
+            'width' => $itemData['width'] ?? null,
+            'formula' => $itemData['formula'] ?? null,
+        ]);
+    }
+
+    private function createEstimateItem(Estimate $estimate, $sectionId, $itemData, $orderIndex)
+    {
+        $unitPrice = $itemData['unit_price'];
+        $originalPrice = null;
+        $isComplimentary = isset($itemData['is_complimentary']) && $itemData['is_complimentary'];
+
         if ($isComplimentary) {
             $originalPrice = $unitPrice;
             $unitPrice = 0;
@@ -291,107 +316,25 @@ class EstimateController extends Controller
         ]);
     }
 
-    private function recalculateTotals($estimate)
+    private function recalculateTotals(Estimate $estimate)
     {
-        $subtotal = 0;
-        $totalTax = 0;
-
-        foreach ($estimate->items as $item) {
-            $itemSubtotal = $item->unit_price * $item->quantity;
-            $subtotal += $itemSubtotal;
-            $totalTax += ($itemSubtotal * $item->tax_1 / 100) + ($itemSubtotal * $item->tax_2 / 100);
-        }
-
-        // Calculate estimate-level discount
-        $discountAmount = 0;
+        $subtotal = $estimate->items()->sum(DB::raw('unit_price * quantity'));
+        $totalWithTax = $estimate->items()->sum('total');
         if ($estimate->discount_value > 0) {
             if ($estimate->discount_type === 'percentage') {
                 $discountAmount = $subtotal * ($estimate->discount_value / 100);
             } else {
                 $discountAmount = $estimate->discount_value;
             }
+        } else {
+            $discountAmount = 0;
         }
 
-        // Calculate coupon discount
-        $couponDiscount = 0;
-        if ($estimate->coupon_code_id && $estimate->couponCode) {
-            $subtotalAfterDiscount = $subtotal - $discountAmount;
-            $couponDiscount = $estimate->couponCode->calculateDiscount($subtotalAfterDiscount);
-        }
+        $grandTotal = $totalWithTax - $discountAmount;
 
-        $grandTotal = $subtotal + $totalTax - $discountAmount - $couponDiscount;
-
-        $estimate->update([
-            'subtotal' => $subtotal,
-            'total_tax' => $totalTax,
-            'discount_total' => $discountAmount,
-            'coupon_discount' => $couponDiscount,
-            'grand_total' => $grandTotal,
-        ]);
-
-        // Update section subtotals for room-based estimates
-        if ($estimate->type === 'room_based') {
-            foreach ($estimate->sections as $section) {
-                $sectionSubtotal = $section->items->sum(function ($item) {
-                    return $item->unit_price * $item->quantity;
-                });
-                $section->update(['subtotal' => $sectionSubtotal]);
-            }
-        }
-
-        // Increment coupon usage if this is a new estimate with coupon
-        if ($estimate->coupon_code_id && $estimate->couponCode && $estimate->wasRecentlyCreated) {
-            $estimate->couponCode->incrementUsage();
-        }
+        // Persist logic here if needed
     }
 
-    /**
-     * Approval Workflow Methods
-     */
-    public function submitForApproval(Estimate $estimate)
-    {
-        if ($estimate->status !== 'draft') {
-            return back()->with('error', 'Only drafts can be submitted.');
-        }
-        $estimate->update(['status' => 'waiting_approval']);
-        return back()->with('success', 'Estimate submitted for approval.');
-    }
-
-    public function approve(Estimate $estimate)
-    {
-        if ($estimate->status !== 'waiting_approval') {
-            return back()->with('error', 'Estimate is not waiting for approval.');
-        }
-        $estimate->update(['status' => 'approved']);
-
-        // Log approval
-        \App\Models\EstimateApproval::create([
-            'estimate_id' => $estimate->id,
-            'user_id' => auth()->id(),
-            'status' => 'approved',
-            'comments' => request('comments')
-        ]);
-
-        return back()->with('success', 'Estimate approved successfully.');
-    }
-
-    public function reject(Estimate $estimate)
-    {
-        if ($estimate->status !== 'waiting_approval') {
-            return back()->with('error', 'Estimate is not waiting for approval.');
-        }
-        $estimate->update(['status' => 'draft']); // Revert to draft
-
-        // Log rejection
-        \App\Models\EstimateApproval::create([
-            'estimate_id' => $estimate->id,
-            'user_id' => auth()->id(),
-            'status' => 'rejected',
-            'comments' => request('comments')
-        ]);
-
-        return back()->with('success', 'Estimate rejected and reverted to draft.');
-    }
     public function createVersion(Estimate $estimate)
     {
         // 1. Mark current as not current
@@ -410,33 +353,11 @@ class EstimateController extends Controller
         $baseNumber = preg_replace('/-v\d+$/', '', $estimate->estimate_number);
         $newEstimate->estimate_number = $baseNumber . '-v' . $newEstimate->version;
 
-        $newEstimate->status = 'draft'; // Reset status
-        $newEstimate->push(); // Save and push
+        $newEstimate->status = Estimate::STATUS_DRAFT; // Reset status
+        $newEstimate->push();
 
-        // 3. Replicate Sections and Items
-        $estimate->load(['sections.items', 'items']);
-
-        foreach ($estimate->sections as $section) {
-            $newSection = $section->replicate();
-            $newSection->estimate_id = $newEstimate->id;
-            $newSection->save();
-
-            foreach ($section->items as $item) {
-                $newItem = $item->replicate();
-                $newItem->estimate_section_id = $newSection->id;
-                $newItem->estimate_id = $newEstimate->id;
-                $newItem->save();
-            }
-        }
-
-        // Handle standalone items if any (though usually in sections)
-        foreach ($estimate->items as $item) {
-            if (!$item->estimate_section_id) {
-                $newItem = $item->replicate();
-                $newItem->estimate_id = $newEstimate->id;
-                $newItem->save();
-            }
-        }
+        // 3. Replicate Sections and Items using shared method
+        $this->duplicateEstimateItems($estimate, $newEstimate);
 
         return redirect()->route('estimates.edit', $newEstimate)
             ->with('success', 'New version created! You are now editing version ' . $newEstimate->version);
@@ -465,27 +386,47 @@ class EstimateController extends Controller
         $nextNumber = $lastEstimate ? ((int) str_replace('EST-', '', $lastEstimate->estimate_number) + 1) : 1000;
         $newEstimate->estimate_number = 'EST-' . $nextNumber;
 
-        $newEstimate->status = 'draft';
+        $newEstimate->status = Estimate::STATUS_DRAFT;
         $newEstimate->version = 1;
         $newEstimate->save();
 
-        // Copy sections and items
-        foreach ($estimate->sections as $section) {
+        // Copy sections and items using shared method
+        $this->duplicateEstimateItems($estimate, $newEstimate);
+
+        \App\Models\ActivityLog::log('copied', $newEstimate, "Estimate #{$newEstimate->estimate_number} was created by copying #{$estimate->estimate_number}");
+
+        return redirect()->route('estimates.edit', $newEstimate)->with('success', 'Estimate copied successfully.');
+    }
+
+    /**
+     * Helper to duplicate sections and items from one estimate to another
+     */
+    private function duplicateEstimateItems(Estimate $source, Estimate $target)
+    {
+        $source->load(['sections.items', 'items']);
+
+        // Copy sections and their items
+        foreach ($source->sections as $section) {
             $newSection = $section->replicate();
-            $newSection->estimate_id = $newEstimate->id;
+            $newSection->estimate_id = $target->id;
             $newSection->save();
 
             foreach ($section->items as $item) {
                 $newItem = $item->replicate();
                 $newItem->estimate_section_id = $newSection->id;
-                $newItem->estimate_id = $newEstimate->id;
+                $newItem->estimate_id = $target->id;
                 $newItem->save();
             }
         }
 
-        \App\Models\ActivityLog::log('copied', $newEstimate, "Estimate #{$newEstimate->estimate_number} was created by copying #{$estimate->estimate_number}");
-
-        return redirect()->route('estimates.edit', $newEstimate)->with('success', 'Estimate copied successfully.');
+        // Handle standalone items if any
+        foreach ($source->items as $item) {
+            if (!$item->estimate_section_id) {
+                $newItem = $item->replicate();
+                $newItem->estimate_id = $target->id;
+                $newItem->save();
+            }
+        }
     }
 
     /**
@@ -495,7 +436,13 @@ class EstimateController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        $validStatuses = ['draft', 'sent', 'accepted', 'declined', 'expired'];
+        $validStatuses = [
+            Estimate::STATUS_DRAFT,
+            Estimate::STATUS_SENT,
+            Estimate::STATUS_ACCEPTED,
+            Estimate::STATUS_DECLINED,
+            Estimate::STATUS_EXPIRED
+        ];
 
         if (!in_array($status, $validStatuses)) {
             return back()->with('error', 'Invalid status.');
@@ -524,14 +471,15 @@ class EstimateController extends Controller
         $estimate->client->notify(new \App\Notifications\EstimateSentToClient($estimate));
 
         // Update status if it was draft
-        if ($estimate->status === 'draft') {
-            $estimate->update(['status' => 'sent']);
+        if ($estimate->status === Estimate::STATUS_DRAFT) {
+            $estimate->update(['status' => Estimate::STATUS_SENT]);
         }
 
         \App\Models\ActivityLog::log('sent_to_client', $estimate, "Estimate #{$estimate->estimate_number} was sent to {$estimate->client->email}.");
 
         return back()->with('success', 'Estimate sent to client successfully.');
     }
+
     public function batchDownload(Request $request)
     {
         $request->validate([
@@ -545,3 +493,4 @@ class EstimateController extends Controller
         return back()->with('success', 'Batch export started. You will receive an email/notification when it is ready.');
     }
 }
+
