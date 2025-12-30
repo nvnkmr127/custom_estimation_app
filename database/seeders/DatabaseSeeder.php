@@ -19,7 +19,13 @@ class DatabaseSeeder extends Seeder
 
         // User::factory(10)->create();
 
-        $this->call(DemoLoginsSeeder::class);
-        $this->call(TestDataSeeder::class);
+        $this->call([
+            PdfTemplateSeeder::class,
+            DemoLoginsSeeder::class,
+            ApprovalChainSeeder::class,
+            FullDummyContentSeeder::class,
+            ProductImageSeeder::class,
+            TestDataSeeder::class,
+        ]);
     }
 }

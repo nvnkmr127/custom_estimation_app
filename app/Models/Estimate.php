@@ -69,6 +69,7 @@ class Estimate extends Model
         'room_discounts_total',
         'perfex_proposal_id',
         'pdf_theme',
+        'pdf_template_id',
         'view_count',
         'nudge_task_created',
         'created_by',

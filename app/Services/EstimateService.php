@@ -144,7 +144,7 @@ class EstimateService
 
             // Generate new number with -vX suffix
             $baseNumber = preg_replace('/-v\d+$/', '', $estimate->estimate_number);
-            $newEstimate->estimate_number = $baseNumber.'-v'.$newEstimate->version;
+            $newEstimate->estimate_number = $baseNumber . '-v' . $newEstimate->version;
 
             $newEstimate->status = Estimate::STATUS_DRAFT; // Reset status
             $newEstimate->push();
@@ -212,7 +212,7 @@ class EstimateService
 
         // Handle standalone items if any
         foreach ($source->items as $item) {
-            if (! $item->estimate_section_id) {
+            if (!$item->estimate_section_id) {
                 $newItem = $item->replicate();
                 $newItem->estimate_id = $target->id;
                 $newItem->save();
@@ -225,7 +225,7 @@ class EstimateService
      */
     public function sendToClient(Estimate $estimate): bool
     {
-        if (! $estimate->client || ! $estimate->client->email) {
+        if (!$estimate->client || !$estimate->client->email) {
             throw new \Exception('Client does not have a valid email address.');
         }
 
@@ -257,15 +257,33 @@ class EstimateService
      */
     public function generateNextNumber(): string
     {
-        $lastEstimate = Estimate::orderBy('id', 'desc')->first();
-        if (! $lastEstimate) {
-            return 'EST-1001';
+        $year = date('Y');
+        $prefix = "EST-{$year}-";
+
+        // Get recent estimates to find the highest sequence number
+        // We fetch multiple candidates to skip over potential malformed/garbage numbers (like UUIDs)
+        $estimates = Estimate::where('estimate_number', 'like', "{$prefix}%")
+            ->orderByRaw('LENGTH(estimate_number) DESC')
+            ->orderBy('estimate_number', 'desc')
+            ->limit(10)
+            ->get();
+
+        $maxSequence = 0;
+
+        foreach ($estimates as $estimate) {
+            $parts = explode('-', $estimate->estimate_number);
+            $suffix = end($parts);
+
+            if (is_numeric($suffix)) {
+                $sequence = (int) $suffix;
+                if ($sequence > $maxSequence) {
+                    $maxSequence = $sequence;
+                }
+            }
         }
 
-        // Try to extract number from EST-XXXX
-        preg_match('/EST-(\d+)/', $lastEstimate->estimate_number, $matches);
-        $nextNumber = isset($matches[1]) ? (int) $matches[1] + 1 : (Estimate::max('id') + 1001);
+        $nextSequence = $maxSequence + 1;
 
-        return 'EST-'.$nextNumber;
+        return $prefix . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
     }
 }

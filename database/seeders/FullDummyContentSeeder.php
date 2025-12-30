@@ -240,31 +240,6 @@ class FullDummyContentSeeder extends Seeder
         }
         $est2->update(['subtotal' => $est2Total, 'grand_total' => $est2Total]);
 
-        // 7. Company Settings
-        $settings = [
-            'company_legal_name' => 'Premium Interiors Pvt Ltd',
-            'company_email' => 'contact@premiuminteriors.com',
-            'company_phone' => '+91 98765 43210',
-            'company_address_street' => '123, Luxury Avenue, Jubilee Hills',
-            'company_address_city' => 'Hyderabad',
-            'company_address_state' => 'Telangana',
-            'company_address_zip' => '500033',
-            'company_website' => 'www.premiuminteriors.com',
-            'company_about' => 'We are a premier interior design firm dedicated to transforming spaces into bespoke experiences. With over 15 years of excellence, we specialize in high-end residential and commercial projects that blend functionality with artistic vision.',
-            'company_profile' => 'Founded in 2010, Premium Interiors has delivered 500+ projects across India. Our team of expert architects and designers ensures that every corner of your home reflects your personality. We use only top-grade materials like Italian Marble, Teak Wood, and premium fittings from Jaguar and Kohler. Innovation and Sustainability are at the core of our designs.',
-            'currency_code' => 'INR',
-            'currency_symbol' => '₹',
-            'tax_1_name' => 'CGST',
-            'tax_1_rate' => 9,
-            'tax_2_name' => 'SGST',
-            'tax_2_rate' => 9,
-        ];
-
-        foreach ($settings as $key => $value) {
-            \App\Models\Setting::updateOrCreate(['key' => $key], ['value' => $value]);
-        }
-
-        $this->command->info('Settings & Company Profile created.');
         $this->command->info('Estimates created. Seeding completed successfully!');
     }
 }

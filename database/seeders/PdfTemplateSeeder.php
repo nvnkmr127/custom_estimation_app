@@ -2,186 +2,347 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\PdfTemplate;
-use App\Models\Setting;
+use Illuminate\Database\Seeder;
 
 class PdfTemplateSeeder extends Seeder
 {
     public function run()
     {
-        // Ensure settings exist (in case FullDummyContentSeeder wasn't run)
-        $settings = [
-            'company_legal_name' => 'Premium Interiors Pvt Ltd',
-            'company_email' => 'contact@premiuminteriors.com',
-            'company_phone' => '+91 98765 43210',
-            'company_address_street' => '123, Luxury Avenue, Jubilee Hills',
-            'company_address_city' => 'Hyderabad',
-            'company_address_state' => 'Telangana',
-            'company_website' => 'www.premiuminteriors.com',
-            'company_about' => 'We are a premier interior design firm dedicated to transforming spaces into bespoke experiences. With over 15 years of excellence, we specialize in high-end residential and commercial projects that blend functionality with artistic vision.',
-            'company_profile' => 'Founded in 2010, Premium Interiors has delivered 500+ projects across India. Our team of expert architects and designers ensures that every corner of your home reflects your personality. We use only top-grade materials like Italian Marble, Teak Wood, and premium fittings. Innovation and Sustainability are at the core of our designs.',
-        ];
-        foreach ($settings as $key => $value) {
-            Setting::updateOrCreate(['key' => $key], ['value' => $value]);
-        }
+        // Modern Template
+        PdfTemplate::create([
+            'name' => 'Modern',
+            'html_content' => '
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>{estimate_title}</title>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <!-- <img src="path/to/logo.png" alt="Company Logo"> -->
+            <h1>{company_name}</h1>
+        </div>
+        <div class="meta">
+            <p>Estimate #: {estimate_number}</p>
+            <p>Date: {estimate_date}</p>
+            <p>Expiry: {expiry_date}</p>
+        </div>
+    </div>
 
-        // 1. Premium Template
-        $premiumCss = "
-            .header-bg { background-color: var(--primary-color); color: #fff; padding: 40px; }
-            .company-title { font-size: 28px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
-            .meta-table { width: 100%; margin-top: 20px; color: #fff; }
-            .meta-table td { padding: 5px; }
-            .section-title { color: var(--primary-color); font-size: 16px; font-weight: bold; border-bottom: 2px solid var(--secondary-color); padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px; }
-            .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .items-table th { background-color: #f3f4f6; color: #555; font-weight: bold; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; }
-            .items-table td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
-            .total-row td { font-weight: bold; font-size: 14px; background-color: #f9fafb; }
-            .summary-card { background: #f9fafb; padding: 20px; border-radius: 8px; margin-top: 20px; page-break-inside: avoid; }
-            .chart-row { display: table; width: 100%; margin-bottom: 10px; }
-            .chart-label { display: table-cell; width: 30%; font-size: 12px; font-weight: bold; color: #555; vertical-align: middle; }
-            .chart-bar-cell { display: table-cell; width: 50%; vertical-align: middle; }
-            .chart-value { display: table-cell; width: 20%; text-align: right; font-size: 12px; font-weight: bold; color: var(--primary-color); vertical-align: middle; }
-            .bar-outer { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
-            .bar-inner { height: 100%; background: var(--secondary-color); }
-            .about-section { margin-top: 40px; padding: 30px; background: #fff; border: 1px solid #eee; page-break-inside: avoid; }
-            .about-title { font-size: 18px; color: var(--primary-color); font-weight: bold; margin-bottom: 15px; text-transform: uppercase; }
-            .about-text { font-size: 12px; color: #666; line-height: 1.6; text-align: justify; }
-            .footer { margin-top: 50px; text-align: center; font-size: 10px; color: #aaa; border-top: 1px solid #eee; padding-top: 15px; }
-        ";
+    <div class="client-info">
+        <h3>Prepared For:</h3>
+        <p><strong>{client_name}</strong></p>
+        <p>{client_address}</p>
+        <p>{client_email}</p>
+    </div>
 
-        $premiumHtml = '
-            <div class=\"header-bg\">
-                <div class=\"company-title\">{company_name}</div>
-                <div style=\"font-size: 12px; margin-top: 5px; opacity: 0.8;\">{company_address}, {company_city}</div>
-                <div style=\"font-size: 12px; opacity: 0.8;\">{company_email} | {company_phone}</div>
-                
-                <table class=\"meta-table\">
-                    <tr>
-                        <td width=\"50%\">
-                            <div style=\"font-size: 10px; text-transform: uppercase; opacity: 0.7;\">Prepared For</div>
-                            <div style=\"font-size: 16px; font-weight: bold;\">Client #{client_id}</div>
-                            <div style=\"font-size: 12px;\">{client_name}</div>
-                        </td>
-                        <td width=\"50%\" align=\"right\">
-                            <div style=\"font-size: 30px; font-weight: 300;\">ESTIMATE</div>
-                            <div style=\"font-size: 14px;\">#{estimate_number}</div>
-                            <div style=\"font-size: 12px; margin-top: 5px;\">Date: {estimate_date}</div>
-                        </td>
-                    </tr>
-                </table>
-            </div>
+    <div class="section">
+        <h2>About Us</h2>
+        <p>We are a premium interior design firm dedicated to transforming spaces into living works of art. With over 10 years of experience, we specialize in modern, sustainable, and luxurious designs.</p>
+    </div>
 
-            <div style=\"padding: 40px;\">
+    <div class="section">
+        <h2>Project Estimate</h2>
+        <p>{estimate_title}</p>
+        
+        {IF_room_based}
+        <div class="chart-container">
+            <h3>Cost Distribution by Room</h3>
+            <img src="{CHART_ROOMS}" alt="Room Cost Chart" style="width: 100%; max-width: 600px;">
+        </div>
+        {END_IF}
+
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th class="text-right">Qty</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
                 {LOOP_SECTIONS}
-                <div class=\"section-title\">{section_name}</div>
-                <table class=\"items-table\">
-                    <thead>
-                        <tr>
-                            <th width=\"45%\">Description</th>
-                            <th width=\"10%\" align=\"center\">Qty</th>
-                            <th width=\"15%\" align=\"right\">Unit Price</th>
-                            <th width=\"15%\" align=\"right\">Tax</th>
-                            <th width=\"15%\" align=\"right\">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <tr class="section-header">
+                    <td colspan="4">{section_name}</td>
+                </tr>
+                    {LOOP_ITEMS}
+                    <tr>
+                        <td>
+                            <strong>{item_name}</strong><br>
+                            <small>{item_description}</small>
+                        </td>
+                        <td class="text-right">{item_quantity} {item_unit}</td>
+                        <td class="text-right">{currency} {item_price}</td>
+                        <td class="text-right">{currency} {item_total}</td>
+                    </tr>
+                    {END_LOOP}
+                <tr>
+                    <td colspan="3" class="text-right"><strong>Subtotal ({section_name})</strong></td>
+                    <td class="text-right"><strong>{currency} {section_subtotal}</strong></td>
+                </tr>
+                {END_LOOP}
+                
+                {IF_NOT_room_based}
+                    {LOOP_ITEMS}
+                    <tr>
+                        <td>
+                            <strong>{item_name}</strong><br>
+                            <small>{item_description}</small>
+                        </td>
+                        <td class="text-right">{item_quantity} {item_unit}</td>
+                        <td class="text-right">{currency} {item_price}</td>
+                        <td class="text-right">{currency} {item_total}</td>
+                    </tr>
+                    {END_LOOP}
+                {END_IF}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="totals">
+        <p>Subtotal: {currency} {subtotal}</p>
+        <p>Tax: {currency} {tax_total}</p>
+        <p>Discount: -{currency} {discount_total}</p>
+        <h3>Grand Total: {currency} {grand_total}</h3>
+    </div>
+
+    <div class="section page-break-inside-avoid">
+        <h2>Terms & Conditions</h2>
+        <p>{terms}</p>
+        <p>1. 50% advance payment required to start work.<br>
+           2. Valid for 30 days from date of issue.<br>
+           3. Timelines are subject to material availability.</p>
+    </div>
+    
+    <div class="footer">
+        <p>Thank you for your business!</p>
+        <p>{company_address} | {company_email} | {company_phone}</p>
+    </div>
+</body>
+</html>',
+            'css_content' => '
+body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; }
+.header { display: table; width: 100%; border-bottom: 2px solid var(--primary-color); padding-bottom: 20px; margin-bottom: 30px; }
+.logo { display: table-cell; vertical-align: middle; }
+.meta { display: table-cell; text-align: right; vertical-align: middle; }
+.section { margin-bottom: 30px; }
+h1 { color: var(--primary-color); margin: 0; font-size: 24px; }
+h2 { color: var(--primary-color); border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0; }
+h3 { margin-bottom: 10px; }
+.items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.items-table th { background: #f8f9fa; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
+.items-table td { padding: 10px; border-bottom: 1px solid #eee; }
+.section-header td { background: #e9ecef; font-weight: bold; color: #495057; }
+.text-right { text-align: right; }
+.totals { text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
+.totals h3 { color: var(--primary-color); font-size: 20px; }
+.footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px; }
+.page-break-inside-avoid { page-break-inside: avoid; }
+',
+            'primary_color' => '#2563eb', // Blue
+            'secondary_color' => '#1e40af',
+            'font_family' => 'Helvetica, sans-serif',
+            'is_active' => true,
+            'is_default' => true,
+        ]);
+
+        // Premium Template
+        PdfTemplate::create([
+            'name' => 'Premium',
+            'html_content' => '
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>{estimate_title}</title>
+</head>
+<body>
+    <div class="sidebar"></div>
+    <div class="content">
+        <div class="header">
+            <h1>ESTIMATE</h1>
+            <div class="meta-grid">
+                <div>
+                    <span class="label">Reference:</span> {estimate_number}
+                </div>
+                <div>
+                    <span class="label">Date:</span> {estimate_date}
+                </div>
+                <div>
+                    <span class="label">Valid Until:</span> {expiry_date}
+                </div>
+            </div>
+        </div>
+
+        <div class="client-grid">
+            <div class="box">
+                <h6>ISSUED BY</h6>
+                <p><strong>{company_name}</strong><br>
+                {company_address}<br>
+                {company_city}<br>
+                {company_email}</p>
+            </div>
+            <div class="box">
+                <h6>PREPARED FOR</h6>
+                <p><strong>{client_name}</strong><br>
+                {client_address}<br>
+                {client_email}</p>
+            </div>
+        </div>
+
+        <div class="intro">
+            <h2>Luxury Interior Solutions</h2>
+            <p>Thank you for considering us for your project. We have prepared this detailed estimate based on our discussion. This proposal uses premium materials to ensure elegance and durability.</p>
+        </div>
+
+        {IF_room_based}
+        <div class="chart-section">
+            <img src="{CHART_ROOMS}" alt="Visual Breakdown">
+            <p class="caption">Investment distribution across different areas</p>
+        </div>
+        {END_IF}
+
+        <div class="items-container">
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th width="50%">Description</th>
+                        <th width="15%" class="text-center">Qty</th>
+                        <th width="15%" class="text-right">Unit Price</th>
+                        <th width="20%" class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {LOOP_SECTIONS}
+                    <tr class="section-row">
+                        <td colspan="4">{section_name}</td>
+                    </tr>
                         {LOOP_ITEMS}
                         <tr>
                             <td>
-                                <b>{item_name}</b>
-                                <div style=\"font-size: 11px; color: #888;\">{item_description}</div>
+                                <span class="item-name">{item_name}</span>
+                                <div class="item-desc">{item_description}</div>
                             </td>
-                            <td align=\"center\">{item_quantity}</td>
-                            <td align=\"right\">{item_price}</td>
-                            <td align=\"right\">{item_tax_percent}%</td>
-                            <td align=\"right\">{item_total}</td>
+                            <td class="text-center">{item_quantity} {item_unit}</td>
+                            <td class="text-right">{item_price}</td>
+                            <td class="text-right">{item_total}</td>
                         </tr>
                         {END_LOOP}
-                    </tbody>
-                </table>
-                {END_LOOP}
-
-                <!-- Room Cost Summary Chart -->
-                <div class=\"summary-card\">
-                    <div class=\"section-title\" style=\"margin-top: 0;\">Cost Distribution</div>
-                    {LOOP_SECTIONS}
-                    <div class=\"chart-row\">
-                        <div class=\"chart-label\">{section_name}</div>
-                        <div class=\"chart-bar-cell\">
-                            <div class=\"bar-outer\">
-                                <div class=\"bar-inner\" style=\"width: {section_percent}%;\"></div>
-                            </div>
-                        </div>
-                        <div class=\"chart-value\">{currency} {section_subtotal}</div>
-                    </div>
+                    <tr>
+                        <td colspan="3" class="text-right sub-label">Subtotal</td>
+                        <td class="text-right sub-val">{currency} {section_subtotal}</td>
+                    </tr>
                     {END_LOOP}
-                </div>
+                    
+                    {IF_NOT_room_based}
+                        {LOOP_ITEMS}
+                        <tr>
+                            <td>
+                                <span class="item-name">{item_name}</span>
+                                <div class="item-desc">{item_description}</div>
+                            </td>
+                            <td class="text-center">{item_quantity} {item_unit}</td>
+                            <td class="text-right">{item_price}</td>
+                            <td class="text-right">{item_total}</td>
+                        </tr>
+                        {END_LOOP}
+                    {END_IF}
+                </tbody>
+            </table>
+        </div>
 
-                <table style=\"width: 300px; margin-left: auto; margin-top: 30px;\">
-                    <tr>
-                        <td style=\"padding: 5px; font-weight: bold; color: #555;\">Subtotal</td>
-                        <td style=\"padding: 5px; text-align: right; font-weight: bold;\">{currency} {subtotal}</td>
-                    </tr>
-                    <tr>
-                        <td style=\"padding: 5px; color: #555;\">Tax</td>
-                        <td style=\"padding: 5px; text-align: right;\">{currency} {tax_total}</td>
-                    </tr>
-                    <tr>
-                        <td style=\"padding: 10px 5px; font-size: 18px; font-weight: bold; color: var(--primary-color); border-top: 2px solid #333;\">Grand Total</td>
-                        <td style=\"padding: 10px 5px; font-size: 18px; font-weight: bold; color: var(--primary-color); border-top: 2px solid #333; text-align: right;\">{currency} {grand_total}</td>
-                    </tr>
-                </table>
+        <div class="summary-section">
+            <table class="summary-table">
+                <tr>
+                    <td>Subtotal</td>
+                    <td class="text-right">{currency} {subtotal}</td>
+                </tr>
+                <tr>
+                    <td>Tax</td>
+                    <td class="text-right">{currency} {tax_total}</td>
+                </tr>
+                {IF_discount_total}
+                <tr>
+                    <td>Discount</td>
+                    <td class="text-right">({currency} {discount_total})</td>
+                </tr>
+                {END_IF}
+                <tr class="grand-total-row">
+                    <td>TOTAL ESTIMATE</td>
+                    <td class="text-right">{currency} {grand_total}</td>
+                </tr>
+            </table>
+        </div>
 
-                <!-- Company Profile Section -->
-                <div class=\"about-section\">
-                    <div class=\"about-title\">Who We Are</div>
-                    <div class=\"about-text\">{company_about}</div>
-                    <div style=\"margin-top: 15px;\" class=\"about-text\">{company_profile}</div>
-                </div>
-
-                <!-- Terms -->
-                <div style=\"margin-top: 30px;\">
-                    <div style=\"font-weight: bold; font-size: 12px; margin-bottom: 5px;\">Terms & Conditions</div>
-                    <div style=\"font-size: 11px; color: #666; white-space: pre-wrap;\">{terms}</div>
-                </div>
-
-                <div class=\"footer\">
-                    {company_website}
-                </div>
+        <div class="terms-section page-break-inside-avoid">
+            <h6>AUTHORIZATION & TERMS</h6>
+            <div class="terms-content">
+                {terms}
+                <p>By signing below, you agree to the terms and conditions stated in this proposal.</p>
             </div>
-        ';
+            <div class="signature-box">
+                <div class="line"></div>
+                <span>Client Signature</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>',
+            'css_content' => '
+body { margin: 0; padding: 0; font-family: "Georgia", serif; color: #444; }
+.sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 40px; background: var(--primary-color); }
+.content { margin-left: 60px; padding: 40px; }
+.header h1 { font-family: sans-serif; letter-spacing: 4px; color: var(--primary-color); font-size: 32px; border-bottom: 2px solid var(--secondary-color); padding-bottom: 10px; margin-bottom: 20px; }
+.meta-grid { display: block; margin-bottom: 40px; }
+.meta-grid div { display: inline-block; width: 30%; margin-right: 2%; font-family: sans-serif; font-size: 11px; text-transform: uppercase; color: #888; }
+.meta-grid .label { font-weight: bold; color: #333; }
 
-        PdfTemplate::updateOrCreate(
-            ['name' => 'Premium Blue'],
-            [
-                'html_content' => $premiumHtml,
-                'css_content' => $premiumCss,
-                'paper_size' => 'a4',
-                'orientation' => 'portrait',
-                'primary_color' => '#1e3a8a', // Dark Blue
-                'secondary_color' => '#3b82f6', // Light Blue
-                'font_family' => 'Helvetica',
-                'is_active' => true,
-                'is_default' => true,
-            ]
-        );
+.client-grid { display: table; width: 100%; margin-bottom: 40px; }
+.client-grid .box { display: table-cell; width: 45%; vertical-align: top; padding: 20px; background: #f9f9f9; border-left: 3px solid var(--primary-color); }
+.client-grid .box:first-child { padding-right: 5%; }
+.box h6 { margin: 0 0 10px 0; font-family: sans-serif; font-size: 10px; letter-spacing: 2px; color: #999; text-transform: uppercase; }
+.box p { margin: 0; font-size: 12px; line-height: 1.5; }
 
-        // 2. Modern Template (Updated)
-        // Similar structure but different styling, maybe green accent
-        PdfTemplate::updateOrCreate(
-            ['name' => 'Modern Green'],
-            [
-                'html_content' => $premiumHtml, // Reusing HTML for now but different colors
-                'css_content' => $premiumCss,
-                'paper_size' => 'a4',
-                'orientation' => 'portrait',
-                'primary_color' => '#065f46', // Dark Green
-                'secondary_color' => '#10b981', // Emerald
-                'font_family' => 'Helvetica',
-                'is_active' => true,
-                'is_default' => false,
-            ]
-        );
+.intro { margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+.intro h2 { font-size: 18px; color: var(--primary-color); margin-bottom: 10px; }
+.intro p { font-style: italic; font-size: 13px; color: #666; }
+
+.chart-section { text-align: center; margin-bottom: 40px; padding: 20px; border: 1px solid #eee; background: #fff; }
+.chart-section img { max-width: 80%; height: auto; }
+.caption { font-size: 10px; color: #999; margin-top: 5px; font-style: italic; }
+
+.premium-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+.premium-table th { font-family: sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #fff; background: #333; padding: 12px; }
+.premium-table td { padding: 12px; border-bottom: 1px solid #eee; font-size: 12px; }
+.section-row td { background: var(--primary-color); color: #fff; font-weight: bold; font-family: sans-serif; font-size: 11px; padding: 8px 12px; }
+.item-name { display: block; font-weight: bold; color: #333; margin-bottom: 3px; }
+.item-desc { color: #777; font-size: 11px; }
+
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+.sub-label { font-family: sans-serif; font-size: 10px; text-transform: uppercase; font-weight: bold; color: #888; border-bottom: none; }
+.sub-val { font-weight: bold; color: #333; border-bottom: none; }
+
+.summary-section { width: 40%; margin-left: auto; }
+.summary-table { width: 100%; border-collapse: collapse; }
+.summary-table td { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 12px; }
+.grand-total-row td { border-bottom: 2px solid var(--primary-color); border-top: 2px solid var(--primary-color); font-weight: bold; font-size: 14px; padding: 15px 0; color: var(--primary-color); }
+
+.terms-section { margin-top: 50px; background: #fdfdfd; border: 1px solid #eee; padding: 20px; page-break-inside: avoid; }
+.terms-content { font-size: 10px; color: #666; line-height: 1.6; margin-bottom: 40px; columns: 2; }
+.signature-box { width: 200px; }
+.signature-box .line { border-bottom: 1px solid #333; margin-bottom: 5px; height: 1px; }
+.signature-box span { font-size: 10px; text-transform: uppercase; color: #888; }
+',
+            'primary_color' => '#1a1a1a', // Black/Dark Grey
+            'secondary_color' => '#c0a062', // Goldish
+            'font_family' => 'Dejavu Serif, serif',
+            'is_active' => true,
+        ]);
     }
 }

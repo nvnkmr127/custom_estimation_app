@@ -92,7 +92,7 @@ class PdfRenderingService
 
     protected function prepareVariables()
     {
-        return [
+        $vars = [
             // Estimate Details
             'estimate_number' => $this->estimate->estimate_number,
             'estimate_title' => $this->estimate->title ?? 'Estimate',
@@ -125,12 +125,57 @@ class PdfRenderingService
             'terms' => nl2br($this->estimate->terms ?? ''),
             'admin_note' => nl2br($this->estimate->admin_note ?? ''),
 
-            // Raw numeric values for Logic (since formatted strings are always true-ish)
+            // Raw numeric and Flags
             '_raw_subtotal' => $this->estimate->subtotal,
             '_raw_discount_total' => $this->estimate->discount_total,
             '_raw_tax_total' => $this->estimate->total_tax,
             '_raw_grand_total' => $this->estimate->grand_total,
+            'room_based' => $this->estimate->type === 'room_based' ? 1 : 0,
+            '_raw_room_based' => $this->estimate->type === 'room_based' ? 1 : 0,
         ];
+
+        // Generate Chart if requested and room_based
+        if ($this->estimate->type === 'room_based' && $this->estimate->sections->count() > 0) {
+            $vars['CHART_ROOMS'] = $this->generateRoomChartUrl();
+        } else {
+            $vars['CHART_ROOMS'] = ''; // Empty image or placeholder
+        }
+
+        return $vars;
+    }
+
+    protected function generateRoomChartUrl()
+    {
+        // Use QuickChart.io
+        $labels = [];
+        $data = [];
+
+        foreach ($this->estimate->sections as $section) {
+            $labels[] = $section->name;
+            $data[] = $section->subtotal;
+        }
+
+        $chartConfig = [
+            'type' => 'doughnut',
+            'data' => [
+                'labels' => $labels,
+                'datasets' => [
+                    [
+                        'data' => $data,
+                        'backgroundColor' => ['#2563eb', '#1e40af', '#64748b', '#94a3b8', '#cbd5e1']
+                    ]
+                ]
+            ],
+            'options' => [
+                'plugins' => [
+                    'legend' => [
+                        'position' => 'right'
+                    ]
+                ]
+            ]
+        ];
+
+        return 'https://quickchart.io/chart?w=500&h=300&c=' . urlencode(json_encode($chartConfig));
     }
 
     protected function replaceVariables($html)
@@ -205,11 +250,6 @@ class PdfRenderingService
                 $sectionHtml = $sectionBlock;
                 $sectionHtml = str_replace('{section_name}', $section->name, $sectionHtml);
                 $sectionHtml = str_replace('{section_subtotal}', number_format($section->subtotal ?? 0, 2), $sectionHtml);
-
-                // Calculate percentage for charts
-                $grandTotal = $this->estimate->grand_total > 0 ? $this->estimate->grand_total : 1;
-                $percent = ($section->subtotal / $grandTotal) * 100;
-                $sectionHtml = str_replace('{section_percent}', round($percent, 1), $sectionHtml);
 
                 $sectionHtml = preg_replace_callback('/\{LOOP_ITEMS\}(.*?)\{END_LOOP\}/s', function ($itemMatches) use ($section) {
                     $itemBlock = $itemMatches[1];

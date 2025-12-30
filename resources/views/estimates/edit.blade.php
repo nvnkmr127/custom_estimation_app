@@ -121,13 +121,17 @@
                     </div>
 
                     <div class="sm:col-span-2">
-                        <x-input-label value="PDF Theme" required />
-                        <select x-model="estimate.pdf_theme" required
+                        <x-input-label value="PDF Template" required />
+                        <select name="pdf_template_id"
                             class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            <option value="modern">Modern (Default)</option>
-                            <option value="classic">Classic</option>
-                            <option value="minimal">Minimal</option>
+                            <option value="">Select a template...</option>
+                            @foreach($pdfTemplates as $template)
+                                <option value="{{ $template->id }}" {{ old('pdf_template_id', $estimate->pdf_template_id) == $template->id ? 'selected' : '' }}>
+                                    {{ $template->name }}
+                                </option>
+                            @endforeach
                         </select>
+                        <x-input-error :messages="$errors->get('pdf_template_id')" class="mt-2" />
                     </div>
 
                     <div class="sm:col-span-2">

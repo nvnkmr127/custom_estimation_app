@@ -69,6 +69,7 @@ class EstimateController extends Controller
         $packages = ItemPackage::all();
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
+        $pdfTemplates = PdfTemplate::where('is_active', true)->get();
 
         $settings = Setting::getAllCached();
 
@@ -82,7 +83,7 @@ class EstimateController extends Controller
             'client_note' => $settings['estimate_client_note'] ?? '',
         ];
 
-        return view('estimates.create', compact('products', 'templates', 'packages', 'defaults', 'clients', 'approvalChains'));
+        return view('estimates.create', compact('products', 'templates', 'packages', 'defaults', 'clients', 'approvalChains', 'pdfTemplates'));
     }
 
     /**
@@ -110,7 +111,8 @@ class EstimateController extends Controller
             'client_note' => 'nullable|string',
             'admin_note' => 'nullable|string',
             'terms' => 'nullable|string',
-            'pdf_theme' => 'nullable|string|in:modern,classic,minimal',
+            'pdf_theme' => 'nullable|string',
+            'pdf_template_id' => 'nullable|exists:pdf_templates,id',
         ]);
 
         $validated['estimate_number'] = $this->estimateService->generateNextNumber();
@@ -183,9 +185,10 @@ class EstimateController extends Controller
         $packages = ItemPackage::all();
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
+        $pdfTemplates = PdfTemplate::where('is_active', true)->get();
         $estimate->load(['sections.items.product.images', 'items.product.images']);
 
-        return view('estimates.edit', compact('estimate', 'products', 'templates', 'packages', 'clients', 'approvalChains'));
+        return view('estimates.edit', compact('estimate', 'products', 'templates', 'packages', 'clients', 'approvalChains', 'pdfTemplates'));
     }
 
     /**
@@ -213,7 +216,8 @@ class EstimateController extends Controller
             'client_note' => 'nullable|string',
             'admin_note' => 'nullable|string',
             'terms' => 'nullable|string',
-            'pdf_theme' => 'nullable|string|in:modern,classic,minimal',
+            'pdf_theme' => 'nullable|string',
+            'pdf_template_id' => 'nullable|exists:pdf_templates,id',
         ]);
 
         DB::beginTransaction();
