@@ -3,30 +3,40 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estimate;
-use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Overview Stats
-        $stats = [
-            'total' => Estimate::count(),
-            'draft' => Estimate::where('status', 'draft')->count(),
-            'sent' => Estimate::where('status', 'sent')->count(),
-            'accepted' => Estimate::where('status', 'accepted')->count(),
-            'declined' => Estimate::where('status', 'declined')->count(),
-            'tasks_pending' => \App\Models\Task::pending()->count(),
-            'tasks_overdue' => \App\Models\Task::overdue()->count(),
-        ];
+        $cacheDuration = 300; // 5 minutes
+
+        $stats = \Illuminate\Support\Facades\Cache::remember('dashboard_stats_'.auth()->id(), $cacheDuration, function () {
+            // 1. Overview Stats
+            return [
+                'total' => Estimate::count(),
+                'draft' => Estimate::where('status', 'draft')->count(),
+                'sent' => Estimate::where('status', 'sent')->count(),
+                'accepted' => Estimate::where('status', 'accepted')->count(),
+                'declined' => Estimate::where('status', 'declined')->count(),
+                'tasks_pending' => \App\Models\Task::pending()->count(),
+                'tasks_overdue' => \App\Models\Task::overdue()->count(),
+            ];
+        });
 
         // 2. Financials (Pipeline)
-        $pipeline_revenue = Estimate::whereIn('status', ['draft', 'sent'])->sum('grand_total');
-        $converted_revenue = Estimate::where('status', 'accepted')->sum('grand_total');
+        $financials = \Illuminate\Support\Facades\Cache::remember('dashboard_financials_'.auth()->id(), $cacheDuration, function () {
+            return [
+                'pipeline_revenue' => Estimate::whereIn('status', ['draft', 'sent'])->sum('grand_total'),
+                'converted_revenue' => Estimate::where('status', 'accepted')->sum('grand_total'),
+                'weightedForecast' => Estimate::whereIn('status', ['sent', 'waiting_approval'])
+                    ->selectRaw('SUM(grand_total * 0.7) as weighted_total')
+                    ->first()->weighted_total ?? 0,
+            ];
+        });
 
-        $weightedForecast = Estimate::whereIn('status', ['sent', 'waiting_approval'])
-            ->selectRaw('SUM(grand_total * 0.7) as weighted_total')
-            ->first()->weighted_total ?? 0;
+        $pipeline_revenue = $financials['pipeline_revenue'];
+        $converted_revenue = $financials['converted_revenue'];
+        $weightedForecast = $financials['weighted_total'] ?? $financials['weightedForecast']; // accommodate selectRaw alias
 
         // 3. Conversion Rate
         $conversion_rate = 0;

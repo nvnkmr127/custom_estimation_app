@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Product;
-use App\Models\ProductCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -34,12 +32,12 @@ class ProductImportTest extends TestCase
         // Header now includes Image URL
         $header = "Name,SKU,Category,Base Price,Unit Type,Tags,Description,Image URL\n";
         $row1 = "Test Product 1,TP-001,Test Category,100.00,nos,tag1,Description 1,\n"; // Empty URL
-        $row2 = "Test Product 2,,Test Category,150.50,sqft,,Description 2,https://invalid-url-for-test.com/image.jpg"; // URL that will fail download but shouldn't break import
+        $row2 = 'Test Product 2,,Test Category,150.50,sqft,,Description 2,https://invalid-url-for-test.com/image.jpg'; // URL that will fail download but shouldn't break import
 
-        $content = $header . $row1 . $row2;
+        $content = $header.$row1.$row2;
 
         // Put content in a real temp file to ensure it's readable
-        $path = sys_get_temp_dir() . '/products.csv';
+        $path = sys_get_temp_dir().'/products.csv';
         file_put_contents($path, $content);
 
         $file = new UploadedFile($path, 'products.csv', 'text/csv', null, true);

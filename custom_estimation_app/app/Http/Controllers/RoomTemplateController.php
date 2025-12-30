@@ -10,6 +10,7 @@ class RoomTemplateController extends Controller
     public function index()
     {
         $templates = RoomTemplate::latest()->paginate(10);
+
         return view('templates.index', compact('templates'));
     }
 
@@ -21,6 +22,7 @@ class RoomTemplateController extends Controller
     public function create()
     {
         $products = \App\Models\Product::orderBy('name', 'asc')->get();
+
         return view('templates.create', compact('products'));
     }
 
@@ -45,6 +47,7 @@ class RoomTemplateController extends Controller
     public function edit(RoomTemplate $template)
     {
         $products = \App\Models\Product::orderBy('name', 'asc')->get();
+
         return view('templates.edit', compact('template', 'products'));
     }
 
@@ -69,6 +72,7 @@ class RoomTemplateController extends Controller
     public function destroy(RoomTemplate $template)
     {
         $template->delete();
+
         return redirect()->route('templates.index')->with('success', 'Room Template deleted successfully.');
     }
 }

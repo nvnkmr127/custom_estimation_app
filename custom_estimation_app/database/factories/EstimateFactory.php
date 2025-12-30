@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Estimate;
 use App\Models\Client;
+use App\Models\Estimate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class EstimateFactory extends Factory
@@ -13,7 +13,7 @@ class EstimateFactory extends Factory
     public function definition()
     {
         return [
-            'estimate_number' => 'EST-' . $this->faker->unique()->numberBetween(1000, 9999),
+            'estimate_number' => 'EST-'.$this->faker->unique()->numberBetween(1000, 9999),
             'title' => 'Test Estimate',
             'client_id' => Client::factory(),
             'estimate_date' => now(),

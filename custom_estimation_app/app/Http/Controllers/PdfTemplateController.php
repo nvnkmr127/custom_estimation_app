@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Estimate;
 use App\Models\PdfTemplate;
-use Illuminate\Http\Request;
 use App\Services\PdfRenderingService;
+use Illuminate\Http\Request;
 
 class PdfTemplateController extends Controller
 {
     public function index()
     {
         $templates = PdfTemplate::latest()->paginate(10);
+
         return view('pdf_templates.index', compact('templates'));
     }
 
@@ -69,6 +70,7 @@ class PdfTemplateController extends Controller
     public function edit(PdfTemplate $pdfTemplate)
     {
         $this->authorize('update', $pdfTemplate);
+
         return view('pdf_templates.edit', compact('pdfTemplate'));
     }
 
@@ -124,6 +126,7 @@ class PdfTemplateController extends Controller
     {
         $this->authorize('delete', $pdfTemplate);
         $pdfTemplate->delete();
+
         return redirect()->route('pdf-templates.index')->with('success', 'Template deleted.');
     }
 
@@ -170,7 +173,7 @@ class PdfTemplateController extends Controller
             'font_family' => $request->input('font_family', 'Helvetica'),
         ]);
 
-        $service = new PdfRenderingService();
+        $service = new PdfRenderingService;
 
         // Mock items needs logic in service or meaningful dummy data
         // For now, let's just let the variables fail gracefully or show empty

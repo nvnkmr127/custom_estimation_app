@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\Estimate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class WebhookSecurityTest extends TestCase
 {
@@ -14,7 +14,7 @@ class WebhookSecurityTest extends TestCase
     {
         $response = $this->postJson('/webhooks/perfex', [
             'event_type' => 'proposal_accepted',
-            'id' => 1
+            'id' => 1,
         ]);
 
         $response->assertStatus(403);
@@ -34,15 +34,15 @@ class WebhookSecurityTest extends TestCase
             'status' => 'sent',
             'perfex_proposal_id' => 123,
             'client_id' => $client->id,
-            'estimate_date' => now()
+            'estimate_date' => now(),
         ]);
 
         $response = $this->withHeaders([
-            'X-Perfex-Token' => 'test-secret'
+            'X-Perfex-Token' => 'test-secret',
         ])->postJson('/webhooks/perfex', [
-                    'event_type' => 'proposal_accepted',
-                    'id' => 123
-                ]);
+            'event_type' => 'proposal_accepted',
+            'id' => 123,
+        ]);
 
         $response->assertStatus(200);
 

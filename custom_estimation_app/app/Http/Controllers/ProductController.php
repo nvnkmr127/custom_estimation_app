@@ -4,14 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\ProductCategory;
-use App\Models\ProductImage;
+use App\Services\ProductService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
+    protected $productService;
+
+    public function __construct(ProductService $productService)
+    {
+        $this->productService = $productService;
+    }
+
     /**
-     * Display product library with search and filters
+     * Display product library with search and filters.
      */
     public function index(Request $request)
     {
@@ -52,18 +59,19 @@ class ProductController extends Controller
     }
 
     /**
-     * Show form to create new product
+     * Show form to create new product.
      */
     public function create()
     {
         $this->authorize('create', Product::class);
 
         $categories = ProductCategory::all();
+
         return view('products.create', compact('categories'));
     }
 
     /**
-     * Store new product
+     * Store new product.
      */
     public function store(Request $request)
     {
@@ -71,32 +79,36 @@ class ProductController extends Controller
 
         $validated = $this->validateProduct($request);
 
-        $validated['status'] = 'active';
-        $validated['is_featured'] = $request->boolean('is_featured');
-        $validated['tags'] = $this->parseTags($validated['tags'] ?? null);
+        try {
+            $this->productService->createProduct($validated, $request);
 
-        $product = Product::create($validated);
+            return redirect()->route('products.index')
+                ->with('success', 'Product added successfully');
+        } catch (\Exception $e) {
+            Log::error('Failed to store product', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-        $this->handleImages($request, $product);
-        $this->handleOptions($validated, $product);
-
-        return redirect()->route('products.index')
-            ->with('success', 'Product added successfully');
+            return back()->withInput()->withErrors(['error' => 'Failed to add product: '.$e->getMessage()]);
+        }
     }
 
     /**
-     * Show form to edit product
+     * Show form to edit product.
      */
     public function edit(Product $product)
     {
         $this->authorize('update', $product);
 
         $categories = ProductCategory::all();
+
         return view('products.edit', compact('product', 'categories'));
     }
 
     /**
-     * Update product
+     * Update product.
      */
     public function update(Request $request, Product $product)
     {
@@ -104,23 +116,25 @@ class ProductController extends Controller
 
         $validated = $this->validateProduct($request, $product->id);
 
-        $validated['is_featured'] = $request->boolean('is_featured');
-        $validated['tags'] = $this->parseTags($validated['tags'] ?? null);
+        try {
+            $this->productService->updateProduct($product, $validated, $request);
 
-        $product->update($validated);
+            return redirect()->route('products.index')
+                ->with('success', 'Product updated successfully');
+        } catch (\Exception $e) {
+            Log::error('Failed to update product', [
+                'product_id' => $product->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-        $this->handleImages($request, $product);
-
-        // Sync Options: Full Replace
-        $product->options()->delete();
-        $this->handleOptions($validated, $product);
-
-        return redirect()->route('products.index')
-            ->with('success', 'Product updated successfully');
+            return back()->withInput()->withErrors(['error' => 'Failed to update product: '.$e->getMessage()]);
+        }
     }
 
     /**
-     * Delete product
+     * Delete product.
      */
     public function destroy(Product $product)
     {
@@ -133,12 +147,10 @@ class ProductController extends Controller
     }
 
     /**
-     * Suggest new product (team members)
+     * Suggest new product (team members).
      */
     public function suggest(Request $request)
     {
-        // Assuming team members can suggest, so maybe specific permission or just auth check
-        // For now, minimal validation and create pending product
         $validated = $request->validate([
             'category_id' => 'required|exists:product_categories,id',
             'name' => 'required|string|max:255',
@@ -157,11 +169,10 @@ class ProductController extends Controller
     }
 
     /**
-     * View pending suggestions
+     * View pending suggestions.
      */
     public function pending()
     {
-        // View any implies index access, but maybe pending queue is restricted
         $this->authorize('viewAny', Product::class);
 
         $products = Product::pending()
@@ -173,7 +184,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Approve suggestion (admin only)
+     * Approve suggestion (admin only).
      */
     public function approve(Product $product)
     {
@@ -186,7 +197,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Retire product (admin only)
+     * Retire product (admin only).
      */
     public function retire(Request $request, Product $product)
     {
@@ -205,7 +216,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Activate retired product
+     * Activate retired product.
      */
     public function activate(Product $product)
     {
@@ -220,7 +231,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Download CSV Template for Bulk Upload
+     * Download CSV Template for Bulk Upload.
      */
     public function downloadTemplate()
     {
@@ -245,7 +256,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Import Products from CSV
+     * Import Products from CSV.
      */
     public function import(Request $request)
     {
@@ -255,83 +266,38 @@ class ProductController extends Controller
             'csv_file' => 'required|file|mimes:csv,txt|max:2048',
         ]);
 
-        $file = $request->file('csv_file');
-        $handle = fopen($file->getPathname(), 'r');
+        try {
+            $result = $this->productService->importFromCsv($request->file('csv_file')->getPathname());
 
-        // Skip header
-        fgetcsv($handle);
-
-        $imported = 0;
-        $errors = [];
-        $rowNumber = 1;
-
-        while (($row = fgetcsv($handle)) !== false) {
-            $rowNumber++;
-
-            // Ensure row has enough columns (basic check)
-            if (count($row) < 5) {
-                continue;
-            }
-
-            try {
-                // Map columns: 0=Name, 1=SKU, 2=Category, 3=Price, 4=Unit, 5=Tags, 6=Desc
-                $name = trim($row[0]);
-                $sku = trim($row[1] ?? '');
-                $categoryName = trim($row[2]);
-                $price = floatval(trim($row[3]));
-                $unitType = strtolower(trim($row[4]));
-                $tags = trim($row[5] ?? '');
-                $description = trim($row[6] ?? '');
-
-                if (empty($name) || empty($categoryName)) {
-                    continue; // Skip invalid rows
-                }
-
-                // Find or Create Category
-                $category = ProductCategory::firstOrCreate(
-                    ['name' => $categoryName]
-                );
-
-                // Create Product
-                Product::create([
-                    'name' => $name,
-                    'sku' => $sku ?: null,
-                    'category_id' => $category->id,
-                    'unit_price' => $price,
-                    'unit_type' => $unitType ?: 'nos', // Default to nos
-                    'tags' => $this->parseTags($tags),
-                    'description' => $description,
-                    'status' => 'active',
+            if (count($result['errors']) > 0) {
+                Log::warning('Product import completed with errors', [
+                    'user_id' => auth()->id(),
+                    'imported_count' => $result['imported_count'],
+                    'error_count' => count($result['errors']),
                 ]);
 
-                $imported++;
-
-            } catch (\Exception $e) {
-                $errors[] = "Row {$rowNumber}: " . $e->getMessage();
+                return redirect()->route('products.index')
+                    ->with('success', "Imported {$result['imported_count']} products.")
+                    ->with('error', 'Some errors occurred: '.implode(', ', array_slice($result['errors'], 0, 3)));
             }
-        }
 
-        fclose($handle);
-
-        if (count($errors) > 0) {
             return redirect()->route('products.index')
-                ->with('success', "Imported {$imported} products.")
-                ->with('error', "Some errors occurred: " . implode(', ', array_slice($errors, 0, 3)) . (count($errors) > 3 ? '...' : ''));
+                ->with('success', "Successfully imported {$result['imported_count']} products.");
+        } catch (\Exception $e) {
+            return redirect()->route('products.index')->with('error', 'Import failed: '.$e->getMessage());
         }
-
-        return redirect()->route('products.index')
-            ->with('success', "Successfully imported {$imported} products.");
     }
 
-    // START PRIVATE HELPERS
-
+    /**
+     * Validate product input.
+     */
     private function validateProduct(Request $request, $productId = null)
     {
         return $request->validate([
             'category_id' => 'required|exists:product_categories,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'sku' => 'nullable|string|unique:products,sku' . ($productId ? ',' . $productId : ''),
+            'sku' => 'nullable|string|unique:products,sku'.($productId ? ','.$productId : ''),
             'unit_price' => 'required|numeric|min:0',
             'unit_type' => 'required|string',
             'calculation_method' => 'nullable|string|in:standard,formula',
@@ -339,7 +305,7 @@ class ProductController extends Controller
             'images.*' => 'nullable|image|max:5120',
             'dimensions' => 'nullable|array',
             'attributes' => 'nullable|array',
-            'tags' => 'nullable|string', // Input is string "tag1, tag2"
+            'tags' => 'nullable|string',
             'options' => 'nullable|array',
             'options.*.name' => 'required|string',
             'options.*.values' => 'required|array',
@@ -347,41 +313,4 @@ class ProductController extends Controller
             'options.*.values.*.price_adjustment' => 'nullable|numeric',
         ]);
     }
-
-    private function parseTags($tagsString)
-    {
-        if (is_array($tagsString))
-            return $tagsString;
-        if (empty($tagsString))
-            return [];
-        return array_map('trim', explode(',', $tagsString));
-    }
-
-    private function handleImages(Request $request, Product $product)
-    {
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('products/' . $product->id, 'public');
-                $product->images()->create([
-                    'image_path' => $path,
-                ]);
-            }
-        }
-    }
-
-    private function handleOptions($validated, Product $product)
-    {
-        if (!empty($validated['options'])) {
-            foreach ($validated['options'] as $optData) {
-                $option = $product->options()->create(['name' => $optData['name']]);
-                foreach ($optData['values'] as $valData) {
-                    $option->values()->create([
-                        'value' => $valData['value'],
-                        'price_adjustment' => $valData['price_adjustment'] ?? 0,
-                    ]);
-                }
-            }
-        }
-    }
 }
-

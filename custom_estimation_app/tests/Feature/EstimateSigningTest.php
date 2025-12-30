@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\User;
-use App\Models\Client;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -29,8 +29,8 @@ class EstimateSigningTest extends TestCase
         $response = $this->withHeaders([
             'User-Agent' => 'TestBrowser/1.0',
         ])->post($url, [
-                    'signature' => 'data:image/png;base64,testsignature',
-                ]);
+            'signature' => 'data:image/png;base64,testsignature',
+        ]);
 
         $response->assertSessionHas('success');
 

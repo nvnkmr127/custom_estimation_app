@@ -11,7 +11,7 @@ class SendReminders extends Command
      *
      * @var string
      */
-    protected $signature = 'app:send-reminders';
+    protected $signature = 'reminders:send';
 
     /**
      * The console command description.
@@ -41,6 +41,6 @@ class SendReminders extends Command
             $this->info("Reminder sent to {$user->name}: {$reminder->title}");
         }
 
-        $this->info("Completed sending " . $reminders->count() . " reminders.");
+        $this->info('Completed sending ' . $reminders->count() . ' reminders.');
     }
 }

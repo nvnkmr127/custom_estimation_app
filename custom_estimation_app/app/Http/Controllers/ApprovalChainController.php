@@ -75,6 +75,7 @@ class ApprovalChainController extends Controller
     public function show(ApprovalChain $approvalChain)
     {
         $approvalChain->load('steps.user');
+
         return view('approval_chains.show', compact('approvalChain'));
     }
 

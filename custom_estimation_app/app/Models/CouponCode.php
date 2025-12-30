@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 
 class CouponCode extends Model
 {
@@ -37,7 +37,7 @@ class CouponCode extends Model
     public function isValid($estimateTotal = 0)
     {
         // Check if active
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return false;
         }
 
@@ -110,7 +110,7 @@ class CouponCode extends Model
      */
     public function getValidationMessage($estimateTotal = 0)
     {
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return 'This coupon code is no longer active.';
         }
 
@@ -119,7 +119,7 @@ class CouponCode extends Model
         }
 
         if ($this->min_amount && $estimateTotal < $this->min_amount) {
-            return 'Minimum purchase amount of ₹' . number_format($this->min_amount, 2) . ' required.';
+            return 'Minimum purchase amount of ₹'.number_format($this->min_amount, 2).' required.';
         }
 
         $now = Carbon::now();

@@ -11,6 +11,7 @@ class SettingsController extends Controller
     public function edit()
     {
         $settings = Setting::all()->pluck('value', 'key');
+
         return view('settings.edit', compact('settings'));
     }
 

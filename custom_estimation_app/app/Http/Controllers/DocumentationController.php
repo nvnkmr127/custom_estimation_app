@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 class DocumentationController extends Controller
 {
     /**
@@ -29,10 +27,10 @@ class DocumentationController extends Controller
             'workflow',
             'admin',
             'api',
-            'faq'
+            'faq',
         ];
 
-        if (!in_array($page, $allowedPages)) {
+        if (! in_array($page, $allowedPages)) {
             abort(404);
         }
 

@@ -59,7 +59,7 @@ class ClientController extends Controller
         $client->load([
             'estimates' => function ($query) {
                 $query->latest()->limit(10);
-            }
+            },
         ]);
 
         return view('clients.show', compact('client'));

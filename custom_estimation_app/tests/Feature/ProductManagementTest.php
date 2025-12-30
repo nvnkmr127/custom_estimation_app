@@ -2,11 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -16,6 +15,7 @@ class ProductManagementTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
+
     protected $category;
 
     protected function setUp(): void
@@ -23,7 +23,7 @@ class ProductManagementTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create([
-            'role' => 'estimator_admin'
+            'role' => 'estimator_admin',
         ]);
 
         $this->category = ProductCategory::create(['name' => 'Flooring']);
@@ -60,14 +60,14 @@ class ProductManagementTest extends TestCase
                     'values' => [
                         ['value' => 'Red', 'price_adjustment' => 0],
                         ['value' => 'Blue', 'price_adjustment' => 5],
-                    ]
+                    ],
                 ],
                 [
                     'name' => 'Size',
                     'values' => [
                         ['value' => 'Large', 'price_adjustment' => 10],
-                    ]
-                ]
+                    ],
+                ],
             ],
             'images' => [$image],
             'is_featured' => true,
@@ -148,8 +148,8 @@ class ProductManagementTest extends TestCase
             'options' => [
                 [
                     'name' => 'Material',
-                    'values' => [['value' => 'Steel', 'price_adjustment' => 0]]
-                ]
+                    'values' => [['value' => 'Steel', 'price_adjustment' => 0]],
+                ],
             ],
             // We are NOT sending images
         ];

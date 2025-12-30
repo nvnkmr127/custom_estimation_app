@@ -10,6 +10,7 @@ class ItemPackageController extends Controller
     public function index()
     {
         $packages = ItemPackage::latest()->paginate(10);
+
         return view('packages.index', compact('packages'));
     }
 
@@ -78,6 +79,7 @@ class ItemPackageController extends Controller
     public function destroy(ItemPackage $package)
     {
         $package->delete();
+
         return redirect()->route('packages.index')->with('success', 'Item Package deleted successfully.');
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 class PortalController extends Controller
 {
     protected $perfexApi;
+
     protected $analytics;
 
     public function __construct(\App\Services\PerfexApiService $perfexApi, \App\Services\AnalyticsService $analytics)
@@ -22,7 +23,7 @@ class PortalController extends Controller
     public function show(Request $request, Estimate $estimate)
     {
         // Ensure the signed URL is valid
-        if (!$request->hasValidSignature()) {
+        if (! $request->hasValidSignature()) {
             abort(403, 'This link has expired or is invalid.');
         }
 
@@ -44,7 +45,7 @@ class PortalController extends Controller
      */
     public function accept(Request $request, Estimate $estimate)
     {
-        if (!$request->hasValidSignature()) {
+        if (! $request->hasValidSignature()) {
             abort(403);
         }
 
@@ -65,12 +66,12 @@ class PortalController extends Controller
                 if ($json) {
                     $data = json_decode($json, true);
                     if ($data && ($data['status'] ?? '') === 'success') {
-                        $location = ($data['city'] ?? '') . ', ' . ($data['regionName'] ?? '') . ', ' . ($data['country'] ?? '');
+                        $location = ($data['city'] ?? '').', '.($data['regionName'] ?? '').', '.($data['country'] ?? '');
                         $location = trim($location, ', ');
                     }
                 }
             } else {
-                $location = "Localhost";
+                $location = 'Localhost';
             }
         } catch (\Exception $e) {
             // Ignore location errors
@@ -100,7 +101,7 @@ class PortalController extends Controller
      */
     public function decline(Request $request, Estimate $estimate)
     {
-        if (!$request->hasValidSignature()) {
+        if (! $request->hasValidSignature()) {
             abort(403);
         }
 

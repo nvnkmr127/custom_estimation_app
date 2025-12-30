@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 class PerfexApiService
 {
     protected $baseUrl;
+
     protected $token;
 
     public function __construct()
@@ -19,7 +20,8 @@ class PerfexApiService
 
     /**
      * Get Leads from Perfex CRM
-     * @param int $limit
+     *
+     * @param  int  $limit
      * @return array
      */
     public function getLeads($limit = 20)
@@ -48,7 +50,7 @@ class PerfexApiService
      */
     public function searchLeads($query)
     {
-        return $this->request('get', 'leads/search/' . urlencode($query));
+        return $this->request('get', 'leads/search/'.urlencode($query));
     }
 
     /**
@@ -67,12 +69,12 @@ class PerfexApiService
         $estimate->load('items');
         $client = \App\Models\Client::find($estimate->client_id);
 
-        if (!$client || !$client->perfex_id) {
+        if (! $client || ! $client->perfex_id) {
             return ['status' => false, 'message' => 'Client not linked to Perfex'];
         }
 
         $proposalData = [
-            'subject' => $estimate->title ?? 'Estimate #' . $estimate->estimate_number,
+            'subject' => $estimate->title ?? 'Estimate #'.$estimate->estimate_number,
             'rel_type' => 'lead', // or customer
             'rel_id' => $client->perfex_id,
             'proposal_to' => $client->name,
@@ -90,6 +92,7 @@ class PerfexApiService
         if (isset($response['status']) && $response['status'] == true && isset($response['id'])) {
             $estimate->perfex_proposal_id = $response['id'];
             $estimate->save();
+
             return ['status' => true, 'id' => $response['id']];
         }
 
@@ -112,30 +115,33 @@ class PerfexApiService
     {
         if (empty($this->baseUrl) || empty($this->token)) {
             Log::error('Perfex API Configuration Invalid');
+
             return ['status' => false, 'message' => 'API Configuration Missing'];
         }
 
         // Remove trailing slash from base URL if present
-        $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
+        $url = rtrim($this->baseUrl, '/').'/'.ltrim($endpoint, '/');
 
         try {
             $response = Http::timeout(5)
-                        ->withHeaders([
-                            'authtoken' => $this->token, // Perfex Standard Header often 'authtoken' or 'Authorization'
-                            // Some Perfex implementations use 'Authorization: Bearer' if OAuth, but many use 'authtoken' for simple API keys.
-                            // If user uses a standard module, it looks for 'authtoken'. 
-                            // We will try standard 'authtoken'.
-                        ])->$method($url, $data);
+                ->withHeaders([
+                    'authtoken' => $this->token, // Perfex Standard Header often 'authtoken' or 'Authorization'
+                    // Some Perfex implementations use 'Authorization: Bearer' if OAuth, but many use 'authtoken' for simple API keys.
+                    // If user uses a standard module, it looks for 'authtoken'.
+                    // We will try standard 'authtoken'.
+                ])->$method($url, $data);
 
             if ($response->successful()) {
                 return $response->json();
             }
 
-            Log::error('Perfex API Error: ' . $response->status() . ' - ' . $response->body() . ' | Request: ' . json_encode($data) . ' | URL: ' . $url);
-            return ['status' => false, 'error' => 'API Error: ' . $response->status()];
+            Log::error('Perfex API Error: '.$response->status().' - '.$response->body().' | Request: '.json_encode($data).' | URL: '.$url);
+
+            return ['status' => false, 'error' => 'API Error: '.$response->status()];
 
         } catch (\Exception $e) {
-            Log::error('Perfex API Exception: ' . $e->getMessage());
+            Log::error('Perfex API Exception: '.$e->getMessage());
+
             return ['status' => false, 'error' => $e->getMessage()];
         }
     }

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Estimate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use App\Models\Estimate;
 
 class PerfexWebhookController extends Controller
 {
@@ -15,7 +15,8 @@ class PerfexWebhookController extends Controller
         $secret = config('services.perfex.webhook_secret');
 
         if (empty($secret) || $token !== $secret) {
-            Log::warning('Unauthorized Perfex Webhook attempt from IP: ' . $request->ip());
+            Log::warning('Unauthorized Perfex Webhook attempt from IP: '.$request->ip());
+
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -29,6 +30,7 @@ class PerfexWebhookController extends Controller
             $id = $data['proposal_id'] ?? $data['id'] ?? null;
             if ($id) {
                 Estimate::where('perfex_proposal_id', $id)->update(['status' => 'accepted']);
+
                 return response()->json(['status' => 'updated']);
             }
         }
@@ -38,6 +40,7 @@ class PerfexWebhookController extends Controller
             $id = $data['proposal_id'] ?? $data['id'] ?? null;
             if ($id) {
                 Estimate::where('perfex_proposal_id', $id)->update(['status' => 'declined']);
+
                 return response()->json(['status' => 'updated']);
             }
         }

@@ -2,20 +2,37 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Estimate extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     const STATUS_DRAFT = 'draft';
+
     const STATUS_SENT = 'sent';
+
     const STATUS_ACCEPTED = 'accepted';
+
     const STATUS_DECLINED = 'declined';
+
     const STATUS_EXPIRED = 'expired';
+
     const STATUS_WAITING_APPROVAL = 'waiting_approval';
+
+    const STATUS_APPROVED = 'approved';
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($estimate) {
+            if (!$estimate->created_by && auth()->check()) {
+                $estimate->created_by = auth()->id();
+            }
+        });
+    }
 
     protected $fillable = [
         'estimate_number',
@@ -44,7 +61,6 @@ class Estimate extends Model
         'signer_ip',
         'signer_location',
         'signer_agent',
-        'client_notes',
         'approval_chain_id',
         'approval_status',
         'coupon_code_id',
@@ -55,6 +71,7 @@ class Estimate extends Model
         'pdf_theme',
         'view_count',
         'nudge_task_created',
+        'created_by',
     ];
 
     public function client()
@@ -62,9 +79,19 @@ class Estimate extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     public function parent()
     {
         return $this->belongsTo(Estimate::class, 'parent_id');
+    }
+
+    public function lead()
+    {
+        return $this->belongsTo(Client::class, 'lead_id');
     }
 
     public function versions()
@@ -155,6 +182,7 @@ class Estimate extends Model
         }
 
         $completedSteps = $this->approvals()->where('status', 'approved')->count();
+
         return $this->approvalChain->steps()->orderBy('order')->skip($completedSteps)->first();
     }
 

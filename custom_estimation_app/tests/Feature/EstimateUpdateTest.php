@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Client;
-use App\Models\Product;
 use App\Models\Estimate;
+use App\Models\Product;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class EstimateUpdateTest extends TestCase
 {
@@ -17,7 +17,7 @@ class EstimateUpdateTest extends TestCase
     public function it_updates_estimate_without_destroying_existing_items()
     {
         // 1. Setup Data
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'estimator']);
         $this->actingAs($user);
 
         $client = Client::factory()->create();
@@ -30,7 +30,7 @@ class EstimateUpdateTest extends TestCase
             'estimate_date' => now(),
             'currency' => 'USD',
             'status' => 'draft',
-            'type' => 'room_based'
+            'type' => 'room_based',
         ]);
 
         $section = $estimate->sections()->create(['name' => 'Room 1', 'order_index' => 0]);
@@ -39,7 +39,7 @@ class EstimateUpdateTest extends TestCase
             'name' => 'Original Item',
             'quantity' => 1,
             'unit_price' => 100,
-            'total' => 100
+            'total' => 100,
         ]);
 
         $originalItemId = $item->id;
@@ -65,17 +65,17 @@ class EstimateUpdateTest extends TestCase
                             'name' => 'Original Item Updated',
                             'quantity' => 2,
                             'unit_price' => 100,
-                            'unit_type' => 'nos'
+                            'unit_type' => 'nos',
                         ],
                         [
                             'name' => 'New Item',
                             'quantity' => 1,
                             'unit_price' => 50,
-                            'unit_type' => 'nos'
-                        ]
-                    ]
-                ]
-            ]
+                            'unit_type' => 'nos',
+                        ],
+                    ],
+                ],
+            ],
         ];
 
         // 3. Act

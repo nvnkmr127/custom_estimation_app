@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estimate;
-use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
@@ -34,7 +33,7 @@ class ReportController extends Controller
                 'open_rate' => $sentCount > 0 ? round(($openedCount / $sentCount) * 100, 1) : 0,
                 'view_rate' => $openedCount > 0 ? round(($viewedCount / $openedCount) * 100, 1) : 0,
                 'conversion_rate' => $viewedCount > 0 ? round(($finalAccepted / $viewedCount) * 100, 1) : 0,
-            ]
+            ],
         ];
 
         // 1.2 Revenue Forecast (Weighted by probability)

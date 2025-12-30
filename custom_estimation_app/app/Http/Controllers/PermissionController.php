@@ -2,11 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Services\PermissionService;
+use Illuminate\Http\Request;
 
 class PermissionController extends Controller
 {
+    /**
+     * Display a listing of the roles/permissions.
+     */
+    public function index()
+    {
+        return view('permissions.index');
+    }
+
     /**
      * Show the form for editing role permissions.
      */
@@ -14,7 +22,7 @@ class PermissionController extends Controller
     {
         $roles = PermissionService::getRoles();
 
-        if (!isset($roles[$role])) {
+        if (! isset($roles[$role])) {
             abort(404, 'Role not found');
         }
 
@@ -33,7 +41,7 @@ class PermissionController extends Controller
     {
         $roles = PermissionService::getRoles();
 
-        if (!isset($roles[$role])) {
+        if (! isset($roles[$role])) {
             abort(404, 'Role not found');
         }
 
@@ -49,7 +57,7 @@ class PermissionController extends Controller
         $this->updatePermissionMapping($role, $selectedPermissions);
 
         return redirect()->route('permissions.index')
-            ->with('success', 'Permissions updated successfully for ' . $roles[$role]['name']);
+            ->with('success', 'Permissions updated successfully for '.$roles[$role]['name']);
     }
 
     /**

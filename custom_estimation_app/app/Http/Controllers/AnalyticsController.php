@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estimate;
-use App\Models\EstimateAnalytic;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
@@ -37,19 +35,24 @@ class AnalyticsController extends Controller
                 return \Carbon\Carbon::parse($date)->format('M d');
             }),
             'views' => [],
-            'downloads' => []
+            'downloads' => [],
         ];
 
-        foreach ($dates as $date) {
-            $chartData['views'][] = $estimate->analytics()
-                ->where('action', 'view')
-                ->whereDate('created_at', $date)
-                ->count();
+        $dailyStats = $estimate->analytics()
+            ->where('created_at', '>=', now()->subDays(6)->startOfDay())
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(CASE WHEN action = "view" THEN 1 ELSE 0 END) as views'),
+                DB::raw('SUM(CASE WHEN action = "download" THEN 1 ELSE 0 END) as downloads')
+            )
+            ->groupBy('date')
+            ->get()
+            ->keyBy('date');
 
-            $chartData['downloads'][] = $estimate->analytics()
-                ->where('action', 'download')
-                ->whereDate('created_at', $date)
-                ->count();
+        foreach ($dates as $date) {
+            $statsForDate = $dailyStats->get($date);
+            $chartData['views'][] = $statsForDate ? $statsForDate->views : 0;
+            $chartData['downloads'][] = $statsForDate ? $statsForDate->downloads : 0;
         }
 
         // Action Breakdown (Device)
@@ -68,7 +71,7 @@ class AnalyticsController extends Controller
     {
         $this->authorize('view', $estimate);
 
-        $fileName = 'analytics_' . $estimate->estimate_number . '_' . date('Y-m-d') . '.csv';
+        $fileName = 'analytics_'.$estimate->estimate_number.'_'.date('Y-m-d').'.csv';
 
         $analytics = $estimate->analytics()->orderBy('created_at', 'desc')->get();
 
@@ -87,14 +90,14 @@ class AnalyticsController extends Controller
             fputcsv($file, $columns);
 
             foreach ($analytics as $log) {
-                $location = $log->location_json ? ($log->location_json['city'] . ', ' . $log->location_json['country']) : 'Unknown';
+                $location = $log->location_json ? ($log->location_json['city'].', '.$log->location_json['country']) : 'Unknown';
                 fputcsv($file, [
                     $log->created_at->format('Y-m-d H:i:s'),
                     ucfirst($log->action),
                     $log->ip_address,
                     $log->device,
                     $log->browser,
-                    $location
+                    $location,
                 ]);
             }
 

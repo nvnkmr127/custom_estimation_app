@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Estimate;
 use App\Models\Client;
+use App\Models\Estimate;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
@@ -31,9 +31,9 @@ class SearchController extends Controller
         foreach ($estimates as $estimate) {
             $results[] = [
                 'type' => 'Estimate',
-                'title' => $estimate->estimate_number . ': ' . $estimate->title,
+                'title' => $estimate->estimate_number.': '.$estimate->title,
                 'url' => route('estimates.show', $estimate),
-                'icon' => 'document-text'
+                'icon' => 'document-text',
             ];
         }
 
@@ -46,9 +46,9 @@ class SearchController extends Controller
         foreach ($clients as $client) {
             $results[] = [
                 'type' => 'Client',
-                'title' => $client->name . ($client->company ? " ({$client->company})" : ""),
+                'title' => $client->name.($client->company ? " ({$client->company})" : ''),
                 'url' => route('clients.show', $client),
-                'icon' => 'user'
+                'icon' => 'user',
             ];
         }
 
@@ -62,7 +62,7 @@ class SearchController extends Controller
                 'type' => 'Product',
                 'title' => $product->name,
                 'url' => route('products.edit', $product),
-                'icon' => 'cube'
+                'icon' => 'cube',
             ];
         }
 

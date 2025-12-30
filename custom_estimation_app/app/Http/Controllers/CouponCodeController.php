@@ -65,7 +65,7 @@ class CouponCodeController extends Controller
         $coupon->load([
             'estimates' => function ($query) {
                 $query->latest()->limit(10);
-            }
+            },
         ]);
 
         return view('coupons.show', compact('coupon'));
@@ -85,7 +85,7 @@ class CouponCodeController extends Controller
     public function update(Request $request, CouponCode $coupon)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:coupon_codes,code,' . $coupon->id,
+            'code' => 'required|string|max:50|unique:coupon_codes,code,'.$coupon->id,
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|in:percentage,fixed',
@@ -136,17 +136,17 @@ class CouponCodeController extends Controller
 
         $coupon = CouponCode::where('code', strtoupper($request->code))->first();
 
-        if (!$coupon) {
+        if (! $coupon) {
             return response()->json([
                 'valid' => false,
-                'message' => 'Invalid coupon code.'
+                'message' => 'Invalid coupon code.',
             ]);
         }
 
-        if (!$coupon->isValid($request->total)) {
+        if (! $coupon->isValid($request->total)) {
             return response()->json([
                 'valid' => false,
-                'message' => $coupon->getValidationMessage($request->total)
+                'message' => $coupon->getValidationMessage($request->total),
             ]);
         }
 
@@ -158,7 +158,7 @@ class CouponCodeController extends Controller
             'discount' => $discount,
             'type' => $coupon->type,
             'value' => $coupon->value,
-            'message' => 'Coupon applied successfully!'
+            'message' => 'Coupon applied successfully!',
         ]);
     }
 }

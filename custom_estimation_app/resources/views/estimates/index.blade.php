@@ -42,12 +42,12 @@
             <!-- Mobile Card View -->
             <div class="grid grid-cols-1 gap-4 sm:hidden mb-6">
                 @forelse ($estimates as $estimate)
-                    <div class="bg-white shadow-sm ring-1 ring-black ring-opacity-5 rounded-xl p-4 space-y-3">
+                    <x-card padding="4" class="space-y-3">
                         <div class="flex justify-between items-start">
                             <div>
                                 <div class="text-xs font-medium text-slate-500">{{ $estimate->estimate_number }}</div>
                                 <a href="{{ route('estimates.show', $estimate) }}"
-                                    class="text-sm font-semibold text-slate-900 block mt-0.5">
+                                    class="text-sm font-semibold text-slate-900 block mt-0.5 hover:text-indigo-600 transition-colors">
                                     {{ $estimate->title ?: 'Untitled Estimate' }}
                                 </a>
                             </div>
@@ -69,13 +69,13 @@
                         <div
                             class="flex justify-between items-center text-sm text-slate-500 border-t border-slate-100 pt-3">
                             <div class="flex flex-col">
-                                <span class="text-xs uppercase tracking-wide">Total</span>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total</span>
                                 <span class="text-slate-900 font-semibold">{{ $estimate->currency }}
                                     {{ number_format($estimate->grand_total, 2) }}</span>
                             </div>
                             <div class="flex flex-col text-right">
-                                <span class="text-xs uppercase tracking-wide">Date</span>
-                                <span>{{ $estimate->estimate_date->format('M d, Y') }}</span>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Date</span>
+                                <span class="text-slate-700">{{ $estimate->estimate_date->format('M d, Y') }}</span>
                             </div>
                         </div>
 
@@ -90,41 +90,40 @@
                                     class="text-sm font-medium text-rose-600 hover:text-rose-500 bg-transparent border-0 p-0">Delete</button>
                             </form>
                         </div>
-                    </div>
+                    </x-card>
                 @empty
-                    <div class="text-center py-10 bg-white rounded-xl shadow-sm ring-1 ring-slate-900/5">
-                        <p class="text-slate-500 text-sm">No estimates found.</p>
-                    </div>
+                    <x-empty-state title="No estimates found" description="Get started by creating your first estimate."
+                        actionText="Create Estimate" actionLink="{{ route('estimates.create') }}" />
                 @endforelse
             </div>
 
-            <div class="hidden sm:block -mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                    <div class="overflow-hidden shadow-sm ring-1 ring-black ring-opacity-5 sm:rounded-xl bg-white">
+            <div class="hidden sm:block">
+                <x-card padding="0">
+                    <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-200">
                             <thead class="bg-slate-50">
                                 <tr>
                                     <th scope="col" class="relative px-7 sm:w-12 sm:px-6">
                                         <input type="checkbox" id="selectAll"
-                                            class="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                            class="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600">
                                     </th>
                                     <th scope="col"
-                                        class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:pl-6">
+                                        class="py-3.5 pl-4 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:pl-6">
                                         Estimate #</th>
                                     <th scope="col"
-                                        class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        class="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                         Title</th>
                                     <th scope="col"
-                                        class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        class="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                         Type</th>
                                     <th scope="col"
-                                        class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        class="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                         Date</th>
                                     <th scope="col"
-                                        class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        class="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                         Status</th>
                                     <th scope="col"
-                                        class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        class="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                         Total</th>
                                     <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                                         <span class="sr-only">Actions</span>
@@ -135,15 +134,13 @@
                                 @forelse ($estimates as $estimate)
                                     <tr class="group hover:bg-slate-50/50 transition-colors duration-150">
                                         <td class="relative px-7 sm:w-12 sm:px-6">
-                                            <div class="absolute inset-y-0 left-0 w-0.5 bg-indigo-600 group-hover:bg-indigo-600"
-                                                style="display:none"></div>
                                             <input type="checkbox" name="selected_estimates[]" value="{{ $estimate->id }}"
-                                                class="estimate-checkbox absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                                class="estimate-checkbox absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600">
                                         </td>
                                         <td
                                             class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-indigo-600 sm:pl-6">
                                             <a href="{{ route('estimates.show', $estimate) }}"
-                                                class="hover:text-indigo-900 border-b border-dashed border-indigo-300 hover:border-indigo-900 pb-0.5">
+                                                class="hover:text-indigo-900 border-b border-dashed border-indigo-300 hover:border-indigo-900 pb-0.5 transition-colors">
                                                 {{ $estimate->estimate_number }}
                                             </a>
                                         </td>
@@ -180,53 +177,32 @@
                                         <td class="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                             <div class="flex justify-end gap-x-4">
                                                 <a href="{{ route('estimates.edit', $estimate) }}"
-                                                    class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                                    class="text-indigo-600 hover:text-indigo-900 transition-colors">Edit</a>
                                                 <form action="{{ route('estimates.destroy', $estimate) }}" method="POST"
                                                     class="inline-block"
                                                     onsubmit="return confirm('Are you sure you want to delete this estimate?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
-                                                        class="text-rose-600 hover:text-rose-900 bg-transparent border-0 cursor-pointer p-0">Delete</button>
+                                                        class="text-rose-600 hover:text-rose-900 bg-transparent border-0 cursor-pointer p-0 transition-colors">Delete</button>
                                                 </form>
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="px-3 py-10 text-center text-sm text-slate-500">
-                                            <div class="flex flex-col items-center justify-center">
-                                                <div class="rounded-full bg-slate-100 p-3 mb-4">
-                                                    <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24"
-                                                        stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                                                    </svg>
-                                                </div>
-                                                <h3 class="text-sm font-semibold text-slate-900">No estimates found</h3>
-                                                <p class="mt-1 text-sm text-slate-500">Get started by creating a new
-                                                    estimate.</p>
-                                                <div class="mt-6">
-                                                    <a href="{{ route('estimates.create') }}"
-                                                        class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                                                        <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20"
-                                                            fill="currentColor" aria-hidden="true">
-                                                            <path fill-rule="evenodd"
-                                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                                                                clip-rule="evenodd" />
-                                                        </svg>
-                                                        New Estimate
-                                                    </a>
-                                                </div>
-                                            </div>
+                                        <td colspan="8">
+                                            <x-empty-state title="No estimates found"
+                                                description="Get started by creating your first estimate."
+                                                actionText="Create Estimate" actionLink="{{ route('estimates.create') }}"
+                                                class="rounded-none shadow-none ring-0" />
                                         </td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </x-card>
             </div>
             <div class="mt-6">
                 {{ $estimates->links() }}

@@ -40,15 +40,15 @@ class EstimateSentToClient extends Notification implements ShouldQueue
         $pixelUrl = route('tracking.pixel', $this->estimate->id);
 
         return (new MailMessage)
-            ->subject('New Estimate from ' . config('app.name') . ': #' . $this->estimate->estimate_number)
-            ->greeting('Hello ' . $notifiable->name . ',')
+            ->subject('New Estimate from '.config('app.name').': #'.$this->estimate->estimate_number)
+            ->greeting('Hello '.$notifiable->name.',')
             ->line('We have prepared an estimate for your review.')
-            ->line(new HtmlString('<strong>Estimate Number:</strong> #' . $this->estimate->estimate_number))
-            ->line(new HtmlString('<strong>Total Amount:</strong> ' . number_format($this->estimate->grand_total, 2) . ' ' . $this->estimate->currency))
+            ->line(new HtmlString('<strong>Estimate Number:</strong> #'.$this->estimate->estimate_number))
+            ->line(new HtmlString('<strong>Total Amount:</strong> '.number_format($this->estimate->grand_total, 2).' '.$this->estimate->currency))
             ->action('View & Sign Estimate', $url)
             ->line('If you have any questions, please don\'t hesitate to contact us.')
             ->line('Thank you for your business!')
-            ->line(new HtmlString('<img src="' . $pixelUrl . '" width="1" height="1" style="display:none !important;" />'));
+            ->line(new HtmlString('<img src="'.$pixelUrl.'" width="1" height="1" style="display:none !important;" />'));
     }
 
     /**
@@ -59,7 +59,7 @@ class EstimateSentToClient extends Notification implements ShouldQueue
         return [
             'estimate_id' => $this->estimate->id,
             'estimate_number' => $this->estimate->estimate_number,
-            'message' => 'Estimate #' . $this->estimate->estimate_number . ' was sent to you.',
+            'message' => 'Estimate #'.$this->estimate->estimate_number.' was sent to you.',
         ];
     }
 }

@@ -13,6 +13,7 @@ class ProductCategoryController extends Controller
     public function index()
     {
         $categories = ProductCategory::withCount('products')->latest()->get();
+
         return view('product_categories.index', compact('categories'));
     }
 
@@ -22,6 +23,7 @@ class ProductCategoryController extends Controller
     public function create()
     {
         $parents = ProductCategory::whereNull('parent_id')->get();
+
         return view('product_categories.create', compact('parents'));
     }
 
@@ -33,9 +35,10 @@ class ProductCategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'parent_id' => 'nullable|exists:product_categories,id'
+            'parent_id' => 'nullable|exists:product_categories,id',
         ]);
         ProductCategory::create($validated);
+
         return redirect()->route('categories.index')->with('success', 'Category created.');
     }
 
@@ -53,6 +56,7 @@ class ProductCategoryController extends Controller
     public function edit(ProductCategory $category)
     {
         $parents = ProductCategory::whereNull('parent_id')->where('id', '!=', $category->id)->get();
+
         return view('product_categories.edit', compact('category', 'parents'));
     }
 
@@ -64,9 +68,10 @@ class ProductCategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'parent_id' => 'nullable|exists:product_categories,id'
+            'parent_id' => 'nullable|exists:product_categories,id',
         ]);
         $category->update($validated);
+
         return redirect()->route('categories.index')->with('success', 'Category updated.');
     }
 
@@ -76,6 +81,7 @@ class ProductCategoryController extends Controller
     public function destroy(ProductCategory $category)
     {
         $category->delete();
+
         return redirect()->route('categories.index')->with('success', 'Category deleted.');
     }
 }

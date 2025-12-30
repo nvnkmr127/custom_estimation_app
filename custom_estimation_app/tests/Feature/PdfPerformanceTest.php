@@ -23,7 +23,7 @@ class PdfPerformanceTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('estimates.batch-download'), [
-                'estimate_ids' => $estimates->pluck('id')->toArray()
+                'estimate_ids' => $estimates->pluck('id')->toArray(),
             ]);
 
         Queue::assertPushed(GenerateBatchPdfZip::class);
@@ -40,24 +40,22 @@ class PdfPerformanceTest extends TestCase
             ->assertStatus(200);
 
         // Check if file exists in cache directory
-        // We can't easily predict the exact filename because of timestamps, 
+        // We can't easily predict the exact filename because of timestamps,
         // but we can check if *any* file exists or perform a second request and assert speed/logic if we mocked Service.
         // For integration test, verifying 200 OK is good base, and we manually verify cache file creation.
 
         // Ensure directory exists for test
-        if (!file_exists(storage_path('app/public/estimates_cache'))) {
+        if (! file_exists(storage_path('app/public/estimates_cache'))) {
             mkdir(storage_path('app/public/estimates_cache'), 0755, true);
         }
 
         // Verify file creation
         $cacheKey = "estimate_{$estimate->id}_v{$estimate->updated_at->timestamp}_tpl{$template->id}_v{$template->updated_at->timestamp}.pdf";
-        $cachePath = storage_path('app/public/estimates_cache/' . $cacheKey);
-
-
+        $cachePath = storage_path('app/public/estimates_cache/'.$cacheKey);
 
         $this->assertFileExists($cachePath, 'Cache file should be created');
 
-        // Cleanup 
+        // Cleanup
         @unlink($cachePath);
     }
 }

@@ -371,7 +371,7 @@
         <div class="lg:pl-72 flex flex-col min-h-screen">
             <!-- Top Mobile Bar -->
             <div
-                class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 lg:hidden">
+                class="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 bg-white/80 backdrop-blur-md px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 lg:hidden">
                 <button type="button" class="-m-2.5 p-2.5 text-slate-700 lg:hidden" @click="sidebarOpen = true">
                     <span class="sr-only">Open sidebar</span>
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -379,50 +379,52 @@
                             d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                     </svg>
                 </button>
-                <div class="text-sm font-semibold leading-6 text-slate-900">{{ config('app.name') }}</div>
+                <div class="text-sm font-semibold leading-6 text-slate-800">{{ config('app.name') }}</div>
             </div>
 
             @if (isset($header))
-                <header class="bg-white shadow">
+                <header class="bg-white border-b border-slate-200">
                     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
                 </header>
             @endif
 
-            <main class="py-10">
-                <div class="px-4 sm:px-6 lg:px-8">
+            <main class="flex-1 py-8 sm:py-10">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     @if (session('success'))
-                        <div class="rounded-md bg-green-50 p-4 mb-6 border border-green-200">
+                        <div
+                            class="rounded-xl bg-emerald-50 p-4 mb-6 border border-emerald-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
                             <div class="flex">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd"
                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
                                             clip-rule="evenodd" />
                                     </svg>
                                 </div>
                                 <div class="ml-3">
-                                    <p class="text-sm font-medium text-green-800">{{ session('success') }}</p>
+                                    <p class="text-sm font-semibold text-emerald-800">{{ session('success') }}</p>
                                 </div>
                             </div>
                         </div>
                     @endif
 
                     @if ($errors->any())
-                        <div class="rounded-md bg-red-50 p-4 mb-6 border border-red-200">
+                        <div
+                            class="rounded-xl bg-rose-50 p-4 mb-6 border border-rose-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
                             <div class="flex">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg class="h-5 w-5 text-rose-400" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd"
                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
                                             clip-rule="evenodd" />
                                     </svg>
                                 </div>
                                 <div class="ml-3">
-                                    <h3 class="text-sm font-medium text-red-800">There were {{ $errors->count() }} errors
+                                    <h3 class="text-sm font-semibold text-rose-800">There were {{ $errors->count() }} errors
                                         with your submission</h3>
-                                    <div class="mt-2 text-sm text-red-700">
+                                    <div class="mt-2 text-sm text-rose-700">
                                         <ul role="list" class="list-disc pl-5 space-y-1">
                                             @foreach ($errors->all() as $error)
                                                 <li>{{ $error }}</li>

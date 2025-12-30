@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Services\PdfRenderingService;
-use App\Models\PdfTemplate;
 use App\Models\Estimate;
+use App\Models\PdfTemplate;
+use App\Services\PdfRenderingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class PdfLogicTest extends TestCase
 {
@@ -33,7 +33,7 @@ class PdfLogicTest extends TestCase
             'font_family' => 'Helvetica',
         ]);
 
-        $service = new PdfRenderingService();
+        $service = new PdfRenderingService;
         $output = $service->render($template, $estimate);
 
         $this->assertStringContainsString('SHOW_NUM', $output);
@@ -61,7 +61,7 @@ class PdfLogicTest extends TestCase
             'font_family' => 'Helvetica',
         ]);
 
-        $service = new PdfRenderingService();
+        $service = new PdfRenderingService;
         $output = $service->render($template, $estimate);
 
         $this->assertStringContainsString('NO_TERMS', $output);

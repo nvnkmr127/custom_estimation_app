@@ -77,81 +77,77 @@
             </div>
 
             <!-- General Information -->
-            <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl">
-                <div class="px-4 py-6 sm:p-8">
-                    <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">Estimate Details</h2>
-                    <div class="grid max-w-4xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                        <div class="sm:col-span-4">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">Estimate Title *</label>
-                            <input type="text" x-model="estimate.title" required
-                                placeholder="e.g. Painting and Decorating"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                        </div>
+            <x-card padding="8">
+                <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">Estimate Details</h2>
+                <div class="grid max-w-4xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                    <div class="sm:col-span-4">
+                        <x-input-label value="Estimate Title" required />
+                        <x-text-input type="text" x-model="estimate.title" required
+                            placeholder="e.g. Painting and Decorating" />
+                    </div>
 
-                        <div class="sm:col-span-4 select-client-container">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">Client / Lead *</label>
-                            <div class="mt-2">
-                                <select id="client-search" x-ref="clientSearch"
-                                    class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                    <option value="{{ $estimate->client_id }}">
-                                        {{ $estimate->client->name ?? 'Search for a client or lead...' }}
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">Estimate Date *</label>
-                            <input type="date" x-model="estimate.estimate_date" required
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">Expiry Date</label>
-                            <input type="date" x-model="estimate.expiry_date"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">Currency</label>
-                            <div class="mt-2.5 flex items-center gap-2">
-                                <span
-                                    class="inline-flex items-center rounded-md bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200"
-                                    x-text="estimate.currency"></span>
-                            </div>
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">Status</label>
-                            <select x-model="estimate.status" required
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                <option value="draft">Draft</option>
-                                <option value="sent">Sent</option>
-                                <option value="accepted">Accepted</option>
-                                <option value="declined">Declined</option>
-                                <option value="expired">Expired</option>
+                    <div class="sm:col-span-4 select-client-container">
+                        <x-input-label value="Client / Lead" required />
+                        <div class="mt-2 text-slate-900">
+                            <select id="client-search" x-ref="clientSearch"
+                                class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                                <option value="{{ $estimate->client_id }}">
+                                    {{ $estimate->client->name ?? 'Search for a client or lead...' }}
+                                </option>
                             </select>
                         </div>
+                    </div>
 
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">PDF Theme</label>
-                            <select x-model="estimate.pdf_theme" required
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                <option value="modern">Modern (Default)</option>
-                                <option value="classic">Classic</option>
-                                <option value="minimal">Minimal</option>
-                            </select>
+                    <div class="sm:col-span-2">
+                        <x-input-label value="Estimate Date" required />
+                        <x-text-input type="date" x-model="estimate.estimate_date" required />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label value="Expiry Date" />
+                        <x-text-input type="date" x-model="estimate.expiry_date" />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label value="Status" required />
+                        <select x-model="estimate.status" required
+                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                            <option value="draft">Draft</option>
+                            <option value="sent">Sent</option>
+                            <option value="accepted">Accepted</option>
+                            <option value="declined">Declined</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label value="PDF Theme" required />
+                        <select x-model="estimate.pdf_theme" required
+                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                            <option value="modern">Modern (Default)</option>
+                            <option value="classic">Classic</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label value="Currency" />
+                        <div class="mt-2.5">
+                            <span
+                                class="inline-flex items-center rounded-md bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200"
+                                x-text="estimate.currency"></span>
                         </div>
+                    </div>
 
-                        <div class="sm:col-span-6">
-                            <label class="block text-sm font-medium leading-6 text-slate-900 mb-3">Estimate Type</label>
-                            <div class="flex gap-4">
-                                <!-- Type usually isn't editable easily without clearing data, let's keep it read-only-ish visually or allow with warning -->
-                                <span x-text="estimate.type === 'room_based' ? 'Room-Based' : 'Standard List'"
-                                    class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-600/20"></span>
-                            </div>
+                    <div class="sm:col-span-6">
+                        <x-input-label value="Estimate Type" />
+                        <div class="mt-2">
+                            <span x-text="estimate.type === 'room_based' ? 'Room-Based' : 'Standard List'"
+                                class="inline-flex items-center rounded-md bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-600 ring-1 ring-inset ring-slate-200"></span>
                         </div>
                     </div>
                 </div>
-            </div>
+            </x-card>
 
             <!-- Items/Sections Editor -->
             <div class="py-4">
@@ -713,9 +709,9 @@
 
         <!-- Sticky Save Bar -->
         <div
-            class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 sm:px-8 z-50 flex justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 p-4 sm:px-8 z-50 flex justify-end items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             <button type="button" @click="previewPdf"
-                class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
+                class="inline-flex items-center gap-x-1.5 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200">
                 <svg class="-ml-0.5 h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -724,12 +720,12 @@
                 </svg>
                 Preview PDF
             </button>
+            <div class="h-6 w-px bg-slate-200 mx-2"></div>
             <button type="button" @click="window.history.back()"
-                class="text-sm font-semibold leading-6 text-slate-900 px-4">Cancel</button>
-            <button type="submit"
-                class="rounded-md bg-indigo-600 px-8 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors px-4">Cancel</button>
+            <x-primary-button type="submit" :loading="isSubmitting" class="px-8 py-2.5">
                 Update Estimate
-            </button>
+            </x-primary-button>
         </div>
         </form>
     </div>

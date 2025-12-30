@@ -15,6 +15,7 @@ class UserController extends Controller
     public function index()
     {
         $users = User::latest()->paginate(15);
+
         return view('users.index', compact('users'));
     }
 
@@ -24,6 +25,7 @@ class UserController extends Controller
     public function create()
     {
         $roles = $this->getAvailableRoles();
+
         return view('users.create', compact('roles'));
     }
 
@@ -62,6 +64,7 @@ class UserController extends Controller
     public function edit(User $user)
     {
         $roles = $this->getAvailableRoles();
+
         return view('users.edit', compact('user', 'roles'));
     }
 
@@ -71,7 +74,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         // Protect Super Admin from non-Super Admin
-        if ($user->hasRole('super_admin') && !auth()->user()->hasRole('super_admin')) {
+        if ($user->hasRole('super_admin') && ! auth()->user()->hasRole('super_admin')) {
             return back()->with('error', 'You do not have permission to modify a Super Admin.');
         }
 
@@ -84,11 +87,11 @@ class UserController extends Controller
         ]);
 
         // Only Super Admin can change someone to Super Admin or change a Super Admin's role
-        if (($validated['role'] === 'super_admin' || $user->hasRole('super_admin')) && !auth()->user()->hasRole('super_admin')) {
+        if (($validated['role'] === 'super_admin' || $user->hasRole('super_admin')) && ! auth()->user()->hasRole('super_admin')) {
             return back()->with('error', 'Only Super Admins can manage Super Admin roles.');
         }
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);

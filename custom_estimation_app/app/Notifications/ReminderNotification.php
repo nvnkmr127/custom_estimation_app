@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -37,10 +36,10 @@ class ReminderNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Reminder: ' . $this->reminder->title)
+            ->subject('Reminder: '.$this->reminder->title)
             ->line('You have a scheduled reminder.')
-            ->line('**Title:** ' . $this->reminder->title)
-            ->line('**Description:** ' . ($this->reminder->description ?? 'No description provided.'))
+            ->line('**Title:** '.$this->reminder->title)
+            ->line('**Description:** '.($this->reminder->description ?? 'No description provided.'))
             ->action('View Reminder', route('reminders.index'))
             ->line('Thank you for using our application!');
     }

@@ -4,11 +4,11 @@ namespace App\Services;
 
 use App\Models\Estimate;
 use App\Models\PdfTemplate;
-use Illuminate\Support\Str;
 
 class PdfRenderingService
 {
     protected $estimate;
+
     protected $settings;
 
     protected $variables = [];
@@ -37,19 +37,19 @@ class PdfRenderingService
         // 4. Inject CSS
         $cssVars = ":root { --primary-color: {$template->primary_color}; --secondary-color: {$template->secondary_color}; --font-body: {$template->font_family}; } body { font-family: var(--font-body) !important; } .page-break-before { page-break-before: always; } .page-break-after { page-break-after: always; } .avoid-break { page-break-inside: avoid; }";
 
-        $finalCss = $cssVars . ($template->css_content ?? '');
+        $finalCss = $cssVars.($template->css_content ?? '');
 
         if ($finalCss) {
             // If HTML has <head>, inject there. Otherwise prepend.
             if (strpos($html, '</head>') !== false) {
-                $html = str_replace('</head>', '<style>' . $finalCss . '</style></head>', $html);
+                $html = str_replace('</head>', '<style>'.$finalCss.'</style></head>', $html);
             } else {
-                $html = '<style>' . $finalCss . '</style>' . $html;
+                $html = '<style>'.$finalCss.'</style>'.$html;
             }
         }
 
         // 5. Inject Watermark
-        if (!empty($template->watermark_text)) {
+        if (! empty($template->watermark_text)) {
             $opacity = $template->watermark_opacity ?? 0.1;
             $text = htmlspecialchars($template->watermark_text);
 
@@ -58,7 +58,7 @@ class PdfRenderingService
 
             // Inject after body start
             if (strpos($html, '<body') !== false) {
-                $html = preg_replace('/<body[^>]*>/', '$0' . $watermarkHtml, $html, 1);
+                $html = preg_replace('/<body[^>]*>/', '$0'.$watermarkHtml, $html, 1);
             } else {
                 $html .= $watermarkHtml;
             }
@@ -82,7 +82,7 @@ class PdfRenderingService
             if (strpos($src, '/') === 0) {
                 $path = public_path($src);
                 if (file_exists($path)) {
-                    return 'src="file://' . $path . '"';
+                    return 'src="file://'.$path.'"';
                 }
             }
 
@@ -137,10 +137,11 @@ class PdfRenderingService
     {
         foreach ($this->variables as $key => $value) {
             // Logic keys starting with _raw are internal, don't expose them unless requested specifically
-            if (strpos($key, '_raw_') === 0)
+            if (strpos($key, '_raw_') === 0) {
                 continue;
+            }
 
-            $html = str_replace('{' . $key . '}', $value, $html);
+            $html = str_replace('{'.$key.'}', $value, $html);
         }
 
         return $html;
@@ -154,17 +155,17 @@ class PdfRenderingService
             $key = $matches[1];
             $content = $matches[2];
 
-            $checkKey = '_raw_' . $key;
+            $checkKey = '_raw_'.$key;
             $val = isset($this->variables[$checkKey]) ? $this->variables[$checkKey] : ($this->variables[$key] ?? null);
 
-            if (isset($this->variables['_raw_' . $key])) {
-                $val = $this->variables['_raw_' . $key];
+            if (isset($this->variables['_raw_'.$key])) {
+                $val = $this->variables['_raw_'.$key];
                 $isTrue = $val > 0;
             } else {
-                $isTrue = !empty($val) && $val != 0;
+                $isTrue = ! empty($val) && $val != 0;
             }
 
-            return !$isTrue ? $content : '';
+            return ! $isTrue ? $content : '';
         }, $html);
 
         // 2. Generic IF logic: {IF_variable}...{END_IF}
@@ -173,14 +174,14 @@ class PdfRenderingService
             $content = $matches[2];
 
             // For convenience, map common keys to their raw counterparts if valid
-            $checkKey = '_raw_' . $key;
+            $checkKey = '_raw_'.$key;
             $val = isset($this->variables[$checkKey]) ? $this->variables[$checkKey] : ($this->variables[$key] ?? null);
 
             // Determine truthiness
-            $isTrue = !empty($val) && $val != 0;
+            $isTrue = ! empty($val) && $val != 0;
 
-            if (isset($this->variables['_raw_' . $key])) {
-                $val = $this->variables['_raw_' . $key];
+            if (isset($this->variables['_raw_'.$key])) {
+                $val = $this->variables['_raw_'.$key];
                 $isTrue = $val > 0;
             }
 
@@ -207,6 +208,7 @@ class PdfRenderingService
 
                 $sectionHtml = preg_replace_callback('/\{LOOP_ITEMS\}(.*?)\{END_LOOP\}/s', function ($itemMatches) use ($section) {
                     $itemBlock = $itemMatches[1];
+
                     return $this->renderItems($itemBlock, $section->items);
                 }, $sectionHtml);
 
@@ -250,6 +252,7 @@ class PdfRenderingService
             }
             $renderedItems .= $itemHtml;
         }
+
         return $renderedItems;
     }
 
@@ -260,7 +263,7 @@ class PdfRenderingService
     public function renderAndCache(PdfTemplate $template, Estimate $estimate)
     {
         $cacheKey = $this->resolveCacheKey($estimate, $template);
-        $cachePath = storage_path('app/public/estimates_cache/' . $cacheKey);
+        $cachePath = storage_path('app/public/estimates_cache/'.$cacheKey);
 
         // Check if cached file exists and is fresher than the estimate/template update
         // Logic: The key already contains timestamps, so if file exists with that name, it's valid.
@@ -286,7 +289,8 @@ class PdfRenderingService
 
             return $cachePath;
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("PDF Generation Failed for Estimate #{$estimate->id}: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("PDF Generation Failed for Estimate #{$estimate->id}: ".$e->getMessage());
+
             // Fallback content in case of severe failure
             return null;
         }
@@ -294,10 +298,11 @@ class PdfRenderingService
 
     protected function resolveCacheKey(Estimate $estimate, PdfTemplate $template)
     {
-        // Key depends on Estimate updated_at and Template updated_at. 
+        // Key depends on Estimate updated_at and Template updated_at.
         // Any change invalidates the key.
         $eTs = $estimate->updated_at->timestamp;
         $tTs = $template->updated_at->timestamp;
+
         return "estimate_{$estimate->id}_v{$eTs}_tpl{$template->id}_v{$tTs}.pdf";
     }
 }

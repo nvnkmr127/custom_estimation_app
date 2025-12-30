@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
+use App\Models\Client;
+use App\Models\Estimate;
 use App\Models\Task;
 use App\Models\User;
-use App\Models\Estimate;
-use App\Models\Client;
-use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
@@ -83,6 +83,7 @@ class TaskController extends Controller
     public function show(Task $task)
     {
         $task->load(['assignedTo', 'createdBy', 'estimate', 'client']);
+
         return view('tasks.show', compact('task'));
     }
 

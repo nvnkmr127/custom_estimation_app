@@ -34,6 +34,7 @@
                 discount: 0,
                 grandTotal: 0
             },
+            isSubmitting: false,
 
             filteredProducts() {
                 if (!this.productPicker.search) return this.products;
@@ -331,11 +332,17 @@
                 this.submitHiddenForm('{{ route("estimates.preview") }}', true);
             },
 
-            submitForm(actionUrl) {
-                this.submitHiddenForm(actionUrl, false, 'PUT');
+            submitForm() {
+                const actionUrl = this.estimate.id
+                    ? `{{ route('estimates.update', ':id') }}`.replace(':id', this.estimate.id)
+                    : `{{ route('estimates.store') }}`;
+
+                this.submitHiddenForm(actionUrl, false, this.estimate.id ? 'PUT' : 'POST');
             },
 
             submitHiddenForm(url, isNewTab = false, method = 'POST') {
+                if (!isNewTab) this.isSubmitting = true;
+
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = url;

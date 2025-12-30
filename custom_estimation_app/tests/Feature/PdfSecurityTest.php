@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\PdfTemplate;
 use App\Models\User;
-use App\Models\PdfTemplateVersion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -59,7 +58,7 @@ class PdfSecurityTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'super_admin']);
         $template = PdfTemplate::factory()->create([
-            'html_content' => '<h1>Old Version</h1>'
+            'html_content' => '<h1>Old Version</h1>',
         ]);
 
         $this->actingAs($user)

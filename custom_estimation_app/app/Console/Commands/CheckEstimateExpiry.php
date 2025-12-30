@@ -41,7 +41,7 @@ class CheckEstimateExpiry extends Command
                 'properties' => ['count' => $expiredCount],
             ]);
         } else {
-            $this->info("No estimates found to expire.");
+            $this->info('No estimates found to expire.');
         }
     }
 }

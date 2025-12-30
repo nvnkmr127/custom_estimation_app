@@ -97,7 +97,7 @@ class CommentController extends Controller
     public function destroy(EstimateComment $comment)
     {
         // Only allow deleting own comments or if admin
-        if (auth()->id() !== $comment->user_id && !auth()->user()->isAdmin()) {
+        if (auth()->id() !== $comment->user_id && ! auth()->user()->isAdmin()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',

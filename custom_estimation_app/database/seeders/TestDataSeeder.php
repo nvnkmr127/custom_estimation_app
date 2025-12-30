@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\Estimate;
 use App\Models\ApprovalChain;
+use App\Models\Estimate;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class TestDataSeeder extends Seeder
 {
@@ -30,14 +30,15 @@ class TestDataSeeder extends Seeder
         // Get the first approval chain
         $approvalChain = ApprovalChain::first();
 
-        if (!$approvalChain) {
+        if (! $approvalChain) {
             $this->command->warn('No approval chains found. Run ApprovalChainSeeder first.');
+
             return;
         }
 
         // Create test estimates with approval workflow
         $estimate1 = Estimate::create([
-            'estimate_number' => 'EST-' . str_pad(1, 4, '0', STR_PAD_LEFT),
+            'estimate_number' => 'EST-'.str_pad(1, 4, '0', STR_PAD_LEFT),
             'title' => 'Office Renovation - Approval Test',
             'client_id' => 1,
             'lead_id' => null,
@@ -58,7 +59,7 @@ class TestDataSeeder extends Seeder
         ]);
 
         $estimate2 = Estimate::create([
-            'estimate_number' => 'EST-' . str_pad(2, 4, '0', STR_PAD_LEFT),
+            'estimate_number' => 'EST-'.str_pad(2, 4, '0', STR_PAD_LEFT),
             'title' => 'Kitchen Remodel - Submitted',
             'client_id' => 2,
             'lead_id' => null,

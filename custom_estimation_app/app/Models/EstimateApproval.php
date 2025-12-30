@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Estimate;
-use App\Models\User;
 
 class EstimateApproval extends Model
 {

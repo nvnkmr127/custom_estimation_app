@@ -40,6 +40,7 @@ class ActivityLogController extends Controller
     public function show(ActivityLog $activity)
     {
         $activity->load(['user', 'subject']);
+
         return view('activities.show', compact('activity'));
     }
 }

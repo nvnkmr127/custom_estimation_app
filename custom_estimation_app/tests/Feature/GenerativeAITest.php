@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use OpenAI\Laravel\Facades\OpenAI;
 use OpenAI\Responses\Chat\CreateResponse;
+use Tests\TestCase;
 
 class GenerativeAITest extends TestCase
 {

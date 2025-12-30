@@ -56,6 +56,7 @@ class User extends Authenticatable
         if (is_array($role)) {
             return in_array($this->role, $role);
         }
+
         return $this->role === $role;
     }
 
@@ -90,10 +91,26 @@ class User extends Authenticatable
     public function getRoleInfo(): array
     {
         $roles = \App\Services\PermissionService::getRoles();
+
         return $roles[$this->role] ?? [
             'name' => ucfirst(str_replace('_', ' ', $this->role)),
             'description' => '',
             'color' => 'gray',
         ];
+    }
+
+    public function estimates()
+    {
+        return $this->hasMany(Estimate::class);
+    }
+
+    public function approvals()
+    {
+        return $this->hasMany(EstimateApproval::class);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(EstimateComment::class);
     }
 }

@@ -17,7 +17,7 @@ class AnalyticsService
         // Let's assume we log all accesses for now to be safe, or maybe filter out 'staff' if needed.
         // For MVP, log everything.
 
-        $agent = new Agent();
+        $agent = new Agent;
         $userAgent = Request::header('User-Agent');
         $agent->setUserAgent($userAgent);
         $ip = Request::ip();
@@ -29,7 +29,7 @@ class AnalyticsService
             ->where('created_at', '>=', now()->subHours(24))
             ->exists();
 
-        $isUnique = !$existing;
+        $isUnique = ! $existing;
 
         $location = $this->resolveLocation($ip);
 
@@ -64,7 +64,7 @@ class AnalyticsService
                 if (isset($data['status']) && $data['status'] === 'success') {
                     return [
                         'city' => $data['city'] ?? 'Unknown',
-                        'country' => $data['country'] ?? 'Unknown'
+                        'country' => $data['country'] ?? 'Unknown',
                     ];
                 }
             }

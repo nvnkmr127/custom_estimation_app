@@ -14,8 +14,9 @@ class AnalyticsTest extends TestCase
 
     public function test_download_logs_analytics()
     {
-        $user = User::factory()->create();
-        $estimate = Estimate::factory()->create();
+        $user = User::factory()->create(['role' => 'super_admin']);
+        $template = \App\Models\PdfTemplate::factory()->create(['is_active' => true, 'is_default' => true]);
+        $estimate = Estimate::factory()->create(['pdf_template_id' => $template->id]);
 
         $this->actingAs($user)
             ->get(route('estimates.pdf', $estimate));

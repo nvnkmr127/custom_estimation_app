@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\ApprovalChain;
 use App\Models\ApprovalChainStep;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class ApprovalChainSeeder extends Seeder
 {

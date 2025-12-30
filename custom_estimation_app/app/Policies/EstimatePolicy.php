@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Estimate;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class EstimatePolicy
 {
@@ -25,6 +24,7 @@ class EstimatePolicy
         if ($user->isAdmin()) {
             return true;
         }
+
         // User can view their own estimates.
         // Or if they are 'sales', they might be restricted to only theirs?
         // For now, let's allow viewing.
@@ -36,7 +36,7 @@ class EstimatePolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'estimator_admin', 'sales']);
+        return $user->hasRole(['super_admin', 'estimator_admin', 'estimator', 'sales']);
     }
 
     /**
@@ -50,7 +50,7 @@ class EstimatePolicy
         }
 
         // Sales can only update their own estimates if they are not approved yet.
-        return $user->id === $estimate->created_by && $estimate->status === 'draft';
+        return $user->id === $estimate->created_by && $estimate->status === Estimate::STATUS_DRAFT;
     }
 
     /**

@@ -2,17 +2,17 @@
 
 namespace App\Notifications;
 
+use App\Models\Estimate;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use App\Models\Estimate;
 
 class EstimateStatusUpdated extends Notification
 {
     use Queueable;
 
     public $estimate;
+
     public $status;
 
     /**
@@ -40,8 +40,8 @@ class EstimateStatusUpdated extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Estimate ' . ucfirst($this->status))
-            ->line('Estimate #' . $this->estimate->estimate_number . ' has been ' . $this->status . '.')
+            ->subject('Estimate '.ucfirst($this->status))
+            ->line('Estimate #'.$this->estimate->estimate_number.' has been '.$this->status.'.')
             ->action('View Estimate', route('estimates.show', $this->estimate))
             ->line('Thank you for using our application!');
     }
@@ -57,7 +57,7 @@ class EstimateStatusUpdated extends Notification
             'estimate_id' => $this->estimate->id,
             'estimate_number' => $this->estimate->estimate_number,
             'status' => $this->status,
-            'message' => 'Estimate #' . $this->estimate->estimate_number . ' was ' . $this->status . ' by the client.',
+            'message' => 'Estimate #'.$this->estimate->estimate_number.' was '.$this->status.' by the client.',
         ];
     }
 }

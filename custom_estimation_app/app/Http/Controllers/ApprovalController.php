@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Estimate;
+use Illuminate\Http\Request;
 
 class ApprovalController extends Controller
 {
@@ -46,43 +46,53 @@ class ApprovalController extends Controller
      */
     public function approve(Request $request, Estimate $estimate)
     {
-        $user = auth()->user();
+        try {
+            $user = auth()->user();
 
-        // Find pending approval for this user
-        $approval = $estimate->approvals()
-            ->where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->first();
+            // Find pending approval for this user
+            $approval = $estimate->approvals()
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
 
-        if (!$approval) {
-            return redirect()->back()->with('error', 'You do not have permission to approve this estimate.');
-        }
-
-        // Update approval status
-        $approval->update([
-            'status' => 'approved',
-            'comments' => $request->input('comments'),
-        ]);
-
-        // Check if all approvals are complete
-        if ($estimate->isFullyApproved()) {
-            $estimate->update([
-                'approval_status' => 'approved',
-                'status' => 'approved'
-            ]);
-        } else {
-            // Create approval for next step
-            $nextStep = $estimate->nextApprovalStep();
-            if ($nextStep) {
-                \App\Models\EstimateApproval::create([
-                    'estimate_id' => $estimate->id,
-                    'user_id' => $nextStep->user_id,
-                    'status' => 'pending',
-                ]);
+            if (! $approval) {
+                return redirect()->back()->with('error', 'You do not have permission to approve this estimate.');
             }
-        }
 
-        return redirect()->back()->with('success', 'Estimate approved successfully.');
+            // Update approval status
+            $approval->update([
+                'status' => 'approved',
+                'comments' => $request->input('comments'),
+            ]);
+
+            // Check if all approvals are complete
+            if ($estimate->isFullyApproved()) {
+                $estimate->update([
+                    'approval_status' => 'approved',
+                    'status' => 'approved',
+                ]);
+            } else {
+                // Create approval for next step
+                $nextStep = $estimate->nextApprovalStep();
+                if ($nextStep) {
+                    \App\Models\EstimateApproval::create([
+                        'estimate_id' => $estimate->id,
+                        'user_id' => $nextStep->user_id,
+                        'status' => 'pending',
+                    ]);
+                }
+            }
+
+            return redirect()->back()->with('success', 'Estimate approved successfully.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Estimate Approval Failed', [
+                'estimate_id' => $estimate->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Approval failed: '.$e->getMessage());
+        }
     }
 
     /**
@@ -90,27 +100,37 @@ class ApprovalController extends Controller
      */
     public function reject(Request $request, Estimate $estimate)
     {
-        $user = auth()->user();
+        try {
+            $user = auth()->user();
 
-        // Find pending approval for this user
-        $approval = $estimate->approvals()
-            ->where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->first();
+            // Find pending approval for this user
+            $approval = $estimate->approvals()
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
 
-        if (!$approval) {
-            return redirect()->back()->with('error', 'You do not have permission to reject this estimate.');
+            if (! $approval) {
+                return redirect()->back()->with('error', 'You do not have permission to reject this estimate.');
+            }
+
+            // Update approval status
+            $approval->update([
+                'status' => 'rejected',
+                'comments' => $request->input('comments', 'Rejected'),
+            ]);
+
+            // Update estimate status
+            $estimate->update(['approval_status' => 'rejected']);
+
+            return redirect()->back()->with('success', 'Estimate rejected.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Estimate Rejection Failed', [
+                'estimate_id' => $estimate->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Rejection failed: '.$e->getMessage());
         }
-
-        // Update approval status
-        $approval->update([
-            'status' => 'rejected',
-            'comments' => $request->input('comments', 'Rejected'),
-        ]);
-
-        // Update estimate status
-        $estimate->update(['approval_status' => 'rejected']);
-
-        return redirect()->back()->with('success', 'Estimate rejected.');
     }
 }

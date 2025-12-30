@@ -19,7 +19,7 @@ class TemplateEnhancementTest extends TestCase
             'name' => 'Test Product',
             'unit_price' => 100,
             'unit_type' => 'units',
-            'sku' => 'TP-001'
+            'sku' => 'TP-001',
         ]);
 
         $response = $this->actingAs($user)->get(route('templates.create'));
@@ -36,7 +36,7 @@ class TemplateEnhancementTest extends TestCase
             'name' => 'Linked Product',
             'unit_price' => 100,
             'unit_type' => 'units',
-            'sku' => 'TP-002'
+            'sku' => 'TP-002',
         ]);
 
         $response = $this->actingAs($user)->post(route('templates.store'), [
@@ -48,9 +48,9 @@ class TemplateEnhancementTest extends TestCase
                     'product_id' => $product->id,
                     'quantity' => 2,
                     'unit_price' => 100,
-                    'unit_type' => 'nos'
-                ]
-            ]
+                    'unit_type' => 'nos',
+                ],
+            ],
         ]);
 
         $response->assertRedirect(route('templates.index'));

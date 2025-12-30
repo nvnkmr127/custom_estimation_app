@@ -41,7 +41,7 @@ class ProfileController extends Controller
             }
 
             $path = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = '/storage/' . $path;
+            $user->avatar = '/storage/'.$path;
         }
 
         $user->save();

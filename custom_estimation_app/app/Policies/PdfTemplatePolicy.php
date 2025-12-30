@@ -27,7 +27,7 @@ class PdfTemplatePolicy
 
     public function update(User $user, PdfTemplate $pdfTemplate)
     {
-        if (!$user->hasPermission('manage_pdf_templates')) {
+        if (! $user->hasPermission('manage_pdf_templates')) {
             return false;
         }
 
@@ -41,7 +41,7 @@ class PdfTemplatePolicy
 
     public function delete(User $user, PdfTemplate $pdfTemplate)
     {
-        if (!$user->hasPermission('manage_pdf_templates')) {
+        if (! $user->hasPermission('manage_pdf_templates')) {
             return false;
         }
 

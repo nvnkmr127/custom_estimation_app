@@ -1,16 +1,11 @@
 <?php
 
+use App\Http\Controllers\EstimateController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\EstimateController;
 
-Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('dashboard');
-    }
-    return view('welcome');
-});
+Route::get('/', \App\Http\Controllers\WelcomeController::class)->name('welcome');
 
 Route::get('/user-guide', [\App\Http\Controllers\DocumentationController::class, 'index'])->name('guide.index');
 Route::get('/user-guide/{page}', [\App\Http\Controllers\DocumentationController::class, 'show'])->name('guide.show');
@@ -70,9 +65,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // User Management (Super Admin Only)
         Route::resource('users', App\Http\Controllers\UserController::class);
-        Route::get('/permissions', function () {
-            return view('permissions.index');
-        })->name('permissions.index');
+        Route::get('/permissions', [App\Http\Controllers\PermissionController::class, 'index'])->name('permissions.index');
         Route::get('/permissions/{role}/edit', [App\Http\Controllers\PermissionController::class, 'edit'])->name('permissions.edit');
         Route::put('/permissions/{role}', [App\Http\Controllers\PermissionController::class, 'update'])->name('permissions.update');
 
@@ -154,6 +147,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::post('/webhooks/perfex', [App\Http\Controllers\PerfexWebhookController::class, 'handle'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
-
-
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

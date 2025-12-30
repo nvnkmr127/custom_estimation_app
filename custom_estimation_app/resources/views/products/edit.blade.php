@@ -24,13 +24,15 @@
                 onsubmit="return confirm('Are you sure you want to delete this product?');">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="text-sm text-red-600 hover:text-red-900 font-medium">Delete
+                <button type="submit"
+                    class="text-sm text-rose-600 hover:text-rose-900 font-bold transition-colors">Delete
                     Product</button>
             </form>
         </div>
 
         <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data"
             class="space-y-8" x-data="{ 
+                  isSubmitting: false,
                   attributes: {{ json_encode($product->attributes ?? []) }},
                   options: {{ json_encode($product->options->load('values')->map(function ($opt) {
     return [
@@ -55,205 +57,172 @@
             @method('PUT')
 
             <!-- Core Details -->
-            <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl">
-                <div class="px-4 py-6 sm:p-8">
-                    <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">Product Information</h2>
-                    <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+            <x-card padding="8">
+                <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">Product Information</h2>
+                <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
 
-                        <div class="sm:col-span-4">
-                            <label for="name" class="block text-sm font-medium leading-6 text-slate-900">Product Name
-                                *</label>
-                            <div class="mt-2">
-                                <input type="text" name="name" id="name" value="{{ old('name', $product->name) }}"
-                                    required
-                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                            </div>
+                    <div class="sm:col-span-4">
+                        <x-input-label for="name" value="Product Name" required />
+                        <x-text-input type="text" name="name" id="name" value="{{ old('name', $product->name) }}"
+                            required />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label for="sku" value="SKU" />
+                        <x-text-input type="text" name="sku" id="sku" value="{{ old('sku', $product->sku) }}" />
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <x-input-label for="category_id" value="Category" />
+                        <select name="category_id" id="category_id"
+                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                            <option value="">-- No Category --</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <x-input-label for="tags" value="Tags" />
+                        <x-text-input type="text" name="tags" id="tags" x-model="tags"
+                            placeholder="classic, premium (comma separated)" />
+                    </div>
+
+                    <div class="col-span-full">
+                        <x-input-label value="Description" />
+                        <div class="mt-2 bg-white">
+                            <div id="editor"
+                                class="rounded-lg border-0 ring-1 ring-inset ring-slate-300 overflow-hidden"></div>
+                            <input type="hidden" name="description" id="description-input"
+                                value="{{ old('description', $product->description) }}">
                         </div>
+                    </div>
 
-                        <div class="sm:col-span-2">
-                            <label for="sku" class="block text-sm font-medium leading-6 text-slate-900">SKU</label>
-                            <div class="mt-2">
-                                <input type="text" name="sku" id="sku" value="{{ old('sku', $product->sku) }}"
-                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                            </div>
-                        </div>
+                    <div class="col-span-full">
+                        <x-input-label value="Product Images" />
 
-                        <div class="sm:col-span-3">
-                            <label for="category_id"
-                                class="block text-sm font-medium leading-6 text-slate-900">Category</label>
-                            <div class="mt-2">
-                                <select name="category_id" id="category_id"
-                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                    <option value="">-- No Category --</option>
-                                    @foreach($categories as $category)
-                                        <option value="{{ $category->id }}" {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>{{ $category->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="sm:col-span-3">
-                            <label for="tags" class="block text-sm font-medium leading-6 text-slate-900">Tags</label>
-                            <div class="mt-2">
-                                <input type="text" name="tags" id="tags" x-model="tags"
-                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                    placeholder="classic, premium (comma separated)">
-                            </div>
-                        </div>
-
-                        <div class="col-span-full">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">Description</label>
-                            <div class="mt-2 bg-white">
-                                <div id="editor" class="rounded-md border-0 ring-1 ring-inset ring-slate-300"></div>
-                                <input type="hidden" name="description" id="description-input"
-                                    value="{{ old('description', $product->description) }}">
-                            </div>
-                        </div>
-
-                        <div class="col-span-full">
-                            <label class="block text-sm font-medium leading-6 text-slate-900">Product Images</label>
-
-                            <!-- Existing Images -->
-                            @if($product->images->count() > 0)
-                                <div class="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                                    @foreach($product->images as $image)
+                        <!-- Existing Images -->
+                        @if($product->images->count() > 0)
+                            <div class="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                                @foreach($product->images as $image)
+                                    <div
+                                        class="relative group aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                                        <img src="{{ asset('storage/' . $image->image_path) }}" alt=""
+                                            class="object-cover w-full h-full">
                                         <div
-                                            class="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
-                                            <img src="{{ asset('storage/' . $image->image_path) }}" alt=""
-                                                class="object-cover w-full h-full">
-                                            <!-- We can add delete logic later if needed via array inputs -->
-                                            <div
-                                                class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <span class="text-white text-xs">Stored</span>
-                                            </div>
+                                            class="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span class="text-white text-[10px] font-bold uppercase tracking-wide">Stored</span>
                                         </div>
-                                    @endforeach
-                                </div>
-                            @endif
-
-                            <div
-                                class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
-                                <div class="text-center">
-                                    <svg class="mx-auto h-12 w-12 text-gray-300" viewBox="0 0 24 24" fill="currentColor"
-                                        aria-hidden="true">
-                                        <path fill-rule="evenodd"
-                                            d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    <div class="mt-4 flex text-sm leading-6 text-gray-600 justify-center">
-                                        <label for="images"
-                                            class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">
-                                            <span>Upload new images</span>
-                                            <input id="images" name="images[]" type="file" multiple class="sr-only">
-                                        </label>
-                                        <p class="pl-1">or drag and drop</p>
                                     </div>
-                                    <p class="text-xs leading-5 text-gray-600">Appends to existing images</p>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div
+                            class="mt-2 flex justify-center rounded-xl border border-dashed border-slate-300 px-6 py-10 transition-colors hover:border-slate-400">
+                            <div class="text-center">
+                                <svg class="mx-auto h-12 w-12 text-slate-300" viewBox="0 0 24 24" fill="currentColor"
+                                    aria-hidden="true">
+                                    <path fill-rule="evenodd"
+                                        d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <div class="mt-4 flex text-sm leading-6 text-slate-600 justify-center">
+                                    <label for="images"
+                                        class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">
+                                        <span>Upload new images</span>
+                                        <input id="images" name="images[]" type="file" multiple class="sr-only">
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
                                 </div>
+                                <p class="text-xs leading-5 text-slate-500">Appends to existing images</p>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </x-card>
 
             <!-- Dimensions -->
-            <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl">
-                <div class="px-4 py-6 sm:p-8">
-                    <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">Dimensions</h2>
-                    <div class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
-                        @php $dims = $product->dimensions ?? []; @endphp
-                        <div>
-                            <label for="dim_l" class="block text-sm font-medium leading-6 text-slate-900">Length</label>
-                            <input type="number" step="0.01" name="dimensions[length]"
-                                value="{{ $dims['length'] ?? '' }}" id="dim_l"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                        </div>
-                        <div>
-                            <label for="dim_w" class="block text-sm font-medium leading-6 text-slate-900">Width</label>
-                            <input type="number" step="0.01" name="dimensions[width]" value="{{ $dims['width'] ?? '' }}"
-                                id="dim_w"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                        </div>
-                        <div>
-                            <label for="dim_h" class="block text-sm font-medium leading-6 text-slate-900">Height</label>
-                            <input type="number" step="0.01" name="dimensions[height]"
-                                value="{{ $dims['height'] ?? '' }}" id="dim_h"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                        </div>
-                        <div>
-                            <label for="dim_u" class="block text-sm font-medium leading-6 text-slate-900">Unit</label>
-                            <select name="dimensions[unit]" id="dim_u"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                @foreach(['in', 'ft', 'cm', 'm', 'mm'] as $u)
-                                    <option value="{{ $u }}" {{ ($dims['unit'] ?? '') == $u ? 'selected' : '' }}>{{ $u }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+            <x-card padding="8">
+                <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">Dimensions</h2>
+                <div class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+                    @php $dims = $product->dimensions ?? []; @endphp
+                    <div>
+                        <x-input-label for="dim_l" value="Length" />
+                        <x-text-input type="number" step="0.01" name="dimensions[length]"
+                            value="{{ $dims['length'] ?? '' }}" id="dim_l" />
+                    </div>
+                    <div>
+                        <x-input-label for="dim_w" value="Width" />
+                        <x-text-input type="number" step="0.01" name="dimensions[width]"
+                            value="{{ $dims['width'] ?? '' }}" id="dim_w" />
+                    </div>
+                    <div>
+                        <x-input-label for="dim_h" value="Height" />
+                        <x-text-input type="number" step="0.01" name="dimensions[height]"
+                            value="{{ $dims['height'] ?? '' }}" id="dim_h" />
+                    </div>
+                    <div>
+                        <x-input-label for="dim_u" value="Unit" />
+                        <select name="dimensions[unit]" id="dim_u"
+                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                            @foreach(['in', 'ft', 'cm', 'm', 'mm'] as $u)
+                                <option value="{{ $u }}" {{ ($dims['unit'] ?? '') == $u ? 'selected' : '' }}>{{ $u }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
-            </div>
+            </x-card>
 
             <!-- Pricing & Units -->
-            <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl">
-                <div class="px-4 py-6 sm:p-8">
-                    <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">Pricing & Units</h2>
-                    <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+            <x-card padding="8">
+                <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">Pricing & Units</h2>
+                <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
 
-                        <div class="sm:col-span-2">
-                            <label for="unit_price" class="block text-sm font-medium leading-6 text-slate-900">Base Unit
-                                Price *</label>
-                            <div class="mt-2 relative rounded-md shadow-sm">
-                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <span class="text-slate-500 sm:text-sm">$</span>
-                                </div>
-                                <input type="number" step="0.01" name="unit_price" id="unit_price"
-                                    value="{{ old('unit_price', $product->unit_price) }}" required
-                                    class="block w-full rounded-md border-0 py-1.5 pl-7 text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                    placeholder="0.00">
+                    <div class="sm:col-span-2">
+                        <x-input-label for="unit_price" value="Base Unit Price" required />
+                        <div class="mt-2 relative rounded-lg shadow-sm">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-slate-500 sm:text-sm">{{ config('app.currency_symbol', '$') }}</span>
                             </div>
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label for="unit_type" class="block text-sm font-medium leading-6 text-slate-900">Unit
-                                Type</label>
-                            <div class="mt-2">
-                                <select name="unit_type" id="unit_type"
-                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                    @foreach(['nos', 'sqft', 'mtr', 'kg', 'set', 'hrs', 'days'] as $type)
-                                        <option value="{{ $type }}" {{ old('unit_type', $product->unit_type) == $type ? 'selected' : '' }}>{{ ucfirst($type) }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label for="calculation_method"
-                                class="block text-sm font-medium leading-6 text-slate-900">Calculation Method</label>
-                            <div class="mt-2">
-                                <select name="calculation_method" id="calculation_method"
-                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                    <option value="standard" {{ old('calculation_method', $product->calculation_method) == 'standard' ? 'selected' : '' }}>Standard (Qty
-                                        Input)</option>
-                                    <option value="formula" {{ old('calculation_method', $product->calculation_method) == 'formula' ? 'selected' : '' }}>Formula (L x W)
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label for="tax_1" class="block text-sm font-medium leading-6 text-slate-900">Tax 1
-                                (%)</label>
-                            <div class="mt-2">
-                                <input type="number" step="0.01" name="tax_1" id="tax_1"
-                                    value="{{ old('tax_1', $product->tax_1) }}"
-                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                            </div>
+                            <input type="number" step="0.01" name="unit_price" id="unit_price"
+                                value="{{ old('unit_price', $product->unit_price) }}" required
+                                class="block w-full rounded-lg border-slate-300 py-1.5 pl-7 text-slate-900 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                placeholder="0.00">
                         </div>
                     </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label for="unit_type" value="Unit Type" required />
+                        <select name="unit_type" id="unit_type"
+                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                            @foreach(['nos', 'sqft', 'mtr', 'kg', 'set', 'hrs', 'days'] as $type)
+                                <option value="{{ $type }}" {{ old('unit_type', $product->unit_type) == $type ? 'selected' : '' }}>{{ ucfirst($type) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label for="calculation_method" value="Calculation Method" />
+                        <select name="calculation_method" id="calculation_method"
+                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                            <option value="standard" {{ old('calculation_method', $product->calculation_method) == 'standard' ? 'selected' : '' }}>Standard (Qty
+                                Input)</option>
+                            <option value="formula" {{ old('calculation_method', $product->calculation_method) == 'formula' ? 'selected' : '' }}>Formula (L x W)
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label for="tax_1" value="Tax 1 (%)" />
+                        <x-text-input type="number" step="0.01" name="tax_1" id="tax_1"
+                            value="{{ old('tax_1', $product->tax_1) }}" />
+                    </div>
                 </div>
-            </div>
+            </x-card>
 
             <!-- Variants / Options -->
             <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl">
@@ -375,11 +344,11 @@
 
             <div class="flex items-center justify-end gap-x-6">
                 <a href="{{ route('products.index') }}"
-                    class="text-sm font-semibold leading-6 text-slate-900">Cancel</a>
-                <button type="submit"
-                    class="rounded-md bg-indigo-600 px-8 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                    class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors">Cancel</a>
+                <x-primary-button type="submit" :loading="isSubmitting" @click="isSubmitting = true"
+                    class="px-8 py-2.5">
                     Update Product
-                </button>
+                </x-primary-button>
             </div>
         </form>
     </div>

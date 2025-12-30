@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EstimateComment extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'estimate_id',
         'commentable_type',
@@ -95,6 +98,7 @@ class EstimateComment extends Model
         if ($this->user_id) {
             return $this->user->name;
         }
+
         return $this->client_name ?? 'Anonymous';
     }
 
