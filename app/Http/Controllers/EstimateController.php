@@ -188,7 +188,18 @@ class EstimateController extends Controller
         $pdfTemplates = PdfTemplate::where('is_active', true)->get();
         $estimate->load(['sections.items.product.images', 'items.product.images']);
 
-        return view('estimates.edit', compact('estimate', 'products', 'templates', 'packages', 'clients', 'approvalChains', 'pdfTemplates'));
+        $settings = Setting::getAllCached();
+        $defaults = [
+            'currency' => $settings['currency_code'] ?? 'USD',
+            'tax_1_name' => $settings['tax_1_name'] ?? 'Tax 1',
+            'tax_1_rate' => $settings['tax_1_rate'] ?? 0,
+            'tax_2_name' => $settings['tax_2_name'] ?? 'Tax 2',
+            'tax_2_rate' => $settings['tax_2_rate'] ?? 0,
+            'terms' => $settings['estimate_terms'] ?? '',
+            'client_note' => $settings['estimate_client_note'] ?? '',
+        ];
+
+        return view('estimates.edit', compact('estimate', 'products', 'templates', 'packages', 'clients', 'approvalChains', 'pdfTemplates', 'defaults'));
     }
 
     /**

@@ -1,28 +1,31 @@
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('estimateBuilder', (initialData) => ({
+            products: initialData.products || @json($products),
+            templates: initialData.templates || @json($templates),
+            packages: initialData.packages || @json($packages),
+            defaults: initialData.defaults || @json($defaults ?? []),
+
             estimate: {
-                title: '',
-                client_id: '',
-                estimate_date: new Date().toISOString().split('T')[0],
-                expiry_date: '',
                 status: 'draft',
                 currency: 'USD',
-                type: 'standard', // 'standard' or 'room_based'
-                discount_type: 'percentage', // 'percentage' or 'fixed'
-                discount_value: 0,
+                type: 'standard', // 'standard' or 'room_based',
+                title: '',
+                client_id: '',
                 client_note: '',
                 admin_note: '',
                 terms: '',
                 pdf_theme: 'modern',
                 sections: [], // For room_based: [{ name: 'Room 1', items: [] }]
                 items: [],    // For standard: [{ ...item }]
-                ...initialData
+
+                // Spread initialData but exclude system arrays to keep estimate object clean
+                ...(({ products, templates, packages, defaults, ...rest }) => rest)(initialData),
+
+                // Override dates to ensure correct format (YYYY-MM-DD) for input[type="date"]
+                estimate_date: initialData.estimate_date ? initialData.estimate_date.split('T')[0] : new Date().toISOString().split('T')[0],
+                expiry_date: initialData.expiry_date ? initialData.expiry_date.split('T')[0] : ''
             },
-            products: @json($products),
-            templates: @json($templates),
-            packages: @json($packages),
-            defaults: @json($defaults ?? []),
             productPicker: {
                 isOpen: false,
                 search: '',
@@ -50,6 +53,25 @@
                 if (this.estimate.type === 'room_based' && this.estimate.sections.length === 0) {
                     this.estimate.sections.push({ name: 'Room 1', items: [] });
                 }
+
+                // Hydrate items (fix images, numbers)
+                const hydrateItem = (item) => {
+                    item.unit_price = parseFloat(item.unit_price || 0);
+                    item.quantity = parseFloat(item.quantity || 1);
+                    item.tax_1 = parseFloat(item.tax_1 || 0);
+                    item.tax_2 = parseFloat(item.tax_2 || 0);
+                    // Hydrate image from relation if available and not set
+                    if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
+                        item.image_url = '/storage/' + item.product.images[0].image_path;
+                    }
+                };
+
+                if (this.estimate.type === 'room_based') {
+                    this.estimate.sections.forEach(s => s.items.forEach(hydrateItem));
+                } else {
+                    this.estimate.items.forEach(hydrateItem);
+                }
+
                 this.calculateTotals();
                 this.$nextTick(() => {
                     this.initSortable();
@@ -361,7 +383,13 @@
 
                 // Basic Fields
                 const fields = ['title', 'client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type'];
-                fields.forEach(f => app(f, this.estimate[f] || ''));
+                fields.forEach(f => {
+                    let val = this.estimate[f];
+                    if (f === 'discount_value') {
+                        val = (val !== null && val !== undefined && val !== '') ? val : 0;
+                    }
+                    app(f, val ?? '');
+                });
 
                 // Sections/Items
                 if (this.estimate.type === 'room_based') {

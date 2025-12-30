@@ -203,6 +203,10 @@
                 class="rounded-md bg-indigo-50 px-3 py-2 text-center text-sm font-semibold text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100">
                 Public View
             </a>
+            <a href="{{ route('estimates.analytics', $estimate) }}"
+                class="rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                View Analytics
+            </a>
             <!-- Back Link -->
             <a href="{{ route('estimates.index') }}"
                 class="rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Back</a>
@@ -487,6 +491,7 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-16">Image</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Item</th>
                                         <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Price</th>
                                         <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">Qty</th>
@@ -497,11 +502,23 @@
                                 <tbody class="divide-y divide-gray-200">
                                     @foreach($section->items as $item)
                                         <tr>
+                                            <td class="px-3 py-2 text-sm text-gray-500">
+                                                @if($item->product && $item->product->images->isNotEmpty())
+                                                    <img src="{{ $item->product->images->first()->image_path }}" alt="{{ $item->name }}" class="h-10 w-10 object-cover rounded text-xs">
+                                                @else
+                                                    <div class="h-10 w-10 bg-gray-100 rounded flex items-center justify-center">
+                                                        <svg class="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                @endif
+                                            </td>
                                             <td class="px-3 py-2 text-sm text-gray-900">
                                                 <div>{{ $item->name }}</div>
                                                 @if($item->length && $item->width)
                                                     <div class="text-xs text-indigo-600">Dims: {{ $item->length + 0 }} &times; {{ $item->width + 0 }}</div>
-                                                @elseif($item->description)
+                                                @endif
+                                                @if($item->description)
                                                     <div class="text-xs text-gray-500 truncate max-w-xs">{{ $item->description }}</div>
                                                 @endif
                                             </td>
@@ -523,6 +540,7 @@
                     <table class="min-w-full divide-y divide-gray-300">
                         <thead>
                             <tr>
+                                <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 w-16">Image</th>
                                 <th class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Item</th>
                                 <th class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Total</th>
                             </tr>
@@ -530,6 +548,17 @@
                         <tbody class="divide-y divide-gray-200">
                             @foreach($estimate->items as $item)
                                 <tr>
+                                    <td class="px-3 py-4 text-sm">
+                                        @if($item->product && $item->product->images->isNotEmpty())
+                                            <img src="{{ $item->product->images->first()->image_path }}" alt="{{ $item->name }}" class="h-10 w-10 object-cover rounded text-xs">
+                                        @else
+                                            <div class="h-10 w-10 bg-gray-100 rounded flex items-center justify-center">
+                                                <svg class="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td class="px-3 py-4 text-sm">
                                         <div class="font-medium text-gray-900">{{ $item->name }}</div>
                                         @if($item->description)
