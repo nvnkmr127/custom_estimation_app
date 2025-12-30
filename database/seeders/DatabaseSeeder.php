@@ -17,11 +17,9 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'role' => 'super_admin',
-            'password' => \Illuminate\Support\Facades\Hash::make('password'),
-        ]);
+        // User::factory(10)->create();
+
+        $this->call(DemoLoginsSeeder::class);
+        $this->call(TestDataSeeder::class);
     }
 }

@@ -345,9 +345,14 @@
             <div class="flex items-center justify-end gap-x-6">
                 <a href="{{ route('products.index') }}"
                     class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors">Cancel</a>
-                <x-primary-button type="submit" :loading="isSubmitting" @click="isSubmitting = true"
-                    class="px-8 py-2.5">
-                    Update Product
+                <x-primary-button type="submit" class="px-8 py-2.5" x-bind:disabled="isSubmitting"
+                    @click="isSubmitting = true" x-bind:class="{ 'opacity-75 cursor-not-allowed': isSubmitting }">
+                    <div class="flex items-center">
+                        <div x-show="isSubmitting" class="mr-2" style="display: none;">
+                            <x-loading-spinner size="5" />
+                        </div>
+                        <span x-text="isSubmitting ? 'Updating...' : 'Update Product'"></span>
+                    </div>
                 </x-primary-button>
             </div>
         </form>

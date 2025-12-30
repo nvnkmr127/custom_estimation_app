@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'currency_symbol' => env('APP_CURRENCY_SYMBOL', '$'),
+    'currency_code' => env('APP_CURRENCY_CODE', 'USD'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

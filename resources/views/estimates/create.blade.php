@@ -629,7 +629,7 @@
                                                 <div
                                                     class="h-12 w-12 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden ring-1 ring-slate-200">
                                                     <template x-if="product.images && product.images.length > 0">
-                                                        <img :src="'/storage/' + product.images[0].image_path"
+                                                        <img :src="product.images[0].image_path.startsWith('http') ? product.images[0].image_path : '/storage/' + product.images[0].image_path"
                                                             class="h-full w-full object-cover">
                                                     </template>
                                                     <template x-if="!product.images || product.images.length === 0">
@@ -752,8 +752,14 @@
                 <div class="h-6 w-px bg-slate-200 mx-2"></div>
                 <button type="button" @click="window.history.back()"
                     class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors px-4">Cancel</button>
-                <x-primary-button type="submit" :loading="isSubmitting" class="px-8 py-2.5">
-                    Save Estimate
+                <x-primary-button type="submit" class="px-8 py-2.5" x-bind:disabled="isSubmitting"
+                    x-bind:class="{ 'opacity-75 cursor-not-allowed': isSubmitting }">
+                    <div class="flex items-center">
+                        <div x-show="isSubmitting" class="mr-2" style="display: none;">
+                            <x-loading-spinner size="5" />
+                        </div>
+                        <span x-text="isSubmitting ? 'Saving...' : 'Save Estimate'"></span>
+                    </div>
                 </x-primary-button>
             </div>
         </form>

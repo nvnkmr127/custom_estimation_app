@@ -4,26 +4,21 @@
             <a href="{{ route('packages.index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
                 &larr; Back to Packages
             </a>
-            <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                {{ isset($package) ? 'Edit Package' : 'Create Item Package' }}
-            </h1>
+            <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Edit Package</h1>
         </div>
 
-        <form action="{{ isset($package) ? route('packages.update', $package) : route('packages.store') }}"
-            method="POST" class="space-y-8" x-data="{ 
+        <form action="{{ route('packages.update', $package) }}" method="POST" class="space-y-8" x-data="{ 
                   isSubmitting: false,
-                  items: {{ isset($package) && $package->items ? json_encode($package->items) : '[{item_name: \'\', quantity: 1, unit_type: \'pcs\', unit_price: 0}]' }}
+                  items: {{ $package->items ? json_encode($package->items) : '[]' }}
               }">
             @csrf
-            @if(isset($package))
-                @method('PUT')
-            @endif
+            @method('PUT')
 
             <x-card padding="8">
                 <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                     <div class="sm:col-span-4">
                         <x-input-label for="name" value="Package Name" required />
-                        <x-text-input type="text" name="name" id="name" value="{{ old('name', $package->name ?? '') }}"
+                        <x-text-input type="text" name="name" id="name" value="{{ old('name', $package->name) }}"
                             placeholder="e.g. Electrical Starter Pack" required />
                     </div>
 
@@ -31,7 +26,7 @@
                         <x-input-label for="description" value="Description" />
                         <div class="mt-2">
                             <textarea name="description" id="description" rows="3"
-                                class="block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">{{ old('description', $package->description ?? '') }}</textarea>
+                                class="block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">{{ old('description', $package->description) }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -46,22 +41,22 @@
                         <div class="flex gap-4 items-start p-4 bg-slate-50 rounded-xl border border-slate-200">
                             <div class="flex-1">
                                 <x-input-label value="Item Name" />
-                                <x-text-input type="text" :name="`items[${index}][item_name]`" x-model="item.item_name"
-                                    placeholder="Item Name" required />
+                                <x-text-input type="text" x-bind:name="`items[${index}][item_name]`"
+                                    x-model="item.item_name" placeholder="Item Name" required />
                             </div>
                             <div class="w-24">
                                 <x-input-label value="Qty" />
-                                <x-text-input type="number" step="0.01" :name="`items[${index}][quantity]`"
+                                <x-text-input type="number" step="0.01" x-bind:name="`items[${index}][quantity]`"
                                     x-model="item.quantity" placeholder="1" required />
                             </div>
                             <div class="w-24">
                                 <x-input-label value="Unit" />
-                                <x-text-input type="text" :name="`items[${index}][unit_type]`" x-model="item.unit_type"
-                                    placeholder="pcs" />
+                                <x-text-input type="text" x-bind:name="`items[${index}][unit_type]`"
+                                    x-model="item.unit_type" placeholder="pcs" />
                             </div>
                             <div class="w-32">
                                 <x-input-label value="Price" />
-                                <x-text-input type="number" step="0.01" :name="`items[${index}][unit_price]`"
+                                <x-text-input type="number" step="0.01" x-bind:name="`items[${index}][unit_price]`"
                                     x-model="item.unit_price" placeholder="0.00" />
                             </div>
                             <div class="pt-8">
@@ -91,9 +86,14 @@
             <div class="flex items-center justify-end gap-x-6">
                 <a href="{{ route('packages.index') }}"
                     class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors">Cancel</a>
-                <x-primary-button type="submit" :loading="isSubmitting" @click="isSubmitting = true"
-                    class="px-8 py-2.5">
-                    {{ isset($package) ? 'Update Package' : 'Create Package' }}
+                <x-primary-button type="submit" class="px-8 py-2.5" x-bind:disabled="isSubmitting"
+                    @click="isSubmitting = true" x-bind:class="{ 'opacity-75 cursor-not-allowed': isSubmitting }">
+                    <div class="flex items-center">
+                        <div x-show="isSubmitting" class="mr-2" style="display: none;">
+                            <x-loading-spinner size="5" />
+                        </div>
+                        <span x-text="isSubmitting ? 'Saving...' : 'Update Package'"></span>
+                    </div>
                 </x-primary-button>
             </div>
         </form>

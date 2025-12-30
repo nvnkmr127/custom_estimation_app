@@ -425,32 +425,54 @@
 
         <!-- Totals -->
         <div class="totals-container">
-
-                                <table class="totals-table">
+            <table class="totals-table">
                 <tr>
                     <td><span class="label">Subtotal</span></td>
                     <td><span class="value">{{ $estimate->currency }} {{ number_format($estimate->subtotal, 2) }}</span></td>
                 </tr>
-
-                                           @if($estimate->discount_total > 0)
-                                            <tr>
-                                                <td><span class="label">Discount</span></td>
-                                                <td><span class="value" style="color: #EF4444;">- {{ $estimate->currency }} {{ number_format($estimate->discount_total, 2) }}</span></td>
-                                            </tr>
-                                        @endif
-
-                                           @if($estimate->total_tax > 0)
-                                            <tr>
-                                                <td><span class="label">Total Tax</span></td>
-                                                <td><span class="value">{{ $estimate->currency }} {{ number_format($estimate->total_tax, 2) }}</span></td>
-                                            </tr>
-
-                                           @endif
+                @if($estimate->discount_total > 0)
+                    <tr>
+                        <td><span class="label">Discount</span></td>
+                        <td><span class="value" style="color: #EF4444;">- {{ $estimate->currency }} {{ number_format($estimate->discount_total, 2) }}</span></td>
+                    </tr>
+                @endif
+                @if($estimate->total_tax > 0)
+                    <tr>
+                        <td><span class="label">Total Tax</span></td>
+                        <td><span class="value">{{ $estimate->currency }} {{ number_format($estimate->total_tax, 2) }}</span></td>
+                    </tr>
+                @endif
                 <tr class="grand-total">
                     <td><span class="label" style="font-weight: bold; color: #111;">Grand Total</span></td>
                     <td><span class="value">{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</span></td>
                 </tr>
             </table>
+        </div>
+
+        @if($estimate->type === 'room_based')
+        <!-- Summary Chart (New) -->
+        <div style="margin-top: 30px; background: #fff; border: 1px solid #eee; padding: 20px; border-radius: 8px; page-break-inside: avoid;">
+            <div style="font-weight: bold; color: #4F46E5; margin-bottom: 15px; font-size: 14px;">Cost Distribution</div>
+            @php $gt = $estimate->grand_total > 0 ? $estimate->grand_total : 1; @endphp
+            @foreach($estimate->sections as $section)
+                @php $pct = ($section->subtotal / $gt) * 100; @endphp
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <div style="width: 30%; font-size: 12px; font-weight: 500;">{{ $section->name }}</div>
+                    <div style="flex: 1; margin: 0 15px; height: 8px; background: #f3f4f6; border-radius: 4px; overflow: hidden;">
+                        <div style="height: 100%; background: #4F46E5; width: {{ $pct }}%;"></div>
+                    </div>
+                    <div style="width: 20%; text-align: right; font-size: 12px; font-weight: bold;">{{ $estimate->currency }} {{ number_format($section->subtotal, 2) }}</div>
+                </div>
+            @endforeach
+        </div>
+        @endif
+
+        <!-- About Us (New) -->
+        <div style="margin-top: 30px; padding: 20px; background-color: #F9FAFB; border-radius: 4px; page-break-inside: avoid;">
+             <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #111;">About Us</div>
+             <div style="font-size: 12px; color: #555; line-height: 1.6;">
+                {{ \App\Models\Setting::getCached('company_about') }}
+             </div>
         </div>
 
         <!-- Notes -->
@@ -475,7 +497,6 @@
         <div class="footer">
             <p>Thank you for your business!</p>
             @if(!empty($settings['company_website']))
-
                  <p>{{ $settings['company_website'] }}</p>
             @endif
         </div>

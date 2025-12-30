@@ -25,4 +25,12 @@ class ApprovalChain extends Model
     {
         return $this->hasMany(Estimate::class);
     }
+
+    /**
+     * Scope a query to only include active approval chains with their steps.
+     */
+    public function scopeActiveWithSteps($query)
+    {
+        return $query->where('is_active', true)->with('steps')->orderBy('name');
+    }
 }

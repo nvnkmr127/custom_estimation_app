@@ -131,9 +131,14 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="h-12 w-12 flex-shrink-0">
                                             @if($product->images->isNotEmpty())
+                                                @php
+                                                    $imagePath = $product->images->first()->image_path;
+                                                    $imageUrl = Str::startsWith($imagePath, ['http://', 'https://'])
+                                                        ? $imagePath
+                                                        : Storage::url($imagePath);
+                                                @endphp
                                                 <img class="h-12 w-12 rounded-lg object-cover border border-slate-200 shadow-sm"
-                                                    src="{{ Storage::url($product->images->first()->image_path) }}"
-                                                    alt="{{ $product->name }}">
+                                                    src="{{ $imageUrl }}" alt="{{ $product->name }}">
                                             @else
                                                 <div
                                                     class="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200 shadow-sm">
@@ -171,7 +176,8 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-slate-900 font-bold">
                                             ₹{{ number_format($product->unit_price, 2) }}</div>
-                                        <div class="text-[10px] text-slate-500 font-medium uppercase tracking-wide">per {{ $product->unit_type }}</div>
+                                        <div class="text-[10px] text-slate-500 font-medium uppercase tracking-wide">per
+                                            {{ $product->unit_type }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if($product->status === 'active')
@@ -247,13 +253,9 @@
                     </div>
                 </div>
             @else
-                <x-empty-state 
-                    icon="product"
-                    title="No products found"
-                    description="Get started by creating your first product or using bulk upload."
-                    actionLabel="Add Product"
-                    actionUrl="{{ route('products.create') }}"
-                />
+                <x-empty-state icon="product" title="No products found"
+                    description="Get started by creating your first product or using bulk upload." actionLabel="Add Product"
+                    actionUrl="{{ route('products.create') }}" />
             @endif
         </x-card>
 
