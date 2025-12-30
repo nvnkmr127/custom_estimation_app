@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, \Illuminate\Database\Eloquent\SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -66,7 +66,7 @@ class User extends Authenticatable
     public function isAdmin(): bool // @phpstan-ignore-line
     {
         // Add simple check to avoid errors if field is missing during initial seeding
-        return in_array($this->role ?? 'sales', ['super_admin', 'estimator_admin']);
+        return in_array($this->role ?? 'estimator', ['super_admin', 'estimator_admin']);
     }
 
     /**

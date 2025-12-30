@@ -162,7 +162,7 @@ class EstimateController extends Controller
     {
         $this->authorize('view', $estimate);
 
-        $estimate->load('items.product.images', 'sections.items.product.images', 'approvals.user');
+        $estimate->load('items.product.images', 'sections.items.product.images', 'approvals.user', 'checklistItems');
         $checklists = ApprovalChecklist::getAllCached();
         $declineReasons = DeclineReason::getActiveCached();
 
@@ -348,6 +348,20 @@ class EstimateController extends Controller
         ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} status manually changed from {$oldStatus} to {$status}.");
 
         return back()->with('success', 'Estimate marked as ' . ucfirst($status) . '.');
+    }
+
+    /**
+     * Revert the estimate to draft status.
+     */
+    public function revertToDraft(Estimate $estimate)
+    {
+        $this->authorize('revertToDraft', $estimate);
+
+        $estimate->update(['status' => Estimate::STATUS_DRAFT]);
+
+        ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} reverted to draft.");
+
+        return back()->with('success', 'Estimate reverted to draft.');
     }
 
     /**

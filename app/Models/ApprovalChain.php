@@ -10,6 +10,7 @@ class ApprovalChain extends Model
         'name',
         'description',
         'is_active',
+        'fallback_user_id',
     ];
 
     protected $casts = [
@@ -32,5 +33,9 @@ class ApprovalChain extends Model
     public function scopeActiveWithSteps($query)
     {
         return $query->where('is_active', true)->with('steps')->orderBy('name');
+    }
+    public function fallbackUser()
+    {
+        return $this->belongsTo(User::class, 'fallback_user_id');
     }
 }

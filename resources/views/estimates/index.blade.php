@@ -51,19 +51,7 @@
                                     {{ $estimate->title ?: 'Untitled Estimate' }}
                                 </a>
                             </div>
-                            @php
-                                $statusStyles = [
-                                    'draft' => 'bg-slate-100 text-slate-700 ring-slate-600/20',
-                                    'sent' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
-                                    'accepted' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-                                    'declined' => 'bg-rose-50 text-rose-700 ring-rose-600/10',
-                                    'expired' => 'bg-amber-50 text-amber-800 ring-amber-600/20',
-                                ];
-                            @endphp
-                            <span
-                                class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $statusStyles[$estimate->status] ?? 'bg-slate-100 text-slate-600 ring-slate-500/10' }}">
-                                {{ ucfirst($estimate->status) }}
-                            </span>
+                            <x-estimate-status-badge :status="$estimate->status" />
                         </div>
 
                         <div
@@ -157,19 +145,7 @@
                                             {{ $estimate->estimate_date->format('M d, Y') }}
                                         </td>
                                         <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                            @php
-                                                $statusStyles = [
-                                                    'draft' => 'bg-slate-100 text-slate-700 ring-slate-600/20',
-                                                    'sent' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
-                                                    'accepted' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-                                                    'declined' => 'bg-rose-50 text-rose-700 ring-rose-600/10',
-                                                    'expired' => 'bg-amber-50 text-amber-800 ring-amber-600/20',
-                                                ];
-                                            @endphp
-                                            <span
-                                                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $statusStyles[$estimate->status] ?? 'bg-slate-100 text-slate-600 ring-slate-500/10' }}">
-                                                {{ ucfirst($estimate->status) }}
-                                            </span>
+                                            <x-estimate-status-badge :status="$estimate->status" />
                                         </td>
                                         <td class="whitespace-nowrap px-3 py-4 text-sm font-semibold text-slate-900">
                                             {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}

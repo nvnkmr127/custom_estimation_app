@@ -44,12 +44,25 @@ class EstimatePolicy
      */
     public function update(User $user, Estimate $estimate): bool
     {
-        // Admins can update any estimate.
+        // STRICT: No one can edit a sent/approved/declined estimate.
+        // It must be reverted to draft or a new version created.
+        if (
+            in_array($estimate->status, [
+                Estimate::STATUS_SENT,
+                Estimate::STATUS_ACCEPTED,
+                Estimate::STATUS_DECLINED,
+                Estimate::STATUS_EXPIRED
+            ])
+        ) {
+            return false;
+        }
+
+        // Admins can update any estimate if it is in DRAFT.
         if ($user->isAdmin()) {
             return true;
         }
 
-        // Sales can only update their own estimates if they are not approved yet.
+        // Estimator can only update their own DRAFT estimates.
         return $user->id === $estimate->created_by && $estimate->status === Estimate::STATUS_DRAFT;
     }
 
@@ -73,5 +86,17 @@ class EstimatePolicy
     public function approve(User $user, Estimate $estimate): bool
     {
         return $user->isAdmin();
+    }
+
+    /**
+     * Determine whether the user can revert the estimate to draft.
+     */
+    public function revertToDraft(User $user, Estimate $estimate): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        return $user->id === $estimate->created_by;
     }
 }

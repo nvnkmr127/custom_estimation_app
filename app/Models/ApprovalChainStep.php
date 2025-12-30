@@ -11,6 +11,8 @@ class ApprovalChainStep extends Model
         'role',
         'user_id',
         'order',
+        'timeout_hours',
+        'timeout_action',
     ];
 
     public function chain()

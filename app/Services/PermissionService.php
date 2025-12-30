@@ -102,7 +102,7 @@ class PermissionService
             'view_pdf_templates',
         ],
 
-        'sales_manager' => [
+        'estimator_manager' => [
             'create_estimates',
             'edit_estimates',
             'view_estimates',
@@ -117,7 +117,7 @@ class PermissionService
             'view_pdf_templates',
         ],
 
-        'sales' => [
+        'estimator' => [
             'create_estimates',
             'edit_estimates',
             'view_estimates',
@@ -211,13 +211,13 @@ class PermissionService
                 'description' => 'Manage estimates, products, and templates',
                 'color' => 'indigo',
             ],
-            'sales_manager' => [
-                'name' => 'Sales Manager',
+            'estimator_manager' => [
+                'name' => 'Estimator Manager',
                 'description' => 'Create and approve estimates',
                 'color' => 'blue',
             ],
-            'sales' => [
-                'name' => 'Sales',
+            'estimator' => [
+                'name' => 'Estimator',
                 'description' => 'Create and manage own estimates',
                 'color' => 'gray',
             ],

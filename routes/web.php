@@ -32,8 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
     Route::post('estimates/{estimate}/submit', [App\Http\Controllers\ApprovalController::class, 'submit'])->name('estimates.submit');
     Route::post('estimates/{estimate}/approve', [App\Http\Controllers\ApprovalController::class, 'approve'])->name('estimates.approve');
+    Route::post('estimates/{estimate}/toggle-checklist', [App\Http\Controllers\ApprovalController::class, 'toggleChecklistItem'])->name('estimates.toggle-checklist');
     Route::post('estimates/{estimate}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('estimates.reject');
     Route::post('estimates/{estimate}/version', [EstimateController::class, 'createVersion'])->name('estimates.version');
+    Route::post('estimates/{estimate}/revert', [EstimateController::class, 'revertToDraft'])->name('estimates.revert');
     Route::get('estimates/{estimate}/pdf', [EstimateController::class, 'downloadPdf'])->name('estimates.pdf');
     Route::post('estimates/preview', [EstimateController::class, 'preview'])->name('estimates.preview');
     Route::post('estimates/batch-download', [EstimateController::class, 'batchDownload'])->name('estimates.batch-download');
@@ -69,9 +71,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/permissions/{role}/edit', [App\Http\Controllers\PermissionController::class, 'edit'])->name('permissions.edit');
         Route::put('/permissions/{role}', [App\Http\Controllers\PermissionController::class, 'update'])->name('permissions.update');
 
-        // Approval Chains
-        Route::resource('approval-chains', App\Http\Controllers\ApprovalChainController::class);
-        Route::post('approval-chains/{approvalChain}/set-default', [App\Http\Controllers\ApprovalChainController::class, 'setDefault'])->name('approval-chains.set-default');
 
         // Clients
         Route::resource('clients', App\Http\Controllers\ClientController::class);
@@ -141,10 +140,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/pdf-templates/{pdfTemplate}/restore/{version}', [App\Http\Controllers\PdfTemplateController::class, 'restore'])->name('pdf-templates.restore');
         Route::resource('pdf-templates', App\Http\Controllers\PdfTemplateController::class);
     });
+
+    // Approval Chains (Super Admin Only)
+    Route::middleware(['role:super_admin'])->group(function () {
+        Route::resource('approval-chains', App\Http\Controllers\ApprovalChainController::class);
+        Route::post('approval-chains/{approvalChain}/set-default', [App\Http\Controllers\ApprovalChainController::class, 'setDefault'])->name('approval-chains.set-default');
+    });
 });
 
 // Webhook for Perfex (No CSRF check)
 Route::post('/webhooks/perfex', [App\Http\Controllers\PerfexWebhookController::class, 'handle'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

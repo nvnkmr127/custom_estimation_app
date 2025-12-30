@@ -72,9 +72,35 @@
 
             @if($estimate->status === 'waiting_approval')
                 <div x-data="{ 
-                    checks: [], 
+                    checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
                     requiredCount: {{ $checklists->where('is_required', true)->count() }},
-                    showRejectInfo: false
+                    requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
+                    
+                    toggleChecklist(id, checked) {
+                        if (checked) {
+                            this.checks.push(parseInt(id));
+                        } else {
+                            this.checks = this.checks.filter(c => c !== parseInt(id));
+                        }
+                        
+                        // Send AJAX
+                        fetch('{{ route('estimates.toggle-checklist', $estimate) }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ checklist_id: id, completed: checked })
+                        }).catch(err => {
+                            console.error(err);
+                            alert('Failed to save checklist item.');
+                        });
+                    },
+                    
+                    get canApprove() {
+                        // Check if all required IDs are in checks array
+                        return this.requiredIds.every(id => this.checks.includes(id));
+                    }
                 }" class="flex gap-2 relative">
                     
                     <!-- Approve with Checklist -->
@@ -89,7 +115,8 @@
                                 @foreach($checklists as $item)
                                     <label class="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
                                         <input type="checkbox" value="{{ $item->id }}" 
-                                            @if($item->is_required) x-model="checks" @endif
+                                            @change="toggleChecklist($el.value, $el.checked)"
+                                            :checked="checks.includes({{ $item->id }})"
                                             class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
                                         <span class="text-left">
                                             {{ $item->task }}
@@ -102,7 +129,7 @@
                             <form action="{{ route('estimates.approve', $estimate) }}" method="POST">
                                 @csrf
                                 <textarea name="comments" placeholder="Comments..." class="w-full text-xs rounded border-gray-300 mb-2"></textarea>
-                                <button type="submit" :disabled="checks.length < requiredCount" 
+                                <button type="submit" :disabled="!canApprove" 
                                     class="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed">
                                     Confirm
                                 </button>
@@ -370,14 +397,7 @@
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Status</dt>
                     <dd class="mt-1">
-                        <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                            @if($estimate->status === 'accepted') bg-green-50 text-green-700 ring-green-600/20
-                            @elseif($estimate->status === 'declined') bg-red-50 text-red-700 ring-red-600/10
-                            @elseif($estimate->status === 'sent') bg-blue-50 text-blue-700 ring-blue-700/10
-                            @else bg-gray-50 text-gray-600 ring-gray-500/10
-                            @endif">
-                            {{ ucfirst($estimate->status) }}
-                        </span>
+                        <x-estimate-status-badge :status="$estimate->status" />
                     </dd>
                 </div>
             </dl>

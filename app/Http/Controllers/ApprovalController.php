@@ -55,8 +55,18 @@ class ApprovalController extends Controller
                 ->where('status', 'pending')
                 ->first();
 
-            if (! $approval) {
+            if (!$approval) {
                 return redirect()->back()->with('error', 'You do not have permission to approve this estimate.');
+            }
+
+            // Check if all mandatory checklist items are completed
+            $requiredChecklists = \App\Models\ApprovalChecklist::where('is_required', true)->get();
+            $completedItems = $estimate->checklistItems()->where('is_completed', true)->pluck('approval_checklist_id')->toArray();
+
+            foreach ($requiredChecklists as $checklist) {
+                if (!in_array($checklist->id, $completedItems)) {
+                    return redirect()->back()->with('error', 'You must complete the mandatory checklist items before approving.');
+                }
             }
 
             // Update approval status
@@ -65,21 +75,26 @@ class ApprovalController extends Controller
                 'comments' => $request->input('comments'),
             ]);
 
-            // Check if all approvals are complete
-            if ($estimate->isFullyApproved()) {
-                $estimate->update([
-                    'approval_status' => 'approved',
-                    'status' => 'approved',
-                ]);
-            } else {
-                // Create approval for next step
-                $nextStep = $estimate->nextApprovalStep();
-                if ($nextStep) {
-                    \App\Models\EstimateApproval::create([
-                        'estimate_id' => $estimate->id,
-                        'user_id' => $nextStep->user_id,
-                        'status' => 'pending',
+            // Check if there are other pending approvals for this stage
+            // We can check strictly by order, but checking global pending status is safer
+            // provided the next steps haven't been created yet.
+            $hasPending = $estimate->approvals()->where('status', 'pending')->exists();
+
+            if (!$hasPending) {
+                // If all approvals for this stage are done, check what's next
+                // Check if all approvals are complete
+                if ($estimate->isFullyApproved()) {
+                    $estimate->update([
+                        'approval_status' => 'approved',
+                        'status' => 'approved',
                     ]);
+                } else {
+                    // Create approval for next step(s)
+                    $nextSteps = $estimate->nextApprovalSteps();
+                    if ($nextSteps->isNotEmpty()) {
+                        $order = $nextSteps->first()->order;
+                        $estimate->createApprovalsForOrder($order);
+                    }
                 }
             }
 
@@ -91,7 +106,7 @@ class ApprovalController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return redirect()->back()->with('error', 'Approval failed: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Approval failed: ' . $e->getMessage());
         }
     }
 
@@ -109,7 +124,7 @@ class ApprovalController extends Controller
                 ->where('status', 'pending')
                 ->first();
 
-            if (! $approval) {
+            if (!$approval) {
                 return redirect()->back()->with('error', 'You do not have permission to reject this estimate.');
             }
 
@@ -130,7 +145,47 @@ class ApprovalController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return redirect()->back()->with('error', 'Rejection failed: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Rejection failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Toggle checklist item status via AJAX
+     */
+    public function toggleChecklistItem(Request $request, Estimate $estimate)
+    {
+        try {
+            $request->validate([
+                'checklist_id' => 'required|exists:approval_checklists,id',
+                'completed' => 'required|boolean',
+            ]);
+
+            $checklistId = $request->input('checklist_id');
+            $completed = $request->input('completed');
+
+            $item = \App\Models\EstimateApprovalChecklistItem::updateOrCreate(
+                [
+                    'estimate_id' => $estimate->id,
+                    'approval_checklist_id' => $checklistId,
+                ],
+                [
+                    'is_completed' => $completed,
+                    'completed_by' => auth()->id(),
+                    'completed_at' => $completed ? now() : null,
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Checklist updated.',
+                'item' => $item
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 }

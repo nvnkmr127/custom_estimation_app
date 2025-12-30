@@ -25,14 +25,14 @@ class DemoLoginsSeeder extends Seeder
                 'role' => 'estimator_admin',
             ],
             [
-                'name' => 'Sales Manager',
+                'name' => 'Estimator Manager',
                 'email' => 'manager@example.com',
-                'role' => 'sales_manager',
+                'role' => 'estimator_manager',
             ],
             [
-                'name' => 'Sales User',
+                'name' => 'Estimator User',
                 'email' => 'sales@example.com',
-                'role' => 'sales',
+                'role' => 'estimator',
             ],
         ];
 

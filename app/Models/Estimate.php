@@ -154,6 +154,9 @@ class Estimate extends Model
     /**
      * Submit estimate for approval workflow
      */
+    /**
+     * Submit estimate for approval workflow
+     */
     public function submitForApproval()
     {
         if (!$this->approval_chain_id) {
@@ -162,44 +165,179 @@ class Estimate extends Model
 
         $this->update(['approval_status' => 'submitted']);
 
-        // Create approval record for first step
+        // Get the first order
         $firstStep = $this->approvalChain->steps()->orderBy('order')->first();
+
         if ($firstStep) {
-            EstimateApproval::create([
-                'estimate_id' => $this->id,
-                'user_id' => $firstStep->user_id,
-                'status' => 'pending',
-            ]);
+            $this->createApprovalsForOrder($firstStep->order);
+        }
+    }
+
+    /**
+     * Create approval records for a specific order step
+     */
+    public function createApprovalsForOrder($order)
+    {
+        $steps = $this->approvalChain->steps()->where('order', $order)->get();
+
+        foreach ($steps as $step) {
+            $userId = $step->user_id;
+
+            // Check if user is deleted/inactive, use fallback if available
+            $user = \App\Models\User::withTrashed()->find($userId);
+            if (!$user || $user->trashed()) {
+                if ($this->approvalChain->fallback_user_id) {
+                    $userId = $this->approvalChain->fallback_user_id;
+                } else {
+                    // Log warning or handle strictly? For now, skip or log.
+                    \Illuminate\Support\Facades\Log::warning("Approval step skipped: User {$userId} inactive and no fallback.", ['estimate_id' => $this->id]);
+                    continue;
+                }
+            }
+
+            // Prevent duplicate pending approvals if fallback user is same as another approver?
+            // Simple check:
+            $exists = EstimateApproval::where('estimate_id', $this->id)
+                ->where('user_id', $userId)
+                ->where('status', 'pending')
+                ->exists();
+
+            if (!$exists) {
+                EstimateApproval::create([
+                    'estimate_id' => $this->id,
+                    'user_id' => $userId,
+                    'status' => 'pending',
+                ]);
+            }
         }
     }
 
     /**
      * Get the next pending approval step
      */
-    public function nextApprovalStep()
+    /**
+     * Get the next pending approval steps (collection)
+     */
+    public function nextApprovalSteps()
     {
         if (!$this->approvalChain) {
-            return null;
+            return collect();
         }
 
-        $completedSteps = $this->approvals()->where('status', 'approved')->count();
+        // Find the current max order that is fully approved
+        // This is tricky if orders are skipped or parallel. 
+        // Better: Get all approval records. Find the highest order associated with them?
+        // No, approval records don't store order.
 
-        return $this->approvalChain->steps()->orderBy('order')->skip($completedSteps)->first();
+        // Let's assume sequential orders: 1, 2, 3...
+        // We need to find the lowest order that is NOT fully approved yet.
+
+        $chainSteps = $this->approvalChain->steps()->get()->groupBy('order')->sortKeys();
+
+        foreach ($chainSteps as $order => $steps) {
+            // Check if this order is fully approved
+            $approvedCountForOrder = 0;
+            $requiredCount = $steps->count(); // basic logic: all steps in order must approve
+
+            // We need to map approvals back to steps or just check if users approved.
+            // Since users can change steps, this is loose.
+            // But typically, we check if we have approvals from these users.
+
+            // Improved logic:
+            // For this order, check if we have APPROVED records for these users (or fallback).
+            // This is getting complex because of fallback users.
+
+            // Alternative: Look at the *active* pending approvals.
+            // If there are pending approvals, we are at that step.
+            if ($this->approvals()->where('status', 'pending')->exists()) {
+                return collect(); // We are currently waiting, no "next" step until these are done.
+            }
+
+            // If no pending approvals, check if we have approved records for this order's steps.
+            // This assumes we move sequentially.
+            // Let's check if *any* step in this order is NOT approved yet.
+            // But wait, if they aren't pending and aren't approved, they haven't been created yet?
+            // If we strictly follow createApprovalsForOrder, then:
+
+            // 1. Get all approvals for this estimate.
+            $approvals = $this->approvals;
+            $approvedUserIds = $approvals->where('status', 'approved')->pluck('user_id')->toArray();
+
+            $isOrderComplete = true;
+            foreach ($steps as $step) {
+                // Logic to determine effective user ID (msg handling fallback)
+                // This logic effectively needs to mirror createApprovalsForOrder resolution
+                // which is hard.
+                // Ideally, we store 'order' on EstimateApproval, but we didn't add that column.
+
+                // Heuristic: If we haven't created approvals for this order yet, then THIS is the next step.
+                // How do we know if we created them?
+                // We can check if ANY of the users in this order have an approval record (pending or approved).
+            }
+        }
+
+        // Simplified Logic:
+        // We know the current status.
+        // We need to find the NEXT order.
+
+        // 1. Find the highest order of the steps that have associated approvals (approved or pending).
+        $userIdsWithApprovals = $this->approvals()->pluck('user_id')->toArray();
+
+        $lastTouchedOrder = 0;
+        $allSteps = $this->approvalChain->steps()->orderBy('order')->get();
+
+        foreach ($allSteps as $step) {
+            // resolve effective user
+            $effectiveUserId = $step->user_id;
+            $user = \App\Models\User::withTrashed()->find($effectiveUserId);
+            if (!$user || $user->trashed()) {
+                $effectiveUserId = $this->approvalChain->fallback_user_id;
+            }
+
+            if (in_array($effectiveUserId, $userIdsWithApprovals)) {
+                $lastTouchedOrder = max($lastTouchedOrder, $step->order);
+            }
+        }
+
+        // So we are at least at $lastTouchedOrder.
+        // Are we done with it?
+        $pendingCount = $this->approvals()->where('status', 'pending')->count();
+        if ($pendingCount > 0) {
+            return collect(); // Still working on current order
+        }
+
+        // If no pending, we might be ready for next.
+        // Get the first order > lastTouchedOrder
+        $nextStepFirst = $this->approvalChain->steps()
+            ->where('order', '>', $lastTouchedOrder)
+            ->orderBy('order')
+            ->first();
+
+        if ($nextStepFirst) {
+            return $this->approvalChain->steps()->where('order', $nextStepFirst->order)->get();
+        }
+
+        return collect();
     }
 
-    /**
-     * Check if all approvals are complete
-     */
+
     public function isFullyApproved()
     {
         if (!$this->approvalChain) {
             return false;
         }
 
-        $totalSteps = $this->approvalChain->steps()->count();
-        $approvedSteps = $this->approvals()->where('status', 'approved')->count();
+        // 1. Must ensure no pending approvals exist
+        if ($this->approvals()->where('status', 'pending')->exists()) {
+            return false;
+        }
 
-        return $totalSteps > 0 && $totalSteps === $approvedSteps;
+        // 2. Must ensure no future steps exist
+        // If nextApprovalSteps returns items, we are not done (unless they are skipped, which createApprovals handles)
+        // Check if we have covered all orders.
+        $nextSteps = $this->nextApprovalSteps();
+
+        return $nextSteps->isEmpty();
     }
 
     public function analytics()
@@ -210,5 +348,10 @@ class Estimate extends Model
     public function pdfTemplate()
     {
         return $this->belongsTo(PdfTemplate::class);
+    }
+
+    public function checklistItems()
+    {
+        return $this->hasMany(EstimateApprovalChecklistItem::class);
     }
 }
