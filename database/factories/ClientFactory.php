@@ -12,9 +12,9 @@ class ClientFactory extends Factory
     public function definition()
     {
         return [
-            'name' => $this->faker->company,
-            'email' => $this->faker->safeEmail,
-            'address' => $this->faker->address,
+            'name' => fake()->company,
+            'email' => fake()->safeEmail,
+            'address' => fake()->address,
         ];
     }
 }
