@@ -36,7 +36,7 @@ class GenerateBatchPdfZip implements ShouldQueue
     public function handle(): void
     {
         $user = User::find($this->userId);
-        if (! $user) {
+        if (!$user) {
             return;
         }
 
@@ -45,11 +45,11 @@ class GenerateBatchPdfZip implements ShouldQueue
             return;
         }
 
-        $zipFileName = 'estimates_batch_'.now()->format('YmdHis').'_'.\Illuminate\Support\Str::random(8).'.zip';
-        $zipPath = storage_path('app/public/batch_exports/'.$zipFileName);
+        $zipFileName = 'estimates_batch_' . now()->format('YmdHis') . '_' . \Illuminate\Support\Str::random(8) . '.zip';
+        $zipPath = storage_path('app/public/batch_exports/' . $zipFileName);
 
         // Ensure directory exists
-        if (! file_exists(dirname($zipPath))) {
+        if (!file_exists(dirname($zipPath))) {
             mkdir(dirname($zipPath), 0755, true);
         }
 
@@ -63,7 +63,7 @@ class GenerateBatchPdfZip implements ShouldQueue
                 $estimate->load(['sections.items', 'items', 'client']);
 
                 $pdfContent = null;
-                $filename = 'estimate_'.$estimate->estimate_number.'.pdf';
+                $filename = 'estimate_' . $estimate->estimate_number . '.pdf';
 
                 try {
                     // Try to use cached version if custom template
@@ -75,28 +75,30 @@ class GenerateBatchPdfZip implements ShouldQueue
                             $zip->addFile($cachedPath, $filename);
                         }
                     } else {
-                        // Standard fallback (non-cached for now as we didn't implement cache for blade views yet)
-                        // Or we can just render on fly
-                        $theme = $estimate->pdf_theme ?: ($settings['pdf_theme'] ?? 'modern');
-                        $view = 'estimates.print_'.$theme;
-                        if (! view()->exists($view)) {
-                            $view = 'estimates.print_modern';
-                        }
+                        // Fallback to default template
+                        $template = \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first()
+                            ?? \App\Models\PdfTemplate::first();
 
-                        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, compact('estimate', 'settings'));
-                        $pdf->setPaper('a4', 'portrait');
-                        $zip->addFromString($filename, $pdf->output());
+                        if ($template) {
+                            $cachedPath = $pdfService->renderAndCache($template, $estimate);
+                            if ($cachedPath && file_exists($cachedPath)) {
+                                $zip->addFile($cachedPath, $filename);
+                            }
+                        } else {
+                            Log::warning("Batch ZIP: No template found for estimate #{$estimate->id}");
+                            $zip->addFromString('error_log.txt', "No PDF Template available for Estimate #{$estimate->estimate_number}\n");
+                        }
                     }
                 } catch (\Exception $e) {
-                    Log::error("Batch ZIP: Failed to add estimate #{$estimate->id}: ".$e->getMessage());
-                    $zip->addFromString('error_log.txt', "Failed to generate estimate #{$estimate->estimate_number}: ".$e->getMessage()."\n");
+                    Log::error("Batch ZIP: Failed to add estimate #{$estimate->id}: " . $e->getMessage());
+                    $zip->addFromString('error_log.txt', "Failed to generate estimate #{$estimate->estimate_number}: " . $e->getMessage() . "\n");
                 }
             }
 
             $zip->close();
 
             // Notify User
-            $downloadUrl = asset('storage/batch_exports/'.$zipFileName);
+            $downloadUrl = asset('storage/batch_exports/' . $zipFileName);
             $user->notify(new \App\Notifications\BatchExportReady($downloadUrl));
 
         } else {

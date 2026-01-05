@@ -446,11 +446,24 @@ class EstimateController extends Controller
     public function print(Estimate $estimate)
     {
         $this->authorize('view', $estimate);
-        $estimate->load(['sections.items.product', 'items.product', 'client']);
 
-        $theme = $estimate->pdf_theme ?: 'modern';
+        // Load default template if none specific
+        $template = $estimate->pdfTemplate ?? PdfTemplate::where('is_active', true)->where('is_default', true)->first();
 
-        return view("estimates.print_{$theme}", compact('estimate'));
+        // Fallback to simpler view or errors if NO template exists (e.g. fresh DB)
+        if (!$template) {
+            $template = PdfTemplate::first(); // Grab ANY template
+        }
+
+        if (!$template) {
+            abort(404, 'No PDF Templates found in system.');
+        }
+
+        $service = new PdfRenderingService;
+        $html = $service->render($template, $estimate);
+
+        // Return inline HTML
+        return response($html);
     }
 
     /**
