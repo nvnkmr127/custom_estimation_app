@@ -91,7 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('products/actions/template', [App\Http\Controllers\ProductController::class, 'downloadTemplate'])->name('products.template');
         Route::post('products/actions/import', [App\Http\Controllers\ProductController::class, 'import'])->name('products.import');
         Route::get('products/pending/list', [App\Http\Controllers\ProductController::class, 'pending'])->name('products.pending');
-        Route::post('products/{product}/suggest', [App\Http\Controllers\ProductController::class, 'suggest'])->name('products.suggest');
+        Route::post('products/suggest', [App\Http\Controllers\ProductController::class, 'suggest'])->name('products.suggest');
         Route::post('products/{product}/approve', [App\Http\Controllers\ProductController::class, 'approve'])->name('products.approve');
         Route::post('products/{product}/retire', [App\Http\Controllers\ProductController::class, 'retire'])->name('products.retire');
         Route::post('products/{product}/activate', [App\Http\Controllers\ProductController::class, 'activate'])->name('products.activate');
