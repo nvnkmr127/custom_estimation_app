@@ -94,115 +94,19 @@
         @endif
 
 
-        <div class="bg-white shadow sm:rounded-lg overflow-hidden">
-            <!-- Header -->
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-start border-b border-slate-200 bg-slate-50/50">
-                <div>
-                    <!-- Dynamic Logo -->
-                    @if(isset($app_settings['app_logo']) && $app_settings['app_logo'])
-                        <img src="{{ asset($app_settings['app_logo']) }}" alt="{{ config('app.name') }}"
-                            class="h-10 w-auto mb-4">
-                    @else
-                        <h2 class="text-2xl font-bold text-slate-900 mb-2">{{ config('app.name') }}</h2>
-                    @endif
-
-                    <h3 class="text-lg leading-6 font-medium text-slate-900">Estimate #{{ $estimate->estimate_number }}
-                    </h3>
-                    <p class="mt-1 max-w-2xl text-sm text-slate-500">{{ $estimate->title }}</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-sm text-slate-500">Date: <span
-                            class="font-semibold text-slate-900">{{ $estimate->estimate_date->format('M d, Y') }}</span>
-                    </p>
-                    @if($estimate->expiry_date)
-                        <p class="text-sm text-slate-500">Expires: <span
-                                class="font-semibold text-slate-900">{{ $estimate->expiry_date->format('M d, Y') }}</span>
-                        </p>
-                    @endif
-                    <div class="mt-2">
-                        <a href="{{ route('estimates.pdf', $estimate) }}"
-                            class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                            Download PDF &darr;
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="px-4 py-5 sm:p-6">
-                <!-- Line Items (Unified list for now, easy to group later if needed) -->
-                <div class="flow-root">
-                    <ul role="list" class="-my-5 divide-y divide-slate-200">
-                        @foreach($estimate->sections as $section)
-                            <!-- Section Header -->
-                            <li
-                                class="py-5 bg-slate-50/50 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-t border-slate-100 mt-5 first:mt-0">
-                                <h4 class="text-sm font-bold text-slate-900 uppercase tracking-wide">{{ $section->name }}
-                                </h4>
-                            </li>
-
-                            @foreach($section->items as $item)
-                                <li class="py-4">
-                                    <div class="flex items-center justify-between">
-                                        <div class="min-w-0 flex-1">
-                                            <p class="truncate text-sm font-medium text-slate-900">{{ $item->name }}</p>
-                                            <p class="truncate text-sm text-slate-500">
-                                                {{ $item->quantity }} {{ $item->unit_type }} x
-                                                {{ $estimate->currency }}{{ number_format($item->unit_price, 2) }}
-                                            </p>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <p class="text-sm font-semibold text-slate-900">
-                                                {{ $estimate->currency }}{{ number_format($item->total, 2) }}
-                                            </p>
-                                            <button
-                                                @click="openCommentModal('App\\\\Models\\\\EstimateItem', {{ $item->id }}, '{{ $item->name }}')"
-                                                class="text-indigo-600 hover:text-indigo-800 transition-colors">
-                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </li>
-                            @endforeach
-                            <!-- Section Subtotal -->
-                            <li class="py-3 text-right">
-                                <span class="text-sm text-slate-500 mr-2">Section Total:</span>
-                                <span
-                                    class="text-sm font-semibold text-slate-900">{{ $estimate->currency }}{{ number_format($section->items->sum('total'), 2) }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-
-                <!-- Totals -->
-                <div class="mt-8 border-t border-slate-200 pt-8 flex justify-end">
-                    <div class="w-full sm:w-1/2 lg:w-1/3">
-                        <div class="flex justify-between py-2">
-                            <span class="text-sm text-slate-500">Subtotal</span>
-                            <span
-                                class="text-sm font-medium text-slate-900">{{ $estimate->currency }}{{ number_format($estimate->subtotal, 2) }}</span>
-                        </div>
-                        @if($estimate->discount_total > 0)
-                            <div class="flex justify-between py-2 text-rose-600">
-                                <span class="text-sm">Discount</span>
-                                <span
-                                    class="text-sm font-medium">-{{ $estimate->currency }}{{ number_format($estimate->discount_total, 2) }}</span>
-                            </div>
-                        @endif
-                        <div class="flex justify-between py-2">
-                            <span class="text-sm text-slate-500">Tax</span>
-                            <span
-                                class="text-sm font-medium text-slate-900">{{ $estimate->currency }}{{ number_format($estimate->total_tax, 2) }}</span>
-                        </div>
-                        <div class="flex justify-between py-2 border-t border-slate-200 mt-2">
-                            <span class="text-base font-bold text-slate-900">Grand Total</span>
-                            <span
-                                class="text-base font-bold text-indigo-600">{{ $estimate->currency }}{{ number_format($estimate->grand_total, 2) }}</span>
-                        </div>
-                    </div>
-                </div>
+            <!-- PDF Template View -->
+            <div class="w-full bg-slate-50 relative">
+                @if(isset($htmlContent) && $htmlContent)
+                    <iframe 
+                        srcdoc="{{ $htmlContent }}" 
+                        class="w-full h-[800px] border-0" 
+                        onload="this.style.height = this.contentWindow.document.body.scrollHeight + 'px'">
+                    </iframe>
+                @else
+                   <div class="p-12 text-center text-slate-500">
+                       <p>Preview not available.</p>
+                   </div>
+                @endif
             </div>
 
             <!-- Actions Footer -->

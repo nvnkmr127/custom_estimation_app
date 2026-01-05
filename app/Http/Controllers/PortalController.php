@@ -23,7 +23,7 @@ class PortalController extends Controller
     public function show(Request $request, Estimate $estimate)
     {
         // Ensure the signed URL is valid
-        if (! $request->hasValidSignature()) {
+        if (!$request->hasValidSignature()) {
             abort(403, 'This link has expired or is invalid.');
         }
 
@@ -37,7 +37,16 @@ class PortalController extends Controller
         // Load items for the view
         $estimate->load('sections.items');
 
-        return view('portal.estimates.show', compact('estimate'));
+        // Render PDF Template HTML
+        $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first() ?? \App\Models\PdfTemplate::first();
+
+        $htmlContent = '';
+        if ($template) {
+            $service = new \App\Services\PdfRenderingService;
+            $htmlContent = $service->render($template, $estimate);
+        }
+
+        return view('portal.estimates.show', compact('estimate', 'htmlContent'));
     }
 
     /**
@@ -45,7 +54,7 @@ class PortalController extends Controller
      */
     public function accept(Request $request, Estimate $estimate)
     {
-        if (! $request->hasValidSignature()) {
+        if (!$request->hasValidSignature()) {
             abort(403);
         }
 
@@ -66,7 +75,7 @@ class PortalController extends Controller
                 if ($json) {
                     $data = json_decode($json, true);
                     if ($data && ($data['status'] ?? '') === 'success') {
-                        $location = ($data['city'] ?? '').', '.($data['regionName'] ?? '').', '.($data['country'] ?? '');
+                        $location = ($data['city'] ?? '') . ', ' . ($data['regionName'] ?? '') . ', ' . ($data['country'] ?? '');
                         $location = trim($location, ', ');
                     }
                 }
@@ -101,7 +110,7 @@ class PortalController extends Controller
      */
     public function decline(Request $request, Estimate $estimate)
     {
-        if (! $request->hasValidSignature()) {
+        if (!$request->hasValidSignature()) {
             abort(403);
         }
 
