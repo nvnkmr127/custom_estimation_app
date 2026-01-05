@@ -24,8 +24,14 @@
 
                 // Override dates to ensure correct format (YYYY-MM-DD) for input[type="date"]
                 estimate_date: initialData.estimate_date ? initialData.estimate_date.split('T')[0] : new Date().toISOString().split('T')[0],
-                expiry_date: initialData.expiry_date ? initialData.expiry_date.split('T')[0] : ''
+                expiry_date: initialData.expiry_date ? initialData.expiry_date.split('T')[0] : '',
+                coupon_code_id: initialData.coupon_code_id || null
             },
+            couponInput: '',
+            appliedCouponCode: initialData.coupon_code ? initialData.coupon_code.code : '',
+            couponValid: true,
+            couponMessage: '',
+            
             productPicker: {
                 isOpen: false,
                 search: '',
@@ -366,6 +372,56 @@
                 }
             },
 
+            // --- Coupon Logic ---
+            applyCoupon() {
+                if (!this.couponInput) return;
+
+                this.calculateTotals(); // Ensure subtotal is up to date
+
+                fetch('{{ route("coupons.validate") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        code: this.couponInput,
+                        total: this.totals.subtotal
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.valid) {
+                        this.estimate.coupon_code_id = data.coupon_id;
+                        this.appliedCouponCode = this.couponInput.toUpperCase();
+                        this.estimate.discount_type = data.type;
+                        this.estimate.discount_value = data.value;
+                        this.couponMessage = data.message;
+                        this.couponValid = true;
+                        this.calculateTotals();
+                    } else {
+                        this.couponMessage = data.message;
+                        this.couponValid = false;
+                        // Clear message after 3 seconds
+                        setTimeout(() => this.couponMessage = '', 3000);
+                    }
+                })
+                .catch(e => {
+                    console.error(e);
+                    this.couponMessage = 'Error validating coupon';
+                    this.couponValid = false;
+                });
+            },
+
+            removeCoupon() {
+                this.estimate.coupon_code_id = null;
+                this.appliedCouponCode = '';
+                this.couponInput = '';
+                this.estimate.discount_value = 0;
+                this.couponMessage = '';
+                this.calculateTotals();
+            },
+
             // --- Form Submission ---
             previewPdf() {
                 this.submitHiddenForm('{{ route("estimates.preview") }}', true);
@@ -399,7 +455,7 @@
                 };
 
                 // Basic Fields
-                const fields = ['client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type'];
+                const fields = ['client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type', 'coupon_code_id'];
                 fields.forEach(f => {
                     let val = this.estimate[f];
                     if (f === 'discount_value') {

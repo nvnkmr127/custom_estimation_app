@@ -139,6 +139,7 @@ class EstimateController extends Controller
             'terms' => 'nullable|string',
             'pdf_theme' => 'nullable|string',
             'pdf_template_id' => 'nullable|exists:pdf_templates,id',
+            'coupon_code_id' => 'nullable|exists:coupon_codes,id',
         ]);
 
         $validated['estimate_number'] = $this->estimateService->generateNextNumber();
@@ -218,7 +219,7 @@ class EstimateController extends Controller
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
         $pdfTemplates = PdfTemplate::where('is_active', true)->get();
-        $estimate->load(['sections.items.product.images', 'items.product.images']);
+        $estimate->load(['sections.items.product.images', 'items.product.images', 'couponCode']);
 
         $settings = Setting::getAllCached();
         $defaults = [
@@ -261,6 +262,7 @@ class EstimateController extends Controller
             'terms' => 'nullable|string',
             'pdf_theme' => 'nullable|string',
             'pdf_template_id' => 'nullable|exists:pdf_templates,id',
+            'coupon_code_id' => 'nullable|exists:coupon_codes,id',
         ]);
 
         DB::beginTransaction();

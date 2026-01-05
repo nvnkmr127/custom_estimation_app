@@ -49,6 +49,7 @@ class ApprovalChainController extends Controller
             'steps.*.order' => 'required|integer|min:1',
             'min_amount' => 'nullable|numeric|min:0',
             'max_amount' => 'nullable|numeric|min:0|gte:min_amount',
+            'min_discount_percentage' => 'nullable|numeric|min:0|max:100',
             'currency' => 'nullable|string|size:3',
         ]);
 
@@ -58,6 +59,7 @@ class ApprovalChainController extends Controller
             'is_active' => $validated['is_active'] ?? true,
             'min_amount' => $validated['min_amount'] ?? null,
             'max_amount' => $validated['max_amount'] ?? null,
+            'min_discount_percentage' => $validated['min_discount_percentage'] ?? null,
             'currency' => $validated['currency'] ?? 'INR',
         ]);
 
@@ -112,6 +114,7 @@ class ApprovalChainController extends Controller
             'steps.*.order' => 'required|integer|min:1',
             'min_amount' => 'nullable|numeric|min:0',
             'max_amount' => 'nullable|numeric|min:0|gte:min_amount',
+            'min_discount_percentage' => 'nullable|numeric|min:0|max:100',
             'currency' => 'nullable|string|size:3',
         ]);
 
@@ -121,6 +124,7 @@ class ApprovalChainController extends Controller
             'is_active' => $validated['is_active'] ?? true,
             'min_amount' => $validated['min_amount'] ?? null,
             'max_amount' => $validated['max_amount'] ?? null,
+            'min_discount_percentage' => $validated['min_discount_percentage'] ?? null,
             'currency' => $validated['currency'] ?? 'INR',
         ]);
 

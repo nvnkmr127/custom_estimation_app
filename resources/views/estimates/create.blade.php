@@ -270,7 +270,7 @@
                                                 class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
                                                 Price</th>
                                             <th scope="col"
-                                                class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
+                                                class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-28">
                                                 Qty</th>
                                             <th scope="col"
                                                 class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-16">
@@ -454,7 +454,7 @@
                                     class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
                                     Price</th>
                                 <th scope="col"
-                                    class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
+                                    class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-28">
                                     Qty</th>
                                 <th scope="col"
                                     class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-16">
@@ -736,6 +736,34 @@
                             <dt class="text-slate-600">Tax</dt>
                             <dd class="font-medium text-slate-900" x-text="totals.totalTax.toFixed(2)"></dd>
                         </div>
+                        
+                        <!-- Coupon Section -->
+                        <div class="flex justify-between items-center py-2 border-t border-slate-100 mt-2">
+                            <dt class="text-slate-600">Coupon Code</dt>
+                            <dd class="flex items-center gap-2">
+                                <template x-if="!estimate.coupon_code_id">
+                                    <div class="flex gap-1">
+                                        <input type="text" x-model="couponInput" placeholder="Code"
+                                            class="block w-24 rounded-md border-0 py-1 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 text-center uppercase">
+                                        <button type="button" @click="applyCoupon()"
+                                            class="rounded bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600 shadow-sm hover:bg-indigo-100 ring-1 ring-inset ring-indigo-200">Apply</button>
+                                    </div>
+                                </template>
+                                <template x-if="estimate.coupon_code_id">
+                                    <div class="flex items-center gap-2 bg-emerald-50 px-2 py-1 rounded-md ring-1 ring-emerald-200">
+                                        <span class="text-xs font-bold text-emerald-700" x-text="appliedCouponCode"></span>
+                                        <button type="button" @click="removeCoupon()"
+                                            class="text-emerald-400 hover:text-emerald-600">
+                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </dd>
+                        </div>
+                        <div x-show="couponMessage" class="text-right text-[10px]" :class="couponValid ? 'text-emerald-600' : 'text-rose-600'" x-text="couponMessage"></div>
+
                         <div class="flex justify-between items-center py-2">
                             <dt class="text-slate-600">Discount</dt>
                             <dd class="flex items-center gap-2">

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
+use App\Models\ApprovalChain;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
 use Illuminate\Support\Facades\DB;
@@ -116,11 +117,39 @@ class EstimateService
 
         $grandTotal = ($subtotal + $totalTax) - $discountTotal - ($estimate->coupon_discount ?? 0);
 
+        // --- Approval Chain Logic ---
+        $chainToAssign = null;
+        $totalDiscountAmount = $discountTotal + ($estimate->coupon_discount ?? 0);
+        $discountPercentage = ($subtotal > 0) ? ($totalDiscountAmount / $subtotal) * 100 : 0;
+
+        // 1. Check for Discount-based Approval (Highest Priority)
+        $discountChain = ApprovalChain::where('is_active', true)
+            ->whereNotNull('min_discount_percentage')
+            ->where('min_discount_percentage', '<=', $discountPercentage)
+            ->orderBy('min_discount_percentage', 'desc')
+            ->first();
+
+        if ($discountChain) {
+            $chainToAssign = $discountChain;
+        } else {
+            // 2. Check for Amount-based Approval
+            $chainToAssign = ApprovalChain::where('is_active', true)
+                ->where(function ($q) use ($grandTotal) {
+                    $q->whereNull('min_amount')->orWhere('min_amount', '<=', $grandTotal);
+                })
+                ->where(function ($q) use ($grandTotal) {
+                    $q->whereNull('max_amount')->orWhere('max_amount', '>=', $grandTotal);
+                })
+                ->orderBy('min_amount', 'desc') // Pick highest tier if multiple overlap
+                ->first();
+        }
+
         $estimate->update([
             'subtotal' => $subtotal,
             'total_tax' => $totalTax,
             'discount_total' => $discountTotal,
             'grand_total' => $grandTotal,
+            'approval_chain_id' => $chainToAssign ? $chainToAssign->id : null,
         ]);
     }
 

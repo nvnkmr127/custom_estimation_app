@@ -13,6 +13,7 @@ class ApprovalChain extends Model
         'fallback_user_id',
         'min_amount',
         'max_amount',
+        'min_discount_percentage',
         'currency',
     ];
 
@@ -31,6 +32,18 @@ class ApprovalChain extends Model
                 // Check max_amount (inclusive)
                 $q->whereNull('max_amount')
                     ->orWhere('max_amount', '>=', $amount);
+            });
+    }
+
+    /**
+     * Scope a query to include chains matching the discount criteria.
+     */
+    public function scopeMatchesDiscount($query, $discountPercentage)
+    {
+        return $query->where('is_active', true)
+            ->where(function ($q) use ($discountPercentage) {
+                $q->whereNotNull('min_discount_percentage')
+                    ->where('min_discount_percentage', '<=', $discountPercentage);
             });
     }
 
