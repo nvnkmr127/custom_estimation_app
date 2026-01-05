@@ -128,6 +128,25 @@
                 </div>
             @endif
 
+            <!-- Copy Link -->
+            <div x-data="{ copied: false }">
+                <button @click="navigator.clipboard.writeText('{{ $estimate->public_url }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                    type="button" 
+                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors relative"
+                    title="Copy Public Link">
+                    <span x-show="!copied" class="flex items-center gap-1">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                    </span>
+                    <span x-show="copied" class="flex items-center gap-1 text-green-600" x-cloak>
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </span>
+                </button>
+            </div>
+
             <div class="h-6 w-px bg-slate-200"></div>
 
             <a href="{{ route('estimates.pdf', $estimate) }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors">
@@ -139,21 +158,21 @@
                 </div>
             </a>
 
-            <!-- More Actions Dropdown -->
+            <!-- Manage Dropdown -->
             <div x-data="{ open: false }" class="relative">
                 <button @click="open = !open" type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1">
-                    More
+                    Manage
                     <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                     </svg>
                 </button>
                 <div x-show="open" @click.outside="open = false" 
-                    class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none divide-y divide-slate-100">
+                    class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none divide-y divide-slate-100" x-cloak>
                     
                     <div class="py-1">
-                        <a href="{{ route('estimates.print', $estimate) }}" target="_blank" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Print</a>
+                        <a href="{{ route('estimates.print', $estimate) }}" target="_blank" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Print Estimate</a>
                         <a href="{{ $estimate->public_url }}" target="_blank" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Public View</a>
-                        <a href="{{ route('estimates.analytics', $estimate) }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Analytics</a>
+                        <a href="{{ route('estimates.analytics', $estimate) }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">View Analytics</a>
                     </div>
 
                     <div class="py-1">
@@ -186,7 +205,19 @@
                             @endif
                         </div>
                     @endif
+                </div>
+            </div>
 
+            <!-- Admin Dropdown -->
+            <div x-data="{ open: false }" class="relative">
+                <button @click="open = !open" type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1" title="Admin Actions">
+                    <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+                <div x-show="open" @click.outside="open = false" 
+                    class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" x-cloak>
                     <div class="py-1">
                         <div class="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status Override</div>
                         @foreach(['draft', 'sent', 'accepted', 'declined', 'expired'] as $status)
