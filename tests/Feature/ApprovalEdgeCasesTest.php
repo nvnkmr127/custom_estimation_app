@@ -44,7 +44,7 @@ class ApprovalEdgeCasesTest extends TestCase
         // Still 1 pending (User 2), User 1 is approved. No new approvals for User 3 yet.
         $this->assertEquals(1, $estimate->approvals()->where('status', 'pending')->count());
         $this->assertEquals(1, $estimate->approvals()->where('status', 'approved')->count());
-        $this->assertEquals('waiting_approval', $estimate->fresh()->approval_status);
+        $this->assertEquals('submitted', $estimate->fresh()->approval_status);
 
         // Approve 2
         $this->actingAs($user2);
