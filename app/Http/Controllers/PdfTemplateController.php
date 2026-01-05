@@ -19,10 +19,13 @@ class PdfTemplateController extends Controller
     public function create()
     {
         // Load a default starter template
-        $defaultHtml = file_get_contents(resource_path('views/estimates/print_modern.blade.php'));
-        // Strip blade directives for safety/simplicity in this MVP editor version
-        // Ideally we provide a clean HTML starting point
-        $starterHtml = '<html><body><h1>Estimate #{estimate_number}</h1>{LOOP_ITEMS}<div>{item_name} - {item_price}</div>{END_LOOP}</body></html>';
+        // Load a default starter template
+        $existing = PdfTemplate::first();
+        if ($existing) {
+            $starterHtml = $existing->html_content;
+        } else {
+            $starterHtml = '<html><body><h1>Estimate #{estimate_number}</h1>{LOOP_ITEMS}<div>{item_name} - {item_price}</div>{END_LOOP}</body></html>';
+        }
 
         return view('pdf_templates.create', compact('starterHtml'));
     }
