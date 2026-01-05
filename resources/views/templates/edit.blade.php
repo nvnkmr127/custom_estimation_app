@@ -71,82 +71,34 @@
                                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-12">
                                         <!-- Product Selection -->
                                         <div class="sm:col-span-6">
-                                            <label class="block text-xs font-medium text-slate-500 mb-1">Product</label>
                                             <select :name="`items[${index}][product_id]`" x-model="item.product_id"
                                                 @change="updateItem(item)"
                                                 class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                                <option value="">Select a product...</option>
+                                                <option value="">Select a product (Optional)</option>
                                                 <template x-for="product in products" :key="product.id">
                                                     <option :value="product.id" x-text="product.name"
                                                         :selected="item.product_id == product.id"></option>
                                                 </template>
                                             </select>
-                                            <!-- Hidden Item Name fallback -->
-                                            <input type="hidden" :name="`items[${index}][item_name]`"
-                                                x-model="item.item_name">
-                                        </div>
 
-                                        <!-- Quantity -->
-                                        <div class="sm:col-span-2">
-                                            <label class="block text-xs font-medium text-slate-500 mb-1">Qty</label>
-                                            <input type="number" step="1" :name="`items[${index}][quantity]`"
-                                                x-model="item.quantity"
+                                            <!-- Item Name (Editable if no product, or to override) -->
+                                            <label class="block text-xs font-medium text-slate-500 mt-2 mb-1">Item
+                                                Name</label>
+                                            <input type="text" :name="`items[${index}][item_name]`"
+                                                x-model="item.item_name" placeholder="Item Name" required
                                                 class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                        </div>
 
-                                        <!-- Unit Type (Read Only / Override) -->
-                                        <div class="sm:col-span-2">
-                                            <label class="block text-xs font-medium text-slate-500 mb-1">Unit</label>
-                                            <input type="text" :name="`items[${index}][unit_type]`"
-                                                x-model="item.unit_type"
-                                                class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-100">
-                                        </div>
-
-                                        <!-- Unit Price (Read Only / Override) -->
-                                        <div class="sm:col-span-2">
-                                            <label class="block text-xs font-medium text-slate-500 mb-1">Price</label>
-                                            <input type="number" step="0.01" :name="`items[${index}][unit_price]`"
-                                                x-model="item.unit_price"
-                                                class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-slate-100">
+                                            <!-- Description -->
+                                            <label
+                                                class="block text-xs font-medium text-slate-500 mt-2 mb-1">Description
+                                                (Optional override)</label>
+                                            <textarea :name="`items[${index}][description]`" x-model="item.description"
+                                                rows="2" placeholder="Enter description to override product default..."
+                                                class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></textarea>
                                         </div>
                                     </div>
                                 </div>
-                            </template>
-
-                            <div x-show="items.length === 0"
-                                class="text-center py-12 bg-slate-50 rounded-lg ring-1 ring-slate-200 border-dashed border-2 border-slate-300">
-                                <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                </svg>
-                                <h3 class="mt-2 text-sm font-semibold text-slate-900">No items</h3>
-                                <p class="mt-1 text-sm text-slate-500">Get started by adding a product to this template.
-                                </p>
-                                <div class="mt-6">
-                                    <button type="button" @click="addItem()"
-                                        class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                                        <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path
-                                                d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                                        </svg>
-                                        Add Item
-                                    </button>
-                                </div>
-                            </div>
                         </div>
-
-                        <div class="mt-6 flex items-center justify-end gap-x-6 border-t border-gray-900/10 pt-6">
-                            <a href="{{ route('templates.index') }}"
-                                class="text-sm font-semibold leading-6 text-slate-900">Cancel</a>
-                            <button type="submit"
-                                class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                                Save Template
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </form>
     </div>
 
@@ -157,6 +109,13 @@
                 items: initialItems.length ? initialItems : [],
 
                 init() {
+                    // Normalize items (handle legacy 'name' vs 'item_name')
+                    this.items.forEach(item => {
+                        if (!item.item_name && item.name) {
+                            item.item_name = item.name;
+                        }
+                    });
+
                     // Ensure existing items have correct product linking if possible or just display
                     if (this.items.length === 0) {
                         this.addItem();

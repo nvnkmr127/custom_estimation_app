@@ -275,7 +275,7 @@
 
                         return {
                             id: null,
-                            name: i.item_name,
+                            name: i.item_name || i.name || '',
                             unit_price: parseFloat(i.unit_price || 0),
                             quantity: parseFloat(i.quantity || 1),
                             size: i.size || '',

@@ -37,6 +37,7 @@ class RoomTemplateController extends Controller
             'items.*.quantity' => 'required|numeric|min:0',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.unit_type' => 'nullable|string',
+            'items.*.description' => 'nullable|string',
         ]);
 
         RoomTemplate::create($validated);
@@ -62,6 +63,7 @@ class RoomTemplateController extends Controller
             'items.*.quantity' => 'required|numeric|min:0',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.unit_type' => 'nullable|string',
+            'items.*.description' => 'nullable|string',
         ]);
 
         $template->update($validated);
