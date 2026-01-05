@@ -40,37 +40,38 @@
                 </a>
             @endif
 
-            @if (app()->environment('local'))
-                <div class="fixed bottom-4 right-4 p-4 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <p class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Auto Login</p>
-                    <div class="space-y-2">
-                        <button type="button" onclick="autoLogin('super@example.com')"
-                            class="block w-full text-left px-3 py-1.5 text-xs text-white bg-purple-600 hover:bg-purple-700 rounded transition-colors">
-                            Super Admin
-                        </button>
-                        <button type="button" onclick="autoLogin('estimator@example.com')"
-                            class="block w-full text-left px-3 py-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded transition-colors">
-                            Estimator Admin
-                        </button>
-                        <button type="button" onclick="autoLogin('manager@example.com')"
-                            class="block w-full text-left px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors">
-                            Sales Manager
-                        </button>
-                        <button type="button" onclick="autoLogin('sales@example.com')"
-                            class="block w-full text-left px-3 py-1.5 text-xs text-white bg-gray-600 hover:bg-gray-700 rounded transition-colors">
-                            Sales
-                        </button>
-                    </div>
-                </div>
+            {{-- Direct Login Buttons --}}
+            <div class="mt-6 grid grid-cols-2 gap-3 w-full border-t border-gray-100 pt-6">
+                <button type="button" onclick="autoLogin('super@example.com')"
+                    class="flex justify-center items-center px-4 py-2 bg-purple-50 text-purple-700 text-xs font-semibold rounded-lg hover:bg-purple-100 transition-colors border border-purple-200">
+                    Super Admin
+                </button>
+                <button type="button" onclick="autoLogin('estimator@example.com')"
+                    class="flex justify-center items-center px-4 py-2 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200">
+                    Est. Admin
+                </button>
+                <button type="button" onclick="autoLogin('manager@example.com')"
+                    class="flex justify-center items-center px-4 py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors border border-blue-200">
+                    Manager
+                </button>
+                <button type="button" onclick="autoLogin('sales@example.com')"
+                    class="flex justify-center items-center px-4 py-2 bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition-colors border border-slate-200">
+                    Estimator (Sales)
+                </button>
+            </div>
 
-                <script>
-                    function autoLogin(email) {
-                        document.getElementById('email').value = email;
-                        document.getElementById('password').value = 'password';
-                        document.querySelector('form').submit();
+            <script>
+                function autoLogin(email) {
+                    const emailInput = document.getElementById('email');
+                    const passInput = document.getElementById('password');
+
+                    if (emailInput && passInput) {
+                        emailInput.value = email;
+                        passInput.value = 'password';
+                        emailInput.form.submit();
                     }
-                </script>
-            @endif
+                }
+            </script>
 
             <x-primary-button class="ms-3">
                 {{ __('Log in') }}
