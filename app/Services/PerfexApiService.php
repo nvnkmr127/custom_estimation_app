@@ -125,6 +125,12 @@ class PerfexApiService
             return ['status' => false, 'message' => 'API Configuration Missing. Please configure in Settings.'];
         }
 
+        // Ensure URL structure contains /api/ if relying on standard REST module patterns
+        // Some users put full URL with /api in settings, some don't. We try to be smart.
+        if (strpos($this->baseUrl, '/api') === false && strpos($endpoint, 'api/') !== 0) {
+            $endpoint = 'api/' . ltrim($endpoint, '/');
+        }
+
         // Remove trailing slash from base URL if present
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
 
@@ -132,15 +138,17 @@ class PerfexApiService
             $response = Http::timeout(5)
                         ->withHeaders([
                             'authtoken' => $this->token,
+                            // Fallback if user is using a module that expects bearer
+                            // 'Authorization' => 'Bearer ' . $this->token 
                         ])->$method($url, $data);
 
             if ($response->successful()) {
                 return $response->json();
             }
 
-            Log::error('Perfex API Error: ' . $response->status() . ' - ' . $response->body() . ' | Request: ' . json_encode($data) . ' | URL: ' . $url);
+            Log::error('Perfex API Error: ' . $response->status() . ' - ' . $body = $response->body() . ' | Request: ' . json_encode($data) . ' | URL: ' . $url);
 
-            return ['status' => false, 'error' => 'API Error: ' . $response->status()];
+            return ['status' => false, 'error' => 'API Error: ' . $response->status() . ' ' . substr($body, 0, 100)];
 
         } catch (\Exception $e) {
             Log::error('Perfex API Exception: ' . $e->getMessage());
