@@ -258,18 +258,32 @@
             applyTemplate(template) {
                 const newSection = { name: template.name, items: [] };
                 if (Array.isArray(template.items)) {
-                    newSection.items = template.items.map(i => ({
-                        id: null,
-                        name: i.item_name,
-                        unit_price: parseFloat(i.unit_price || 0),
-                        quantity: parseFloat(i.quantity || 1),
-                        size: i.size || '',
-                        unit_type: i.unit_type || 'nos',
-                        description: '',
-                        tax_1: 0,
-                        tax_2: 0,
-                        length: '', width: '', formula: '', showCalculator: false
-                    }));
+                    newSection.items = template.items.map(i => {
+                        // Resolve fields from Product if available
+                        let imageUrl = null;
+                        let desc = '';
+
+                        if (i.product) {
+                            if (i.product.images && i.product.images.length > 0) {
+                                imageUrl = '/storage/' + i.product.images[0].image_path;
+                            }
+                            desc = i.product.description || '';
+                        }
+
+                        return {
+                            id: null,
+                            name: i.item_name,
+                            unit_price: parseFloat(i.unit_price || 0),
+                            quantity: parseFloat(i.quantity || 1),
+                            size: i.size || '',
+                            unit_type: i.unit_type || 'nos',
+                            description: desc,
+                            image_url: imageUrl,
+                            tax_1: 0,
+                            tax_2: 0,
+                            length: '', width: '', formula: '', showCalculator: false
+                        };
+                    });
                 }
                 this.estimate.sections.push(newSection);
                 this.calculateTotals();

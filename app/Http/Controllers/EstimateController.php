@@ -65,7 +65,7 @@ class EstimateController extends Controller
         $this->authorize('create', Estimate::class);
 
         $products = Product::with('images')->get();
-        $templates = RoomTemplate::all();
+        $templates = RoomTemplate::with(['items.product.images'])->get();
         $packages = ItemPackage::all();
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
