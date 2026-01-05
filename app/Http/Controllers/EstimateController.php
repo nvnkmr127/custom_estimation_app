@@ -65,7 +65,33 @@ class EstimateController extends Controller
         $this->authorize('create', Estimate::class);
 
         $products = Product::with('images')->get();
-        $templates = RoomTemplate::with(['items.product.images'])->get();
+        $templates = RoomTemplate::all();
+
+        // Hydrate Template Items with Product Data
+        $productIds = [];
+        $templates->each(function ($t) use (&$productIds) {
+            if (!empty($t->items) && is_array($t->items)) {
+                foreach ($t->items as $item) {
+                    if (isset($item['product_id']))
+                        $productIds[] = $item['product_id'];
+                }
+            }
+        });
+
+        $templateProducts = Product::whereIn('id', array_unique($productIds))->with('images')->get()->keyBy('id');
+
+        $templates->transform(function ($t) use ($templateProducts) {
+            $items = $t->items ?? [];
+            if (is_array($items)) {
+                foreach ($items as &$item) {
+                    if (isset($item['product_id']) && isset($templateProducts[$item['product_id']])) {
+                        $item['product'] = $templateProducts[$item['product_id']];
+                    }
+                }
+                $t->items = $items;
+            }
+            return $t;
+        });
         $packages = ItemPackage::all();
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
