@@ -32,6 +32,8 @@ class FullDummyContentSeeder extends Seeder
             'Paint' => ['Interior Paint', 'Exterior Paint', 'Primer', 'Putty'],
             'Woodwork' => ['Plywood', 'Laminates', 'Veneer', 'Hardware'],
             'False Ceiling' => ['Gypsum Board', 'POP', 'Channel', 'LED Strips'],
+            'Decor' => ['Wall Art', 'Rugs', 'Curtains', 'Vases'],
+            'Smart Home' => ['Smart Bulbs', 'Smart Plugs', 'Cameras', 'Sensors'],
         ];
 
         $categoryIds = [];
@@ -76,6 +78,30 @@ class FullDummyContentSeeder extends Seeder
             ['name' => 'Jaguar Wall Mixer', 'cat' => 'Plumbing', 'price' => 4500, 'unit' => 'nos'],
             ['name' => 'PVC Pipe 4 inch', 'cat' => 'Plumbing', 'price' => 350, 'unit' => 'length'],
             ['name' => 'Saint Gobain Gypsum Board', 'cat' => 'False Ceiling', 'price' => 45, 'unit' => 'sqft'],
+            // New Products
+            ['name' => 'Philips Hue Smart Bulb', 'cat' => 'Smart Home', 'price' => 2500, 'unit' => 'nos'],
+            ['name' => 'Google Nest Mini', 'cat' => 'Smart Home', 'price' => 4500, 'unit' => 'nos'],
+            [
+                'name' => 'Abstract Wall Art Canvas',
+                'cat' => 'Decor',
+                'price' => 1500,
+                'unit' => 'nos',
+                'options' => ['Size' => ['Small' => 0, 'Medium' => 500, 'Large' => 1200]]
+            ],
+            [
+                'name' => 'Persian Style Rug',
+                'cat' => 'Decor',
+                'price' => 8500,
+                'unit' => 'nos',
+                'options' => ['Size' => ['4x6' => 0, '6x9' => 3500], 'Color' => ['Red' => 0, 'Blue' => 0]]
+            ],
+            [
+                'name' => 'Blackout Curtains',
+                'cat' => 'Decor',
+                'price' => 1200,
+                'unit' => 'pair',
+                'options' => ['Length' => ['7ft' => 0, '9ft' => 300]]
+            ],
         ];
 
         $productModels = [];
@@ -138,6 +164,29 @@ class FullDummyContentSeeder extends Seeder
                     ['name' => 'Wall Painting (Royale)', 'quantity' => 600, 'unit_price' => 45, 'unit_type' => 'sqft'],
                     ['name' => 'Flooring (Italian Marble)', 'quantity' => 250, 'unit_price' => 650, 'unit_type' => 'sqft'],
                     ['name' => 'Electrical Points', 'quantity' => 12, 'unit_price' => 850, 'unit_type' => 'point'],
+                    ['name' => 'Persian Style Rug', 'quantity' => 1, 'unit_price' => 8500, 'unit_type' => 'nos'],
+                    ['name' => 'Abstract Wall Art Canvas', 'quantity' => 2, 'unit_price' => 1500, 'unit_type' => 'nos'],
+                ]
+            ],
+            [
+                'name' => 'Home Office Setup',
+                'description' => 'Modern productive workspace',
+                'items' => [
+                    ['name' => 'Teak Wood Plank', 'quantity' => 15, 'unit_price' => 2500, 'unit_type' => 'cft'],
+                    ['name' => 'Philips Hue Smart Bulb', 'quantity' => 2, 'unit_price' => 2500, 'unit_type' => 'nos'],
+                    ['name' => 'Google Nest Mini', 'quantity' => 1, 'unit_price' => 4500, 'unit_type' => 'nos'],
+                    ['name' => 'Havells Modular Switch', 'quantity' => 6, 'unit_price' => 180, 'unit_type' => 'nos'],
+                    ['name' => 'Blackout Curtains', 'quantity' => 2, 'unit_price' => 1200, 'unit_type' => 'pair'],
+                ]
+            ],
+            [
+                'name' => 'Kids Bedroom',
+                'description' => 'Fun and safe room for children',
+                'items' => [
+                    ['name' => 'Wall Painting (Royale)', 'quantity' => 350, 'unit_price' => 45, 'unit_type' => 'sqft'],
+                    ['name' => 'False Ceiling', 'quantity' => 120, 'unit_price' => 120, 'unit_type' => 'sqft'],
+                    ['name' => 'Vitrified Tiles 2x2', 'quantity' => 120, 'unit_price' => 65, 'unit_type' => 'sqft'],
+                    ['name' => 'Smart Bulbs', 'quantity' => 2, 'unit_price' => 800, 'unit_type' => 'nos'], // Generic ref
                 ]
             ],
             // ... (keep usage of simple array for brevity in seeding, assuming RoomTemplate creates items via json or relation)

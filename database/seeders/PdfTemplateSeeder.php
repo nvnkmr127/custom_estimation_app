@@ -344,5 +344,99 @@ body { margin: 0; padding: 0; font-family: "Georgia", serif; color: #444; }
             'font_family' => 'Dejavu Serif, serif',
             'is_active' => true,
         ]);
+
+        // Minimalist Template
+        PdfTemplate::create([
+            'name' => 'Minimalist',
+            'html_content' => '
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>{estimate_title}</title>
+</head>
+<body>
+    <div class="header-minimal">
+        <h1>ESTIMATE</h1>
+        <div class="ref-date">
+            <span>#{estimate_number}</span> &bull; <span>{estimate_date}</span>
+        </div>
+    </div>
+    
+    <div class="contact-minimal">
+        <p><strong>{company_name}</strong> &mdash; {company_email}</p>
+        <p>Prepared for: <strong>{client_name}</strong></p>
+    </div>
+
+    <div class="line-break"></div>
+
+    <div class="items-minimal">
+        <table width="100%">
+            {LOOP_SECTIONS}
+            <tr><td colspan="3" class="section-title">{section_name}</td></tr>
+                {LOOP_ITEMS}
+                <tr class="item-row">
+                    <td width="60%">
+                        <strong>{item_name}</strong>
+                        <div class="dim">{item_description}</div>
+                    </td>
+                    <td width="15%" class="text-center">{item_quantity} {item_unit}</td>
+                    <td width="25%" class="text-right">{item_total}</td>
+                </tr>
+                {END_LOOP}
+            {END_LOOP}
+
+            {IF_NOT_room_based}
+                {LOOP_ITEMS}
+                <tr class="item-row">
+                    <td width="60%"><strong>{item_name}</strong><br><span class="dim">{item_description}</span></td>
+                    <td width="15%" class="text-center">{item_quantity} {item_unit}</td>
+                    <td width="25%" class="text-right">{item_total}</td>
+                </tr>
+                {END_LOOP}
+            {END_IF}
+        </table>
+    </div>
+    
+    <div class="line-break"></div>
+
+    <div class="total-minimal">
+        <h1>{currency} {grand_total}</h1>
+        <p>Total Estimate</p>
+    </div>
+
+    <div class="footer-minimal">
+        <p>{terms}</p>
+        <p>&copy; {company_name}</p>
+    </div>
+</body>
+</html>',
+            'css_content' => '
+body { font-family: "Courier New", Courier, monospace; color: #000; padding: 40px; }
+.header-minimal { text-align: center; margin-bottom: 60px; }
+.header-minimal h1 { font-weight: normal; letter-spacing: 5px; margin: 0; font-size: 24px; }
+.ref-date { font-size: 10px; color: #555; margin-top: 10px; text-transform: uppercase; }
+
+.contact-minimal { font-size: 12px; text-align: center; margin-bottom: 40px; }
+.line-break { border-bottom: 1px dashed #000; margin: 40px 0; }
+
+.items-minimal table { width: 100%; border-collapse: collapse; }
+.section-title { font-weight: bold; padding: 20px 0 10px 0; border-bottom: 1px solid #000; font-size: 14px; text-transform: uppercase; }
+.item-row td { padding: 15px 0; vertical-align: top; }
+.dim { color: #666; font-size: 10px; margin-top: 4px; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+.total-minimal { text-align: center; margin: 60px 0; }
+.total-minimal h1 { font-size: 48px; margin: 0; font-weight: normal; }
+.total-minimal p { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; }
+
+.footer-minimal { font-size: 10px; text-align: center; color: #888; margin-top: 50px; }
+',
+            'primary_color' => '#000000',
+            'secondary_color' => '#333333',
+            'font_family' => 'Courier New',
+            'is_active' => true,
+        ]);
     }
 }
