@@ -10,7 +10,7 @@
                 status: 'draft',
                 currency: 'USD',
                 type: 'standard', // 'standard' or 'room_based',
-                title: '',
+
                 client_id: '',
                 client_note: '',
                 admin_note: '',
@@ -399,7 +399,7 @@
                 };
 
                 // Basic Fields
-                const fields = ['title', 'client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type'];
+                const fields = ['client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type'];
                 fields.forEach(f => {
                     let val = this.estimate[f];
                     if (f === 'discount_value') {

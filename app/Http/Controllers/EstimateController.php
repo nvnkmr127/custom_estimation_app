@@ -120,7 +120,7 @@ class EstimateController extends Controller
         $this->authorize('create', Estimate::class);
 
         $validated = $request->validate([
-            'title' => 'nullable|string|max:255',
+
             'client_id' => 'required|integer',
             'estimate_date' => 'required|date',
             'expiry_date' => 'nullable|date',
@@ -242,7 +242,7 @@ class EstimateController extends Controller
         $this->authorize('update', $estimate);
 
         $validated = $request->validate([
-            'title' => 'nullable|string|max:255',
+
             'client_id' => 'required|integer',
             'estimate_date' => 'required|date',
             'expiry_date' => 'nullable|date',

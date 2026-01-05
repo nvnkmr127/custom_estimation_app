@@ -45,10 +45,9 @@
                     <x-card padding="4" class="space-y-3">
                         <div class="flex justify-between items-start">
                             <div>
-                                <div class="text-xs font-medium text-slate-500">{{ $estimate->estimate_number }}</div>
                                 <a href="{{ route('estimates.show', $estimate) }}"
                                     class="text-sm font-semibold text-slate-900 block mt-0.5 hover:text-indigo-600 transition-colors">
-                                    {{ $estimate->title ?: 'Untitled Estimate' }}
+                                    Estimate #{{ $estimate->estimate_number }}
                                 </a>
                             </div>
                             <x-estimate-status-badge :status="$estimate->status" />
@@ -98,9 +97,7 @@
                                     <th scope="col"
                                         class="py-3.5 pl-4 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:pl-6">
                                         Estimate #</th>
-                                    <th scope="col"
-                                        class="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                        Title</th>
+
                                     <th scope="col"
                                         class="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                         Type</th>
@@ -132,9 +129,7 @@
                                                 {{ $estimate->estimate_number }}
                                             </a>
                                         </td>
-                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-600">
-                                            {{ $estimate->title ?: '-' }}
-                                        </td>
+
                                         <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
                                             <span
                                                 class="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">

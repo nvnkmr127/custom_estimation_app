@@ -22,7 +22,7 @@ class PerfexController extends Controller
         if (is_array($response) && isset($response['status']) && $response['status'] === false) {
             $leads = [];
             session()->flash('error', $response['message'] ?? 'Perfex API Error');
-        } elseif (is_array($response) && ! isset($response['data']) && ! isset($response['status'])) {
+        } elseif (is_array($response) && !isset($response['data']) && !isset($response['status'])) {
             // Direct array of leads
             $leads = $response;
         } elseif (is_array($response) && isset($response['data'])) {
@@ -38,7 +38,7 @@ class PerfexController extends Controller
     public function import(Request $request)
     {
         $id = $request->input('id');
-        if (! $id) {
+        if (!$id) {
             return back()->with('error', 'Lead ID required.');
         }
 
@@ -46,7 +46,7 @@ class PerfexController extends Controller
             // Fetch Fresh Data from API (Safer than trusting POST data)
             $lead = $this->api->getLead($id);
 
-            if (! $lead || isset($lead['status']) && $lead['status'] === false) {
+            if (!$lead || isset($lead['status']) && $lead['status'] === false) {
                 // Fallback: Use POST data if provided, or fail
                 if ($request->has('name')) {
                     $lead = $request->all();
@@ -75,7 +75,7 @@ class PerfexController extends Controller
                 $clientData
             );
 
-            return back()->with('success', 'Lead imported successfully! Client ID: '.$client->id);
+            return back()->with('success', 'Lead imported successfully! Client ID: ' . $client->id);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Perfex Lead Import Failed', [
                 'lead_id' => $id,
@@ -83,7 +83,7 @@ class PerfexController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'Import failed: '.$e->getMessage());
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 
@@ -93,10 +93,10 @@ class PerfexController extends Controller
             $result = $this->api->syncEstimate($estimate);
 
             if ($result['status']) {
-                return back()->with('success', 'Synced to Perfex CRM! Proposal ID: '.$result['id']);
+                return back()->with('success', 'Synced to Perfex CRM! Proposal ID: ' . $result['id']);
             }
 
-            return back()->with('error', 'Perfex Sync Failed: '.$result['message']);
+            return back()->with('error', 'Perfex Sync Failed: ' . $result['message']);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Perfex Estimate Sync Failed', [
                 'estimate_id' => $estimate->id,
@@ -104,7 +104,7 @@ class PerfexController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'Sync failed: '.$e->getMessage());
+            return back()->with('error', 'Sync failed: ' . $e->getMessage());
         }
     }
 
@@ -116,23 +116,28 @@ class PerfexController extends Controller
             return response()->json([]);
         }
 
-        try {
-            // Call Service
-            $response = $this->api->searchLeads($query);
+        // Cache for 10 minutes
+        $cacheKey = 'perfex_lead_search_' . md5($query);
 
-            if (is_array($response) && ! isset($response['status'])) {
-                return response()->json($response);
-            } elseif (is_array($response) && isset($response['data'])) {
-                return response()->json($response['data']);
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 600, function () use ($query) {
+            try {
+                // Call Service
+                $response = $this->api->searchLeads($query);
+
+                if (is_array($response) && !isset($response['status'])) {
+                    return response()->json($response);
+                } elseif (is_array($response) && isset($response['data'])) {
+                    return response()->json($response['data']);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Perfex Lead Search Failed', [
+                    'query' => $query,
+                    'user_id' => auth()->id(),
+                    'error' => $e->getMessage(),
+                ]);
             }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Perfex Lead Search Failed', [
-                'query' => $query,
-                'user_id' => auth()->id(),
-                'error' => $e->getMessage(),
-            ]);
-        }
 
-        return response()->json([]);
+            return response()->json([]);
+        });
     }
 }

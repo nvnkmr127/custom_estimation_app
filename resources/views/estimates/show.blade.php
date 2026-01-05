@@ -40,7 +40,7 @@
                     </span>
                 @endif
             </div>
-            <p class="mt-2 text-sm text-slate-500">{{ $estimate->title }}</p>
+
         </div>
 
         <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">

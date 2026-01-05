@@ -116,10 +116,7 @@
                         </select>
                     </div>
 
-                    <div class="sm:col-span-4">
-                        <x-input-label value="Estimate Title" />
-                        <x-text-input type="text" x-model="estimate.title" name="title" placeholder="e.g. Painting and Decorating" />
-                    </div>
+
 
                     <div class="sm:col-span-2">
                         <x-input-label value="PDF Template" required />
