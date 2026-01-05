@@ -38,16 +38,8 @@
                 <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt class="text-sm font-medium text-gray-900">Role</dt>
                     <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
-                        @php
-                            $roleStyles = [
-                                'super_admin' => 'bg-purple-50 text-purple-700 ring-purple-700/10',
-                                'estimator_admin' => 'bg-indigo-50 text-indigo-700 ring-indigo-700/10',
-                                'sales_manager' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
-                                'sales' => 'bg-slate-100 text-slate-700 ring-slate-600/20',
-                            ];
-                        @endphp
                         <span
-                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $roleStyles[$user->role] ?? 'bg-slate-100 text-slate-600 ring-slate-500/10' }}">
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $user->role_badge_class }}">
                             {{ ucfirst(str_replace('_', ' ', $user->role)) }}
                         </span>
                     </dd>
@@ -55,12 +47,14 @@
                 <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt class="text-sm font-medium text-gray-900">Max Discount Allowed</dt>
                     <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
-                        {{ $user->max_discount_percentage }}%</dd>
+                        {{ $user->max_discount_percentage }}%
+                    </dd>
                 </div>
                 <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt class="text-sm font-medium text-gray-900">Member Since</dt>
                     <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
-                        {{ $user->created_at->format('M d, Y') }}</dd>
+                        {{ $user->created_at->format('M d, Y') }}
+                    </dd>
                 </div>
             </dl>
         </div>

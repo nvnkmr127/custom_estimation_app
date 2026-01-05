@@ -12,15 +12,10 @@
         </div>
     </div>
 
-    @php
-        $roles = \App\Services\PermissionService::getRoles();
-        $permissionsByCategory = \App\Services\PermissionService::getPermissionsByCategory();
-    @endphp
-
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         @foreach($roles as $roleKey => $roleInfo)
             @php
-                $permissions = \App\Services\PermissionService::getPermissionsForRole($roleKey);
+                $permissions = $permissionsForRoles[$roleKey] ?? [];
                 $colorClasses = [
                     'purple' => 'bg-purple-50 border-purple-200',
                     'indigo' => 'bg-indigo-50 border-indigo-200',

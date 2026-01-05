@@ -1,27 +1,37 @@
 <x-app-layout>
-    <div x-data="{ showUploadModal: false, showRetireModal: false, retireReason: '', activeProductId: null }">
+    <div x-data="{ showUploadModal: false, showRetireModal: false, showSuggestModal: false, retireReason: '', activeProductId: null }">
         <div class="sm:flex sm:items-center sm:justify-between mb-8">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Product & Service Library</h1>
                 <p class="mt-1 text-sm text-gray-500">Manage your product catalog</p>
             </div>
             <div class="mt-4 sm:mt-0 flex gap-3">
-                <button @click="showUploadModal = true" type="button"
-                    class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
-                    <svg class="-ml-0.5 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                    </svg>
-                    Bulk Upload
-                </button>
-                <a href="{{ route('products.create') }}"
-                    class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                    <svg class="-ml-0.5 mr-1.5 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Product
-                </a>
+                @can('create', App\Models\Product::class)
+                    <button @click="showUploadModal = true" type="button"
+                        class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        <svg class="-ml-0.5 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        Bulk Upload
+                    </button>
+                    <a href="{{ route('products.create') }}"
+                        class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                        <svg class="-ml-0.5 mr-1.5 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Product
+                    </a>
+                @else
+                    <button @click="showSuggestModal = true" type="button"
+                        class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                        <svg class="-ml-0.5 mr-1.5 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.854 1.5-2.261M12 9c.225 0 .445.012.663.033A8.956 8.956 0 015.658 9M10 18v-5.25m0 0a6.01 6.01 0 01-1.5-.189m1.5.189a6.01 6.01 0 001.5-.189m-3.75 2.147a14.406 14.406 0 00-3 0m3 2.383a14.406 14.406 0 00-3 0M9.75 18v-.192c0-.983-.658-1.854-1.5-2.261" />
+                        </svg>
+                        Suggest Product
+                    </button>
+                @endcan
                 @if(auth()->user()->hasPermission('approve_products') ?? true)
                     <a href="{{ route('products.pending') }}"
                         class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
@@ -131,14 +141,8 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="h-12 w-12 flex-shrink-0">
                                             @if($product->images->isNotEmpty())
-                                                @php
-                                                    $imagePath = $product->images->first()->image_path;
-                                                    $imageUrl = Str::startsWith($imagePath, ['http://', 'https://'])
-                                                        ? $imagePath
-                                                        : Storage::url($imagePath);
-                                                @endphp
                                                 <img class="h-12 w-12 rounded-lg object-cover border border-slate-200 shadow-sm"
-                                                    src="{{ $imageUrl }}" alt="{{ $product->name }}">
+                                                    src="{{ $product->primary_image_url }}" alt="{{ $product->name }}">
                                             @else
                                                 <div
                                                     class="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200 shadow-sm">
@@ -258,6 +262,76 @@
                     actionUrl="{{ route('products.create') }}" />
             @endif
         </x-card>
+
+        <!-- Suggest Product Modal -->
+        <div x-show="showSuggestModal" class="relative z-50" style="display: none;">
+            <div class="fixed inset-0 bg-slate-500/75 backdrop-blur-sm transition-opacity"></div>
+            <div class="fixed inset-0 z-50 overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <form action="{{ route('products.suggest') }}" method="POST"
+                        class="relative transform overflow-hidden rounded-xl bg-white px-4 pb-4 pt-5 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+                        @click.away="showSuggestModal = false">
+                        @csrf
+                        <div>
+                            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
+                                <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.854 1.5-2.261M12 9c.225 0 .445.012.663.033A8.956 8.956 0 015.658 9M10 18v-5.25m0 0a6.01 6.01 0 01-1.5-.189m1.5.189a6.01 6.01 0 001.5-.189m-3.75 2.147a14.406 14.406 0 00-3 0m3 2.383a14.406 14.406 0 00-3 0M9.75 18v-.192c0-.983-.658-1.854-1.5-2.261" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-5">
+                                <h3 class="text-base font-bold leading-6 text-slate-900">Suggest New Product</h3>
+                                <div class="mt-2 text-left">
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700">Product Name</label>
+                                            <input type="text" name="name" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700">Category</label>
+                                            <select name="category_id" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                                @foreach($categories as $category)
+                                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-slate-700">Estimated Price</label>
+                                                <input type="number" step="0.01" name="unit_price" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-slate-700">Unit Type</label>
+                                                <select name="unit_type" required class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                                    <option value="ea">Each (ea)</option>
+                                                    <option value="sqft">Sq Ft (sqft)</option>
+                                                    <option value="m">Meter (m)</option>
+                                                    <option value="hr">Hour (hr)</option>
+                                                    <option value="set">Set</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-700">Description / URL</label>
+                                            <textarea name="description" rows="3" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                            <button type="submit"
+                                class="inline-flex w-full justify-center rounded-lg bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:col-start-2">
+                                Submit Suggestion
+                            </button>
+                            <button type="button" @click="showSuggestModal = false"
+                                class="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:col-start-1 sm:mt-0">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         <!-- Upload Modal -->
         <div x-show="showUploadModal" class="relative z-50" style="display: none;">

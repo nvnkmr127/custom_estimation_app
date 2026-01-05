@@ -113,4 +113,16 @@ class User extends Authenticatable
     {
         return $this->hasMany(EstimateComment::class);
     }
+
+    public function getRoleBadgeClassAttribute()
+    {
+        $styles = [
+            'super_admin' => 'bg-purple-50 text-purple-700 ring-purple-700/10',
+            'estimator_admin' => 'bg-indigo-50 text-indigo-700 ring-indigo-700/10',
+            'sales_manager' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+            'sales' => 'bg-slate-100 text-slate-700 ring-slate-600/20',
+        ];
+
+        return $styles[$this->role] ?? 'bg-slate-100 text-slate-600 ring-slate-500/10';
+    }
 }

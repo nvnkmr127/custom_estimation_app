@@ -170,7 +170,13 @@ class EstimateController extends Controller
         $root = $estimate->parent ?? $estimate;
         $allVersions = Estimate::where('id', $root->id)->orWhere('parent_id', $root->id)->orderBy('version', 'desc')->get();
 
-        return view('estimates.show', compact('estimate', 'checklists', 'declineReasons', 'allVersions'));
+        // Check for current user's pending approval
+        $userApproval = $estimate->approvals()
+            ->where('user_id', auth()->id())
+            ->where('status', 'pending')
+            ->first();
+
+        return view('estimates.show', compact('estimate', 'checklists', 'declineReasons', 'allVersions', 'userApproval'));
     }
 
     /**

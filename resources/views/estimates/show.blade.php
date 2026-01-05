@@ -22,12 +22,6 @@
             @endif
 
             @if($estimate->approval_status === 'submitted')
-                @php
-                    $userApproval = $estimate->approvals()
-                        ->where('user_id', auth()->id())
-                        ->where('status', 'pending')
-                        ->first();
-                @endphp
                 
                 @if($userApproval)
                     <div class="flex gap-2">

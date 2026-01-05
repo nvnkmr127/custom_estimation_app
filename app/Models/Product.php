@@ -116,4 +116,20 @@ class Product extends Model
     {
         return $this->belongsTo(User::class, 'suggested_by');
     }
+
+    // Accessors
+    public function getPrimaryImageUrlAttribute()
+    {
+        if ($this->images->isEmpty()) {
+            return null;
+        }
+
+        $imagePath = $this->images->first()->image_path;
+
+        if (\Illuminate\Support\Str::startsWith($imagePath, ['http://', 'https://'])) {
+            return $imagePath;
+        }
+
+        return \Illuminate\Support\Facades\Storage::url($imagePath);
+    }
 }

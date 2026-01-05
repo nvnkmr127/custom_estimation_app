@@ -12,7 +12,15 @@ class PermissionController extends Controller
      */
     public function index()
     {
-        return view('permissions.index');
+        $roles = PermissionService::getRoles();
+        $permissionsByCategory = PermissionService::getPermissionsByCategory();
+        $permissionsForRoles = [];
+
+        foreach ($roles as $roleKey => $roleInfo) {
+            $permissionsForRoles[$roleKey] = PermissionService::getPermissionsForRole($roleKey);
+        }
+
+        return view('permissions.index', compact('roles', 'permissionsByCategory', 'permissionsForRoles'));
     }
 
     /**
@@ -22,7 +30,7 @@ class PermissionController extends Controller
     {
         $roles = PermissionService::getRoles();
 
-        if (! isset($roles[$role])) {
+        if (!isset($roles[$role])) {
             abort(404, 'Role not found');
         }
 
@@ -41,7 +49,7 @@ class PermissionController extends Controller
     {
         $roles = PermissionService::getRoles();
 
-        if (! isset($roles[$role])) {
+        if (!isset($roles[$role])) {
             abort(404, 'Role not found');
         }
 
@@ -57,7 +65,7 @@ class PermissionController extends Controller
         $this->updatePermissionMapping($role, $selectedPermissions);
 
         return redirect()->route('permissions.index')
-            ->with('success', 'Permissions updated successfully for '.$roles[$role]['name']);
+            ->with('success', 'Permissions updated successfully for ' . $roles[$role]['name']);
     }
 
     /**

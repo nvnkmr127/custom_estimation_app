@@ -33,16 +33,9 @@
         <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data"
             class="space-y-8" x-data="{ 
                   isSubmitting: false,
-                  attributes: {{ json_encode($product->attributes ?? []) }},
-                  options: {{ json_encode($product->options->load('values')->map(function ($opt) {
-    return [
-        'name' => $opt->name,
-        'values' => $opt->values->map(function ($v) {
-            return ['value' => $v->value, 'price_adjustment' => $v->price_adjustment];
-        })
-    ];
-})) }},
-                  tags: '{{ is_array($product->tags) ? implode(',', $product->tags) : ($product->tags ?? '') }}',
+                  attributes: {{ $productAttributes }},
+                  options: {{ $productOptions }},
+                  tags: '{{ $productTags }}',
                   initQuill() {
                       var quill = new Quill('#editor', { theme: 'snow' });
                       var existing = document.getElementById('description-input').value;

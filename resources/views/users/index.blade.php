@@ -17,7 +17,9 @@
             <div class="flex">
                 <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                            clip-rule="evenodd" />
                     </svg>
                 </div>
                 <div class="ml-3">
@@ -32,7 +34,9 @@
             <div class="flex">
                 <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                            clip-rule="evenodd" />
                     </svg>
                 </div>
                 <div class="ml-3">
@@ -49,15 +53,20 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:pl-6">
+                                <th scope="col"
+                                    class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:pl-6">
                                     Name</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <th scope="col"
+                                    class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Email</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <th scope="col"
+                                    class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Role</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <th scope="col"
+                                    class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Max Discount</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                <th scope="col"
+                                    class="px-3 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Created</th>
                                 <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                                     <span class="sr-only">Actions</span>
@@ -70,22 +79,16 @@
                                     <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 sm:pl-6">
                                         {{ $user->name }}
                                         @if($user->id === auth()->id())
-                                            <span class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">You</span>
+                                            <span
+                                                class="ml-2 inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">You</span>
                                         @endif
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-600">
                                         {{ $user->email }}
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                        @php
-                                            $roleStyles = [
-                                                'super_admin' => 'bg-purple-50 text-purple-700 ring-purple-700/10',
-                                                'estimator_admin' => 'bg-indigo-50 text-indigo-700 ring-indigo-700/10',
-                                                'sales_manager' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
-                                                'sales' => 'bg-slate-100 text-slate-700 ring-slate-600/20',
-                                            ];
-                                        @endphp
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $roleStyles[$user->role] ?? 'bg-slate-100 text-slate-600 ring-slate-500/10' }}">
+                                        <span
+                                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $user->role_badge_class }}">
                                             {{ ucfirst(str_replace('_', ' ', $user->role)) }}
                                         </span>
                                     </td>
@@ -119,8 +122,10 @@
                                     <td colspan="6" class="px-3 py-10 text-center text-sm text-slate-500">
                                         <div class="flex flex-col items-center justify-center">
                                             <div class="rounded-full bg-slate-100 p-3 mb-4">
-                                                <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24"
+                                                    stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                                 </svg>
                                             </div>
                                             <h3 class="text-sm font-semibold text-slate-900">No users found</h3>

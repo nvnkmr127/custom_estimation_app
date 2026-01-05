@@ -91,7 +91,7 @@ class ProductController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return back()->withInput()->withErrors(['error' => 'Failed to add product: '.$e->getMessage()]);
+            return back()->withInput()->withErrors(['error' => 'Failed to add product: ' . $e->getMessage()]);
         }
     }
 
@@ -104,7 +104,19 @@ class ProductController extends Controller
 
         $categories = ProductCategory::all();
 
-        return view('products.edit', compact('product', 'categories'));
+        // Prepare complex data for the view
+        $productAttributes = json_encode($product->attributes ?? []);
+        $productOptions = json_encode($product->options->load('values')->map(function ($opt) {
+            return [
+                'name' => $opt->name,
+                'values' => $opt->values->map(function ($v) {
+                    return ['value' => $v->value, 'price_adjustment' => $v->price_adjustment];
+                })
+            ];
+        }));
+        $productTags = is_array($product->tags) ? implode(',', $product->tags) : ($product->tags ?? '');
+
+        return view('products.edit', compact('product', 'categories', 'productAttributes', 'productOptions', 'productTags'));
     }
 
     /**
@@ -129,7 +141,7 @@ class ProductController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return back()->withInput()->withErrors(['error' => 'Failed to update product: '.$e->getMessage()]);
+            return back()->withInput()->withErrors(['error' => 'Failed to update product: ' . $e->getMessage()]);
         }
     }
 
@@ -278,13 +290,13 @@ class ProductController extends Controller
 
                 return redirect()->route('products.index')
                     ->with('success', "Imported {$result['imported_count']} products.")
-                    ->with('error', 'Some errors occurred: '.implode(', ', array_slice($result['errors'], 0, 3)));
+                    ->with('error', 'Some errors occurred: ' . implode(', ', array_slice($result['errors'], 0, 3)));
             }
 
             return redirect()->route('products.index')
                 ->with('success', "Successfully imported {$result['imported_count']} products.");
         } catch (\Exception $e) {
-            return redirect()->route('products.index')->with('error', 'Import failed: '.$e->getMessage());
+            return redirect()->route('products.index')->with('error', 'Import failed: ' . $e->getMessage());
         }
     }
 
@@ -297,7 +309,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:product_categories,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'sku' => 'nullable|string|unique:products,sku'.($productId ? ','.$productId : ''),
+            'sku' => 'nullable|string|unique:products,sku' . ($productId ? ',' . $productId : ''),
             'unit_price' => 'required|numeric|min:0',
             'unit_type' => 'required|string',
             'calculation_method' => 'nullable|string|in:standard,formula',
