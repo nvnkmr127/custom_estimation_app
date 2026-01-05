@@ -259,15 +259,18 @@
                 const newSection = { name: template.name, items: [] };
                 if (Array.isArray(template.items)) {
                     newSection.items = template.items.map(i => {
-                        // Resolve fields from Product if available
-                        let imageUrl = null;
-                        let desc = '';
+                        // Resolve fields (Priority: Template Item > Product)
+                        let imageUrl = i.image_url || null;
+                        let desc = i.description || '';
 
                         if (i.product) {
-                            if (i.product.images && i.product.images.length > 0) {
-                                imageUrl = '/storage/' + i.product.images[0].image_path;
+                            if (!imageUrl && i.product.images && i.product.images.length > 0) {
+                                const path = i.product.images[0].image_path;
+                                imageUrl = path.startsWith('http') ? path : '/storage/' + path;
                             }
-                            desc = i.product.description || '';
+                            if (!desc) {
+                                desc = i.product.description || '';
+                            }
                         }
 
                         return {

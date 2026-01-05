@@ -61,6 +61,20 @@
                             @if($chain->description)
                                 <p class="mt-1 text-sm text-gray-500">{{ $chain->description }}</p>
                             @endif
+                            <div class="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                                @if($chain->min_amount)
+                                    <span
+                                        class="inline-flex items-center gap-1 rounded bg-gray-50 px-2 py-1 ring-1 ring-inset ring-gray-600/10">
+                                        Min: {{ $chain->currency }} {{ number_format($chain->min_amount, 2) }}
+                                    </span>
+                                @endif
+                                @if($chain->max_amount)
+                                    <span
+                                        class="inline-flex items-center gap-1 rounded bg-gray-50 px-2 py-1 ring-1 ring-inset ring-gray-600/10">
+                                        Max: {{ $chain->currency }} {{ number_format($chain->max_amount, 2) }}
+                                    </span>
+                                @endif
+                            </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <span

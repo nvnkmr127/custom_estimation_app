@@ -47,12 +47,18 @@ class ApprovalChainController extends Controller
             'steps' => 'required|array|min:1',
             'steps.*.user_id' => 'required|exists:users,id',
             'steps.*.order' => 'required|integer|min:1',
+            'min_amount' => 'nullable|numeric|min:0',
+            'max_amount' => 'nullable|numeric|min:0|gte:min_amount',
+            'currency' => 'nullable|string|size:3',
         ]);
 
         $chain = ApprovalChain::create([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
+            'min_amount' => $validated['min_amount'] ?? null,
+            'max_amount' => $validated['max_amount'] ?? null,
+            'currency' => $validated['currency'] ?? 'INR',
         ]);
 
         foreach ($validated['steps'] as $stepData) {
@@ -104,12 +110,18 @@ class ApprovalChainController extends Controller
             'steps' => 'required|array|min:1',
             'steps.*.user_id' => 'required|exists:users,id',
             'steps.*.order' => 'required|integer|min:1',
+            'min_amount' => 'nullable|numeric|min:0',
+            'max_amount' => 'nullable|numeric|min:0|gte:min_amount',
+            'currency' => 'nullable|string|size:3',
         ]);
 
         $approvalChain->update([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
+            'min_amount' => $validated['min_amount'] ?? null,
+            'max_amount' => $validated['max_amount'] ?? null,
+            'currency' => $validated['currency'] ?? 'INR',
         ]);
 
         // Delete existing steps and recreate
