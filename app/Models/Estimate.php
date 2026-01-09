@@ -354,4 +354,22 @@ class Estimate extends Model
     {
         return $this->hasMany(EstimateApprovalChecklistItem::class);
     }
+    public function getFollowersAttribute()
+    {
+        // 1. Creator
+        $followers = collect();
+        if ($this->creator) {
+            $followers->push($this->creator);
+        }
+
+        // 2. Approvers (users in approval chain who have records)
+        // We can get distinct user_id from estimates_approvals
+        $approverIds = $this->approvals()->pluck('user_id')->unique();
+        $approvers = \App\Models\User::whereIn('id', $approverIds)->get();
+
+        $followers = $followers->merge($approvers);
+
+        // Remove duplicates and self (if logic called by a user, but here we just return list)
+        return $followers->unique('id');
+    }
 }

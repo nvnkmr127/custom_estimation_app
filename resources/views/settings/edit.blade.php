@@ -33,6 +33,24 @@
                                 </div>
                             </div>
 
+                            <!-- Timezone -->
+                            <div class="sm:col-span-4">
+                                <label for="app_timezone"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Application
+                                    Timezone</label>
+                                <div class="mt-2">
+                                    <select id="app_timezone" name="app_timezone"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        <option value="">Select a Timezone...</option>
+                                        @foreach($timezones as $timezone)
+                                            <option value="{{ $timezone }}" {{ (old('app_timezone', $settings['app_timezone'] ?? config('app.timezone')) == $timezone) ? 'selected' : '' }}>
+                                                {{ $timezone }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
                             <!-- Logo -->
                             <div class="col-span-full">
                                 <label for="app_logo"

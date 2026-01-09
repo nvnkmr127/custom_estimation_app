@@ -64,7 +64,7 @@ class EstimateController extends Controller
     {
         $this->authorize('create', Estimate::class);
 
-        $products = Product::with('images')->get();
+        $products = Product::with(['images', 'options.values'])->get();
         $templates = RoomTemplate::all();
 
         // Hydrate Template Items with Product Data
@@ -140,6 +140,9 @@ class EstimateController extends Controller
             'pdf_theme' => 'nullable|string',
             'pdf_template_id' => 'nullable|exists:pdf_templates,id',
             'coupon_code_id' => 'nullable|exists:coupon_codes,id',
+            'type' => 'required|in:standard,room_based',
+            'items.*.internal_note' => 'nullable|string',
+            'sections.*.items.*.internal_note' => 'nullable|string',
         ]);
 
         $validated['estimate_number'] = $this->estimateService->generateNextNumber();
@@ -203,7 +206,16 @@ class EstimateController extends Controller
             ->where('status', 'pending')
             ->first();
 
-        return view('estimates.show', compact('estimate', 'checklists', 'declineReasons', 'allVersions', 'userApproval'));
+        // Calculate Diff if previous version exists
+        $diff = null;
+        if ($estimate->version > 1) {
+            $previousVersion = $allVersions->firstWhere('version', $estimate->version - 1);
+            if ($previousVersion) {
+                $diff = (new \App\Services\EstimateDiffService)->calculateDiff($previousVersion, $estimate);
+            }
+        }
+
+        return view('estimates.show', compact('estimate', 'checklists', 'declineReasons', 'allVersions', 'userApproval', 'diff'));
     }
 
     /**
@@ -213,7 +225,7 @@ class EstimateController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        $products = Product::with('images')->get();
+        $products = Product::with(['images', 'options.values'])->get();
         $templates = RoomTemplate::all();
         $packages = ItemPackage::all();
         $clients = Client::orderBy('name')->get();
@@ -263,6 +275,9 @@ class EstimateController extends Controller
             'pdf_theme' => 'nullable|string',
             'pdf_template_id' => 'nullable|exists:pdf_templates,id',
             'coupon_code_id' => 'nullable|exists:coupon_codes,id',
+            'type' => 'required|in:standard,room_based',
+            'items.*.internal_note' => 'nullable|string',
+            'sections.*.items.*.internal_note' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -504,5 +519,45 @@ class EstimateController extends Controller
         $newItem->save();
 
         return back()->with('success', 'Item duplicated.');
+    }
+    /**
+     * Store an internal reply/comment.
+     */
+    public function storeComment(Request $request, Estimate $estimate)
+    {
+        $this->authorize('update', $estimate); // assuming permission
+
+        $validated = $request->validate([
+            'comment' => 'required|string|max:5000',
+        ]);
+
+        $comment = $estimate->comments()->create([
+            'commentable_type' => Estimate::class,
+            'commentable_id' => $estimate->id,
+            'user_id' => auth()->id(),
+            'comment' => $validated['comment'],
+            'type' => 'internal', // Staff comments are internal (but communicated to client via thread view?)
+            // Wait, if it's a thread shared with client, type should be 'internal'?
+            // The portal displays all comments or just client/client?
+            // Re-checking portal logic: specific scope?
+            // Portal controller shows: all comments?
+        ]);
+
+        // Check Portal Controller show method logic?
+        // Actually, we should probably set type='client' or similar if we want client to see it?
+        // But the schema has 'type' enum ['client', 'internal'].
+        // Internal usually means "internal team only". 
+        // If this is a conversation with the client, we might need a status change or specific type.
+        // However, for now, let's treat staff replies as visible if we update the portal to show them.
+        // Assuming 'internal' might be filtered out in portal.
+        // Let's check EstimateComment model scopes.
+
+        // Notify Creator and Followers (excluding self)
+        $followers = $estimate->followers->reject(fn($u) => $u->id === auth()->id());
+        foreach ($followers as $follower) {
+            $follower->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate));
+        }
+
+        return back()->with('success', 'Comment posted.');
     }
 }

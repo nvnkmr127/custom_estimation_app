@@ -11,8 +11,9 @@ class SettingsController extends Controller
     public function edit()
     {
         $settings = Setting::all()->pluck('value', 'key');
+        $timezones = \DateTimeZone::listIdentifiers();
 
-        return view('settings.edit', compact('settings'));
+        return view('settings.edit', compact('settings', 'timezones'));
     }
 
     public function update(Request $request)
@@ -21,6 +22,7 @@ class SettingsController extends Controller
             // General
             'app_name' => 'required|string|max:255',
             'app_logo' => 'nullable|image|max:2048',
+            'app_timezone' => 'nullable|string|max:255',
 
             // Company Identity
             'company_legal_name' => 'nullable|string|max:255',
@@ -60,6 +62,7 @@ class SettingsController extends Controller
         // Fields to save directly from input
         $keys = [
             'app_name',
+            'app_timezone',
             'company_legal_name',
             'company_tax_id',
             'company_email',

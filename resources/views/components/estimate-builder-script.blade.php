@@ -31,11 +31,21 @@
             appliedCouponCode: initialData.coupon_code ? initialData.coupon_code.code : '',
             couponValid: true,
             couponMessage: '',
-            
+
             productPicker: {
                 isOpen: false,
                 search: '',
                 sectionIndex: null // If null, adding to standard list. If set, adding to section
+            },
+            internalNoteModal: {
+                isOpen: false,
+                activeItem: null
+            },
+            configModal: {
+                isOpen: false,
+                product: null,
+                options: {}, // { option_id: value_id }
+                basePrice: 0
             },
             totals: {
                 subtotal: 0,
@@ -44,6 +54,14 @@
                 grandTotal: 0
             },
             isSubmitting: false,
+
+            hasCustomItems() {
+                const allItems = this.estimate.type === 'room_based'
+                    ? this.estimate.sections.flatMap(s => s.items)
+                    : this.estimate.items;
+                // Custom items have no product_id (or null)
+                return allItems.some(i => !i.product_id);
+            },
 
             filteredProducts() {
                 if (!this.productPicker.search) return this.products;
@@ -70,6 +88,7 @@
                     if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
                         item.image_url = '/storage/' + item.product.images[0].image_path;
                     }
+                    if (!item.options) item.options = [];
                 };
 
                 if (this.estimate.type === 'room_based') {
@@ -180,7 +199,24 @@
                 this.productPicker.isOpen = true;
             },
 
+            openInternalNoteModal(item) {
+                this.internalNoteModal.activeItem = item;
+                this.internalNoteModal.isOpen = true;
+            },
+
+            closeInternalNoteModal() {
+                this.internalNoteModal.isOpen = false;
+                this.internalNoteModal.activeItem = null;
+            },
+
             selectProduct(product) {
+                // Check for options
+                if (product.options && product.options.length > 0) {
+                    this.productPicker.isOpen = false; // Close picker to prevent overlap
+                    this.openConfigModal(product);
+                    return;
+                }
+
                 const isFormula = product.calculation_method === 'formula';
 
                 let sizeString = '';
@@ -207,10 +243,96 @@
                     length: '',
                     width: '',
                     formula: isFormula ? 'area' : '',
-                    showCalculator: isFormula
+                    showCalculator: isFormula,
+                    options: []
                 };
                 this.pushItem(newItem);
                 this.productPicker.isOpen = false;
+                this.calculateTotals();
+            },
+
+            openConfigModal(product) {
+                this.configModal.product = product;
+                this.configModal.basePrice = parseFloat(product.unit_price || 0);
+                this.configModal.options = {};
+
+                // Initialize defaults (first value)
+                if (product.options) {
+                    product.options.forEach(opt => {
+                        if (opt.values && opt.values.length > 0) {
+                            this.configModal.options[opt.id] = opt.values[0].id;
+                        }
+                    });
+                }
+
+                this.configModal.isOpen = true;
+            },
+            closeConfigModal() {
+                this.configModal.isOpen = false;
+                this.configModal.product = null;
+                this.configModal.options = {};
+                // Re-open product picker on cancel so user doesn't lose context
+                this.productPicker.isOpen = true;
+            },
+
+            confirmConfig() {
+                const product = this.configModal.product;
+                const isFormula = product.calculation_method === 'formula';
+
+                let finalPrice = this.configModal.basePrice;
+                const selectedOptionsList = [];
+
+                if (product.options) {
+                    product.options.forEach(opt => {
+                        const selectedValueId = this.configModal.options[opt.id];
+                        const val = opt.values.find(v => v.id == selectedValueId);
+                        if (val) {
+                            finalPrice += parseFloat(val.price_adjustment || 0);
+                            selectedOptionsList.push({
+                                name: opt.name,
+                                value: val.value,
+                                price_adjustment: val.price_adjustment
+                            });
+                        }
+                    });
+                }
+
+                let sizeString = '';
+                if (product.dimensions) {
+                    const dims = product.dimensions;
+                    if (dims.length && dims.width) {
+                        sizeString = `${dims.length} x ${dims.width}`;
+                        if (dims.unit) sizeString += ` ${dims.unit}`;
+                    }
+                }
+
+                const newItem = {
+                    id: null,
+                    name: product.name,
+                    product_id: product.id,
+                    unit_price: finalPrice,
+                    quantity: 1,
+                    size: sizeString,
+                    unit_type: product.unit_type || 'nos',
+                    description: product.description || '',
+                    tax_1: parseFloat(this.defaults.tax_1_rate || 0),
+                    tax_2: parseFloat(this.defaults.tax_2_rate || 0),
+                    image_url: (product.images && product.images.length > 0) ? '/storage/' + product.images[0].image_path : null,
+                    length: '',
+                    width: '',
+                    formula: isFormula ? 'area' : '',
+                    showCalculator: isFormula,
+                    options: selectedOptionsList
+                };
+
+                this.pushItem(newItem);
+
+                // Manually close config modal WITHOUT triggering the re-open of picker
+                this.configModal.isOpen = false;
+                this.configModal.product = null;
+                this.configModal.options = {};
+                this.productPicker.isOpen = false;
+
                 this.calculateTotals();
             },
 
@@ -225,8 +347,10 @@
                     tax_2: parseFloat(this.defaults.tax_2_rate || 0),
                     length: '',
                     width: '',
+                    width: '',
                     formula: '',
-                    showCalculator: false
+                    showCalculator: false,
+                    options: []
                 };
                 this.pushItem(newItem);
                 this.productPicker.isOpen = false;
@@ -290,7 +414,8 @@
                             image_url: imageUrl,
                             tax_1: 0,
                             tax_2: 0,
-                            length: '', width: '', formula: '', showCalculator: false
+                            length: '', width: '', formula: '', showCalculator: false,
+                            options: []
                         };
                     });
                 }
@@ -311,7 +436,8 @@
                     description: `Package: ${pkg.name}`,
                     tax_1: 0,
                     tax_2: 0,
-                    length: '', width: '', formula: '', showCalculator: false
+                    length: '', width: '', formula: '', showCalculator: false,
+                    options: []
                 }));
                 if (sIdx !== null) this.estimate.sections[sIdx].items.push(...newItems);
                 else this.estimate.items.push(...newItems);
@@ -389,28 +515,28 @@
                         total: this.totals.subtotal
                     })
                 })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.valid) {
-                        this.estimate.coupon_code_id = data.coupon_id;
-                        this.appliedCouponCode = this.couponInput.toUpperCase();
-                        this.estimate.discount_type = data.type;
-                        this.estimate.discount_value = data.value;
-                        this.couponMessage = data.message;
-                        this.couponValid = true;
-                        this.calculateTotals();
-                    } else {
-                        this.couponMessage = data.message;
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.valid) {
+                            this.estimate.coupon_code_id = data.coupon_id;
+                            this.appliedCouponCode = this.couponInput.toUpperCase();
+                            this.estimate.discount_type = data.type;
+                            this.estimate.discount_value = data.value;
+                            this.couponMessage = data.message;
+                            this.couponValid = true;
+                            this.calculateTotals();
+                        } else {
+                            this.couponMessage = data.message;
+                            this.couponValid = false;
+                            // Clear message after 3 seconds
+                            setTimeout(() => this.couponMessage = '', 3000);
+                        }
+                    })
+                    .catch(e => {
+                        console.error(e);
+                        this.couponMessage = 'Error validating coupon';
                         this.couponValid = false;
-                        // Clear message after 3 seconds
-                        setTimeout(() => this.couponMessage = '', 3000);
-                    }
-                })
-                .catch(e => {
-                    console.error(e);
-                    this.couponMessage = 'Error validating coupon';
-                    this.couponValid = false;
-                });
+                    });
             },
 
             removeCoupon() {
@@ -475,6 +601,12 @@
                                 if (v !== null && v !== undefined && k !== 'image_url') {
                                     // Include ID if it exists for updates
                                     app(`sections[${sIdx}][items][${iIdx}][${k}]`, v);
+                                } else if (k === 'options' && Array.isArray(v)) {
+                                    v.forEach((opt, oIdx) => {
+                                        app(`sections[${sIdx}][items][${iIdx}][options][${oIdx}][name]`, opt.name);
+                                        app(`sections[${sIdx}][items][${iIdx}][options][${oIdx}][value]`, opt.value);
+                                        app(`sections[${sIdx}][items][${iIdx}][options][${oIdx}][price_adjustment]`, opt.price_adjustment);
+                                    });
                                 }
                             }
                         });
@@ -484,6 +616,12 @@
                         for (const [k, v] of Object.entries(i)) {
                             if (v !== null && v !== undefined && k !== 'image_url') {
                                 app(`items[${iIdx}][${k}]`, v);
+                            } else if (k === 'options' && Array.isArray(v)) {
+                                v.forEach((opt, oIdx) => {
+                                    app(`items[${iIdx}][options][${oIdx}][name]`, opt.name);
+                                    app(`items[${iIdx}][options][${oIdx}][value]`, opt.value);
+                                    app(`items[${iIdx}][options][${oIdx}][price_adjustment]`, opt.price_adjustment);
+                                });
                             }
                         }
                     });

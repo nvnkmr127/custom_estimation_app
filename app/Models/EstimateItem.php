@@ -25,6 +25,12 @@ class EstimateItem extends Model
         'length',
         'width',
         'formula',
+        'internal_note',
+        'options',
+    ];
+
+    protected $casts = [
+        'options' => 'array',
     ];
 
     public function estimate()

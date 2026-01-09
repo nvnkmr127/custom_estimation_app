@@ -35,7 +35,7 @@ class PortalController extends Controller
         \App\Models\ActivityLog::log('proposal_viewed', $estimate, "Proposal for Estimate #{$estimate->estimate_number} was viewed by the client.");
 
         // Load items for the view
-        $estimate->load('sections.items');
+        $estimate->load(['sections.items', 'comments.user']); // Load comments with user (if any internal replies are visible, though currently filtering for client)
 
         // Render PDF Template HTML
         $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first() ?? \App\Models\PdfTemplate::first();
@@ -128,5 +128,38 @@ class PortalController extends Controller
         \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'declined'));
 
         return redirect()->back()->with('success', 'You have declined the estimate. Thank you for your feedback.');
+    }
+    /**
+     * Store a comment from the client.
+     */
+    public function comment(Request $request, Estimate $estimate)
+    {
+        if (!$request->hasValidSignature()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+            'client_name' => 'nullable|string|max:255',
+            'client_email' => 'nullable|email|max:255',
+        ]);
+
+        $comment = $estimate->comments()->create([
+            'comment' => $request->comment,
+            'client_name' => $request->client_name,
+            'client_email' => $request->client_email,
+            'type' => 'client',
+            'is_read' => false,
+            'commentable_type' => \App\Models\Estimate::class,
+            'commentable_id' => $estimate->id,
+        ]);
+
+        // Notify Creator and Followers
+        $followers = $estimate->followers;
+        foreach ($followers as $follower) {
+            $follower->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate));
+        }
+
+        return back()->with('success', 'Thank you! Your comment has been sent to the team.');
     }
 }

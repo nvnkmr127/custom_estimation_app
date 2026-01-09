@@ -47,6 +47,8 @@ class EstimateService
             'length' => $itemData['length'] ?? null,
             'width' => $itemData['width'] ?? null,
             'formula' => $itemData['formula'] ?? null,
+            'internal_note' => $itemData['internal_note'] ?? null,
+            'options' => $itemData['options'] ?? null,
         ]);
     }
 
@@ -86,6 +88,8 @@ class EstimateService
             'length' => $itemData['length'] ?? null,
             'width' => $itemData['width'] ?? null,
             'formula' => $itemData['formula'] ?? null,
+            'internal_note' => $itemData['internal_note'] ?? null,
+            'options' => $itemData['options'] ?? null,
         ]);
     }
 

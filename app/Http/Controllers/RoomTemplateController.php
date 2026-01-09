@@ -21,9 +21,9 @@ class RoomTemplateController extends Controller
 
     public function create()
     {
-        $products = \App\Models\Product::orderBy('name', 'asc')->get();
+        $products = \App\Models\Product::with(['images', 'options.values'])->orderBy('name', 'asc')->get();
 
-        return view('templates.create', compact('products'));
+        return view('templates.edit', compact('products'));
     }
 
     public function store(Request $request)
@@ -38,6 +38,7 @@ class RoomTemplateController extends Controller
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.unit_type' => 'nullable|string',
             'items.*.description' => 'nullable|string',
+            'items.*.options' => 'nullable|array',
         ]);
 
         RoomTemplate::create($validated);
@@ -47,7 +48,7 @@ class RoomTemplateController extends Controller
 
     public function edit(RoomTemplate $template)
     {
-        $products = \App\Models\Product::orderBy('name', 'asc')->get();
+        $products = \App\Models\Product::with(['images', 'options.values'])->orderBy('name', 'asc')->get();
 
         return view('templates.edit', compact('template', 'products'));
     }
@@ -64,6 +65,7 @@ class RoomTemplateController extends Controller
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.unit_type' => 'nullable|string',
             'items.*.description' => 'nullable|string',
+            'items.*.options' => 'nullable|array',
         ]);
 
         $template->update($validated);

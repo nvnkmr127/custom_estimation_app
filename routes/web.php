@@ -15,6 +15,7 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::get('/estimates/{estimate}', [App\Http\Controllers\PortalController::class, 'show'])->name('show')->middleware('signed');
     Route::post('/estimates/{estimate}/accept', [App\Http\Controllers\PortalController::class, 'accept'])->name('accept')->middleware('signed');
     Route::post('/estimates/{estimate}/decline', [App\Http\Controllers\PortalController::class, 'decline'])->name('decline')->middleware('signed');
+    Route::post('/estimates/{estimate}/comments', [App\Http\Controllers\PortalController::class, 'comment'])->name('comment')->middleware('signed');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -102,6 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Estimate Admin Actions
         Route::post('estimates/{estimate}/copy', [App\Http\Controllers\EstimateController::class, 'copy'])->name('estimates.copy');
         Route::post('estimates/{estimate}/mark-as/{status}', [App\Http\Controllers\EstimateController::class, 'markAs'])->name('estimates.mark-as');
+        Route::post('estimates/{estimate}/reply', [App\Http\Controllers\EstimateController::class, 'storeComment'])->name('estimates.reply');
         Route::post('estimates/{estimate}/send', [App\Http\Controllers\EstimateController::class, 'sendToClient'])->name('estimates.send');
 
         // Tracking
