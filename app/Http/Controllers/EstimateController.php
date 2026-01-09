@@ -560,4 +560,18 @@ class EstimateController extends Controller
 
         return back()->with('success', 'Comment posted.');
     }
+    /**
+     * Remove the specified estimate from storage.
+     */
+    public function destroy(Estimate $estimate)
+    {
+        $this->authorize('delete', $estimate);
+
+        $estimateNumber = $estimate->estimate_number;
+        $estimate->delete();
+
+        ActivityLog::log('estimate_deleted', null, "Estimate #{$estimateNumber} deleted by " . auth()->user()->name);
+
+        return redirect()->route('estimates.index')->with('success', 'Estimate deleted successfully.');
+    }
 }

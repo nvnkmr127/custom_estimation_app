@@ -794,10 +794,11 @@
                                     <p class="text-sm text-slate-500">
                                         This note is internal and will not be visible to the client.
                                     </p>
-                                    <textarea x-if="internalNoteModal.activeItem"
-                                        x-model="internalNoteModal.activeItem.internal_note" rows="4"
-                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                        placeholder="Add internal details here..."></textarea>
+                                    <template x-if="internalNoteModal.activeItem">
+                                        <textarea x-model="internalNoteModal.activeItem.internal_note" rows="4"
+                                            class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                            placeholder="Add internal details here..."></textarea>
+                                    </template>
                                 </div>
 
                                 <div class="mt-5 sm:mt-6">

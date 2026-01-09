@@ -372,6 +372,15 @@
                                                                 @if($item->description)
                                                                     <div class="text-xs text-slate-500 truncate max-w-xs">{{ $item->description }}</div>
                                                                 @endif
+                                                                @if(!empty($item->options) && is_array($item->options))
+                                                                    <div class="flex flex-wrap gap-1 mt-1">
+                                                                        @foreach($item->options as $option)
+                                                                            <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                                                                                {{ $option['name'] }}: {{ $option['value'] }}
+                                                                            </span>
+                                                                        @endforeach
+                                                                    </div>
+                                                                @endif
                                                                 @if($item->internal_note)
                                                                     <div class="mt-1 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block">
                                                                         <span class="font-semibold">Note:</span> {{ $item->internal_note }}
@@ -423,6 +432,15 @@
                                                     <div class="font-medium">{{ $item->name }}</div>
                                                     @if($item->description)
                                                         <div class="text-xs text-slate-500">{{ $item->description }}</div>
+                                                    @endif
+                                                    @if(!empty($item->options) && is_array($item->options))
+                                                        <div class="flex flex-wrap gap-1 mt-1">
+                                                            @foreach($item->options as $option)
+                                                                <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                                                                    {{ $option['name'] }}: {{ $option['value'] }}
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
                                                     @endif
                                                     @if($item->internal_note)
                                                         <div class="mt-1 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block">
