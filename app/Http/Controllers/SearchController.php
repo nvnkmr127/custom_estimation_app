@@ -17,7 +17,10 @@ class SearchController extends Controller
         $query = $request->get('q');
 
         if (strlen($query) < 2) {
-            return response()->json([]);
+            if ($request->expectsJson()) {
+                return response()->json([]);
+            }
+            return view('search.index', ['results' => [], 'query' => $query]);
         }
 
         $results = [];
@@ -31,7 +34,7 @@ class SearchController extends Controller
         foreach ($estimates as $estimate) {
             $results[] = [
                 'type' => 'Estimate',
-                'title' => $estimate->estimate_number.': '.$estimate->title,
+                'title' => $estimate->estimate_number . ': ' . $estimate->title,
                 'url' => route('estimates.show', $estimate),
                 'icon' => 'document-text',
             ];
@@ -46,7 +49,7 @@ class SearchController extends Controller
         foreach ($clients as $client) {
             $results[] = [
                 'type' => 'Client',
-                'title' => $client->name.($client->company ? " ({$client->company})" : ''),
+                'title' => $client->name . ($client->company ? " ({$client->company})" : ''),
                 'url' => route('clients.show', $client),
                 'icon' => 'user',
             ];
@@ -66,6 +69,10 @@ class SearchController extends Controller
             ];
         }
 
-        return response()->json($results);
+        if ($request->expectsJson()) {
+            return response()->json($results);
+        }
+
+        return view('search.index', compact('results', 'query'));
     }
 }

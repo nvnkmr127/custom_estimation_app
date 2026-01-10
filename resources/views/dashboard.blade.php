@@ -59,42 +59,94 @@
             </div>
         </div>
 
-        <!-- Recent Estimates -->
-        <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl overflow-hidden">
-            <div class="px-4 py-4 sm:px-6 border-b border-gray-100 bg-gray-50/50">
-                <h3 class="text-sm font-semibold leading-6 text-gray-900">Recent Estimates</h3>
-            </div>
-            <ul role="list" class="divide-y divide-gray-100">
-                @forelse($recent_estimates as $estimate)
-                    <li class="relative flex justify-between gap-x-6 px-4 py-4 hover:bg-gray-50 sm:px-6">
-                        <div class="flex min-w-0 gap-x-4">
-                            <div class="min-w-0 flex-auto">
-                                <p class="text-xs font-semibold leading-6 text-gray-900">
-                                    <a href="{{ route('estimates.show', $estimate) }}">
-                                        <span class="absolute inset-x-0 -top-px bottom-0"></span>
-                                        {{ $estimate->title }}
-                                    </a>
-                                </p>
-                                <p class="mt-1 text-[10px] text-gray-500">#{{ $estimate->estimate_number }}</p>
-                            </div>
-                        </div>
-                        <div class="flex shrink-0 items-center gap-x-4">
-                            <div class="text-right">
-                                <p class="text-xs font-medium text-gray-900">{{ number_format($estimate->grand_total, 2) }}
-                                </p>
-                                <p class="mt-1 text-[10px] text-gray-500">{{ ucfirst($estimate->status) }}</p>
-                            </div>
-                            <svg class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+        <div class="flex flex-col gap-6">
+            <!-- Hot Leads Widget -->
+            @if(isset($hot_leads) && $hot_leads->count() > 0)
+                <div class="bg-white shadow-sm ring-1 ring-red-100 sm:rounded-xl overflow-hidden">
+                    <div class="px-4 py-4 sm:px-6 border-b border-red-50 bg-red-50/30 flex justify-between items-center">
+                        <h3 class="text-sm font-semibold leading-6 text-red-700 flex items-center gap-2">
+                            <svg class="h-5 w-5 text-red-500 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd"
-                                    d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                                    d="M13.5 4.938a7 7 0 11-9.006 1.737c.202-.257.59-.218.793.08a5.002 5.002 0 002.502 8.01 5 5 0 005.15-1.928 2.5 2.5 0 013.9 1.156c.196.883-.559 1.543-1.42 1.492a2.503 2.503 0 01-1.72-.756.75.75 0 00-1.06 1.06 4.003 4.003 0 005.418-5.32c-.066-.192-.28-.307-.478-.266a2.5 2.5 0 01-2.91-4.225.75.75 0 00-.916-1.04z"
                                     clip-rule="evenodd" />
                             </svg>
-                        </div>
-                    </li>
-                @empty
-                    <li class="px-4 py-5 text-center text-xs text-gray-500 italic">No recent estimates.</li>
-                @endforelse
-            </ul>
+                            Hot Leads
+                        </h3>
+                        <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">{{ $hot_leads->count() }} Alert</span>
+                    </div>
+                    <ul role="list" class="divide-y divide-red-50">
+                        @foreach($hot_leads as $lead)
+                            <li
+                                class="relative flex justify-between gap-x-6 px-4 py-4 hover:bg-red-50/20 sm:px-6 transition-colors">
+                                <div class="flex min-w-0 gap-x-4">
+                                    <div class="min-w-0 flex-auto">
+                                        <p class="text-xs font-semibold leading-6 text-gray-900">
+                                            <a href="{{ route('estimates.show', $lead) }}">
+                                                <span class="absolute inset-x-0 -top-px bottom-0"></span>
+                                                {{ $lead->client->name ?? 'Unknown Client' }}
+                                                <span class="text-gray-400 font-normal">#{{ $lead->estimate_number }}</span>
+                                            </a>
+                                        </p>
+                                        <div class="mt-1 flex items-center gap-x-2 text-[10px] text-gray-500">
+                                            <span>Score: {{ $lead->engagement_score }}</span>
+                                            <span class="text-gray-300">&bull;</span>
+                                            <span class="text-red-600 font-medium">Last viewed
+                                                {{ $lead->last_viewed_at ? $lead->last_viewed_at->diffForHumans() : 'Recently' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex shrink-0 items-center gap-x-4">
+                                    <div class="text-right">
+                                        <p class="text-xs font-medium text-gray-900">{{ number_format($lead->grand_total, 2) }}
+                                        </p>
+                                        <span
+                                            class="inline-flex items-center rounded-md bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200">View</span>
+                                    </div>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <!-- Recent Estimates -->
+            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl overflow-hidden">
+                <div class="px-4 py-4 sm:px-6 border-b border-gray-100 bg-gray-50/50">
+                    <h3 class="text-sm font-semibold leading-6 text-gray-900">Recent Estimates</h3>
+                </div>
+                <ul role="list" class="divide-y divide-gray-100">
+                    @forelse($recent_estimates as $estimate)
+                        <li class="relative flex justify-between gap-x-6 px-4 py-4 hover:bg-gray-50 sm:px-6">
+                            <div class="flex min-w-0 gap-x-4">
+                                <div class="min-w-0 flex-auto">
+                                    <p class="text-xs font-semibold leading-6 text-gray-900">
+                                        <a href="{{ route('estimates.show', $estimate) }}">
+                                            <span class="absolute inset-x-0 -top-px bottom-0"></span>
+                                            {{ $estimate->title }}
+                                        </a>
+                                    </p>
+                                    <p class="mt-1 text-[10px] text-gray-500">#{{ $estimate->estimate_number }}</p>
+                                </div>
+                            </div>
+                            <div class="flex shrink-0 items-center gap-x-4">
+                                <div class="text-right">
+                                    <p class="text-xs font-medium text-gray-900">
+                                        {{ number_format($estimate->grand_total, 2) }}
+                                    </p>
+                                    <p class="mt-1 text-[10px] text-gray-500">{{ ucfirst($estimate->status) }}</p>
+                                </div>
+                                <svg class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="px-4 py-5 text-center text-xs text-gray-500 italic">No recent estimates.</li>
+                    @endforelse
+                </ul>
+            </div>
         </div>
     </div>
 

@@ -73,6 +73,10 @@ class Estimate extends Model
         'view_count',
         'nudge_task_created',
         'created_by',
+        'nurture_status',
+        'engagement_score',
+        'last_engagement_at',
+        'last_nurtured_at',
     ];
 
     public function client()
@@ -109,6 +113,9 @@ class Estimate extends Model
         'estimate_date' => 'date',
         'expiry_date' => 'date',
         'signed_at' => 'datetime',
+        'last_engagement_at' => 'datetime',
+        'last_nurtured_at' => 'datetime',
+        'last_viewed_at' => 'datetime',
     ];
 
     public function sections()
@@ -354,6 +361,11 @@ class Estimate extends Model
     {
         return $this->hasMany(EstimateApprovalChecklistItem::class);
     }
+    public function manualFollowers()
+    {
+        return $this->morphMany(Follower::class, 'followable');
+    }
+
     public function getFollowersAttribute()
     {
         // 1. Creator
@@ -363,13 +375,36 @@ class Estimate extends Model
         }
 
         // 2. Approvers (users in approval chain who have records)
-        // We can get distinct user_id from estimates_approvals
         $approverIds = $this->approvals()->pluck('user_id')->unique();
         $approvers = \App\Models\User::whereIn('id', $approverIds)->get();
 
-        $followers = $followers->merge($approvers);
+        // 3. Manual Followers
+        $manualFollowerIds = $this->manualFollowers()->pluck('user_id');
+        $manualFollowers = \App\Models\User::whereIn('id', $manualFollowerIds)->get();
+        // Hydrate permissions into users for easy access if needed (conceptually) or just merge users.
 
-        // Remove duplicates and self (if logic called by a user, but here we just return list)
+        $followers = $followers->merge($approvers)->merge($manualFollowers);
+
+        // Remove duplicates and self
         return $followers->unique('id');
+    }
+
+    public function userCanEdit($user)
+    {
+        if ($user->id === $this->created_by) {
+            return true;
+        }
+
+        // Admin check is usually in Policy, but helper here is useful
+        if ($user->hasRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        $follower = $this->manualFollowers()->where('user_id', $user->id)->first();
+        if ($follower && $follower->hasPermission('edit')) {
+            return true;
+        }
+
+        return false;
     }
 }

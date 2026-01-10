@@ -45,11 +45,13 @@
 
         <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">
             <!-- Primary Actions -->
-            @if($estimate->status === 'draft')
-                <a href="{{ route('estimates.edit', $estimate) }}" 
-                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
-                    Edit
-                </a>
+            @if($estimate->status === 'draft' || $estimate->status === 'declined' || (auth()->user()->hasRole('super_admin')))
+                @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole('super_admin'))
+                    <a href="{{ route('estimates.edit', $estimate) }}" 
+                        class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
+                        Edit
+                    </a>
+                @endif
                 
                 @if($estimate->approval_chain_id && $estimate->approval_status === 'draft')
                     <form action="{{ route('estimates.submit', $estimate) }}" method="POST" class="inline">
@@ -58,7 +60,7 @@
                             Submit for Approval
                         </button>
                     </form>
-                @else
+                @elseif($estimate->status === 'draft')
                     <form action="{{ route('estimates.send', $estimate) }}" method="POST" class="inline">
                         @csrf
                         <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
@@ -66,6 +68,15 @@
                         </button>
                     </form>
                 @endif
+
+                <!-- Discard Draft -->
+                <form action="{{ route('estimates.destroy', $estimate) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to discard this draft? This action cannot be undone.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50">
+                        Discard
+                    </button>
+                </form>
             @endif
 
             <!-- Pending Approval Actions (For Approver) -->
@@ -684,6 +695,110 @@
                 </div>
             </div>
 
+            <!-- Created By -->
+            <!-- ... existing Created By ... -->
+
+            <!-- Notification: Newer Proposal Available -->
+
+            @if($latestVersion && $latestVersion->version > $estimate->version)
+                <div class="bg-blue-50 shadow-sm ring-1 ring-blue-200 sm:rounded-xl px-4 py-3 mb-6">
+                     <h3 class="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2">Newer Version Available</h3>
+                     <p class="text-xs text-blue-700 mb-3">There is a newer draft/proposal (v{{ $latestVersion->version }}) available.</p>
+                     <a href="{{ route('estimates.show', $latestVersion) }}" class="inline-block rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+                         View v{{ $latestVersion->version }}
+                     </a>
+                </div>
+            @endif
+
+            <!-- Approval / Make Current (For Creator/Admin) -->
+            @if(isset($estimate->parent) && $estimate->is_current_version === false && (auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin'])))
+                <div class="bg-yellow-50 shadow-sm ring-1 ring-yellow-200 sm:rounded-xl px-4 py-3 mb-6">
+                     <h3 class="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-2">Proposed Changes (v{{ $estimate->version }})</h3>
+                     <p class="text-xs text-yellow-700 mb-3">This is a proposed version. Approve it to make it the live version.</p>
+                     
+                     <form action="{{ route('estimates.approve-version', $estimate) }}" method="POST">
+                         @csrf
+                         <button type="submit" class="w-full rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-600">
+                             Approve & Make Live
+                         </button>
+                     </form>
+                </div>
+            @endif
+
+            <!-- Followers -->
+            <div x-data="{ showFollowerModal: false }" class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-slate-900">Followers</h3>
+                    @if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin']))
+                        <button @click="showFollowerModal = true" class="text-xs font-medium text-indigo-600 hover:text-indigo-500">
+                            + Add
+                        </button>
+                    @endif
+                </div>
+
+                <div class="space-y-3">
+                    @foreach($estimate->followers as $follower)
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                @if($follower->avatar)
+                                    <img src="{{ $follower->avatar }}" class="h-6 w-6 rounded-full" alt="">
+                                @else
+                                    <div class="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                                        {{ substr($follower->name, 0, 1) }}
+                                    </div>
+                                @endif
+                                <div class="text-sm text-slate-700">{{ $follower->name }}</div>
+                            </div>
+                            
+                            @if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin']))
+                                @if($estimate->created_by !== $follower->id) <!-- Don't remove creator -->
+                                    <form action="{{ route('estimates.followers.remove', [$estimate, $follower]) }}" method="POST" onsubmit="return confirm('Remove this follower?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-xs text-slate-400 hover:text-red-500">&times;</button>
+                                    </form>
+                                @endif
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Add Follower Modal (Simplified) -->
+                <div x-show="showFollowerModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                         <div x-show="showFollowerModal" @click.away="showFollowerModal = false" class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                             <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Add Follower</h3>
+                             <form action="{{ route('estimates.followers.add', $estimate) }}" method="POST" class="mt-4">
+                                 @csrf
+                                 <div class="mb-4">
+                                     <label for="user_id" class="block text-sm font-medium text-gray-700">User</label>
+                                     <select name="user_id" id="user_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                         @foreach($potentialFollowers as $u)
+                                             <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                         @endforeach
+                                     </select>
+                                 </div>
+                                 <div class="mb-4">
+                                     <div class="relative flex items-start">
+                                         <div class="flex h-6 items-center">
+                                             <input id="permission_edit" aria-describedby="permission_edit-description" name="permissions[]" value="edit" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                         </div>
+                                         <div class="ml-3 text-sm leading-6">
+                                             <label for="permission_edit" class="font-medium text-gray-900">Allow Editing</label>
+                                             <p id="permission_edit-description" class="text-gray-500">User can edit this estimate (edits will create a new version for approval).</p>
+                                         </div>
+                                     </div>
+                                 </div>
+                                 <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                                     <button type="submit" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:col-start-2">Add</button>
+                                     <button type="button" @click="showFollowerModal = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0">Cancel</button>
+                                 </div>
+                             </form>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Approval Chain -->
             @if($estimate->approval_chain_id && $estimate->approvalChain)
                 <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5">
@@ -726,6 +841,52 @@
                     </div>
                 </div>
             @endif
+
+            <!-- Activity Log -->
+            <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mt-6">
+                <h3 class="text-sm font-semibold text-slate-900 mb-4">Activity Log</h3>
+                <div class="flow-root">
+                    <ul role="list" class="-mb-8">
+                        @forelse($activityLogs as $log)
+                            <li>
+                                <div class="relative pb-8">
+                                    @if(!$loop->last)
+                                        <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-slate-200" aria-hidden="true"></span>
+                                    @endif
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center ring-8 ring-white">
+                                                <!-- Icon based on action -->
+                                                @if(str_contains($log->action, 'created'))
+                                                    <svg class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" /></svg>
+                                                @elseif(str_contains($log->action, 'updated') || str_contains($log->action, 'edited'))
+                                                    <svg class="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+                                                @elseif(str_contains($log->action, 'deleted'))
+                                                    <svg class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                                @elseif(str_contains($log->action, 'approved'))
+                                                    <svg class="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                                                @else
+                                                    <svg class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                                                @endif
+                                            </span>
+                                        </div>
+                                        <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                            <div>
+                                                <p class="text-xs text-slate-500">{{ $log->description }} <span class="font-medium text-slate-900">by {{ $log->user->name ?? 'System' }}</span></p>
+                                            </div>
+                                            <div class="whitespace-nowrap text-right text-xs text-slate-500">
+                                                <time datetime="{{ $log->created_at }}">{{ $log->created_at->format('M d, H:i') }}</time>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        @empty
+                            <li class="py-4 text-center text-xs text-slate-400">No activity recorded.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            </div>
 
 
 
@@ -920,4 +1081,34 @@
 
         </div>
     </div>
+    @push('scripts')
+    <script>
+        // Defensive initialization to prevent ReferenceErrors
+        window.estimate = @json($estimate);
+        window.totals = { 
+            subtotal: {{ $estimate->subtotal ?? 0 }}, 
+            totalTax: {{ $estimate->total_tax ?? 0 }}, 
+            discount: {{ $estimate->discount_total ?? 0 }}, 
+            grandTotal: {{ $estimate->grand_total ?? 0 }} 
+        };
+        
+        const defaults = {
+            hasCustomItems: () => false,
+            isSubmitting: false,
+            couponValid: false,
+            couponMessage: '',
+            couponInput: '',
+            appliedCouponCode: '',
+            productPicker: { isOpen: false, search: '', sectionIndex: null },
+            internalNoteModal: { isOpen: false, activeItem: null },
+            configModal: { isOpen: false, product: null, options: {}, basePrice: 0 }
+        };
+
+        for (const [key, value] of Object.entries(defaults)) {
+            if (typeof window[key] === 'undefined') {
+                window[key] = value;
+            }
+        }
+    </script>
+    @endpush
 </x-app-layout>

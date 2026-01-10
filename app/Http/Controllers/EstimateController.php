@@ -17,6 +17,7 @@ use App\Models\Setting;
 use App\Services\AnalyticsService;
 use App\Services\EstimateService;
 use App\Services\PdfRenderingService;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -37,6 +38,18 @@ class EstimateController extends Controller
         $this->authorize('viewAny', Estimate::class);
 
         $query = Estimate::with(['client', 'sections'])->current()->latest();
+
+        if (!auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
+            $query->where(function ($q) {
+                $q->where('created_by', auth()->id())
+                    ->orWhereHas('manualFollowers', function ($f) {
+                        $f->where('user_id', auth()->id());
+                    })
+                    ->orWhereHas('approvals', function ($a) {
+                        $a->where('user_id', auth()->id());
+                    });
+            });
+        }
 
         if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
@@ -175,6 +188,8 @@ class EstimateController extends Controller
 
             $this->estimateService->recalculateTotals($estimate);
 
+            ActivityLog::log('created', $estimate, "Estimate #{$estimate->estimate_number} created by " . auth()->user()->name);
+
             DB::commit();
 
             return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate created successfully.');
@@ -192,7 +207,7 @@ class EstimateController extends Controller
     {
         $this->authorize('view', $estimate);
 
-        $estimate->load('items.product.images', 'sections.items.product.images', 'approvals.user', 'checklistItems');
+        $estimate->load('items.product.images', 'sections.items.product.images', 'approvals.user', 'checklistItems', 'creator');
         $checklists = ApprovalChecklist::getAllCached();
         $declineReasons = DeclineReason::getActiveCached();
 
@@ -215,7 +230,25 @@ class EstimateController extends Controller
             }
         }
 
-        return view('estimates.show', compact('estimate', 'checklists', 'declineReasons', 'allVersions', 'userApproval', 'diff'));
+        // Fetch Activity Logs for ALL versions
+        $familyIds = $allVersions->pluck('id')->toArray();
+        $activityLogs = ActivityLog::where('subject_type', Estimate::class)
+            ->whereIn('subject_id', $familyIds)
+            ->with('user')
+            ->latest()
+            ->latest()
+            ->get();
+
+        $latestVersion = Estimate::where('parent_id', $estimate->parent_id ?? $estimate->id)
+            ->orWhere('id', $estimate->parent_id ?? $estimate->id)
+            ->orderBy('version', 'desc')
+            ->first();
+
+        $potentialFollowers = User::where('id', '!=', $estimate->created_by)
+            ->orderBy('name')
+            ->get();
+
+        return view('estimates.show', compact('estimate', 'checklists', 'declineReasons', 'allVersions', 'userApproval', 'diff', 'activityLogs', 'latestVersion', 'potentialFollowers'));
     }
 
     /**
@@ -282,6 +315,38 @@ class EstimateController extends Controller
 
         DB::beginTransaction();
         try {
+            $isBranched = false;
+
+            // Debugging Branching Logic
+            \Illuminate\Support\Facades\Log::info('Estimate Update Branch Check', [
+                'user_id' => auth()->id(),
+                'can_edit' => $estimate->userCanEdit(auth()->user()),
+                'is_creator' => auth()->id() === $estimate->created_by,
+                'has_admin_role' => auth()->user()->hasRole(['admin', 'super_admin', 'super-admin']), // checking both for safety
+                'estimate_id' => $estimate->id,
+                'is_current' => $estimate->is_current_version
+            ]);
+
+            // Collaborative Editing: Check for Follower Edit
+            if ($estimate->userCanEdit(auth()->user()) && auth()->id() !== $estimate->created_by && !auth()->user()->hasRole(['admin', 'super_admin', 'super-admin'])) {
+                // Determine if we need to branch off to a new version (Proposal)
+                // If this is ALREADY a non-current version (proposal), just update it.
+                // If this is the CURRENT version, duplicate it first.
+
+                if ($estimate->is_current_version) {
+                    // Create new "Proposal Version" - SKIP item duplication, MARK as PROPOSAL (not live)
+                    $newVersion = $this->estimateService->createVersion($estimate, false, true);
+                    $estimate = $newVersion; // Switch context to new version
+                    $isBranched = true;
+
+                    // Notify Creator
+                    $creator = $estimate->creator;
+                    if ($creator) {
+                        $creator->notify(new \App\Notifications\EstimateProposalNotification($estimate, auth()->user()));
+                    }
+                }
+            }
+
             $estimate->update($validated);
 
             if ($estimate->type === 'room_based' && $request->has('sections')) {
@@ -290,6 +355,15 @@ class EstimateController extends Controller
                 $estimate->sections()->whereNotIn('id', $inputSectionIds)->delete();
 
                 foreach ($request->sections as $sectionIndex => $sectionData) {
+                    // If we branched, we treat all inputs as NEW (ignore old IDs)
+                    if ($isBranched) {
+                        $sectionData['id'] = null;
+                        if (isset($sectionData['items'])) {
+                            foreach ($sectionData['items'] as &$i)
+                                $i['id'] = null;
+                        }
+                    }
+
                     if (!empty($sectionData['id'])) {
                         $section = $estimate->sections()->where('id', $sectionData['id'])->first();
                         $section->update([
@@ -305,10 +379,22 @@ class EstimateController extends Controller
 
                     // Sync Items within Section
                     if (isset($sectionData['items'])) {
-                        $inputItemIds = array_filter(array_column($sectionData['items'], 'id'));
-                        $section->items()->whereNotIn('id', $inputItemIds)->delete();
+                        // If branched, inputIds logic for delete is fine (deletes nothing from empty estimate)
+                        // But we must handle the loop carefully.
+                        // The loop uses $sectionData['items'], which we potentially modified above by ref if passed by ref?
+                        // No, we modified a copy or ref? Foreach loop variable $sectionData is a copy unless &$sectionData.
+                        // Wait, my modification above `foreach ($sectionData['items'] as &$i)` only modifies the array inside the loop variable $sectionData.
+                        // So I need to use that modified $sectionData.
 
-                        foreach ($sectionData['items'] as $itemIndex => $itemData) {
+                        $itemsToProcess = $sectionData['items'];
+
+                        // If NOT branched, we need to do the delete logic.
+                        if (!$isBranched) {
+                            $inputItemIds = array_filter(array_column($itemsToProcess, 'id'));
+                            $section->items()->whereNotIn('id', $inputItemIds)->delete();
+                        }
+
+                        foreach ($itemsToProcess as $itemIndex => $itemData) {
                             $oi = $itemData['order_index'] ?? $itemIndex;
                             if (!empty($itemData['id'])) {
                                 $item = $estimate->items()->where('id', $itemData['id'])->first();
@@ -327,6 +413,9 @@ class EstimateController extends Controller
                 $estimate->items()->whereNotIn('id', $inputItemIds)->delete();
 
                 foreach ($request->items as $itemIndex => $itemData) {
+                    if ($isBranched)
+                        $itemData['id'] = null; // Sanitize ID
+
                     $oi = $itemData['order_index'] ?? $itemIndex;
                     if (!empty($itemData['id'])) {
                         $item = $estimate->items()->where('id', $itemData['id'])->first();
@@ -338,6 +427,12 @@ class EstimateController extends Controller
             }
 
             $this->estimateService->recalculateTotals($estimate);
+
+            if ($isBranched) {
+                ActivityLog::log('created_proposal', $estimate, "Proposed changes (v{$estimate->version}) by " . auth()->user()->name);
+            } else {
+                ActivityLog::log('updated', $estimate, "Estimate #{$estimate->estimate_number} updated by " . auth()->user()->name);
+            }
 
             DB::commit();
 
@@ -570,8 +665,67 @@ class EstimateController extends Controller
         $estimateNumber = $estimate->estimate_number;
         $estimate->delete();
 
-        ActivityLog::log('estimate_deleted', null, "Estimate #{$estimateNumber} deleted by " . auth()->user()->name);
+        ActivityLog::log('estimate_deleted', $estimate, "Estimate #{$estimateNumber} deleted by " . auth()->user()->name);
 
         return redirect()->route('estimates.index')->with('success', 'Estimate deleted successfully.');
+    }
+    public function approveVersion(Estimate $estimate)
+    {
+        $this->authorize('update', $estimate);
+
+        // Strictly allow only Creator or Admins to approve (not followers with edit rights)
+        if (auth()->id() !== $estimate->created_by && !auth()->user()->hasRole(['super_admin', 'admin'])) {
+            abort(403, 'Only the creator or an admin can approve changes.');
+        }
+
+        // 1. Mark this version as current
+        $estimate->update(['is_current_version' => true]);
+
+        // 2. Find the root parent
+        $parentId = $estimate->parent_id ?? $estimate->id;
+
+        // 3. Mark ALL others in this family as NOT current
+        // (This includes the root parent and all sibling versions)
+        Estimate::where(function ($q) use ($parentId) {
+            $q->where('id', $parentId)
+                ->orWhere('parent_id', $parentId);
+        })
+            ->where('id', '!=', $estimate->id)
+            ->update(['is_current_version' => false]);
+
+        ActivityLog::log('version_approved', $estimate, "Version #{$estimate->version} approved by " . auth()->user()->name);
+
+        return back()->with('success', 'Version approved and set as live.');
+    }
+
+    public function addFollower(Request $request, Estimate $estimate)
+    {
+        $this->authorize('update', $estimate);
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'permissions' => 'nullable|array',
+        ]);
+
+        // Check duplicate
+        if ($estimate->manualFollowers()->where('user_id', $validated['user_id'])->exists()) {
+            return back()->with('error', 'User is already a follower.');
+        }
+
+        $estimate->manualFollowers()->create([
+            'user_id' => $validated['user_id'],
+            'permissions' => $validated['permissions'] ?? [],
+        ]);
+
+        return back()->with('success', 'Follower added.');
+    }
+
+    public function removeFollower(Estimate $estimate, \App\Models\User $user)
+    {
+        $this->authorize('update', $estimate);
+
+        $estimate->manualFollowers()->where('user_id', $user->id)->delete();
+
+        return back()->with('success', 'Follower removed.');
     }
 }

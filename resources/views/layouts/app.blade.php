@@ -12,7 +12,7 @@
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
 
     <!-- Scripts -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -185,6 +185,7 @@
                                             <span
                                                 class="ml-auto w-6 min-w-max whitespace-nowrap rounded-full bg-amber-500 px-2.5 py-0.5 text-center text-[10px] font-bold text-white ring-1 ring-inset ring-amber-400">{{ $pendingSuggestions }}</span>
                                         @endif
+
                                     </a>
                                 </li>
                                 <li>
@@ -304,8 +305,18 @@
                                     </li>
                                 @endif
                                 <li>
+                                    <a href="{{ route('settings.nurture') }}"
+                                        class="{{ request()->routeIs('settings.nurture') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/50' }} group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-medium transition-all">
+                                        <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z" />
+                                        </svg>
+                                        Nurture Settings
+                                    </a>
+                                </li>
+                                <li>
                                     <a href="{{ route('settings.edit') }}"
-                                        class="{{ request()->routeIs('settings.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/50' }} group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-medium transition-all">
+                                        class="{{ request()->routeIs('settings.edit') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/50' }} group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-medium transition-all">
                                         <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                                             stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round"

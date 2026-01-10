@@ -4,99 +4,100 @@ namespace App\Policies;
 
 use App\Models\Estimate;
 use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class EstimatePolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
+    use HandlesAuthorization;
+
+    public function viewAny(User $user)
     {
         return true;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, Estimate $estimate): bool
+    public function view(User $user, Estimate $estimate)
     {
-        // Admins can view everything.
-        if ($user->isAdmin()) {
+        if ($user->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
             return true;
         }
 
-        // User can view their own estimates.
-        // Or if they are 'sales', they might be restricted to only theirs?
-        // For now, let's allow viewing.
+        if ($estimate->created_by === $user->id) {
+            return true;
+        }
+
+        // Check if user is in approval chain
+        if ($estimate->approvals()->where('user_id', $user->id)->exists()) {
+            return true;
+        }
+
+        // Check manual followers (on this estimate OR its parent)
+        if ($estimate->manualFollowers()->where('user_id', $user->id)->exists()) {
+            return true;
+        }
+
+        if ($estimate->parent_id) {
+            $parent = $estimate->parent;
+            if ($parent && $parent->manualFollowers()->where('user_id', $user->id)->exists()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function create(User $user)
+    {
         return true;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user): bool
+    public function update(User $user, Estimate $estimate)
     {
-        return $user->hasRole(['super_admin', 'estimator_admin', 'estimator', 'sales']);
-    }
-
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Estimate $estimate): bool
-    {
-        // STRICT: No one can edit a sent/approved/declined estimate.
-        // It must be reverted to draft or a new version created.
-        if (
-            in_array($estimate->status, [
-                Estimate::STATUS_SENT,
-                Estimate::STATUS_ACCEPTED,
-                Estimate::STATUS_DECLINED,
-                Estimate::STATUS_EXPIRED
-            ])
-        ) {
+        // Lock editing if waiting for approval (except for super_admin who might need to intervene)
+        if ($estimate->status === Estimate::STATUS_WAITING_APPROVAL && !$user->hasRole('super_admin')) {
             return false;
         }
 
-        // Admins can update any estimate if it is in DRAFT.
-        if ($user->isAdmin()) {
+        if ($user->id === $estimate->created_by) {
             return true;
         }
 
-        // Estimator can only update their own DRAFT estimates.
-        return $user->id === $estimate->created_by && $estimate->status === Estimate::STATUS_DRAFT;
-    }
-
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Estimate $estimate): bool
-    {
-        // Admins can delete any estimate.
-        if ($user->isAdmin()) {
+        if ($user->hasRole(['super_admin', 'admin'])) {
             return true;
         }
 
-        // Sales can only delete their own DRAFT estimates.
-        return $user->id === $estimate->created_by && $estimate->status === 'draft';
-    }
-
-    /**
-     * Determine whether the user can approve the estimate.
-     */
-    public function approve(User $user, Estimate $estimate): bool
-    {
-        return $user->isAdmin();
-    }
-
-    /**
-     * Determine whether the user can revert the estimate to draft.
-     */
-    public function revertToDraft(User $user, Estimate $estimate): bool
-    {
-        if ($user->isAdmin()) {
+        // Check follower edit permission
+        if ($estimate->userCanEdit($user)) {
             return true;
         }
 
-        return $user->id === $estimate->created_by;
+        // Check parent permissions if this is a proposal
+        if ($estimate->parent_id) {
+            $parent = $estimate->parent;
+            if ($parent && $parent->userCanEdit($user)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function delete(User $user, Estimate $estimate)
+    {
+        return $user->id === $estimate->created_by || $user->hasRole(['super_admin', 'admin']);
+    }
+
+    public function restore(User $user, Estimate $estimate)
+    {
+        return $user->hasRole(['super_admin', 'admin']);
+    }
+
+    public function forceDelete(User $user, Estimate $estimate)
+    {
+        return $user->hasRole(['super_admin']);
+    }
+
+    public function revertToDraft(User $user, Estimate $estimate)
+    {
+        return $this->update($user, $estimate);
     }
 }

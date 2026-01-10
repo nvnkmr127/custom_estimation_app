@@ -345,4 +345,22 @@
             &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
         </div>
     </div>
+    <!-- Request Call FAB -->
+    @if(!in_array($estimate->status, ['accepted', 'declined']))
+        <div class="fixed bottom-6 right-6 z-40 animate-bounce-in">
+            <form action="{{ URL::signedRoute('portal.request-call', $estimate) }}" method="POST"
+                onsubmit="return confirm('Would you like us to call you about this estimate?');">
+                @csrf
+                <button type="submit"
+                    class="flex items-center gap-2 bg-indigo-600 text-white rounded-full px-5 py-3 shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-105 font-medium ring-4 ring-white">
+                    <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z">
+                        </path>
+                    </svg>
+                    <span>Request a Call</span>
+                </button>
+            </form>
+        </div>
+    @endif
 </x-portal-layout>

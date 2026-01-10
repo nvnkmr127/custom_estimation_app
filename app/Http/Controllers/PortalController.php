@@ -34,6 +34,33 @@ class PortalController extends Controller
 
         \App\Models\ActivityLog::log('proposal_viewed', $estimate, "Proposal for Estimate #{$estimate->estimate_number} was viewed by the client.");
 
+        // --- Hot Lead Detection ---
+        $hotLeadThreshold = \App\Models\Setting::getCached('nurture_hot_lead_threshold', 3);
+        $estimate->increment('engagement_score'); // Boost score on every view
+
+        // Check velocity (views in last hour)
+        $recentViews = \App\Models\ActivityLog::where('subject_type', Estimate::class)
+            ->where('subject_id', $estimate->id)
+            ->where('action', 'proposal_viewed')
+            ->where('created_at', '>=', now()->subHour())
+            ->count();
+
+        if ($recentViews >= $hotLeadThreshold) {
+            // Avoid spamming if already alerted recently (e.g., in last hour) could be better, but for now strict alert.
+            // Only alert if we haven't alerted for this velocity burst?
+            // Simple mechanism: Check if we sent an alert in last hour.
+            // We don't have an easy way to check notifications sent.
+            // Let's rely on the threshold.
+
+            foreach ($estimate->followers as $follower) {
+                // Optimization: Queue this check/send
+                $follower->notify(new \App\Notifications\HotLeadAlert($estimate, [
+                    'reason' => "High Velocity: Viewed {$recentViews} times in the last hour."
+                ]));
+            }
+        }
+        // ---------------------------
+
         // Load items for the view
         $estimate->load(['sections.items', 'comments.user']); // Load comments with user (if any internal replies are visible, though currently filtering for client)
 
@@ -161,5 +188,28 @@ class PortalController extends Controller
         }
 
         return back()->with('success', 'Thank you! Your comment has been sent to the team.');
+    }
+    /**
+     * Handle "Request Call" action from client.
+     */
+    public function requestCall(Request $request, Estimate $estimate)
+    {
+        if (!$request->hasValidSignature()) {
+            abort(403);
+        }
+
+        // Notify Creator and Followers
+        $followers = $estimate->followers;
+        foreach ($followers as $follower) {
+            $follower->notify(new \App\Notifications\HotLeadAlert($estimate, [
+                'reason' => "Client requested a call immediately.",
+                'urgent' => true
+            ]));
+        }
+
+        // Also log activity
+        \App\Models\ActivityLog::log('call_requested', $estimate, "Client requested an immediate call.");
+
+        return back()->with('success', 'Request received! We will call you shortly.');
     }
 }

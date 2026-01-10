@@ -38,8 +38,8 @@ class ActivityLog extends Model
         return static::create([
             'user_id' => auth()->id(),
             'action' => $action,
-            'subject_type' => get_class($subject),
-            'subject_id' => $subject->id,
+            'subject_type' => $subject ? get_class($subject) : 'System',
+            'subject_id' => $subject ? $subject->id : 0,
             'description' => $description,
             'properties' => $properties,
             'ip_address' => request()->ip(),

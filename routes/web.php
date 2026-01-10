@@ -16,6 +16,7 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::post('/estimates/{estimate}/accept', [App\Http\Controllers\PortalController::class, 'accept'])->name('accept')->middleware('signed');
     Route::post('/estimates/{estimate}/decline', [App\Http\Controllers\PortalController::class, 'decline'])->name('decline')->middleware('signed');
     Route::post('/estimates/{estimate}/comments', [App\Http\Controllers\PortalController::class, 'comment'])->name('comment')->middleware('signed');
+    Route::post('/estimates/{estimate}/request-call', [App\Http\Controllers\PortalController::class, 'requestCall'])->name('request-call')->middleware('signed');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -58,6 +59,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Settings
         Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'edit'])->name('settings.edit');
         Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
+
+        // Nurture Settings
+        Route::get('/settings/nurture', [App\Http\Controllers\Admin\NurtureSettingsController::class, 'index'])->name('settings.nurture');
+        Route::post('/settings/nurture/update', [App\Http\Controllers\Admin\NurtureSettingsController::class, 'updateSettings'])->name('settings.nurture.update');
+        Route::post('/settings/nurture/rules', [App\Http\Controllers\Admin\NurtureSettingsController::class, 'storeRule'])->name('settings.nurture.rules.store');
+        Route::put('/settings/nurture/rules/{rule}', [App\Http\Controllers\Admin\NurtureSettingsController::class, 'updateRule'])->name('settings.nurture.rules.update');
+        Route::delete('/settings/nurture/rules/{rule}', [App\Http\Controllers\Admin\NurtureSettingsController::class, 'destroyRule'])->name('settings.nurture.rules.destroy');
 
         // Products & Categories
         Route::resource('categories', \App\Http\Controllers\ProductCategoryController::class);
@@ -105,6 +113,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('estimates/{estimate}/mark-as/{status}', [App\Http\Controllers\EstimateController::class, 'markAs'])->name('estimates.mark-as');
         Route::post('estimates/{estimate}/reply', [App\Http\Controllers\EstimateController::class, 'storeComment'])->name('estimates.reply');
         Route::post('estimates/{estimate}/send', [App\Http\Controllers\EstimateController::class, 'sendToClient'])->name('estimates.send');
+        Route::post('estimates/{estimate}/followers', [App\Http\Controllers\EstimateController::class, 'addFollower'])->name('estimates.followers.add');
+        Route::delete('estimates/{estimate}/followers/{user}', [App\Http\Controllers\EstimateController::class, 'removeFollower'])->name('estimates.followers.remove');
+        Route::post('estimates/{estimate}/approve-version', [App\Http\Controllers\EstimateController::class, 'approveVersion'])->name('estimates.approve-version');
 
         // Tracking
         Route::get('t/{estimate}/pixel.png', [App\Http\Controllers\TrackingController::class, 'pixel'])->name('tracking.pixel');

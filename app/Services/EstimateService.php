@@ -160,16 +160,28 @@ class EstimateService
     /**
      * Create a new version of an estimate.
      */
-    public function createVersion(Estimate $estimate): Estimate
+    public function createVersion(Estimate $estimate, bool $replicateItems = true, bool $isProposal = false): Estimate
     {
-        return DB::transaction(function () use ($estimate) {
-            // 1. Mark current as not current
-            $estimate->update(['is_current_version' => false]);
+        return DB::transaction(function () use ($estimate, $replicateItems, $isProposal) {
+            // 1. Handle is_current_version
+            if (!$isProposal) {
+                $estimate->update(['is_current_version' => false]);
+            }
 
             // 2. Replicate Estimate
             $newEstimate = $estimate->replicate();
-            $newEstimate->version = $estimate->version + 1;
-            $newEstimate->is_current_version = true;
+
+            // Calculate next version number based on FAMILY maximum
+            $rootId = $estimate->parent_id ?? $estimate->id;
+            $maxVersion = Estimate::where('id', $rootId)
+                ->orWhere('parent_id', $rootId)
+                ->max('version');
+
+            $newEstimate->version = ($maxVersion ?? $estimate->version) + 1;
+
+            // If it's a proposal, it's NOT current yet.
+            // If it's a standard version bump (unlikely direct flow here, but generic), it is current.
+            $newEstimate->is_current_version = !$isProposal;
 
             // If it's the first version, the parent is the original.
             // If it's already a child, the parent stays the same.
@@ -183,7 +195,9 @@ class EstimateService
             $newEstimate->push();
 
             // 3. Replicate Sections and Items
-            $this->duplicateEstimateItems($estimate, $newEstimate);
+            if ($replicateItems) {
+                $this->duplicateEstimateItems($estimate, $newEstimate);
+            }
 
             return $newEstimate;
         });

@@ -981,4 +981,41 @@
 
     <!-- Shared Logic Component -->
     @include('components.estimate-builder-script')
+
+    @push('scripts')
+        <script>
+            // Defensive initialization to prevent ReferenceErrors
+            // Note: AlpineJS manages its own scope, but this prevents global access errors
+            if (typeof window.estimate === 'undefined') {
+                window.estimate = @json($estimate);
+            }
+
+            if (typeof window.totals === 'undefined') {
+                window.totals = {
+                    subtotal: {{ $estimate->subtotal ?? 0 }},
+                    totalTax: {{ $estimate->total_tax ?? 0 }},
+                    discount: {{ $estimate->discount_total ?? 0 }},
+                    grandTotal: {{ $estimate->grand_total ?? 0 }}
+                            };
+            }
+
+            const defaults = {
+                hasCustomItems: () => false,
+                isSubmitting: false,
+                couponValid: false,
+                couponMessage: '',
+                couponInput: '',
+                appliedCouponCode: '',
+                productPicker: { isOpen: false, search: '', sectionIndex: null },
+                internalNoteModal: { isOpen: false, activeItem: null },
+                configModal: { isOpen: false, product: null, options: {}, basePrice: 0 }
+            };
+
+            for (const [key, value] of Object.entries(defaults)) {
+                if (typeof window[key] === 'undefined') {
+                    window[key] = value;
+                }
+            }
+        </script>
+    @endpush
 </x-app-layout>

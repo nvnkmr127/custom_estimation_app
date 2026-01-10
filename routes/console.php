@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('approval:check-timeouts')->hourly();
+Schedule::command('estimates:nurture')->daily();

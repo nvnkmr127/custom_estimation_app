@@ -33,7 +33,7 @@ class EstimateCommentNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     /**
@@ -60,8 +60,17 @@ class EstimateCommentNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        $author = $this->comment->isClientComment()
+            ? ($this->comment->client_name ?: 'Client')
+            : ($this->comment->user->name ?? 'Staff');
+
         return [
-            //
+            'estimate_id' => $this->estimate->id,
+            'estimate_number' => $this->estimate->estimate_number,
+            'comment_id' => $this->comment->id,
+            'message' => "{$author} commented on Estimate #{$this->estimate->estimate_number}",
+            'link' => route('estimates.show', $this->estimate),
+            'type' => 'comment',
         ];
     }
 }

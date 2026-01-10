@@ -598,7 +598,7 @@
 
                         s.items.forEach((i, iIdx) => {
                             for (const [k, v] of Object.entries(i)) {
-                                if (v !== null && v !== undefined && k !== 'image_url') {
+                                if (v !== null && v !== undefined && k !== 'image_url' && k !== 'options') {
                                     // Include ID if it exists for updates
                                     app(`sections[${sIdx}][items][${iIdx}][${k}]`, v);
                                 } else if (k === 'options' && Array.isArray(v)) {
@@ -614,7 +614,7 @@
                 } else {
                     this.estimate.items.forEach((i, iIdx) => {
                         for (const [k, v] of Object.entries(i)) {
-                            if (v !== null && v !== undefined && k !== 'image_url') {
+                            if (v !== null && v !== undefined && k !== 'image_url' && k !== 'options') {
                                 app(`items[${iIdx}][${k}]`, v);
                             } else if (k === 'options' && Array.isArray(v)) {
                                 v.forEach((opt, oIdx) => {
