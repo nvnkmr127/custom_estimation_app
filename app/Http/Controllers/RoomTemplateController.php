@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RoomTemplate;
+use App\Models\UnitType;
 use Illuminate\Http\Request;
 
 class RoomTemplateController extends Controller
@@ -22,8 +23,9 @@ class RoomTemplateController extends Controller
     public function create()
     {
         $products = \App\Models\Product::with(['images', 'options.values'])->orderBy('name', 'asc')->get();
+        $unitTypes = UnitType::all();
 
-        return view('templates.edit', compact('products'));
+        return view('templates.edit', compact('products', 'unitTypes'));
     }
 
     public function store(Request $request)
@@ -37,6 +39,7 @@ class RoomTemplateController extends Controller
             'items.*.quantity' => 'required|numeric|min:0',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.unit_type' => 'nullable|string',
+            'items.*.unit_type_id' => 'nullable|exists:unit_types,id',
             'items.*.description' => 'nullable|string',
             'items.*.options' => 'nullable|array',
         ]);
@@ -49,8 +52,9 @@ class RoomTemplateController extends Controller
     public function edit(RoomTemplate $template)
     {
         $products = \App\Models\Product::with(['images', 'options.values'])->orderBy('name', 'asc')->get();
+        $unitTypes = UnitType::all();
 
-        return view('templates.edit', compact('template', 'products'));
+        return view('templates.edit', compact('template', 'products', 'unitTypes'));
     }
 
     public function update(Request $request, RoomTemplate $template)
@@ -64,6 +68,7 @@ class RoomTemplateController extends Controller
             'items.*.quantity' => 'required|numeric|min:0',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'items.*.unit_type' => 'nullable|string',
+            'items.*.unit_type_id' => 'nullable|exists:unit_types,id',
             'items.*.description' => 'nullable|string',
             'items.*.options' => 'nullable|array',
         ]);

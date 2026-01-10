@@ -26,9 +26,7 @@ class EstimateService
         }
 
         $itemSubtotal = $unitPrice * $itemData['quantity'];
-        $tax1Amount = $itemSubtotal * ($itemData['tax_1'] ?? 0) / 100;
-        $tax2Amount = $itemSubtotal * ($itemData['tax_2'] ?? 0) / 100;
-        $total = $itemSubtotal + $tax1Amount + $tax2Amount;
+        $total = $itemSubtotal;
 
         return $estimate->items()->create([
             'estimate_section_id' => $sectionId,
@@ -48,6 +46,7 @@ class EstimateService
             'width' => $itemData['width'] ?? null,
             'formula' => $itemData['formula'] ?? null,
             'internal_note' => $itemData['internal_note'] ?? null,
+            'unit_type_id' => $itemData['unit_type_id'] ?? null,
             'options' => $itemData['options'] ?? null,
         ]);
     }
@@ -67,9 +66,7 @@ class EstimateService
         }
 
         $itemSubtotal = $unitPrice * $itemData['quantity'];
-        $tax1Amount = $itemSubtotal * ($itemData['tax_1'] ?? 0) / 100;
-        $tax2Amount = $itemSubtotal * ($itemData['tax_2'] ?? 0) / 100;
-        $total = $itemSubtotal + $tax1Amount + $tax2Amount;
+        $total = $itemSubtotal;
 
         $item->update([
             'estimate_section_id' => $sectionId,
@@ -89,6 +86,7 @@ class EstimateService
             'width' => $itemData['width'] ?? null,
             'formula' => $itemData['formula'] ?? null,
             'internal_note' => $itemData['internal_note'] ?? null,
+            'unit_type_id' => $itemData['unit_type_id'] ?? null,
             'options' => $itemData['options'] ?? null,
         ]);
     }
@@ -104,11 +102,7 @@ class EstimateService
             return $item->unit_price * $item->quantity;
         });
 
-        $totalTax = $estimate->items->sum(function ($item) {
-            $itemSubtotal = $item->unit_price * $item->quantity;
-
-            return ($itemSubtotal * ($item->tax_1 + $item->tax_2)) / 100;
-        });
+        $totalTax = ($subtotal * ($estimate->tax_1 + $estimate->tax_2)) / 100;
 
         $discountTotal = 0;
         if ($estimate->discount_value > 0) {
@@ -308,7 +302,6 @@ class EstimateService
         $prefix = "EST-{$year}-";
 
         // Get recent estimates to find the highest sequence number
-        // We fetch multiple candidates to skip over potential malformed/garbage numbers (like UUIDs)
         $estimates = Estimate::where('estimate_number', 'like', "{$prefix}%")
             ->orderByRaw('LENGTH(estimate_number) DESC')
             ->orderBy('estimate_number', 'desc')
@@ -319,6 +312,13 @@ class EstimateService
 
         foreach ($estimates as $estimate) {
             $parts = explode('-', $estimate->estimate_number);
+            // Handle version suffixes like -v2 by stripping them first if needed, 
+            // but the regex approach below is safer for finding the base numeric part.
+            // Assuming standard format EST-YYYY-XXX
+
+            // Allow for version suffixes in the check
+            $baseNumber = preg_replace('/-v\d+$/', '', $estimate->estimate_number);
+            $parts = explode('-', $baseNumber);
             $suffix = end($parts);
 
             if (is_numeric($suffix)) {
@@ -331,6 +331,15 @@ class EstimateService
 
         $nextSequence = $maxSequence + 1;
 
-        return $prefix . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
+        // Loop to ensure uniqueness (handling race conditions and skipped numbers)
+        do {
+            $candidate = $prefix . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
+            $exists = Estimate::where('estimate_number', $candidate)->exists();
+            if ($exists) {
+                $nextSequence++;
+            }
+        } while ($exists);
+
+        return $candidate;
     }
 }

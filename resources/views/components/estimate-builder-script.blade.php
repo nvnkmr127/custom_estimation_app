@@ -4,6 +4,8 @@
             products: initialData.products || @json($products),
             templates: initialData.templates || @json($templates),
             packages: initialData.packages || @json($packages),
+            unitTypes: initialData.unitTypes || @json($unitTypes ?? []),
+            categories: initialData.categories || @json($categories ?? []),
             defaults: initialData.defaults || @json($defaults ?? []),
 
             estimate: {
@@ -35,6 +37,7 @@
             productPicker: {
                 isOpen: false,
                 search: '',
+                categoryId: '',
                 sectionIndex: null // If null, adding to standard list. If set, adding to section
             },
             internalNoteModal: {
@@ -64,12 +67,23 @@
             },
 
             filteredProducts() {
-                if (!this.productPicker.search) return this.products;
-                const q = this.productPicker.search.toLowerCase();
-                return this.products.filter(p =>
-                    p.name.toLowerCase().includes(q) ||
-                    (p.sku && p.sku.toLowerCase().includes(q))
-                );
+                let filtered = this.products;
+
+                // Filter by Category
+                if (this.productPicker.categoryId) {
+                    filtered = filtered.filter(p => p.category_id == this.productPicker.categoryId);
+                }
+
+                // Filter by Search Query
+                if (this.productPicker.search) {
+                    const q = this.productPicker.search.toLowerCase();
+                    filtered = filtered.filter(p =>
+                        p.name.toLowerCase().includes(q) ||
+                        (p.sku && p.sku.toLowerCase().includes(q))
+                    );
+                }
+
+                return filtered;
             },
 
             init() {
@@ -84,6 +98,8 @@
                     item.quantity = parseFloat(item.quantity || 1);
                     item.tax_1 = parseFloat(item.tax_1 || 0);
                     item.tax_2 = parseFloat(item.tax_2 || 0);
+                    item.unit_type_id = item.unit_type_id || null;
+                    item._showTypePicker = false;
                     // Hydrate image from relation if available and not set
                     if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
                         item.image_url = '/storage/' + item.product.images[0].image_path;
@@ -196,6 +212,7 @@
             openProductPicker(sectionIndex) {
                 this.productPicker.sectionIndex = sectionIndex;
                 this.productPicker.search = '';
+                this.productPicker.categoryId = '';
                 this.productPicker.isOpen = true;
             },
 
@@ -207,6 +224,21 @@
             closeInternalNoteModal() {
                 this.internalNoteModal.isOpen = false;
                 this.internalNoteModal.activeItem = null;
+            },
+
+            getUnitsByTypeId(typeId) {
+                if (!typeId) return [];
+                const type = this.unitTypes.find(t => t.id == typeId);
+                return type ? type.units : [];
+            },
+
+            onUnitTypeChange(item) {
+                const units = this.getUnitsByTypeId(item.unit_type_id);
+                if (units.length > 0) {
+                    item.unit_type = units[0];
+                } else {
+                    item.unit_type = 'nos';
+                }
             },
 
             selectProduct(product) {
@@ -236,6 +268,7 @@
                     quantity: 1,
                     size: sizeString,
                     unit_type: product.unit_type || 'nos',
+                    unit_type_id: product.unit_type_id || null,
                     description: product.description || '',
                     tax_1: parseFloat(this.defaults.tax_1_rate || 0),
                     tax_2: parseFloat(this.defaults.tax_2_rate || 0),
@@ -244,6 +277,7 @@
                     width: '',
                     formula: isFormula ? 'area' : '',
                     showCalculator: isFormula,
+                    _showTypePicker: false,
                     options: []
                 };
                 this.pushItem(newItem);
@@ -314,6 +348,7 @@
                     quantity: 1,
                     size: sizeString,
                     unit_type: product.unit_type || 'nos',
+                    unit_type_id: product.unit_type_id || null,
                     description: product.description || '',
                     tax_1: parseFloat(this.defaults.tax_1_rate || 0),
                     tax_2: parseFloat(this.defaults.tax_2_rate || 0),
@@ -322,6 +357,7 @@
                     width: '',
                     formula: isFormula ? 'area' : '',
                     showCalculator: isFormula,
+                    _showTypePicker: false,
                     options: selectedOptionsList
                 };
 
@@ -343,8 +379,9 @@
                     unit_price: 0,
                     quantity: 1,
                     unit_type: 'nos',
-                    tax_1: parseFloat(this.defaults.tax_1_rate || 0),
-                    tax_2: parseFloat(this.defaults.tax_2_rate || 0),
+                    unit_type_id: null,
+                    tax_1: 0,
+                    tax_2: 0,
                     length: '',
                     width: '',
                     width: '',
@@ -409,7 +446,8 @@
                             unit_price: parseFloat(i.unit_price || 0),
                             quantity: parseFloat(i.quantity || 1),
                             size: i.size || '',
-                            unit_type: i.unit_type || 'nos',
+                            unit_type: i.unit_type || i.product?.unit_type || 'nos',
+                            unit_type_id: i.unit_type_id || i.product?.unit_type_id || null,
                             description: desc,
                             image_url: imageUrl,
                             tax_1: 0,
@@ -433,6 +471,7 @@
                     quantity: parseFloat(i.quantity || 1),
                     size: i.size || '',
                     unit_type: i.unit_type || 'nos',
+                    unit_type_id: null, // Packages might not have specific unit type linked yet
                     description: `Package: ${pkg.name}`,
                     tax_1: 0,
                     tax_2: 0,
@@ -459,10 +498,11 @@
                 allItems.forEach(item => {
                     const itemTotal = this.calculateItemTotal(item);
                     subtotal += itemTotal;
-                    const t1 = itemTotal * ((parseFloat(item.tax_1) || 0) / 100);
-                    const t2 = itemTotal * ((parseFloat(item.tax_2) || 0) / 100);
-                    totalTax += (t1 + t2);
                 });
+
+                const t1Rate = (parseFloat(this.estimate.tax_1) || 0) / 100;
+                const t2Rate = (parseFloat(this.estimate.tax_2) || 0) / 100;
+                totalTax = subtotal * (t1Rate + t2Rate);
 
                 let discount = 0;
                 if (this.estimate.discount_value > 0) {

@@ -45,6 +45,8 @@ class Estimate extends Model
         'status',
         'type',
         'subtotal',
+        'tax_1',
+        'tax_2',
         'total_tax',
         'discount_total',
         'discount_type',

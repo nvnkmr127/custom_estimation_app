@@ -17,6 +17,7 @@ class Product extends Model
         'sku',
         'unit_price',
         'unit_type',
+        'unit_type_id',
         'calculation_method',
         'status',
         'is_featured',

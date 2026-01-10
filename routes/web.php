@@ -152,6 +152,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/pdf-templates/preview', [App\Http\Controllers\PdfTemplateController::class, 'preview'])->name('pdf-templates.preview');
         Route::post('/pdf-templates/{pdfTemplate}/restore/{version}', [App\Http\Controllers\PdfTemplateController::class, 'restore'])->name('pdf-templates.restore');
         Route::resource('pdf-templates', App\Http\Controllers\PdfTemplateController::class);
+        Route::resource('unit-types', App\Http\Controllers\UnitTypeController::class);
     });
 
     // Approval Chains (Super Admin Only)

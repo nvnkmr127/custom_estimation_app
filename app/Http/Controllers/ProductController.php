@@ -311,6 +311,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'sku' => 'nullable|string|unique:products,sku' . ($productId ? ',' . $productId : ''),
             'unit_price' => 'required|numeric|min:0',
+            'unit_type_id' => 'nullable|exists:unit_types,id',
             'unit_type' => 'required|string',
             'calculation_method' => 'nullable|string|in:standard,formula',
             'is_featured' => 'nullable|boolean',

@@ -22,46 +22,44 @@ class PdfTemplateSeeder extends Seeder
 <body>
     <div class="header">
         <div class="logo">
-            <!-- <img src="path/to/logo.png" alt="Company Logo"> -->
             <h1>{company_name}</h1>
         </div>
         <div class="meta">
-            <p>Estimate #: {estimate_number}</p>
-            <p>Date: {estimate_date}</p>
-            <p>Expiry: {expiry_date}</p>
+            <p style="font-weight: 800; font-size: 16px; margin: 0; color: #0f172a;">ESTIMATE #{estimate_number}</p>
+            <p style="margin: 4px 0 0 0; color: #64748b; font-size: 12px;">Date: {estimate_date} | Expiry: {expiry_date}</p>
         </div>
     </div>
 
     <div class="client-info">
-        <h3>Prepared For:</h3>
-        <p><strong>{client_name}</strong></p>
-        <p>{client_address}</p>
-        <p>{client_email}</p>
+        <h3 style="text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; color: #94a3b8; margin-bottom: 8px;">Prepared For</h3>
+        <p style="font-size: 16px; font-weight: 700; margin: 0; color: #0f172a;">{client_name}</p>
+        <p style="margin: 4px 0 0 0; color: #475569; font-size: 13px;">{client_address}</p>
+        <p style="margin: 2px 0 0 0; color: #475569; font-size: 13px;">{client_email}</p>
     </div>
 
-    <div class="section">
-        <h2>About Us</h2>
-        <p>We are a premium interior design firm dedicated to transforming spaces into living works of art. With over 10 years of experience, we specialize in modern, sustainable, and luxurious designs.</p>
+    <div class="section" style="margin-top: 40px;">
+        <h2 style="font-size: 18px;">Project Overview</h2>
+        <p style="font-size: 14px; color: #475569;">{estimate_title}</p>
     </div>
 
-    <div class="section">
-        <h2>Project Estimate</h2>
-        <p>{estimate_title}</p>
-        
-        {IF_room_based}
-        <div class="chart-container">
-            <h3>Cost Distribution by Room</h3>
-            <img src="{CHART_ROOMS}" alt="Room Cost Chart" style="width: 100%; max-width: 600px;">
+    {IF_room_based}
+    <div class="section page-break-inside-avoid">
+        <h3>Room Distribution</h3>
+        <div style="text-align: center; background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0;">
+            <img src="{CHART_ROOMS}" alt="Room Cost Chart" style="width: 100%; max-width: 500px;">
         </div>
-        {END_IF}
+    </div>
+    {END_IF}
 
+    <div class="section">
+        <h2 style="font-size: 18px;">Itemized Breakdown</h2>
         <table class="items-table">
             <thead>
                 <tr>
-                    <th>Item</th>
-                    <th class="text-right">Qty</th>
-                    <th class="text-right">Price</th>
-                    <th class="text-right">Total</th>
+                    <th width="50%">Item Description</th>
+                    <th width="15%" class="text-center">Quantity</th>
+                    <th width="15%" class="text-right">Price</th>
+                    <th width="20%" class="text-right">Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -72,17 +70,20 @@ class PdfTemplateSeeder extends Seeder
                     {LOOP_ITEMS}
                     <tr>
                         <td>
-                            <strong>{item_name}</strong><br>
-                            <small>{item_description}</small>
+                            <span class="item-name">{item_name}</span>
+                            <div class="item-desc">{item_description}</div>
                         </td>
-                        <td class="text-right">{item_quantity} {item_unit}</td>
-                        <td class="text-right">{currency} {item_price}</td>
-                        <td class="text-right">{currency} {item_total}</td>
+                        <td class="text-center" style="font-weight: 700; color: #0f172a;">
+                            {item_quantity}<br>
+                            <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">{item_unit}</span>
+                        </td>
+                        <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
+                        <td class="text-right" style="font-weight: 800; color: #0f172a;">{currency} {item_total}</td>
                     </tr>
                     {END_LOOP}
                 <tr>
-                    <td colspan="3" class="text-right"><strong>Subtotal ({section_name})</strong></td>
-                    <td class="text-right"><strong>{currency} {section_subtotal}</strong></td>
+                    <td colspan="3" class="text-right" style="padding: 10px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Room Total</td>
+                    <td class="text-right" style="padding: 10px; font-weight: 800; color: #0f172a; border-bottom: 2px solid #e2e8f0;">{currency} {section_subtotal}</td>
                 </tr>
                 {END_LOOP}
                 
@@ -90,12 +91,15 @@ class PdfTemplateSeeder extends Seeder
                     {LOOP_ITEMS}
                     <tr>
                         <td>
-                            <strong>{item_name}</strong><br>
-                            <small>{item_description}</small>
+                            <span class="item-name">{item_name}</span>
+                            <div class="item-desc">{item_description}</div>
                         </td>
-                        <td class="text-right">{item_quantity} {item_unit}</td>
-                        <td class="text-right">{currency} {item_price}</td>
-                        <td class="text-right">{currency} {item_total}</td>
+                        <td class="text-center" style="font-weight: 700; color: #0f172a;">
+                            {item_quantity}<br>
+                            <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">{item_unit}</span>
+                        </td>
+                        <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
+                        <td class="text-right" style="font-weight: 800; color: #0f172a;">{currency} {item_total}</td>
                     </tr>
                     {END_LOOP}
                 {END_IF}
@@ -103,44 +107,67 @@ class PdfTemplateSeeder extends Seeder
         </table>
     </div>
 
-    <div class="totals">
-        <p>Subtotal: {currency} {subtotal}</p>
-        <p>Tax: {currency} {tax_total}</p>
-        <p>Discount: -{currency} {discount_total}</p>
-        <h3>Grand Total: {currency} {grand_total}</h3>
+    <div class="totals py-6">
+        <div style="width: 40%; margin-left: auto;">
+            <p style="display: table; width: 100%;">
+                <span style="display: table-cell; text-align: left;">Subtotal</span>
+                <span style="display: table-cell; text-align: right; font-weight: 700;">{currency} {subtotal}</span>
+            </p>
+            {IF_tax_total}
+            <p style="display: table; width: 100%;">
+                <span style="display: table-cell; text-align: left;">Tax</span>
+                <span style="display: table-cell; text-align: right; font-weight: 700;">{currency} {tax_total}</span>
+            </p>
+            {END_IF}
+            {IF_discount_total}
+            <p style="display: table; width: 100%; color: #ef4444;">
+                <span style="display: table-cell; text-align: left;">Discount</span>
+                <span style="display: table-cell; text-align: right; font-weight: 700;">-{currency} {discount_total}</span>
+            </p>
+            {END_IF}
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid var(--primary-color);">
+                <h3 style="display: table; width: 100%; margin: 0;">
+                    <span style="display: table-cell; text-align: left; font-size: 14px; text-transform: uppercase;">Grand Total</span>
+                    <span style="display: table-cell; text-align: right;">{currency} {grand_total}</span>
+                </h3>
+            </div>
+        </div>
     </div>
 
-    <div class="section page-break-inside-avoid">
-        <h2>Terms & Conditions</h2>
-        <p>{terms}</p>
-        <p>1. 50% advance payment required to start work.<br>
-           2. Valid for 30 days from date of issue.<br>
-           3. Timelines are subject to material availability.</p>
+    <div class="section page-break-inside-avoid" style="margin-top: 50px;">
+        <h2 style="font-size: 16px;">Terms & Conditions</h2>
+        <div style="font-size: 12px; color: #475569; line-height: 1.6;">
+            {terms}
+        </div>
     </div>
     
     <div class="footer">
-        <p>Thank you for your business!</p>
-        <p>{company_address} | {company_email} | {company_phone}</p>
+        <p style="margin-bottom: 4px; font-weight: 700;">Thank you for your business!</p>
+        <p>{company_address} &bull; {company_email} &bull; {company_phone}</p>
     </div>
 </body>
 </html>',
             'css_content' => '
-body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; }
+body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5; margin: 0; padding: 0; }
 .header { display: table; width: 100%; border-bottom: 2px solid var(--primary-color); padding-bottom: 20px; margin-bottom: 30px; }
 .logo { display: table-cell; vertical-align: middle; }
 .meta { display: table-cell; text-align: right; vertical-align: middle; }
 .section { margin-bottom: 30px; }
-h1 { color: var(--primary-color); margin: 0; font-size: 24px; }
-h2 { color: var(--primary-color); border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0; }
-h3 { margin-bottom: 10px; }
-.items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-.items-table th { background: #f8f9fa; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
-.items-table td { padding: 10px; border-bottom: 1px solid #eee; }
-.section-header td { background: #e9ecef; font-weight: bold; color: #495057; }
+h1 { color: var(--primary-color); margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em; }
+h2 { color: var(--primary-color); border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-top: 0; font-weight: 700; }
+h3 { margin-bottom: 10px; font-weight: 600; color: #334155; }
+.items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; }
+.items-table th { background: #f8fafc; padding: 12px 10px; text-align: left; border-bottom: 2px solid #e2e8f0; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; }
+.items-table td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.section-header td { background: #f1f5f9; font-weight: 800; color: #475569; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; }
+.item-name { display: block; font-weight: 700; color: #0f172a; margin-bottom: 2px; font-size: 13px; }
+.item-desc { color: #64748b; font-size: 11px; line-height: 1.4; }
 .text-right { text-align: right; }
-.totals { text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee; }
-.totals h3 { color: var(--primary-color); font-size: 20px; }
-.footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px; }
+.text-center { text-align: center; }
+.totals { text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #f1f5f9; }
+.totals p { margin: 5px 0; color: #475569; font-size: 13px; }
+.totals h3 { color: var(--primary-color); font-size: 20px; margin-top: 10px; font-weight: 800; }
+.footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 15px; }
 .page-break-inside-avoid { page-break-inside: avoid; }
 ',
             'primary_color' => '#2563eb', // Blue
@@ -164,7 +191,14 @@ h3 { margin-bottom: 10px; }
     <div class="sidebar"></div>
     <div class="content">
         <div class="header">
-            <h1>ESTIMATE</h1>
+            <div style="display: table; width: 100%;">
+                <div style="display: table-cell; vertical-align: middle;">
+                    <h1>ESTIMATE</h1>
+                </div>
+                <div style="display: table-cell; vertical-align: middle; text-align: right;">
+                    <p style="font-size: 48px; font-weight: 800; color: #f1f5f9; margin: 0; position: absolute; top: -20px; right: 0; z-index: -1;">{estimate_number}</p>
+                </div>
+            </div>
             <div class="meta-grid">
                 <div>
                     <span class="label">Reference:</span> {estimate_number}
@@ -183,7 +217,6 @@ h3 { margin-bottom: 10px; }
                 <h6>ISSUED BY</h6>
                 <p><strong>{company_name}</strong><br>
                 {company_address}<br>
-                {company_city}<br>
                 {company_email}</p>
             </div>
             <div class="box">
@@ -196,11 +229,12 @@ h3 { margin-bottom: 10px; }
 
         <div class="intro">
             <h2>Luxury Interior Solutions</h2>
-            <p>Thank you for considering us for your project. We have prepared this detailed estimate based on our discussion. This proposal uses premium materials to ensure elegance and durability.</p>
+            <p style="font-size: 14px; color: #64748b; font-style: normal; margin-top: 10px;">{estimate_title}</p>
         </div>
 
         {IF_room_based}
         <div class="chart-section">
+            <h3 style="font-family: sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 20px;">Investment Analysis</h3>
             <img src="{CHART_ROOMS}" alt="Visual Breakdown">
             <p class="caption">Investment distribution across different areas</p>
         </div>
@@ -212,8 +246,8 @@ h3 { margin-bottom: 10px; }
                     <tr>
                         <th width="50%">Description</th>
                         <th width="15%" class="text-center">Qty</th>
-                        <th width="15%" class="text-right">Unit Price</th>
-                        <th width="20%" class="text-right">Amount</th>
+                        <th width="15%" class="text-right">Price</th>
+                        <th width="20%" class="text-right">Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -227,13 +261,16 @@ h3 { margin-bottom: 10px; }
                                 <span class="item-name">{item_name}</span>
                                 <div class="item-desc">{item_description}</div>
                             </td>
-                            <td class="text-center">{item_quantity} {item_unit}</td>
-                            <td class="text-right">{item_price}</td>
-                            <td class="text-right">{item_total}</td>
+                            <td class="text-center" style="font-weight: 700; color: #1e293b;">
+                                {item_quantity}<br>
+                                <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">{item_unit}</span>
+                            </td>
+                            <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
+                            <td class="text-right" style="font-weight: 800; color: #0f172a;">{currency} {item_total}</td>
                         </tr>
                         {END_LOOP}
                     <tr>
-                        <td colspan="3" class="text-right sub-label">Subtotal</td>
+                        <td colspan="3" class="text-right sub-label">Subtotal ({section_name})</td>
                         <td class="text-right sub-val">{currency} {section_subtotal}</td>
                     </tr>
                     {END_LOOP}
@@ -245,9 +282,12 @@ h3 { margin-bottom: 10px; }
                                 <span class="item-name">{item_name}</span>
                                 <div class="item-desc">{item_description}</div>
                             </td>
-                            <td class="text-center">{item_quantity} {item_unit}</td>
-                            <td class="text-right">{item_price}</td>
-                            <td class="text-right">{item_total}</td>
+                            <td class="text-center" style="font-weight: 700; color: #1e293b;">
+                                {item_quantity}<br>
+                                <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">{item_unit}</span>
+                            </td>
+                            <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
+                            <td class="text-right" style="font-weight: 800; color: #0f172a;">{currency} {item_total}</td>
                         </tr>
                         {END_LOOP}
                     {END_IF}
@@ -261,18 +301,20 @@ h3 { margin-bottom: 10px; }
                     <td>Subtotal</td>
                     <td class="text-right">{currency} {subtotal}</td>
                 </tr>
+                {IF_tax_total}
                 <tr>
                     <td>Tax</td>
                     <td class="text-right">{currency} {tax_total}</td>
                 </tr>
+                {END_IF}
                 {IF_discount_total}
                 <tr>
-                    <td>Discount</td>
-                    <td class="text-right">({currency} {discount_total})</td>
+                    <td style="color: #ef4444;">Discount</td>
+                    <td class="text-right" style="color: #ef4444;">-{currency} {discount_total}</td>
                 </tr>
                 {END_IF}
                 <tr class="grand-total-row">
-                    <td>TOTAL ESTIMATE</td>
+                    <td>GRAND TOTAL</td>
                     <td class="text-right">{currency} {grand_total}</td>
                 </tr>
             </table>
@@ -282,11 +324,19 @@ h3 { margin-bottom: 10px; }
             <h6>AUTHORIZATION & TERMS</h6>
             <div class="terms-content">
                 {terms}
-                <p>By signing below, you agree to the terms and conditions stated in this proposal.</p>
             </div>
-            <div class="signature-box">
-                <div class="line"></div>
-                <span>Client Signature</span>
+            <div class="signature-box" style="margin-top: 40px;">
+                <div style="display: table; width: 100%;">
+                    <div style="display: table-cell; width: 45%;">
+                        <div class="line"></div>
+                        <span style="font-family: sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8;">For {company_name}</span>
+                    </div>
+                    <div style="display: table-cell; width: 10%;"></div>
+                    <div style="display: table-cell; width: 45%;">
+                        <div class="line"></div>
+                        <span style="font-family: sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8;">Accepted By</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

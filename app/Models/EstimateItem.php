@@ -16,6 +16,7 @@ class EstimateItem extends Model
         'unit_price',
         'quantity',
         'unit_type',
+        'unit_type_id',
         'tax_1',
         'tax_2',
         'total',
@@ -46,6 +47,11 @@ class EstimateItem extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function unitType()
+    {
+        return $this->belongsTo(UnitType::class, 'unit_type_id');
     }
 
     public function comments()

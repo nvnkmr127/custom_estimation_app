@@ -255,60 +255,57 @@
                             <!-- Items Table -->
                             <div class="overflow-x-auto min-h-[100px]">
                                 <table class="min-w-full divide-y divide-slate-200">
-                                    <thead class="bg-slate-50">
+                                    <thead class="bg-slate-50/50">
                                         <tr>
-                                            <th scope="col" class="w-10 py-3 px-3"></th>
+                                            <th scope="col" class="w-10 py-4 px-3"></th>
                                             <th scope="col"
-                                                class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-16">
+                                                class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
                                                 Image
                                             </th>
                                             <th scope="col"
-                                                class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                                Item</th>
+                                                class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
+                                                Unit Configuration</th>
                                             <th scope="col"
-                                                class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
+                                                class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                Item Details</th>
+                                            <th scope="col"
+                                                class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                                 Size</th>
                                             <th scope="col"
-                                                class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
+                                                class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                                 Price</th>
                                             <th scope="col"
-                                                class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-28">
-                                                Qty</th>
+                                                class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
+                                                Quantity</th>
                                             <th scope="col"
-                                                class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-16">
-                                                Unit</th>
-                                            <th scope="col"
-                                                class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
-                                                Tax 1 (%)</th>
-                                            <th scope="col"
-                                                class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
-                                                Tax 2 (%)</th>
-                                            <th scope="col"
-                                                class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
+                                                class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
                                                 Total</th>
-                                            <th scope="col" class="relative px-3 py-3 w-10"><span
+                                            <th scope="col" class="relative px-3 py-4 w-12"><span
                                                     class="sr-only">Actions</span></th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-slate-200 section-items-sortable">
                                         <template x-for="(item, itemIndex) in section.items" :key="itemIndex">
-                                            <tr class="group hover:bg-slate-50 transition-colors">
-                                                <td class="px-3 py-2 text-center text-slate-400 cursor-move handle">
-                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                            <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                                                <td
+                                                    class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
+                                                    <svg class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"
                                                         stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
                                                             stroke-width="2" d="M4 8h16M4 16h16" />
                                                     </svg>
                                                 </td>
-                                                <td class="px-3 py-2 text-center">
+                                                <td class="px-3 py-4 align-middle">
                                                     <template x-if="item.image_url">
-                                                        <img :src="item.image_url"
-                                                            class="h-10 w-10 object-cover rounded-md mx-auto ring-1 ring-slate-200">
+                                                        <div class="relative h-12 w-12 mx-auto">
+                                                            <img :src="item.image_url"
+                                                                class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
+                                                        </div>
                                                     </template>
                                                     <template x-if="!item.image_url">
                                                         <div
-                                                            class="h-10 w-10 bg-slate-100 rounded-md mx-auto flex items-center justify-center ring-1 ring-slate-200">
-                                                            <svg class="h-5 w-5 text-slate-300" fill="none"
+                                                            class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
+                                                            <svg class="h-6 w-6 text-slate-300" fill="none"
                                                                 viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path stroke-linecap="round" stroke-linejoin="round"
                                                                     stroke-width="2"
@@ -317,64 +314,142 @@
                                                         </div>
                                                     </template>
                                                 </td>
-                                                <td class="px-3 py-2">
+                                                <td class="px-3 py-4">
+                                                    <div class="flex flex-col gap-2">
+                                                        <!-- Initial State: Show Button if no unit type assigned -->
+                                                        <template x-if="!item.unit_type_id && !item._showTypePicker">
+                                                            <button type="button" @click="item._showTypePicker = true"
+                                                                class="flex items-center justify-center w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-2.5 px-3 text-[10px] font-bold text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-white hover:shadow-sm transition-all uppercase tracking-widest leading-none">
+                                                                <svg class="h-3 w-3 mr-1" fill="none"
+                                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="3" d="M12 4v16m8-8H4" />
+                                                                </svg>
+                                                                Unit
+                                                            </button>
+                                                        </template>
+
+                                                        <!-- Active State: Show Type Selection and Unit Selection -->
+                                                        <template x-if="item.unit_type_id || item._showTypePicker">
+                                                            <div class="space-y-2">
+                                                                <div class="relative group">
+                                                                    <select x-model="item.unit_type_id"
+                                                                        @change="onUnitTypeChange(item)"
+                                                                        class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white">
+                                                                        <option value="">Manual</option>
+                                                                        <template x-for="type in unitTypes"
+                                                                            :key="type.id">
+                                                                            <option :value="type.id" x-text="type.name">
+                                                                            </option>
+                                                                        </template>
+                                                                    </select>
+                                                                    <div
+                                                                        class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400 group-hover:text-slate-600">
+                                                                        <svg class="h-3 w-3" fill="none"
+                                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round"
+                                                                                stroke-linejoin="round" stroke-width="2"
+                                                                                d="M19 9l-7 7-7-7" />
+                                                                        </svg>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="relative">
+                                                                    <template x-if="item.unit_type_id">
+                                                                        <select x-model="item.unit_type"
+                                                                            class="block w-full rounded-lg border-indigo-200 bg-indigo-50/30 py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
+                                                                            <template
+                                                                                x-for="u in getUnitsByTypeId(item.unit_type_id)"
+                                                                                :key="u">
+                                                                                <option :value="u" x-text="u"></option>
+                                                                            </template>
+                                                                        </select>
+                                                                    </template>
+                                                                    <template x-if="!item.unit_type_id">
+                                                                        <input type="text" x-model="item.unit_type"
+                                                                            placeholder="e.g. nos"
+                                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50 py-1.5 px-2 text-[11px] font-bold text-slate-700 text-center focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                    </template>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
-                                                        class="block w-full border-0 p-0 text-sm font-medium text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent">
+                                                        class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                                     <input type="text" x-model="item.description"
                                                         placeholder="Description"
-                                                        class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent mt-1">
+                                                        class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                                     <template x-if="item.options && item.options.length > 0">
-                                                        <div class="flex flex-wrap gap-1 mt-1">
+                                                        <div class="flex flex-wrap gap-1.5 mt-2">
                                                             <template x-for="opt in item.options">
                                                                 <span
-                                                                    class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10"
+                                                                    class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200"
                                                                     x-text="opt.name + ': ' + opt.value"></span>
                                                             </template>
                                                         </div>
                                                     </template>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <input type="text" x-model="item.size" placeholder="Size"
-                                                        class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent placeholder:text-slate-400"
-                                                        x-show="!item.showCalculator">
+                                                <td class="px-3 py-4">
+                                                    <div class="relative">
+                                                        <input type="text" x-model="item.size" placeholder="Enter Size"
+                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-3 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all placeholder:text-slate-400"
+                                                            x-show="!item.showCalculator">
 
-                                                    <div x-show="item.showCalculator" class="flex items-center gap-1"
-                                                        style="display: none;">
-                                                        <div class="flex flex-col">
-                                                            <div class="flex items-center gap-1 mb-0.5">
-                                                                <input type="number" step="0.01" x-model="item.length"
-                                                                    placeholder="L" @input="calculateQuantity(item)"
-                                                                    class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
-                                                                <span class="text-[10px] text-slate-400">ft</span>
+                                                        <div x-show="item.showCalculator"
+                                                            class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"
+                                                            style="display: none;">
+                                                            <div class="flex flex-col gap-1.5">
+                                                                <div class="flex items-center gap-2">
+                                                                    <input type="number" step="0.01"
+                                                                        x-model="item.length" placeholder="L"
+                                                                        @input="calculateQuantity(item)"
+                                                                        class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                                    <span
+                                                                        class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                                </div>
+                                                                <div class="flex items-center gap-2">
+                                                                    <input type="number" step="0.01"
+                                                                        x-model="item.width" placeholder="W"
+                                                                        @input="calculateQuantity(item)"
+                                                                        class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                                    <span
+                                                                        class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                                </div>
                                                             </div>
-                                                            <div class="flex items-center gap-1">
-                                                                <input type="number" step="0.01" x-model="item.width"
-                                                                    placeholder="W" @input="calculateQuantity(item)"
-                                                                    class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
-                                                                <span class="text-[10px] text-slate-400">ft</span>
+                                                            <div class="flex flex-col items-center">
+                                                                <span
+                                                                    class="text-[10px] font-bold text-slate-300 mb-0.5">AREA</span>
+                                                                <span
+                                                                    class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
+                                                                    x-text="(item.length && item.width) ? (item.length * item.width).toFixed(2) : '0.00'"></span>
                                                             </div>
                                                         </div>
-                                                        <span class="text-xs text-slate-400"
-                                                            x-text="(item.length && item.width) ? (item.length * item.width).toFixed(2) : '='"></span>
                                                     </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <input type="number" step="0.01" x-model="item.unit_price"
-                                                        @input="calculateTotals"
-                                                        class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-right">
+                                                <td class="px-3 py-4">
+                                                    <div class="relative">
+                                                        <span
+                                                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
+                                                            x-text="estimate.currency"></span>
+                                                        <input type="number" step="0.01" x-model="item.unit_price"
+                                                            @input="calculateTotals"
+                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
+                                                    </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <div class="flex items-center gap-1">
+                                                <td class="px-3 py-4">
+                                                    <div class="flex items-center justify-center gap-1.5">
                                                         <input type="number" step="0.01" x-model="item.quantity"
                                                             @input="calculateTotals"
-                                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-center"
+                                                            class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all"
                                                             :readonly="item.showCalculator"
-                                                            :class="{'bg-slate-50': item.showCalculator}">
+                                                            :class="{'bg-slate-100 italic text-slate-400 border-dashed': item.showCalculator}">
                                                         <button type="button" @click="toggleCalculator(item)"
-                                                            class="text-slate-400 hover:text-indigo-600 transition-colors p-1"
-                                                            :class="{'text-indigo-600 bg-indigo-50 rounded': item.showCalculator}"
-                                                            title="Toggle Calculator">
-                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                                            class="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100"
+                                                            :class="{'text-indigo-600 bg-indigo-50 border-indigo-100': item.showCalculator}"
+                                                            title="Toggle Area Calculator">
+                                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                                                 stroke="currentColor">
                                                                 <path stroke-linecap="round" stroke-linejoin="round"
                                                                     stroke-width="2"
@@ -383,46 +458,41 @@
                                                         </button>
                                                     </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <input type="text" x-model="item.unit_type"
-                                                        class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 bg-transparent text-center">
+                                                <td class="px-3 py-4 text-right align-middle">
+                                                    <div class="flex flex-col">
+                                                        <span
+                                                            class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
+                                                        <span class="text-sm font-bold text-slate-900"
+                                                            x-text="estimate.currency + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                                    </div>
                                                 </td>
-                                                <td class="px-3 py-2">
-                                                    <input type="number" step="0.01" x-model="item.tax_1"
-                                                        @input="calculateTotals"
-                                                        class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-right">
-                                                </td>
-                                                <td class="px-3 py-2">
-                                                    <input type="number" step="0.01" x-model="item.tax_2"
-                                                        @input="calculateTotals"
-                                                        class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-right">
-                                                </td>
-                                                <td class="px-3 py-2 text-right text-sm font-medium text-slate-900">
-                                                    <span x-text="calculateItemTotal(item).toFixed(2)"></span>
-                                                </td>
-                                                <td class="px-3 py-2 text-right">
-                                                    <button type="button" @click="removeItem(sectionIndex, itemIndex)"
-                                                        class="text-slate-400 hover:text-rose-600 transition-colors">
-                                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fill-rule="evenodd"
-                                                                d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4z"
-                                                                clip-rule="evenodd" />
-                                                        </svg>
-                                                    </button>
-
-                                                    <!-- Internal Note Icon for Custom Items -->
-                                                    <template x-if="!item.product_id">
-                                                        <button type="button" @click="openInternalNoteModal(item)"
-                                                            class="ml-2 text-slate-400 hover:text-amber-500 transition-colors"
-                                                            title="Add Internal Note">
-                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                                                stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                <td class="px-3 py-4 text-right">
+                                                    <div class="flex flex-col items-center gap-3">
+                                                        <button type="button"
+                                                            @click="removeItem(sectionIndex, itemIndex)"
+                                                            class="group/del h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100">
+                                                            <svg class="h-5 w-5" viewBox="0 0 20 20"
+                                                                fill="currentColor">
+                                                                <path fill-rule="evenodd"
+                                                                    d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4z"
+                                                                    clip-rule="evenodd" />
                                                             </svg>
                                                         </button>
-                                                    </template>
+
+                                                        <!-- Internal Note Icon for Custom Items -->
+                                                        <template x-if="!item.product_id">
+                                                            <button type="button" @click="openInternalNoteModal(item)"
+                                                                class="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"
+                                                                title="Add Internal Note">
+                                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                </svg>
+                                                            </button>
+                                                        </template>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         </template>
@@ -462,59 +532,57 @@
                 <!-- Standard List Table -->
                 <div x-show="estimate.type === 'standard'" class="overflow-x-auto min-h-[100px]">
                     <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50">
+                        <thead class="bg-slate-50/50">
                             <tr>
-                                <th scope="col" class="w-10 py-3 px-3"></th>
+                                <th scope="col" class="w-10 py-4 px-3"></th>
                                 <th scope="col"
-                                    class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-16">
+                                    class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
                                     Image
                                 </th>
                                 <th scope="col"
-                                    class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                    Item</th>
+                                    class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
+                                    Unit Configuration</th>
                                 <th scope="col"
-                                    class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
+                                    class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    Item Details</th>
+                                <th scope="col"
+                                    class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                     Size</th>
                                 <th scope="col"
-                                    class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
+                                    class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                     Price</th>
                                 <th scope="col"
-                                    class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-28">
-                                    Qty</th>
+                                    class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
+                                    Quantity</th>
                                 <th scope="col"
-                                    class="px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-16">
-                                    Unit</th>
-                                <th scope="col"
-                                    class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
-                                    Tax 1 (%)</th>
-                                <th scope="col"
-                                    class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
-                                    Tax 2 (%)</th>
-                                <th scope="col"
-                                    class="px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider w-24">
+                                    class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
                                     Total</th>
-                                <th scope="col" class="relative px-3 py-3 w-10"><span class="sr-only">Actions</span>
+                                <th scope="col" class="relative px-3 py-4 w-12"><span class="sr-only">Actions</span>
                                 </th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200 standard-items-sortable">
                             <template x-for="(item, itemIndex) in estimate.items" :key="itemIndex">
-                                <tr class="group hover:bg-slate-50 transition-colors">
-                                    <td class="px-3 py-2 text-center text-slate-400 cursor-move handle">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                                    <td
+                                        class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
+                                        <svg class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"
+                                            stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M4 8h16M4 16h16" />
                                         </svg>
                                     </td>
-                                    <td class="px-3 py-2 text-center">
+                                    <td class="px-3 py-4 align-middle">
                                         <template x-if="item.image_url">
-                                            <img :src="item.image_url"
-                                                class="h-10 w-10 object-cover rounded-md mx-auto ring-1 ring-slate-200">
+                                            <div class="relative h-12 w-12 mx-auto">
+                                                <img :src="item.image_url"
+                                                    class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
+                                            </div>
                                         </template>
                                         <template x-if="!item.image_url">
                                             <div
-                                                class="h-10 w-10 bg-slate-100 rounded-md mx-auto flex items-center justify-center ring-1 ring-slate-200">
-                                                <svg class="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24"
+                                                class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
+                                                <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
                                                     stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         stroke-width="2"
@@ -523,62 +591,136 @@
                                             </div>
                                         </template>
                                     </td>
-                                    <td class="px-3 py-2">
+                                    <td class="px-3 py-4">
+                                        <div class="flex flex-col gap-2">
+                                            <!-- Initial State: Show Button if no unit type assigned -->
+                                            <template x-if="!item.unit_type_id && !item._showTypePicker">
+                                                <button type="button" @click="item._showTypePicker = true"
+                                                    class="flex items-center justify-center w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-2.5 px-3 text-[10px] font-bold text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-white hover:shadow-sm transition-all uppercase tracking-widest leading-none">
+                                                    <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24"
+                                                        stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="3" d="M12 4v16m8-8H4" />
+                                                    </svg>
+                                                    Unit
+                                                </button>
+                                            </template>
+
+                                            <!-- Active State: Show Type Selection and Unit Selection -->
+                                            <template x-if="item.unit_type_id || item._showTypePicker">
+                                                <div class="space-y-2">
+                                                    <div class="relative group">
+                                                        <select x-model="item.unit_type_id"
+                                                            @change="onUnitTypeChange(item)"
+                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white">
+                                                            <option value="">Manual</option>
+                                                            <template x-for="type in unitTypes" :key="type.id">
+                                                                <option :value="type.id" x-text="type.name"></option>
+                                                            </template>
+                                                        </select>
+                                                        <div
+                                                            class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400 group-hover:text-slate-600">
+                                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                                                stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2" d="M19 9l-7 7-7-7" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="relative">
+                                                        <template x-if="item.unit_type_id">
+                                                            <select x-model="item.unit_type"
+                                                                class="block w-full rounded-lg border-indigo-200 bg-indigo-50/30 py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
+                                                                <template
+                                                                    x-for="u in getUnitsByTypeId(item.unit_type_id)"
+                                                                    :key="u">
+                                                                    <option :value="u" x-text="u"></option>
+                                                                </template>
+                                                            </select>
+                                                        </template>
+                                                        <template x-if="!item.unit_type_id">
+                                                            <input type="text" x-model="item.unit_type"
+                                                                placeholder="e.g. nos"
+                                                                class="block w-full rounded-lg border-slate-200 bg-slate-50 py-1.5 px-2 text-[11px] font-bold text-slate-700 text-center focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-4">
                                         <input type="text" x-model="item.name" placeholder="Item Name"
-                                            class="block w-full border-0 p-0 text-sm font-medium text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent">
+                                            class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                         <input type="text" x-model="item.description" placeholder="Description"
-                                            class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent mt-1">
+                                            class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                         <template x-if="item.options && item.options.length > 0">
-                                            <div class="flex flex-wrap gap-1 mt-1">
+                                            <div class="flex flex-wrap gap-1.5 mt-2">
                                                 <template x-for="opt in item.options">
                                                     <span
-                                                        class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10"
+                                                        class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200"
                                                         x-text="opt.name + ': ' + opt.value"></span>
                                                 </template>
                                             </div>
                                         </template>
                                     </td>
-                                    <td class="px-3 py-2">
-                                        <input type="text" x-model="item.size" placeholder="Size"
-                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent placeholder:text-slate-400"
-                                            x-show="!item.showCalculator">
+                                    <td class="px-3 py-4">
+                                        <div class="relative">
+                                            <input type="text" x-model="item.size" placeholder="Enter Size"
+                                                class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-3 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all placeholder:text-slate-400"
+                                                x-show="!item.showCalculator">
 
-                                        <div x-show="item.showCalculator" class="flex items-center gap-1"
-                                            style="display: none;">
-                                            <div class="flex flex-col">
-                                                <div class="flex items-center gap-1 mb-0.5">
-                                                    <input type="number" step="0.01" x-model="item.length"
-                                                        placeholder="L" @input="calculateQuantity(item)"
-                                                        class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
-                                                    <span class="text-[10px] text-slate-400">ft</span>
+                                            <div x-show="item.showCalculator"
+                                                class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"
+                                                style="display: none;">
+                                                <div class="flex flex-col gap-1.5">
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="number" step="0.01" x-model="item.length"
+                                                            placeholder="L" @input="calculateQuantity(item)"
+                                                            class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                        <span
+                                                            class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="number" step="0.01" x-model="item.width"
+                                                            placeholder="W" @input="calculateQuantity(item)"
+                                                            class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                        <span
+                                                            class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                    </div>
                                                 </div>
-                                                <div class="flex items-center gap-1">
-                                                    <input type="number" step="0.01" x-model="item.width"
-                                                        placeholder="W" @input="calculateQuantity(item)"
-                                                        class="block w-12 border-0 p-0 text-xs text-slate-900 focus:ring-0 bg-slate-50 rounded text-center">
-                                                    <span class="text-[10px] text-slate-400">ft</span>
+                                                <div class="flex flex-col items-center">
+                                                    <span
+                                                        class="text-[10px] font-bold text-slate-300 mb-0.5">AREA</span>
+                                                    <span
+                                                        class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
+                                                        x-text="(item.length && item.width) ? (item.length * item.width).toFixed(2) : '0.00'"></span>
                                                 </div>
                                             </div>
-                                            <span class="text-xs text-slate-400">=</span>
                                         </div>
                                     </td>
-                                    <td class="px-3 py-2">
-                                        <input type="number" step="0.01" x-model="item.unit_price"
-                                            @input="calculateTotals"
-                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-right">
+                                    <td class="px-3 py-4">
+                                        <div class="relative">
+                                            <span
+                                                class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
+                                                x-text="estimate.currency"></span>
+                                            <input type="number" step="0.01" x-model="item.unit_price"
+                                                @input="calculateTotals"
+                                                class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
+                                        </div>
                                     </td>
-                                    <td class="px-3 py-2">
-                                        <div class="flex items-center gap-1">
+                                    <td class="px-3 py-4">
+                                        <div class="flex items-center justify-center gap-1.5">
                                             <input type="number" step="0.01" x-model="item.quantity"
                                                 @input="calculateTotals"
-                                                class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-center"
+                                                class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all"
                                                 :readonly="item.showCalculator"
-                                                :class="{'bg-slate-50': item.showCalculator}">
+                                                :class="{'bg-slate-100 italic text-slate-400 border-dashed': item.showCalculator}">
                                             <button type="button" @click="toggleCalculator(item)"
-                                                class="text-slate-400 hover:text-indigo-600 transition-colors p-1"
-                                                :class="{'text-indigo-600 bg-indigo-50 rounded': item.showCalculator}"
-                                                title="Toggle Calculator">
-                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                                class="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100"
+                                                :class="{'text-indigo-600 bg-indigo-50 border-indigo-100': item.showCalculator}"
+                                                title="Toggle Area Calculator">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                                     stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         stroke-width="2"
@@ -587,43 +729,39 @@
                                             </button>
                                         </div>
                                     </td>
-                                    <td class="px-3 py-2">
-                                        <input type="text" x-model="item.unit_type"
-                                            class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 bg-transparent text-center">
+                                    <td class="px-3 py-4 text-right vertical-align-middle">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
+                                            <span class="text-sm font-bold text-slate-900"
+                                                x-text="estimate.currency + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                        </div>
                                     </td>
-                                    <td class="px-3 py-2">
-                                        <input type="number" step="0.01" x-model="item.tax_1" @input="calculateTotals"
-                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-right">
-                                    </td>
-                                    <td class="px-3 py-2">
-                                        <input type="number" step="0.01" x-model="item.tax_2" @input="calculateTotals"
-                                            class="block w-full border-0 p-0 text-sm text-slate-900 focus:ring-0 bg-transparent text-right">
-                                    </td>
-                                    <td class="px-3 py-2 text-right text-sm font-medium text-slate-900">
-                                        <span x-text="calculateItemTotal(item).toFixed(2)"></span>
-                                    </td>
-                                    <td class="px-3 py-2 text-right">
-                                        <button type="button" @click="removeItem(null, itemIndex)"
-                                            class="text-slate-400 hover:text-rose-600 transition-colors">
-                                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd"
-                                                    d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4z"
-                                                    clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
-                                        <!-- Internal Note Icon for Custom Items -->
-                                        <template x-if="!item.product_id">
-                                            <button type="button" @click="openInternalNoteModal(item)"
-                                                class="ml-2 text-slate-400 hover:text-amber-500 transition-colors"
-                                                title="Add Internal Note">
-                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                                    stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    <td class="px-3 py-4 text-right">
+                                        <div class="flex flex-col items-center gap-3">
+                                            <button type="button" @click="removeItem(null, itemIndex)"
+                                                class="group/del h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100">
+                                                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd"
+                                                        d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4z"
+                                                        clip-rule="evenodd" />
                                                 </svg>
                                             </button>
-                                        </template>
+
+                                            <!-- Internal Note Icon for Custom Items -->
+                                            <template x-if="!item.product_id">
+                                                <button type="button" @click="openInternalNoteModal(item)"
+                                                    class="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"
+                                                    title="Add Internal Note">
+                                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                        stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                </button>
+                                            </template>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>
@@ -672,6 +810,17 @@
                                                 d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
+                                </div>
+
+                                <!-- Category Filter -->
+                                <div class="mb-4">
+                                    <select x-model="productPicker.categoryId"
+                                        class="block w-full rounded-lg border-slate-300 py-2.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                                        <option value="">All Categories</option>
+                                        <template x-for="category in categories" :key="category.id">
+                                            <option :value="category.id" x-text="category.name"></option>
+                                        </template>
+                                    </select>
                                 </div>
 
                                 <!-- Search Box -->
@@ -964,6 +1113,24 @@
                                 <input type="number" x-model="estimate.discount_value" name="discount_value"
                                     @input="calculateTotals"
                                     class="block w-20 rounded-md border-0 py-1 text-right text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm sm:leading-6">
+                            </dd>
+                        </div>
+
+                        <div class="flex justify-between items-center py-2 border-t border-slate-100 mt-2">
+                            <dt class="text-slate-600 font-semibold uppercase text-[10px] tracking-wider">Taxes</dt>
+                            <dd class="flex items-center gap-4">
+                                <div class="flex flex-col items-end">
+                                    <label class="text-[10px] text-slate-400 mb-0.5">Tax 1 (%)</label>
+                                    <input type="number" step="0.01" x-model="estimate.tax_1" name="tax_1"
+                                        @input="calculateTotals"
+                                        class="block w-20 rounded-md border-0 py-1 text-right text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm sm:leading-6">
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    <label class="text-[10px] text-slate-400 mb-0.5">Tax 2 (%)</label>
+                                    <input type="number" step="0.01" x-model="estimate.tax_2" name="tax_2"
+                                        @input="calculateTotals"
+                                        class="block w-20 rounded-md border-0 py-1 text-right text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm sm:leading-6">
+                                </div>
                             </dd>
                         </div>
                         <div class="flex justify-between border-t border-slate-200 pt-3">

@@ -12,11 +12,13 @@ use App\Models\EstimateItem;
 use App\Models\ItemPackage;
 use App\Models\PdfTemplate;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\RoomTemplate;
 use App\Models\Setting;
 use App\Services\AnalyticsService;
 use App\Services\EstimateService;
 use App\Services\PdfRenderingService;
+use App\Models\UnitType;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -109,6 +111,8 @@ class EstimateController extends Controller
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
         $pdfTemplates = PdfTemplate::where('is_active', true)->get();
+        $unitTypes = UnitType::all();
+        $categories = ProductCategory::orderBy('name')->get();
 
         $settings = Setting::getAllCached();
 
@@ -122,7 +126,7 @@ class EstimateController extends Controller
             'client_note' => $settings['estimate_client_note'] ?? '',
         ];
 
-        return view('estimates.create', compact('products', 'templates', 'packages', 'defaults', 'clients', 'approvalChains', 'pdfTemplates'));
+        return view('estimates.create', compact('products', 'templates', 'packages', 'defaults', 'clients', 'approvalChains', 'pdfTemplates', 'unitTypes', 'categories'));
     }
 
     /**
@@ -158,46 +162,66 @@ class EstimateController extends Controller
             'sections.*.items.*.internal_note' => 'nullable|string',
         ]);
 
-        $validated['estimate_number'] = $this->estimateService->generateNextNumber();
-        $validated['created_by'] = auth()->id();
+        $attempts = 0;
+        $maxAttempts = 3;
+        $lastException = null;
 
-        DB::beginTransaction();
-        try {
-            $estimate = Estimate::create($validated);
+        while ($attempts < $maxAttempts) {
+            $attempts++;
 
-            if ($estimate->type === 'room_based' && $request->has('sections')) {
-                foreach ($request->sections as $sectionIndex => $sectionData) {
-                    $section = $estimate->sections()->create([
-                        'name' => $sectionData['name'],
-                        'order_index' => $sectionIndex,
-                    ]);
+            // Generate number inside the loop to ensure a fresh number on retry
+            $validated['estimate_number'] = $this->estimateService->generateNextNumber();
+            $validated['created_by'] = auth()->id();
 
-                    if (isset($sectionData['items'])) {
-                        foreach ($sectionData['items'] as $itemIndex => $itemData) {
-                            $oi = $itemData['order_index'] ?? $itemIndex;
-                            $this->estimateService->createEstimateItem($estimate, $section->id, $itemData, $oi);
+            DB::beginTransaction();
+            try {
+                $estimate = Estimate::create($validated);
+
+                if ($estimate->type === 'room_based' && $request->has('sections')) {
+                    foreach ($request->sections as $sectionIndex => $sectionData) {
+                        $section = $estimate->sections()->create([
+                            'name' => $sectionData['name'],
+                            'order_index' => $sectionIndex,
+                        ]);
+
+                        if (isset($sectionData['items'])) {
+                            foreach ($sectionData['items'] as $itemIndex => $itemData) {
+                                $oi = $itemData['order_index'] ?? $itemIndex;
+                                $this->estimateService->createEstimateItem($estimate, $section->id, $itemData, $oi);
+                            }
                         }
                     }
+                } elseif ($request->has('items')) {
+                    foreach ($request->items as $itemIndex => $itemData) {
+                        $oi = $itemData['order_index'] ?? $itemIndex;
+                        $this->estimateService->createEstimateItem($estimate, null, $itemData, $oi);
+                    }
                 }
-            } elseif ($request->has('items')) {
-                foreach ($request->items as $itemIndex => $itemData) {
-                    $oi = $itemData['order_index'] ?? $itemIndex;
-                    $this->estimateService->createEstimateItem($estimate, null, $itemData, $oi);
+
+                $this->estimateService->recalculateTotals($estimate);
+
+                ActivityLog::log('created', $estimate, "Estimate #{$estimate->estimate_number} created by " . auth()->user()->name);
+
+                DB::commit();
+
+                return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate created successfully.');
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                // If unique constraint violation, retry
+                if (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'UNIQUE constraint failed')) {
+                    $lastException = $e;
+                    continue;
                 }
+
+                // For other errors, return immediately
+                return back()->withInput()->withErrors(['error' => 'Failed to create estimate: ' . $e->getMessage()]);
             }
-
-            $this->estimateService->recalculateTotals($estimate);
-
-            ActivityLog::log('created', $estimate, "Estimate #{$estimate->estimate_number} created by " . auth()->user()->name);
-
-            DB::commit();
-
-            return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate created successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return back()->withInput()->withErrors(['error' => 'Failed to create estimate: ' . $e->getMessage()]);
         }
+
+        // If we exhausted attempts
+        return back()->withInput()->withErrors(['error' => 'Failed to create estimate (Unique Number Collision) after multiple attempts. Please try again.']);
     }
 
     /**
@@ -207,7 +231,7 @@ class EstimateController extends Controller
     {
         $this->authorize('view', $estimate);
 
-        $estimate->load('items.product.images', 'sections.items.product.images', 'approvals.user', 'checklistItems', 'creator');
+        $estimate->load('items.product.images', 'items.unitType', 'sections.items.product.images', 'sections.items.unitType', 'approvals.user', 'checklistItems', 'creator');
         $checklists = ApprovalChecklist::getAllCached();
         $declineReasons = DeclineReason::getActiveCached();
 
@@ -264,6 +288,8 @@ class EstimateController extends Controller
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
         $pdfTemplates = PdfTemplate::where('is_active', true)->get();
+        $unitTypes = UnitType::all();
+        $categories = ProductCategory::orderBy('name')->get();
         $estimate->load(['sections.items.product.images', 'items.product.images', 'couponCode']);
 
         $settings = Setting::getAllCached();
@@ -277,7 +303,7 @@ class EstimateController extends Controller
             'client_note' => $settings['estimate_client_note'] ?? '',
         ];
 
-        return view('estimates.edit', compact('estimate', 'products', 'templates', 'packages', 'clients', 'approvalChains', 'pdfTemplates', 'defaults'));
+        return view('estimates.edit', compact('estimate', 'products', 'templates', 'packages', 'clients', 'approvalChains', 'pdfTemplates', 'defaults', 'unitTypes', 'categories'));
     }
 
     /**
