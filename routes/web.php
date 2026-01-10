@@ -29,6 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/preferences', [\App\Http\Controllers\User\NotificationPreferenceController::class, 'update'])->name('preferences.update');
 
     // Estimates (Access controlled by Policy)
     Route::get('estimates/{estimate}/print', [EstimateController::class, 'print'])->name('estimates.print');
@@ -54,6 +55,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:super_admin,estimator_admin'])->group(function () {
         // Templates
         Route::resource('templates', App\Http\Controllers\RoomTemplateController::class);
+        Route::resource('email-templates', App\Http\Controllers\EmailTemplateController::class);
+        Route::post('email-templates/preview', [App\Http\Controllers\EmailTemplateController::class, 'preview'])->name('email-templates.preview');
+
+        Route::resource('brands', App\Http\Controllers\BrandController::class)->except(['show']);
         Route::resource('packages', App\Http\Controllers\ItemPackageController::class);
 
         // Settings
@@ -69,7 +74,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Products & Categories
         Route::resource('categories', \App\Http\Controllers\ProductCategoryController::class);
-        Route::resource('products', ProductController::class);
+
 
         // Approvals
         Route::get('/approvals', [App\Http\Controllers\ApprovalController::class, 'index'])->name('approvals.index');
@@ -96,7 +101,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
 
         // Product Library
-        Route::resource('products', App\Http\Controllers\ProductController::class);
+        Route::resource('products', App\Http\Controllers\ProductController::class)->except(['show']);
         Route::get('products/actions/template', [App\Http\Controllers\ProductController::class, 'downloadTemplate'])->name('products.template');
         Route::post('products/actions/import', [App\Http\Controllers\ProductController::class, 'import'])->name('products.import');
         Route::get('products/pending/list', [App\Http\Controllers\ProductController::class, 'pending'])->name('products.pending');
@@ -112,6 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('estimates/{estimate}/copy', [App\Http\Controllers\EstimateController::class, 'copy'])->name('estimates.copy');
         Route::post('estimates/{estimate}/mark-as/{status}', [App\Http\Controllers\EstimateController::class, 'markAs'])->name('estimates.mark-as');
         Route::post('estimates/{estimate}/reply', [App\Http\Controllers\EstimateController::class, 'storeComment'])->name('estimates.reply');
+        Route::post('estimates/bulk-update', [App\Http\Controllers\EstimateController::class, 'bulkUpdate'])->name('estimates.bulk-update');
         Route::post('estimates/{estimate}/send', [App\Http\Controllers\EstimateController::class, 'sendToClient'])->name('estimates.send');
         Route::post('estimates/{estimate}/followers', [App\Http\Controllers\EstimateController::class, 'addFollower'])->name('estimates.followers.add');
         Route::delete('estimates/{estimate}/followers/{user}', [App\Http\Controllers\EstimateController::class, 'removeFollower'])->name('estimates.followers.remove');
@@ -127,6 +133,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Activity Logs
         Route::get('activities', [App\Http\Controllers\ActivityLogController::class, 'index'])->name('activities.index');
         Route::get('activities/{activity}', [App\Http\Controllers\ActivityLogController::class, 'show'])->name('activities.show');
+
+        // Event Logs (System Events)
+        Route::resource('event-logs', App\Http\Controllers\EventLogController::class)->only(['index', 'show']);
 
         // Reminders
         Route::get('reminders', [App\Http\Controllers\ReminderController::class, 'index'])->name('reminders.index');
@@ -151,8 +160,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // PDF Custom Templates
         Route::post('/pdf-templates/preview', [App\Http\Controllers\PdfTemplateController::class, 'preview'])->name('pdf-templates.preview');
         Route::post('/pdf-templates/{pdfTemplate}/restore/{version}', [App\Http\Controllers\PdfTemplateController::class, 'restore'])->name('pdf-templates.restore');
-        Route::resource('pdf-templates', App\Http\Controllers\PdfTemplateController::class);
-        Route::resource('unit-types', App\Http\Controllers\UnitTypeController::class);
+        Route::resource('pdf-templates', App\Http\Controllers\PdfTemplateController::class)->except(['show']);
+        Route::resource('unit-types', App\Http\Controllers\UnitTypeController::class)->except(['create', 'edit', 'show']);
+
+        // Automation Layer
+        Route::post('automation/{automation}/version', [App\Http\Controllers\Admin\AutomationController::class, 'createVersion'])->name('automation.version');
+        Route::get('automation/{automation}/logs', [App\Http\Controllers\Admin\AutomationController::class, 'getLogs'])->name('automation.logs');
+        Route::get('automation/{automation}/metrics', [App\Http\Controllers\Admin\AutomationController::class, 'getMetrics'])->name('automation.metrics');
+        Route::resource('automation', App\Http\Controllers\Admin\AutomationController::class)->except(['show']);
     });
 
     // Approval Chains (Super Admin Only)

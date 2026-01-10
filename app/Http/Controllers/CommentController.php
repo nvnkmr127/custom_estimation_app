@@ -8,6 +8,12 @@ use Illuminate\Http\Request;
 
 class CommentController extends Controller
 {
+    protected $dispatcher;
+
+    public function __construct(\App\Core\Events\EventDispatcherInterface $dispatcher)
+    {
+        $this->dispatcher = $dispatcher;
+    }
     /**
      * Store a new comment
      */
@@ -35,6 +41,20 @@ class CommentController extends Controller
             'type' => $type,
             'parent_id' => $validated['parent_id'] ?? null,
         ]);
+
+        // Dispatch Event
+        $this->dispatcher->dispatch(new \App\Core\Events\Comments\CommentAdded(
+            $comment->id,
+            $estimate->id,
+            $comment->user_id, // This is null for client comments?
+            // In CommentController:store:
+            // 'user_id' => auth()->id(), for internal.
+            // But if it's client type, auth check fails or returns null?
+            // "Type = auth()->check() ? 'internal' : 'client'"
+            // So if client, user_id is null.
+            // CommentAdded event allows user_id to be nullable.
+            substr($comment->comment, 0, 100)
+        ));
 
         // Send notification if client comment
         if ($type === 'client') {
@@ -97,7 +117,7 @@ class CommentController extends Controller
     public function destroy(EstimateComment $comment)
     {
         // Only allow deleting own comments or if admin
-        if (auth()->id() !== $comment->user_id && ! auth()->user()->isAdmin()) {
+        if (auth()->id() !== $comment->user_id && !auth()->user()->isAdmin()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',

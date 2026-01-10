@@ -14,6 +14,16 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
+    protected $dispatcher;
+
+    public function __construct(\App\Core\Events\EventDispatcherInterface $dispatcher)
+    {
+        $this->dispatcher = $dispatcher;
+    }
+
+    /**
+     * Display the login view.
+     */
     public function create(): View
     {
         return view('auth.login');
@@ -27,6 +37,9 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        // Dispatch Event
+        $this->dispatcher->dispatch(new \App\Core\Events\Users\UserLoggedIn(Auth::id(), $request->ip()));
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

@@ -46,6 +46,10 @@ class PermissionService
 
         // Discounts
         'apply_discounts' => 'Apply discounts to estimates',
+
+        // Automations
+        'manage_automations' => 'Create, edit, and delete automation workflows',
+        'view_automations' => 'View automation workflows and logs',
     ];
 
     /**
@@ -76,6 +80,8 @@ class PermissionService
             'apply_discounts',
             'manage_pdf_templates',
             'view_pdf_templates',
+            'manage_automations',
+            'view_automations',
         ],
 
         'estimator_admin' => [
@@ -100,6 +106,8 @@ class PermissionService
             'apply_discounts',
             'manage_pdf_templates',
             'view_pdf_templates',
+            'manage_automations',
+            'view_automations',
         ],
 
         'estimator_manager' => [
@@ -191,6 +199,10 @@ class PermissionService
             ],
             'Pricing' => [
                 'apply_discounts',
+            ],
+            'Automations' => [
+                'manage_automations',
+                'view_automations',
             ],
         ];
     }

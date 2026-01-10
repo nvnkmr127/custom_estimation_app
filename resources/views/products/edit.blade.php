@@ -31,7 +31,7 @@
         </div>
 
         <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data"
-            class="space-y-8" x-data="{ 
+            class="space-y-8" @submit="isSubmitting = true" x-data="{ 
                   isSubmitting: false,
                   attributes: {{ $productAttributes }},
                   options: {{ $productOptions }},
@@ -339,7 +339,7 @@
                 <a href="{{ route('products.index') }}"
                     class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors">Cancel</a>
                 <x-primary-button type="submit" class="px-8 py-2.5" x-bind:disabled="isSubmitting"
-                    @click="isSubmitting = true" x-bind:class="{ 'opacity-75 cursor-not-allowed': isSubmitting }">
+                    x-bind:class="{ 'opacity-75 cursor-not-allowed': isSubmitting }">
                     <div class="flex items-center">
                         <div x-show="isSubmitting" class="mr-2" style="display: none;">
                             <x-loading-spinner size="5" />

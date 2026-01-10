@@ -165,6 +165,7 @@ class Estimate extends Model
      */
     /**
      * Submit estimate for approval workflow
+     * @return \Illuminate\Support\Collection
      */
     public function submitForApproval()
     {
@@ -178,16 +179,20 @@ class Estimate extends Model
         $firstStep = $this->approvalChain->steps()->orderBy('order')->first();
 
         if ($firstStep) {
-            $this->createApprovalsForOrder($firstStep->order);
+            return $this->createApprovalsForOrder($firstStep->order);
         }
+
+        return collect();
     }
 
     /**
      * Create approval records for a specific order step
+     * @return \Illuminate\Support\Collection
      */
     public function createApprovalsForOrder($order)
     {
         $steps = $this->approvalChain->steps()->where('order', $order)->get();
+        $createdApprovals = collect();
 
         foreach ($steps as $step) {
             $userId = $step->user_id;
@@ -212,13 +217,16 @@ class Estimate extends Model
                 ->exists();
 
             if (!$exists) {
-                EstimateApproval::create([
+                $approval = EstimateApproval::create([
                     'estimate_id' => $this->id,
                     'user_id' => $userId,
                     'status' => 'pending',
                 ]);
+                $createdApprovals->push($approval);
             }
         }
+
+        return $createdApprovals;
     }
 
     /**

@@ -26,12 +26,17 @@ use Illuminate\Support\Facades\DB;
 class EstimateController extends Controller
 {
     protected $estimateService;
+    protected $dispatcher;
 
-    public function __construct(EstimateService $estimateService)
+    public function __construct(EstimateService $estimateService, \App\Core\Events\EventDispatcherInterface $dispatcher)
     {
         $this->estimateService = $estimateService;
+        $this->dispatcher = $dispatcher;
     }
 
+    /**
+     * Display a listing of estimates.
+     */
     /**
      * Display a listing of estimates.
      */
@@ -53,23 +58,168 @@ class EstimateController extends Controller
             });
         }
 
-        if ($request->has('status') && $request->status !== 'all') {
+        // --- Filters ---
+        if ($request->has('status') && $request->status !== 'all' && $request->status !== '') {
             $query->where('status', $request->status);
         }
 
-        $estimates = $query->paginate(15);
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
 
-        $counts = [
-            'all' => Estimate::count(),
-            'draft' => Estimate::where('status', Estimate::STATUS_DRAFT)->count(),
-            'waiting_approval' => Estimate::where('status', Estimate::STATUS_WAITING_APPROVAL)->count(),
-            'approved' => Estimate::where('status', Estimate::STATUS_APPROVED)->count(),
-            'sent' => Estimate::where('status', Estimate::STATUS_SENT)->count(),
-            'accepted' => Estimate::where('status', Estimate::STATUS_ACCEPTED)->count(),
-            'declined' => Estimate::where('status', Estimate::STATUS_DECLINED)->count(),
+        if ($request->filled('date_from')) {
+            $query->whereDate('estimate_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('estimate_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('amount_min')) {
+            $query->where('grand_total', '>=', $request->amount_min);
+        }
+
+        if ($request->filled('amount_max')) {
+            $query->where('grand_total', '<=', $request->amount_max);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('estimate_number', 'like', "%{$search}%")
+                    ->orWhereHas('client', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+
+        // --- Analytics (Calculated on the filtered set) ---
+        $analyticsQuery = clone $query;
+        $analyticsQuery->reorder(); // Remove ordering for aggregation
+
+        $aggregates = $analyticsQuery->selectRaw('status, count(*) as count, sum(grand_total) as value')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
+
+        $stats = [
+            'total_count' => 0,
+            'total_value' => 0,
         ];
 
-        return view('estimates.index', compact('estimates', 'counts'));
+        // Initialize all statuses with 0
+        $allStatuses = [
+            Estimate::STATUS_DRAFT,
+            Estimate::STATUS_WAITING_APPROVAL,
+            Estimate::STATUS_APPROVED,
+            Estimate::STATUS_SENT,
+            Estimate::STATUS_ACCEPTED,
+            Estimate::STATUS_DECLINED, // and Expired if exists
+        ];
+
+        foreach ($allStatuses as $status) {
+            $row = $aggregates->get($status);
+            $count = $row ? $row->count : 0;
+            $value = $row ? $row->value : 0;
+
+            $stats[$status . '_count'] = $count;
+            $stats[$status . '_value'] = $value;
+
+            $stats['total_count'] += $count;
+            $stats['total_value'] += $value;
+        }
+
+        // Conversion Rate
+        $stats['conversion_rate'] = $stats['total_count'] > 0
+            ? round(($stats['accepted_count'] / $stats['total_count']) * 100, 1)
+            : 0;
+
+        $estimates = $query->paginate(15)->withQueryString();
+
+        // Status Counts for Tabs (Global context usually better for tabs to show what's available)
+        // But if we filter by Client, maybe tabs should update? Let's keep tabs global for simplicity or
+        // strictly based on other filters? Standard is usually global counts on tabs unless filtered.
+        // Let's keep simple global counts for the specific user scope.
+        $scopeQuery = Estimate::current();
+        if (!auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
+            $scopeQuery->where(function ($q) {
+                $q->where('created_by', auth()->id())
+                    ->orWhereHas('manualFollowers', function ($f) {
+                        $f->where('user_id', auth()->id());
+                    })
+                    ->orWhereHas('approvals', function ($a) {
+                        $a->where('user_id', auth()->id());
+                    });
+            });
+        }
+
+        $counts = [
+            'all' => (clone $scopeQuery)->count(),
+            'draft' => (clone $scopeQuery)->where('status', Estimate::STATUS_DRAFT)->count(),
+            'waiting_approval' => (clone $scopeQuery)->where('status', Estimate::STATUS_WAITING_APPROVAL)->count(),
+            'approved' => (clone $scopeQuery)->where('status', Estimate::STATUS_APPROVED)->count(),
+            'sent' => (clone $scopeQuery)->where('status', Estimate::STATUS_SENT)->count(),
+            'accepted' => (clone $scopeQuery)->where('status', Estimate::STATUS_ACCEPTED)->count(),
+            'declined' => (clone $scopeQuery)->where('status', Estimate::STATUS_DECLINED)->count(),
+        ];
+
+        $clients = Client::orderBy('name')->get(); // For filter dropdown
+
+        return view('estimates.index', compact('estimates', 'counts', 'stats', 'clients'));
+    }
+
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'estimate_ids' => 'required|array',
+            'estimate_ids.*' => 'exists:estimates,id',
+            'action' => 'required|in:delete,mark_sent,mark_accepted,mark_declined,mark_draft',
+        ]);
+
+        $count = 0;
+        $estimates = Estimate::whereIn('id', $request->estimate_ids)->get();
+
+        foreach ($estimates as $estimate) {
+            // Authorize
+            if ($request->action === 'delete') {
+                if (auth()->user()->can('delete', $estimate)) {
+                    $estimate->delete();
+                    $count++;
+                }
+            } else {
+                if (auth()->user()->can('update', $estimate)) {
+                    $statusMap = [
+                        'mark_sent' => Estimate::STATUS_SENT,
+                        'mark_accepted' => Estimate::STATUS_ACCEPTED,
+                        'mark_declined' => Estimate::STATUS_DECLINED,
+                        'mark_draft' => Estimate::STATUS_DRAFT,
+                    ];
+
+                    if (isset($statusMap[$request->action])) {
+                        $estimate->update(['status' => $statusMap[$request->action]]);
+                        ActivityLog::log('status_updated', $estimate, "Bulk action: status changed to " . $statusMap[$request->action] . " by " . auth()->user()->name);
+
+                        // Dispatch Event based on action
+                        switch ($request->action) {
+                            case 'mark_sent':
+                                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate->id, auth()->id(), 'bulk_action'));
+                                break;
+                            case 'mark_accepted':
+                                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'manual_bulk'));
+                                break;
+                            case 'mark_declined':
+                                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate->id, auth()->id(), 'manual_bulk'));
+                                break;
+                        }
+
+                        $count++;
+                    }
+                }
+            }
+        }
+
+        return back()->with('success', "Processed {$count} estimates successfully.");
     }
 
     /**
@@ -203,6 +353,9 @@ class EstimateController extends Controller
                 ActivityLog::log('created', $estimate, "Estimate #{$estimate->estimate_number} created by " . auth()->user()->name);
 
                 DB::commit();
+
+                // Dispatch Event
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateCreated($estimate, auth()->id()));
 
                 return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate created successfully.');
 
@@ -462,6 +615,9 @@ class EstimateController extends Controller
 
             DB::commit();
 
+            // Dispatch Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateUpdated($estimate, auth()->id(), $estimate->getChanges()));
+
             return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -517,6 +673,22 @@ class EstimateController extends Controller
 
         ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} status manually changed from {$oldStatus} to {$status}.");
 
+        // Dispatch specific status events
+        switch ($status) {
+            case Estimate::STATUS_SENT:
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate->id, auth()->id(), 'manual_mark'));
+                break;
+            case Estimate::STATUS_ACCEPTED:
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'manual_mark'));
+                break;
+            case Estimate::STATUS_DECLINED:
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate->id, auth()->id(), 'manual_mark'));
+                break;
+            case Estimate::STATUS_EXPIRED:
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateExpired($estimate->id));
+                break;
+        }
+
         return back()->with('success', 'Estimate marked as ' . ucfirst($status) . '.');
     }
 
@@ -543,6 +715,9 @@ class EstimateController extends Controller
 
         try {
             $this->estimateService->sendToClient($estimate);
+
+            // Dispatch Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate->id, auth()->id(), 'email'));
 
             return back()->with('success', 'Estimate sent to client successfully.');
         } catch (\Exception $e) {

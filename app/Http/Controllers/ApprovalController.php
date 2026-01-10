@@ -7,6 +7,12 @@ use Illuminate\Http\Request;
 
 class ApprovalController extends Controller
 {
+    protected $dispatcher;
+
+    public function __construct(\App\Core\Events\EventDispatcherInterface $dispatcher)
+    {
+        $this->dispatcher = $dispatcher;
+    }
     /**
      * Display a listing of estimates waiting for approval by current user.
      */
@@ -33,7 +39,16 @@ class ApprovalController extends Controller
     public function submit(Estimate $estimate)
     {
         try {
-            $estimate->submitForApproval();
+            $createdApprovals = $estimate->submitForApproval();
+
+            // Dispatch events
+            foreach ($createdApprovals as $approval) {
+                $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRequested(
+                    $estimate->id,
+                    $approval->id,
+                    $approval->user_id
+                ));
+            }
 
             return redirect()->back()->with('success', 'Estimate submitted for approval successfully.');
         } catch (\Exception $e) {
@@ -75,6 +90,13 @@ class ApprovalController extends Controller
                 'comments' => $request->input('comments'),
             ]);
 
+            // Dispatch Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalApproved(
+                $estimate->id,
+                $approval->id,
+                $user->id
+            ));
+
             // Check if there are other pending approvals for this stage
             // We can check strictly by order, but checking global pending status is safer
             // provided the next steps haven't been created yet.
@@ -88,12 +110,25 @@ class ApprovalController extends Controller
                         'approval_status' => 'approved',
                         'status' => 'approved',
                     ]);
+                    // Dispatch EstimateApproved if needed via internal flow?
+                    // "EstimateApproved" (Internal)
+                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, $user->id, 'internal'));
+
                 } else {
                     // Create approval for next step(s)
                     $nextSteps = $estimate->nextApprovalSteps();
                     if ($nextSteps->isNotEmpty()) {
                         $order = $nextSteps->first()->order;
-                        $estimate->createApprovalsForOrder($order);
+                        $newApprovals = $estimate->createApprovalsForOrder($order);
+
+                        // Dispatch events for next steps
+                        foreach ($newApprovals as $newApproval) {
+                            $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRequested(
+                                $estimate->id,
+                                $newApproval->id,
+                                $newApproval->user_id
+                            ));
+                        }
                     }
                 }
             }
@@ -134,8 +169,19 @@ class ApprovalController extends Controller
                 'comments' => $request->input('comments', 'Rejected'),
             ]);
 
+            // Dispatch Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRejected(
+                $estimate->id,
+                $approval->id,
+                $user->id,
+                $request->input('comments', 'Rejected')
+            ));
+
             // Update estimate status
             $estimate->update(['approval_status' => 'rejected']);
+
+            // Dispatch EstimateRejected (Internal)
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateRejected($estimate->id, $user->id, $request->input('comments')));
 
             return redirect()->back()->with('success', 'Estimate rejected.');
         } catch (\Exception $e) {

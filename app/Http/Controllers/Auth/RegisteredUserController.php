@@ -14,6 +14,15 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
+    protected $dispatcher;
+    protected $emailDispatcher;
+
+    public function __construct(
+        \App\Core\Events\EventDispatcherInterface $dispatcher
+    ) {
+        $this->dispatcher = $dispatcher;
+    }
+
     /**
      * Display the registration view.
      */
@@ -31,7 +40,7 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -44,6 +53,13 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+
+        // Dispatch Event
+        $this->dispatcher->dispatch(new \App\Core\Events\Users\UserRegistered($user->id, 'self_registration'));
+
+        // Send Welcome Email
+        // Send Welcome Email (Removed, handled by Listener)
+        // $this->emailDispatcher->dispatch(...);
 
         return redirect(route('dashboard', absolute: false));
     }

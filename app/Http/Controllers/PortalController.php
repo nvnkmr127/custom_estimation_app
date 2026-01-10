@@ -10,11 +10,13 @@ class PortalController extends Controller
     protected $perfexApi;
 
     protected $analytics;
+    protected $dispatcher;
 
-    public function __construct(\App\Services\PerfexApiService $perfexApi, \App\Services\AnalyticsService $analytics)
+    public function __construct(\App\Services\PerfexApiService $perfexApi, \App\Services\AnalyticsService $analytics, \App\Core\Events\EventDispatcherInterface $dispatcher)
     {
         $this->perfexApi = $perfexApi;
         $this->analytics = $analytics;
+        $this->dispatcher = $dispatcher;
     }
 
     /**
@@ -33,6 +35,9 @@ class PortalController extends Controller
         $estimate->update(['last_viewed_at' => now()]);
 
         \App\Models\ActivityLog::log('proposal_viewed', $estimate, "Proposal for Estimate #{$estimate->estimate_number} was viewed by the client.");
+
+        // Dispatch Event
+        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateViewed($estimate->id, null, $request->ip()));
 
         // --- Hot Lead Detection ---
         $hotLeadThreshold = \App\Models\Setting::getCached('nurture_hot_lead_threshold', 3);
@@ -129,6 +134,18 @@ class PortalController extends Controller
         $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
         \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'accepted'));
 
+        // Dispatch Event
+        // We use 'client' as approver_id? But approver_id expects int. 
+        // For client, we might need a special ID or update the event to allow null?
+        // Proposal says `approverId` is `int`.
+        // If it's a client, they are not a user.
+        // I should probably use 0 or a negative number for client? Or update the event to nullable.
+        // Let's check EstimateApproved definition.
+        // public int $approverId.
+        // I will use 0 for now to indicate "External/Client". Alternatively, if the client has a user account (some systems do), use that.
+        // Here, it seems clients don't log in to portal (signed url).
+        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate->id, 0, 'client'));
+
         return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. It has also been synced to our CRM.');
     }
 
@@ -153,6 +170,9 @@ class PortalController extends Controller
         // Notify Admins
         $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
         \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'declined'));
+
+        // Dispatch Event
+        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate->id, 0, $request->client_notes));
 
         return redirect()->back()->with('success', 'You have declined the estimate. Thank you for your feedback.');
     }

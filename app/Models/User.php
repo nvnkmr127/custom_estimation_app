@@ -114,6 +114,16 @@ class User extends Authenticatable
         return $this->hasMany(EstimateComment::class);
     }
 
+    public function pendingNotifications()
+    {
+        return $this->hasMany(PendingNotification::class);
+    }
+
+    public function notificationPreferences()
+    {
+        return $this->hasMany(NotificationPreference::class);
+    }
+
     public function getRoleBadgeClassAttribute()
     {
         $styles = [

@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Log;
 
 class EstimateService
 {
+    public function __construct()
+    {
+    }
+
     /**
      * Create a new estimate item.
      */
@@ -271,15 +275,29 @@ class EstimateService
         }
 
         try {
-            // Notify client
-            $estimate->client->notify(new \App\Notifications\EstimateSentToClient($estimate));
+            // Notify client (Refactored to use Event)
+            // $estimate->client->notify(new \App\Notifications\EstimateSentToClient($estimate));
+
+            // Dispatch Event instead of direct email
+            event(new \App\Core\Events\Estimates\EstimateSent(
+                $estimate->id,
+                auth()->id() ?? 0, // Fallback for system actions
+                'email'
+            ));
 
             // Update status if it was draft
             if ($estimate->status === Estimate::STATUS_DRAFT) {
                 $estimate->update(['status' => Estimate::STATUS_SENT]);
             }
 
-            ActivityLog::log('sent_to_client', $estimate, "Estimate #{$estimate->estimate_number} was sent to {$estimate->client->email}.");
+            ActivityLog::create([
+                'action' => 'sent_to_client',
+                'description' => 'Estimate sent to client via email',
+                'subject_type' => Estimate::class,
+                'subject_id' => $estimate->id,
+                'causer_type' => auth()->check() ? get_class(auth()->user()) : null,
+                'causer_id' => auth()->id(),
+            ]);
 
             return true;
         } catch (\Exception $e) {
