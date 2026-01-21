@@ -37,6 +37,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('estimates/{estimate}/approve', [App\Http\Controllers\ApprovalController::class, 'approve'])->name('estimates.approve');
     Route::post('estimates/{estimate}/toggle-checklist', [App\Http\Controllers\ApprovalController::class, 'toggleChecklistItem'])->name('estimates.toggle-checklist');
     Route::post('estimates/{estimate}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('estimates.reject');
+    Route::post('estimates/{estimate}/request-changes', [App\Http\Controllers\ApprovalController::class, 'requestChanges'])->name('estimates.request-changes');
     Route::post('estimates/{estimate}/version', [EstimateController::class, 'createVersion'])->name('estimates.version');
     Route::post('estimates/{estimate}/revert', [EstimateController::class, 'revertToDraft'])->name('estimates.revert');
     Route::get('estimates/{estimate}/pdf', [EstimateController::class, 'downloadPdf'])->name('estimates.pdf');
@@ -98,6 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('estimates/{estimate}/comments', [App\Http\Controllers\CommentController::class, 'index'])->name('comments.index');
         Route::patch('comments/{comment}/read', [App\Http\Controllers\CommentController::class, 'markAsRead'])->name('comments.read');
         Route::post('estimates/{estimate}/comments/read-all', [App\Http\Controllers\CommentController::class, 'markAllAsRead'])->name('comments.readAll');
+        Route::patch('comments/{comment}/status', [App\Http\Controllers\CommentController::class, 'updateStatus'])->name('comments.status');
         Route::delete('comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
 
         // Product Library
@@ -165,15 +167,55 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Automation Layer
         Route::post('automation/{automation}/version', [App\Http\Controllers\Admin\AutomationController::class, 'createVersion'])->name('automation.version');
+        Route::post('automation/{automation}/duplicate', [App\Http\Controllers\Admin\AutomationController::class, 'duplicate'])->name('automation.duplicate');
+        Route::post('automation/{automation}/steps/reorder', [App\Http\Controllers\Admin\AutomationController::class, 'reorderSteps'])->name('automation.steps.reorder');
+        Route::patch('automation/steps/{step}/toggle', [App\Http\Controllers\Admin\AutomationController::class, 'toggleStep'])->name('automation.steps.toggle');
+        Route::post('automation/steps/{step}/duplicate', [App\Http\Controllers\Admin\AutomationController::class, 'duplicateStep'])->name('automation.steps.duplicate');
         Route::get('automation/{automation}/logs', [App\Http\Controllers\Admin\AutomationController::class, 'getLogs'])->name('automation.logs');
         Route::get('automation/{automation}/metrics', [App\Http\Controllers\Admin\AutomationController::class, 'getMetrics'])->name('automation.metrics');
-        Route::resource('automation', App\Http\Controllers\Admin\AutomationController::class)->except(['show']);
+        Route::get('automation/{automation}/flowchart', [App\Http\Controllers\Admin\AutomationVisualizationController::class, 'flowchart'])->name('automation.flowchart');
+        Route::get('automation/{automation}/timeline', [App\Http\Controllers\Admin\AutomationVisualizationController::class, 'timeline'])->name('automation.timeline');
+        Route::post('automation/preview', [App\Http\Controllers\Admin\AutomationVisualizationController::class, 'preview'])->name('automation.preview');
+
+        // Automation Analytics
+        Route::get('automation/analytics/dashboard', [App\Http\Controllers\Admin\AutomationAnalyticsController::class, 'dashboard'])->name('automation.analytics.dashboard');
+        Route::get('automation/{automation}/analytics', [App\Http\Controllers\Admin\AutomationAnalyticsController::class, 'show'])->name('automation.analytics.show');
+
+        // Automation Scheduling
+        Route::post('automation/{automation}/schedule', [App\Http\Controllers\Admin\AutomationScheduleController::class, 'store'])->name('automation.schedule.store');
+        Route::get('automation/{automation}/schedules', [App\Http\Controllers\Admin\AutomationScheduleController::class, 'index'])->name('automation.schedule.index');
+        Route::put('automation/schedule/{schedule}', [App\Http\Controllers\Admin\AutomationScheduleController::class, 'update'])->name('automation.schedule.update');
+        Route::delete('automation/schedule/{schedule}', [App\Http\Controllers\Admin\AutomationScheduleController::class, 'destroy'])->name('automation.schedule.destroy');
+        Route::patch('automation/schedule/{schedule}/toggle', [App\Http\Controllers\Admin\AutomationScheduleController::class, 'toggle'])->name('automation.schedule.toggle');
+
+        // Automation Templates
+        Route::get('automation/templates/list', [App\Http\Controllers\Admin\AutomationTemplateController::class, 'index'])->name('automation.templates.index');
+        Route::post('automation/templates/import', [App\Http\Controllers\Admin\AutomationTemplateController::class, 'import'])->name('automation.templates.import');
+        Route::get('automation/templates/{template}/export', [App\Http\Controllers\Admin\AutomationTemplateController::class, 'export'])->name('automation.templates.export');
+        Route::post('automation/templates/{template}/install', [App\Http\Controllers\Admin\AutomationTemplateController::class, 'install'])->name('automation.templates.install');
+        Route::post('automation/{automation}/save-as-template', [App\Http\Controllers\Admin\AutomationTemplateController::class, 'saveAsTemplate'])->name('automation.templates.save');
+        Route::delete('automation/templates/{template}', [App\Http\Controllers\Admin\AutomationTemplateController::class, 'destroy'])->name('automation.templates.destroy');
+
+        // Automation Experiments
+        Route::get('automation/experiments', [App\Http\Controllers\Admin\AutomationExperimentController::class, 'index'])->name('automation.experiments.index');
+        Route::get('automation/experiments/create', [App\Http\Controllers\Admin\AutomationExperimentController::class, 'create'])->name('automation.experiments.create');
+        Route::post('automation/experiments', [App\Http\Controllers\Admin\AutomationExperimentController::class, 'store'])->name('automation.experiments.store');
+        Route::get('automation/experiments/{experiment}', [App\Http\Controllers\Admin\AutomationExperimentController::class, 'show'])->name('automation.experiments.show');
+        Route::post('automation/experiments/{experiment}/start', [App\Http\Controllers\Admin\AutomationExperimentController::class, 'start'])->name('automation.experiments.start');
+        Route::post('automation/experiments/{experiment}/stop', [App\Http\Controllers\Admin\AutomationExperimentController::class, 'stop'])->name('automation.experiments.stop');
+
+        Route::get('automation/create', function () {
+            return redirect()->route('automation.index');
+        })->name('automation.create.redirect');
+        Route::resource('automation', App\Http\Controllers\Admin\AutomationController::class)->except(['show', 'create']);
     });
 
     // Approval Chains (Super Admin Only)
     Route::middleware(['role:super_admin'])->group(function () {
         Route::resource('approval-chains', App\Http\Controllers\ApprovalChainController::class);
         Route::post('approval-chains/{approvalChain}/set-default', [App\Http\Controllers\ApprovalChainController::class, 'setDefault'])->name('approval-chains.set-default');
+
+        Route::resource('approval-checklists', App\Http\Controllers\ApprovalChecklistController::class);
     });
 });
 

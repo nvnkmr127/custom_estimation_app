@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "dragonmantank/cron-expression": "^3.6",
         "fakerphp/faker": "^1.24",
         "guzzlehttp/guzzle": "^7.10",
         "jenssegers/agent": "^2.6",

@@ -23,6 +23,15 @@ class PdfTemplate extends Model
         'watermark_opacity',
         'is_password_protected',
         'is_default',
+        'content_structure',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_locked' => 'boolean',
+        'is_password_protected' => 'boolean',
+        'is_default' => 'boolean',
+        'content_structure' => 'array',
     ];
 
     public function versions()

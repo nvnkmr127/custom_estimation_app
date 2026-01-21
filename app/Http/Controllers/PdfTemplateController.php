@@ -19,33 +19,28 @@ class PdfTemplateController extends Controller
     public function create()
     {
         // Load a default starter template
-        // Load a default starter template
-        $existing = PdfTemplate::first();
-        if ($existing) {
-            $starterHtml = $existing->html_content;
-        } else {
-            $starterHtml = '<html><body><h1>Estimate #{estimate_number}</h1>{LOOP_ITEMS}<div>{item_name} - {item_price}</div>{END_LOOP}</body></html>';
-        }
-
-        return view('pdf_templates.create', compact('starterHtml'));
+        $systemTemplates = PdfTemplate::where('type', 'system')->get();
+        $variables = \App\Services\PdfRenderingService::getAvailableVariables();
+        return view('pdf_templates.create', compact('systemTemplates', 'variables'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'html_content' => 'nullable|string',
+            'html_content' => 'required|string',
             'css_content' => 'nullable|string',
-            'paper_size' => 'nullable|in:a4,letter',
-            'orientation' => 'nullable|in:portrait,landscape',
-            'primary_color' => 'nullable|string|max:7',
-            'secondary_color' => 'nullable|string|max:7',
-            'font_family' => 'nullable|string',
-            'is_active' => 'sometimes|boolean',
-            'is_locked' => 'sometimes|boolean',
-            'watermark_text' => 'nullable|string|max:50',
+            'paper_size' => 'required|in:a4,letter',
+            'orientation' => 'required|in:portrait,landscape',
+            'primary_color' => 'required|string',
+            'secondary_color' => 'nullable|string',
+            'font_family' => 'required|string',
+            'is_active' => 'boolean',
+            'is_locked' => 'boolean',
+            'watermark_text' => 'nullable|string',
             'watermark_opacity' => 'nullable|numeric|min:0|max:1',
-            'is_password_protected' => 'sometimes|boolean',
+            'is_password_protected' => 'boolean',
+            'content_structure' => 'nullable|json',
         ]);
 
         $this->authorize('create', PdfTemplate::class);
@@ -65,6 +60,7 @@ class PdfTemplateController extends Controller
             'watermark_text' => $validated['watermark_text'] ?? null,
             'watermark_opacity' => $validated['watermark_opacity'] ?? 0.1,
             'is_password_protected' => $request->has('is_password_protected'),
+            'content_structure' => isset($validated['content_structure']) ? json_decode($validated['content_structure'], true) : null,
         ]);
 
         return redirect()->route('pdf-templates.index')->with('success', 'Template created successfully.');
@@ -74,7 +70,11 @@ class PdfTemplateController extends Controller
     {
         $this->authorize('update', $pdfTemplate);
 
-        return view('pdf_templates.edit', compact('pdfTemplate'));
+        $pdfTemplate->load('versions.creator');
+        $systemTemplates = PdfTemplate::where('type', 'system')->get();
+        $variables = \App\Services\PdfRenderingService::getAvailableVariables();
+
+        return view('pdf_templates.edit', compact('pdfTemplate', 'systemTemplates', 'variables'));
     }
 
     public function update(Request $request, PdfTemplate $pdfTemplate)
@@ -83,18 +83,19 @@ class PdfTemplateController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'html_content' => 'nullable|string',
+            'html_content' => 'required|string',
             'css_content' => 'nullable|string',
-            'paper_size' => 'nullable|in:a4,letter',
-            'orientation' => 'nullable|in:portrait,landscape',
-            'primary_color' => 'nullable|string|max:7',
-            'secondary_color' => 'nullable|string|max:7',
-            'font_family' => 'nullable|string',
+            'paper_size' => 'required|in:a4,letter',
+            'orientation' => 'required|in:portrait,landscape',
+            'primary_color' => 'required|string',
+            'secondary_color' => 'nullable|string',
+            'font_family' => 'required|string',
             'is_active' => 'sometimes|boolean',
             'is_locked' => 'sometimes|boolean',
             'watermark_text' => 'nullable|string|max:50',
             'watermark_opacity' => 'nullable|numeric|min:0|max:1',
             'is_password_protected' => 'sometimes|boolean',
+            'content_structure' => 'nullable|json',
         ]);
 
         // Create Version Snapshot
@@ -120,6 +121,7 @@ class PdfTemplateController extends Controller
             'watermark_text' => $validated['watermark_text'] ?? null,
             'watermark_opacity' => $validated['watermark_opacity'] ?? 0.1,
             'is_password_protected' => $request->has('is_password_protected'),
+            'content_structure' => isset($validated['content_structure']) ? json_decode($validated['content_structure'], true) : null,
         ]);
 
         return redirect()->route('pdf-templates.index')->with('success', 'Template updated successfully.');

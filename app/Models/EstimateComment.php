@@ -19,6 +19,7 @@ class EstimateComment extends Model
         'comment',
         'type',
         'is_read',
+        'status',
         'parent_id',
     ];
 

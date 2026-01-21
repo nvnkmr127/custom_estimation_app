@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             PdfTemplateSeeder::class,
             DemoLoginsSeeder::class,
             ApprovalChainSeeder::class,
+            AutomationTemplateSeeder::class,
             FullDummyContentSeeder::class,
             ProductImageSeeder::class,
             TestDataSeeder::class,

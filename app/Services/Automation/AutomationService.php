@@ -16,10 +16,12 @@ use Illuminate\Support\Facades\Http;
 class AutomationService
 {
     protected $emailDispatcher;
+    protected $experimentService;
 
-    public function __construct(EmailDispatcher $emailDispatcher)
+    public function __construct(EmailDispatcher $emailDispatcher, ExperimentService $experimentService)
     {
         $this->emailDispatcher = $emailDispatcher;
+        $this->experimentService = $experimentService;
     }
 
     /**
@@ -28,11 +30,22 @@ class AutomationService
     public function evaluate(DomainEvent $event): void
     {
         $eventName = $event->getEventName();
-        $automations = Automation::active()
-            ->current()
-            ->whereHas('triggers', function ($query) use ($eventName) {
-                $query->where('event_name', $eventName);
-            })->get();
+
+        // 1. Check for Active Experiment
+        $experimentVariant = $this->experimentService->dispatch($eventName, (object) $event->getPayload());
+
+        if ($experimentVariant) {
+            // Hijack flows: run ONLY the selected experiment variant
+            $automations = collect([$experimentVariant]);
+            Log::info("Automation: Experiment Active. Routing to variant: {$experimentVariant->id} for event: {$eventName}");
+        } else {
+            // Normal Flow: Find all matching automations
+            $automations = Automation::active()
+                ->current()
+                ->whereHas('triggers', function ($query) use ($eventName) {
+                    $query->where('event_name', $eventName);
+                })->get();
+        }
 
         foreach ($automations as $automation) {
             // Safety Controls
@@ -84,6 +97,17 @@ class AutomationService
                     ->where('entity_type', $event->getEntityType())
                     ->where('entity_id', $event->getEntityId())
                     ->count();
+            } elseif ($type === 'time_of_day' || $type === 'day_of_week') {
+                $isMatch = $this->evaluateTimeCondition($condition);
+                $results[] = $isMatch;
+
+                // Short-circuit
+                if ($logic === 'AND' && !$isMatch)
+                    return false;
+                if ($logic === 'OR' && $isMatch)
+                    return true;
+
+                continue; // Skip the standard evaluateCondition check
             } else {
                 $actual = null;
             }
@@ -423,6 +447,56 @@ class AutomationService
             ->whereHas('step', function ($query) {
                 $query->where('on_failure', 'halt');
             })->exists();
+    }
+
+    protected function evaluateTimeCondition($condition): bool
+    {
+        $value = $condition->value;
+        $config = [];
+
+        // Parse JSON if applicable for complex configs (timezone, validation)
+        if (is_string($value) && (str_starts_with($value, '{') || str_starts_with($value, '['))) {
+            $config = json_decode($value, true) ?? [];
+            $val = $config['value'] ?? $value;
+        } else {
+            $val = $value;
+        }
+
+        $timezone = $config['timezone'] ?? config('app.timezone');
+        $now = now($timezone);
+
+        if ($condition->type === 'time_of_day') {
+            // Format: "HH:MM-HH:MM" e.g. "09:00-17:00"
+            $parts = explode('-', $val);
+            if (count($parts) !== 2) {
+                return false;
+            }
+
+            $start = $now->copy()->setTimeFromTimeString(trim($parts[0]));
+            $end = $now->copy()->setTimeFromTimeString(trim($parts[1]));
+
+            // Handle overnight ranges e.g. 22:00-06:00
+            if ($end->lessThan($start)) {
+                return $now->greaterThanOrEqualTo($start) || $now->lessThanOrEqualTo($end);
+            }
+
+            return $now->between($start, $end);
+        }
+
+        if ($condition->type === 'day_of_week') {
+            // Format: "1,2,3,4,5" (Mon-Fri) or JSON array
+            $days = is_array($val) ? $val : explode(',', $val);
+
+            // Clean up values (trim spaces, cast to int)
+            $days = array_map(function ($d) {
+                return (int) trim($d);
+            }, $days);
+
+            // Carbon dayOfWeek: 0 (Sun) - 6 (Sat)
+            return in_array($now->dayOfWeek, $days);
+        }
+
+        return false;
     }
 
     protected function maskPayload(array $payload): array

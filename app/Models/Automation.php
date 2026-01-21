@@ -11,6 +11,7 @@ class Automation extends Model
 
     protected $fillable = [
         'name',
+        'description',
         'condition_logic',
         'settings',
         'is_active',
@@ -18,12 +19,15 @@ class Automation extends Model
         'version',
         'is_current_version',
         'created_by',
+        'last_edited_by',
+        'last_edited_at',
     ];
 
     protected $casts = [
         'settings' => 'array',
         'is_active' => 'boolean',
         'is_current_version' => 'boolean',
+        'last_edited_at' => 'datetime',
     ];
 
     public function triggers()
@@ -46,6 +50,11 @@ class Automation extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function lastEditor()
+    {
+        return $this->belongsTo(User::class, 'last_edited_by');
+    }
+
     public function steps()
     {
         return $this->hasMany(AutomationStep::class)->orderBy('order');
@@ -54,6 +63,11 @@ class Automation extends Model
     public function globalConditions()
     {
         return $this->hasMany(AutomationCondition::class)->whereNull('automation_step_id');
+    }
+
+    public function schedules()
+    {
+        return $this->hasMany(AutomationSchedule::class);
     }
 
     public function scopeActive($query)

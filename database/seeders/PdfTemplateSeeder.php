@@ -10,9 +10,12 @@ class PdfTemplateSeeder extends Seeder
     public function run()
     {
         // Modern Template
-        PdfTemplate::create([
-            'name' => 'Modern',
-            'html_content' => '
+        PdfTemplate::updateOrCreate(
+            ['name' => 'Modern'],
+            [
+                'type' => 'system',
+                'description' => 'A clean, modern design with bold headers and clear structure.',
+                'html_content' => '
 <!DOCTYPE html>
 <html>
 <head>
@@ -72,6 +75,7 @@ class PdfTemplateSeeder extends Seeder
                         <td>
                             <span class="item-name">{item_name}</span>
                             <div class="item-desc">{item_description}</div>
+                            {item_comments}
                         </td>
                         <td class="text-center" style="font-weight: 700; color: #0f172a;">
                             {item_quantity}<br>
@@ -93,6 +97,7 @@ class PdfTemplateSeeder extends Seeder
                         <td>
                             <span class="item-name">{item_name}</span>
                             <div class="item-desc">{item_description}</div>
+                            {item_comments}
                         </td>
                         <td class="text-center" style="font-weight: 700; color: #0f172a;">
                             {item_quantity}<br>
@@ -147,7 +152,7 @@ class PdfTemplateSeeder extends Seeder
     </div>
 </body>
 </html>',
-            'css_content' => '
+                'css_content' => '
 body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5; margin: 0; padding: 0; }
 .header { display: table; width: 100%; border-bottom: 2px solid var(--primary-color); padding-bottom: 20px; margin-bottom: 30px; }
 .logo { display: table-cell; vertical-align: middle; }
@@ -170,17 +175,21 @@ h3 { margin-bottom: 10px; font-weight: 600; color: #334155; }
 .footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 15px; }
 .page-break-inside-avoid { page-break-inside: avoid; }
 ',
-            'primary_color' => '#2563eb', // Blue
-            'secondary_color' => '#1e40af',
-            'font_family' => 'Helvetica, sans-serif',
-            'is_active' => true,
-            'is_default' => true,
-        ]);
+                'primary_color' => '#2563eb', // Blue
+                'secondary_color' => '#1e40af',
+                'font_family' => 'Helvetica, sans-serif',
+                'is_active' => true,
+                'is_default' => true,
+            ]
+        );
 
         // Premium Template
-        PdfTemplate::create([
-            'name' => 'Premium',
-            'html_content' => '
+        PdfTemplate::updateOrCreate(
+            ['name' => 'Premium'],
+            [
+                'type' => 'system',
+                'description' => 'A luxurious design with gold accents and a sidebar.',
+                'html_content' => '
 <!DOCTYPE html>
 <html>
 <head>
@@ -260,6 +269,7 @@ h3 { margin-bottom: 10px; font-weight: 600; color: #334155; }
                             <td>
                                 <span class="item-name">{item_name}</span>
                                 <div class="item-desc">{item_description}</div>
+                                {item_comments}
                             </td>
                             <td class="text-center" style="font-weight: 700; color: #1e293b;">
                                 {item_quantity}<br>
@@ -281,6 +291,7 @@ h3 { margin-bottom: 10px; font-weight: 600; color: #334155; }
                             <td>
                                 <span class="item-name">{item_name}</span>
                                 <div class="item-desc">{item_description}</div>
+                                {item_comments}
                             </td>
                             <td class="text-center" style="font-weight: 700; color: #1e293b;">
                                 {item_quantity}<br>
@@ -342,7 +353,7 @@ h3 { margin-bottom: 10px; font-weight: 600; color: #334155; }
     </div>
 </body>
 </html>',
-            'css_content' => '
+                'css_content' => '
 body { margin: 0; padding: 0; font-family: "Georgia", serif; color: #444; }
 .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 40px; background: var(--primary-color); }
 .content { margin-left: 60px; padding: 40px; }
@@ -389,16 +400,20 @@ body { margin: 0; padding: 0; font-family: "Georgia", serif; color: #444; }
 .signature-box .line { border-bottom: 1px solid #333; margin-bottom: 5px; height: 1px; }
 .signature-box span { font-size: 10px; text-transform: uppercase; color: #888; }
 ',
-            'primary_color' => '#1a1a1a', // Black/Dark Grey
-            'secondary_color' => '#c0a062', // Goldish
-            'font_family' => 'Dejavu Serif, serif',
-            'is_active' => true,
-        ]);
+                'primary_color' => '#1a1a1a', // Black/Dark Grey
+                'secondary_color' => '#c0a062', // Goldish
+                'font_family' => 'Dejavu Serif, serif',
+                'is_active' => true,
+            ]
+        );
 
         // Minimalist Template
-        PdfTemplate::create([
-            'name' => 'Minimalist',
-            'html_content' => '
+        PdfTemplate::updateOrCreate(
+            ['name' => 'Minimalist'],
+            [
+                'type' => 'system',
+                'description' => 'A stark, typewriter-style design focused on information.',
+                'html_content' => '
 <!DOCTYPE html>
 <html>
 <head>
@@ -429,6 +444,7 @@ body { margin: 0; padding: 0; font-family: "Georgia", serif; color: #444; }
                     <td width="60%">
                         <strong>{item_name}</strong>
                         <div class="dim">{item_description}</div>
+                        {item_comments}
                     </td>
                     <td width="15%" class="text-center">{item_quantity} {item_unit}</td>
                     <td width="25%" class="text-right">{item_total}</td>
@@ -439,7 +455,7 @@ body { margin: 0; padding: 0; font-family: "Georgia", serif; color: #444; }
             {IF_NOT_room_based}
                 {LOOP_ITEMS}
                 <tr class="item-row">
-                    <td width="60%"><strong>{item_name}</strong><br><span class="dim">{item_description}</span></td>
+                    <td width="60%"><strong>{item_name}</strong><br><span class="dim">{item_description}</span>{item_comments}</td>
                     <td width="15%" class="text-center">{item_quantity} {item_unit}</td>
                     <td width="25%" class="text-right">{item_total}</td>
                 </tr>
@@ -461,7 +477,7 @@ body { margin: 0; padding: 0; font-family: "Georgia", serif; color: #444; }
     </div>
 </body>
 </html>',
-            'css_content' => '
+                'css_content' => '
 body { font-family: "Courier New", Courier, monospace; color: #000; padding: 40px; }
 .header-minimal { text-align: center; margin-bottom: 60px; }
 .header-minimal h1 { font-weight: normal; letter-spacing: 5px; margin: 0; font-size: 24px; }
@@ -483,10 +499,11 @@ body { font-family: "Courier New", Courier, monospace; color: #000; padding: 40p
 
 .footer-minimal { font-size: 10px; text-align: center; color: #888; margin-top: 50px; }
 ',
-            'primary_color' => '#000000',
-            'secondary_color' => '#333333',
-            'font_family' => 'Courier New',
-            'is_active' => true,
-        ]);
+                'primary_color' => '#000000',
+                'secondary_color' => '#333333',
+                'font_family' => 'Courier New',
+                'is_active' => true,
+            ]
+        );
     }
 }

@@ -384,7 +384,7 @@ class EstimateController extends Controller
     {
         $this->authorize('view', $estimate);
 
-        $estimate->load('items.product.images', 'items.unitType', 'sections.items.product.images', 'sections.items.unitType', 'approvals.user', 'checklistItems', 'creator');
+        $estimate->load('items.product.images', 'items.unitType', 'items.comments.user', 'sections.items.product.images', 'sections.items.unitType', 'sections.items.comments.user', 'approvals.user', 'checklistItems', 'creator');
         $checklists = ApprovalChecklist::getAllCached();
         $declineReasons = DeclineReason::getActiveCached();
 

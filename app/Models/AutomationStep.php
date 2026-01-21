@@ -16,6 +16,12 @@ class AutomationStep extends Model
         'retry_limit',
         'on_failure',
         'condition_logic',
+        'description',
+        'is_enabled',
+    ];
+
+    protected $casts = [
+        'is_enabled' => 'boolean',
     ];
 
     public function automation()

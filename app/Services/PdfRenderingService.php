@@ -16,6 +16,9 @@ class PdfRenderingService
     public function render(PdfTemplate $template, Estimate $estimate)
     {
         $this->estimate = $estimate;
+        // Ensure comments are loaded for PDF generation to avoid N+1
+        $this->estimate->loadMissing(['items.comments.user', 'sections.items.comments.user']);
+
         $this->settings = \App\Models\Setting::pluck('value', 'key');
 
         // Prepare variables once
@@ -102,10 +105,10 @@ class PdfRenderingService
             'currency' => $this->estimate->currency,
 
             // Values
-            'subtotal' => number_format($this->estimate->subtotal, 2),
-            'discount_total' => number_format($this->estimate->discount_total, 2),
-            'tax_total' => number_format($this->estimate->total_tax, 2),
-            'grand_total' => number_format($this->estimate->grand_total, 2),
+            'subtotal' => number_format((float) $this->estimate->subtotal, 2),
+            'discount_total' => number_format((float) $this->estimate->discount_total, 2),
+            'tax_total' => number_format((float) $this->estimate->total_tax, 2),
+            'grand_total' => number_format((float) $this->estimate->grand_total, 2),
 
             // Client Info
             'client_id' => $this->estimate->client_id,
@@ -136,40 +139,78 @@ class PdfRenderingService
 
         // Generate Chart if requested and room_based
         if ($this->estimate->type === 'room_based' && $this->estimate->sections->count() > 0) {
-            $vars['CHART_ROOMS'] = $this->generateRoomChartUrl();
+            $vars['CHART_ROOMS'] = $this->generateRoomChartUrl(); // Legacy support
         } else {
-            $vars['CHART_ROOMS'] = ''; // Empty image or placeholder
+            $vars['CHART_ROOMS'] = 'https://placehold.co/1x1?text=';
         }
+
+        // New Dynamic Charts
+        $vars['CHART_SECTIONS_PIE'] = $this->generateQuickChart('pie', 'sections');
+        $vars['CHART_SECTIONS_DOUGHNUT'] = $this->generateQuickChart('doughnut', 'sections');
+        $vars['CHART_SECTIONS_BAR'] = $this->generateQuickChart('bar', 'sections');
+
+        $vars['CHART_ITEMS_PIE'] = $this->generateQuickChart('pie', 'items');
+        $vars['CHART_ITEMS_DOUGHNUT'] = $this->generateQuickChart('doughnut', 'items');
+        $vars['CHART_ITEMS_BAR'] = $this->generateQuickChart('bar', 'items');
 
         return $vars;
     }
 
     protected function generateRoomChartUrl()
     {
+        return $this->generateQuickChart('doughnut', 'sections');
+    }
+
+    protected function generateQuickChart($type, $source)
+    {
         // Use QuickChart.io
         $labels = [];
         $data = [];
+        $backgroundColor = [];
 
-        foreach ($this->estimate->sections as $section) {
-            $labels[] = $section->name;
-            $data[] = $section->subtotal;
+        if ($source === 'sections' && $this->estimate->sections->count() > 0) {
+            foreach ($this->estimate->sections as $section) {
+                $labels[] = $section->name;
+                $data[] = $section->subtotal;
+            }
+        } elseif ($source === 'items') {
+            // Top 5 items by total
+            $items = $this->estimate->items->sortByDesc('total')->take(5);
+            if ($this->estimate->type === 'room_based') {
+                $items = $this->estimate->sections->flatMap->items->sortByDesc('total')->take(5);
+            }
+
+            foreach ($items as $item) {
+                $labels[] = \Illuminate\Support\Str::limit($item->name, 15);
+                $data[] = $item->total;
+            }
         }
 
+        // Default colors
+        $colors = ['#2563eb', '#1e40af', '#64748b', '#94a3b8', '#cbd5e1', '#ef4444', '#f59e0b', '#10b981'];
+        $backgroundColor = array_slice($colors, 0, count($data));
+
         $chartConfig = [
-            'type' => 'doughnut',
+            'type' => $type, // pie, doughnut, bar
             'data' => [
                 'labels' => $labels,
                 'datasets' => [
                     [
                         'data' => $data,
-                        'backgroundColor' => ['#2563eb', '#1e40af', '#64748b', '#94a3b8', '#cbd5e1']
+                        'backgroundColor' => $backgroundColor,
+                        'label' => 'Cost'
                     ]
                 ]
             ],
             'options' => [
                 'plugins' => [
                     'legend' => [
-                        'position' => 'right'
+                        'position' => 'right',
+                        'display' => $type !== 'bar' // Hide legend for bar charts usually
+                    ],
+                    'title' => [
+                        'display' => true,
+                        'text' => ucfirst($source) . ' Breakdown'
                     ]
                 ]
             ]
@@ -186,7 +227,7 @@ class PdfRenderingService
                 continue;
             }
 
-            $html = str_replace('{' . $key . '}', $value, $html);
+            $html = str_replace('{' . $key . '}', (string) $value, $html);
         }
 
         return $html;
@@ -280,6 +321,27 @@ class PdfRenderingService
     {
         $renderedItems = '';
         foreach ($items as $item) {
+
+            // Format Comments
+            $commentsHtml = '';
+            if ($item->comments->isNotEmpty()) {
+                $commentsHtml = '<div class="item-comments" style="margin-top: 5px; font-size: 0.9em; color: #555;">';
+                foreach ($item->comments as $comment) {
+                    // Only show comments relevant to client (or all if desired? Defaulting to all for now as 'client' usually sees the PDF)
+                    // You might want to filter: if ($comment->type === 'internal') continue; 
+
+                    $statusLabel = $comment->status === 'clarified' ? '<span style="color: green; font-weight: bold;">[Clarified]</span> ' : '';
+                    $author = $comment->isClientComment() ? ($comment->client_name ?: 'Client') : ($comment->user->name ?? 'Staff');
+
+                    $commentsHtml .= '<div class="comment-row" style="margin-bottom: 2px;">'
+                        . $statusLabel
+                        . '<strong>' . htmlspecialchars($author) . ':</strong> '
+                        . nl2br(htmlspecialchars($comment->comment))
+                        . '</div>';
+                }
+                $commentsHtml .= '</div>';
+            }
+
             $itemHtml = $block;
             $itemVars = [
                 '{item_name}' => $item->name,
@@ -291,6 +353,7 @@ class PdfRenderingService
                 '{item_subtotal}' => number_format($item->unit_price * $item->quantity, 2),
                 '{item_tax_percent}' => $item->tax_1 + $item->tax_2,
                 '{item_total}' => number_format($item->total, 2),
+                '{item_comments}' => $commentsHtml,
             ];
 
             foreach ($itemVars as $key => $value) {
@@ -340,6 +403,74 @@ class PdfRenderingService
             // Fallback content in case of severe failure
             return null;
         }
+    }
+
+    public static function getAvailableVariables()
+    {
+        return [
+            'Estimate Details' => [
+                'estimate_number' => 'The unique estimate number (e.g. EST-001)',
+                'estimate_title' => 'Title or project name of the estimate',
+                'estimate_date' => 'Date the estimate was created',
+                'expiry_date' => 'Expiration date of the estimate',
+                'status' => 'Current status (Draft, Sent, Accepted, etc)',
+                'currency' => 'Currency symbol/code (e.g. $)',
+            ],
+            'Financials' => [
+                'subtotal' => 'Estimate subtotal (formatted)',
+                'discount_total' => 'Total discount amount (formatted)',
+                'tax_total' => 'Total tax amount (formatted)',
+                'grand_total' => 'Final total amount (formatted)',
+            ],
+            'Client Info' => [
+                'client_name' => 'Name of the client',
+                'client_email' => 'Client email address',
+                'client_address' => 'Client physical address',
+                'client_id' => 'System ID for the client',
+            ],
+            'Company Info' => [
+                'company_name' => 'Your company legal name',
+                'company_email' => 'Your company email',
+                'company_phone' => 'Your company phone',
+                'company_address' => 'Your company street address',
+                'company_city' => 'Your company city',
+            ],
+            'Notes & Terms' => [
+                'client_note' => 'Notes visible to client',
+                'terms' => 'Terms and conditions text',
+                'admin_note' => 'Internal admin notes (careful exposing this)',
+            ],
+            'Items Loop' => [
+                'LOOP_ITEMS' => 'Start of items loop block',
+                'END_LOOP' => 'End of items loop block',
+                'item_name' => 'Name of the line item',
+                'item_description' => 'Description of the item',
+                'item_quantity' => 'Quantity',
+                'item_unit' => 'Unit type (e.g., hrs, pcs)',
+                'item_unit_full' => 'Full unit name if available',
+                'item_price' => 'Unit price',
+                'item_subtotal' => 'Price * Quantity',
+                'item_tax_percent' => 'Total tax rate for item',
+                'item_total' => 'Total line cost including tax',
+                'item_comments' => 'Formatted HTML block of item comments',
+            ],
+            'Sections (Room Based)' => [
+                'LOOP_SECTIONS' => 'Start of section loop (for room-based estimates)',
+                'END_LOOP' => 'End of section loop',
+                'section_name' => 'Name of the section/room',
+                'section_subtotal' => 'Subtotal for the section',
+            ],
+            'Logic Blocks' => [
+                'IF_variable' => 'Show block if variable is true/present',
+                'IF_NOT_variable' => 'Show block if variable is false/empty',
+                'END_IF' => 'End of IF block',
+                'CHART_ROOMS' => 'Image URL for room distribution chart (Room-based only)',
+                'CHART_SECTIONS_PIE' => 'Pie chart of section subtotals',
+                'CHART_SECTIONS_BAR' => 'Bar chart of section subtotals',
+                'CHART_ITEMS_PIE' => 'Pie chart of top items by cost',
+                'CHART_ITEMS_BAR' => 'Bar chart of top items by cost',
+            ],
+        ];
     }
 
     protected function resolveCacheKey(Estimate $estimate, PdfTemplate $template)

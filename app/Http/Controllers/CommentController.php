@@ -133,6 +133,24 @@ class CommentController extends Controller
     }
 
     /**
+     * Update comment status
+     */
+    public function updateStatus(Request $request, EstimateComment $comment)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,clarified',
+        ]);
+
+        $comment->update(['status' => $validated['status']]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Comment status updated',
+            'status' => $comment->status,
+        ]);
+    }
+
+    /**
      * Notify team of new client comment
      */
     private function notifyTeam($estimate, $comment)

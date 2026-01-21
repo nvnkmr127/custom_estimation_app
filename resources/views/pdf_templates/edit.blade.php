@@ -99,13 +99,14 @@
                     <!-- Theme Presets -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Load Theme Preset</label>
-                        <select @change="loadTheme($event.target.value); $event.target.value=''"
+                        <select @change="loadSystemTemplate($event.target.value); $event.target.value=''"
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <option value="">Select a Theme...</option>
-                            <option value="modern">Modern (Default)</option>
-                            <option value="classic">Classic</option>
-                            <option value="minimal">Minimal</option>
+                            @foreach($systemTemplates as $sysTemplate)
+                                <option value="{{ $sysTemplate->id }}">{{ $sysTemplate->name }}</option>
+                            @endforeach
                         </select>
+                        <p class="mt-1 text-xs text-gray-500">Choosing a preset will overwrite current content.</p>
                     </div>
 
                     <hr class="border-gray-200">
@@ -156,24 +157,14 @@
                         Sheet</h3>
                     <div
                         class="text-xs text-gray-600 space-y-1 font-mono bg-gray-100 p-2 rounded max-h-96 overflow-y-auto">
-                        <div class="font-bold text-gray-800 mt-2">Estimate</div>
-                        <div>{estimate_number}</div>
-                        <div>{estimate_date}</div>
-                        <div>{expiry_date}</div>
-                        <div>{subtotal}</div>
-                        <div>{grand_total}</div>
-
-                        <div class="font-bold text-gray-800 mt-2">Client</div>
-                        <div>{client_name}</div>
-                        <div>{client_email}</div>
-                        <div>{client_address}</div>
-
-                        <div class="font-bold text-gray-800 mt-2">Logic</div>
-                        <div>{LOOP_ITEMS}...{END_LOOP}</div>
-                        <div>{item_name}</div>
-                        <div>{item_price}</div>
-                        <div>{item_total}</div>
-                        <div>{IF_HAS_DISCOUNT}...</div>
+                        @foreach($variables as $category => $vars)
+                            <div class="font-bold text-gray-800 mt-2">{{ $category }}</div>
+                            @foreach($vars as $key => $desc)
+                                <div class="group cursor-pointer hover:text-indigo-600" title="{{ $desc }}" @click="insertAtCursor('{ {{ $key }} }')">
+                                    { {{ $key }} } <span class="hidden group-hover:inline text-gray-400">- {{ Str::limit($desc, 20) }}</span>
+                                </div>
+                            @endforeach
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -183,9 +174,12 @@
     <div class="flex-1 flex flex-col min-w-0">
         <!-- Tabs -->
         <div class="bg-gray-100 border-b border-gray-200 flex">
+            <button type="button" @click="activeTab = 'visual'"
+                :class="{'bg-white border-b-2 border-indigo-500 text-indigo-600': activeTab === 'visual', 'text-gray-500 hover:text-gray-700': activeTab !== 'visual'}"
+                class="px-4 py-2 text-sm font-medium">Visual Builder</button>
             <button type="button" @click="activeTab = 'html'"
                 :class="{'bg-white border-b-2 border-indigo-500 text-indigo-600': activeTab === 'html', 'text-gray-500 hover:text-gray-700': activeTab !== 'html'}"
-                class="px-4 py-2 text-sm font-medium">HTML</button>
+                class="px-4 py-2 text-sm font-medium">HTML Code</button>
             <button type="button" @click="activeTab = 'css'"
                 :class="{'bg-white border-b-2 border-indigo-500 text-indigo-600': activeTab === 'css', 'text-gray-500 hover:text-gray-700': activeTab !== 'css'}"
                 class="px-4 py-2 text-sm font-medium">CSS</button>
@@ -274,6 +268,124 @@
 
         <!-- Code Areas -->
         <div class="flex-1 relative">
+            <!-- Visual Builder UI -->
+            <div x-show="activeTab === 'visual'" class="absolute inset-0 bg-gray-50 flex overflow-hidden">
+                <!-- Block Palette -->
+                <div class="w-64 bg-white border-r border-gray-200 overflow-y-auto flex flex-col">
+                    <div class="p-3 bg-gray-100 border-b border-gray-200 font-semibold text-xs text-gray-500 uppercase">Available Blocks</div>
+                    <div class="p-2 space-y-2">
+                        <template x-for="(block, type) in availableBlocks" :key="type">
+                            <div @click="addBlock(type)" class="cursor-pointer border border-gray-200 rounded p-3 hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm bg-white">
+                                <div class="font-medium text-sm text-gray-800" x-text="block.label"></div>
+                                <div class="text-xs text-gray-500" x-text="block.desc"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Canvas / Stack -->
+                <div class="flex-1 overflow-y-auto p-8 bg-gray-100 pb-32">
+                        <div class="max-w-3xl mx-auto space-y-4" id="sortable-blocks">
+                        <template x-for="(block, index) in blocks" :key="block.id">
+                            <div class="bg-white border rounded shadow-sm relative group"
+                                :class="{'border-indigo-500 ring-2 ring-indigo-200': selectedBlockIndex === index, 'border-gray-200 hover:border-gray-300': selectedBlockIndex !== index}"
+                                @click="selectedBlockIndex = index">
+                                
+                                <!-- Block Header / Actions -->
+                                <div class="flex items-center justify-between p-2 bg-gray-50 border-b border-gray-100 rounded-t cursor-move drag-handle">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                                        <span class="text-xs font-bold uppercase text-gray-500" x-text="availableBlocks[block.type].label"></span>
+                                    </div>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button type="button" @click.stop="duplicateBlock(index)" class="p-1 hover:bg-blue-100 rounded text-blue-600" title="Duplicate">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                        </button>
+                                        <button type="button" @click.stop="removeBlock(index)" class="p-1 hover:bg-red-100 rounded text-red-600" title="Delete">✕</button>
+                                    </div>
+                                </div>
+
+                                <!-- Block Properties Form -->
+                                <div class="p-4" x-show="selectedBlockIndex === index">
+                                    <div class="grid grid-cols-1 gap-3">
+                                        <template x-for="(fieldDef, fieldName) in availableBlocks[block.type].fields" :key="fieldName">
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-700 mb-1" x-text="fieldDef.label"></label>
+                                                
+                                                <template x-if="fieldDef.type === 'text'">
+                                                    <input type="text" x-model="block.data[fieldName]" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
+                                                </template>
+                                                
+                                                <template x-if="fieldDef.type === 'textarea'">
+                                                    <textarea x-model="block.data[fieldName]" rows="3" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs"></textarea>
+                                                </template>
+
+                                                <template x-if="fieldDef.type === 'richtext'">
+                                                    <div class="border border-gray-300 rounded-md overflow-hidden bg-white">
+                                                         <!-- Toolbar -->
+                                                         <div class="flex items-center gap-1 p-1 bg-gray-50 border-b border-gray-200">
+                                                             <button type="button" @click="document.execCommand('bold', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700 font-bold" title="Bold">B</button>
+                                                             <button type="button" @click="document.execCommand('italic', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700 italic" title="Italic">I</button>
+                                                             <button type="button" @click="document.execCommand('underline', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700 underline" title="Underline">U</button>
+                                                             <div class="w-px h-4 bg-gray-300 mx-1"></div>
+                                                             <button type="button" @click="document.execCommand('insertUnorderedList', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700" title="Bulleted List">• List</button>
+                                                             <button type="button" @click="document.execCommand('justifyLeft', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700" title="Align Left">←</button>
+                                                             <button type="button" @click="document.execCommand('justifyCenter', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700" title="Align Center">↔</button>
+                                                         </div>
+                                                         <!-- Editor -->
+                                                         <div 
+                                                            contenteditable="true" 
+                                                            class="p-3 min-h-[100px] outline-none text-sm"
+                                                            @input="block.data[fieldName] = $el.innerHTML"
+                                                            x-html="block.data[fieldName] || ''">
+                                                         </div>
+                                                    </div>
+                                                </template>
+
+                                                <template x-if="fieldDef.type === 'color'">
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="color" x-model="block.data[fieldName]" class="h-6 w-8 p-0 border rounded">
+                                                        <input type="text" x-model="block.data[fieldName]" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
+                                                    </div>
+                                                </template>
+
+                                                    <template x-if="fieldDef.type === 'select'">
+                                                    <select x-model="block.data[fieldName]" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
+                                                        <template x-for="opt in fieldDef.options" :key="opt">
+                                                                <option :value="opt" x-text="opt"></option>
+                                                        </template>
+                                                    </select>
+                                                </template>
+                                                
+                                                <template x-if="fieldDef.type === 'checkbox'">
+                                                    <div class="flex items-center">
+                                                        <input type="checkbox" x-model="block.data[fieldName]" class="h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                                        <span class="ml-2 text-sm text-gray-600" x-text="fieldDef.label"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Minimized Preview (when not selected) -->
+                                <div class="p-2 text-sm text-gray-400 italic" x-show="selectedBlockIndex !== index">
+                                    Click to edit settings...
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <div x-show="blocks.length === 0" class="text-center py-10 text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">
+                            <p>No blocks detected.</p>
+                            <p class="text-xs">You can add blocks, but careful not to overwrite custom HTML.</p>
+                        </div>
+                        </div>
+                </div>
+                
+                <!-- Hidden input to store structure -->
+                <input type="hidden" name="content_structure" :value="JSON.stringify(blocks)">
+            </div>
+
             <div x-show="activeTab === 'html'" class="absolute inset-0">
                 <textarea id="htmlEditor" name="html_content" x-model="html"
                     class="w-full h-full p-4 font-mono text-sm bg-gray-900 text-gray-100 resize-none focus:ring-0 border-0"
@@ -299,6 +411,7 @@
     </div>
 
     @push('scripts')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <!-- History Modal -->
     <div x-data="{ open: false }" @open-history.window="open = true" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true" x-show="open" style="display: none;">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" x-show="open" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"></div>
@@ -349,7 +462,7 @@
         <script>
             document.addEventListener('alpine:init', () => {
                 Alpine.data('templateEditor', () => ({
-                    activeTab: 'html',
+                    activeTab: 'visual',
                     html: @json(old('html_content', $pdfTemplate->html_content)),
                     css: `{{ old('css_content', $pdfTemplate->css_content) }}`,
                     paperSize: '{{ old('paper_size', $pdfTemplate->paper_size) }}',
@@ -359,9 +472,211 @@
                     fontFamily: '{{ old('font_family', $pdfTemplate->font_family) }}',
                     watermarkText: '{{ old('watermark_text', $pdfTemplate->watermark_text) }}',
                     watermarkOpacity: '{{ old('watermark_opacity', $pdfTemplate->watermark_opacity) }}',
-                    debounceTimer: null,
+                    
+                    // Visual Builder Data
+                    blocks: @json($pdfTemplate->content_structure ?? []),
+                    selectedBlockIndex: null,
+                    availableBlocks: {
+                        header: {
+                            label: 'Company Header',
+                            desc: 'Logo, Name, Address',
+                            fields: {
+                                showLogo: { label: 'Show Logo', type: 'checkbox' },
+                                align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
+                                bgColor: { label: 'Background', type: 'color' },
+                                // Advanced Styling
+                                paddingTop: { label: 'Padding Top (px)', type: 'text' },
+                                paddingBottom: { label: 'Padding Bottom (px)', type: 'text' }
+                            },
+                            render: (data) => `<div style="padding: ${data.paddingTop || '20'}px 20px ${data.paddingBottom || '20'}px; background-color: ${data.bgColor || 'transparent'}; text-align: ${data.align || 'left'};">
+                                ${data.showLogo ? '<img src="https://placehold.co/100x50?text=LOGO" style="margin-bottom:10px;">' : ''}
+                                <h1 style="margin:0; font-size: 24px; color: var(--primary-color);">{company_name}</h1>
+                                <p style="margin: 5px 0; font-size: 12px; color: #555;">{company_address} | {company_email}</p>
+                            </div>`
+                        },
+                        columns_2: {
+                            label: '2 Columns',
+                            desc: 'Split content 50/50',
+                            fields: {
+                                col1_title: { label: 'Left Title', type: 'text' },
+                                col1_content: { label: 'Left Content', type: 'textarea' },
+                                col2_title: { label: 'Right Title', type: 'text' },
+                                col2_content: { label: 'Right Content', type: 'textarea' }
+                            },
+                            render: (data) => `<div style="display: flex; gap: 20px; padding: 20px;">
+                                <div style="flex: 1;">
+                                    ${data.col1_title ? `<h3 style="border-bottom: 2px solid var(--secondary-color); font-size: 14px; margin-bottom: 10px;">${data.col1_title}</h3>` : ''}
+                                    <div>${data.col1_content || 'Left column content...'}</div>
+                                </div>
+                                <div style="flex: 1;">
+                                    ${data.col2_title ? `<h3 style="border-bottom: 2px solid var(--secondary-color); font-size: 14px; margin-bottom: 10px;">${data.col2_title}</h3>` : ''}
+                                    <div>${data.col2_content || 'Right column content...'}</div>
+                                </div>
+                            </div>`
+                        },
+                        image: {
+                            label: 'Image',
+                            desc: 'Insert via URL',
+                            fields: {
+                                src: { label: 'Image URL', type: 'text', placeholder: 'https://...' },
+                                width: { label: 'Width (px or %)', type: 'text' },
+                                align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] }
+                            },
+                            render: (data) => `<div style="padding: 20px; text-align: ${data.align || 'center'};">
+                                <img src="${data.src || 'https://placehold.co/400x200?text=Placeholder+Image'}" style="max-width: 100%; width: ${data.width || 'auto'};">
+                            </div>`
+                        },
+                        chart: {
+                            label: 'Chart',
+                            desc: 'Dynamic graph',
+                            fields: {
+                                type: { label: 'Chart Type', type: 'select', options: ['Pie', 'Doughnut', 'Bar'] },
+                                source: { label: 'Data Source', type: 'select', options: ['Sections', 'Items'] },
+                                align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] }
+                            },
+                            render: (data) => {
+                                const type = (data.type || 'Pie').toUpperCase();
+                                const source = (data.source || 'Sections').toUpperCase();
+                                const variable = `{CHART_${source}_${type}}`;
+                                
+                                return `<div style="padding: 20px; text-align: ${data.align || 'center'};">
+                                    <h3 style="margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--secondary-color);">${data.source || 'Sections'} ${data.type || 'Chart'}</h3>
+                                    <img src="${variable}" style="max-width: 100%; width: 500px; height: auto;">
+                                    <p style="font-size: 11px; color: #888; font-style: italic; margin-top: 5px;">* Chart data rendered dynamically in PDF</p>
+                                </div>`;
+                            }
+                        },
+                        client_info: {
+                            label: 'Client Info',
+                            desc: 'Bill To / Ship To columns',
+                            fields: {
+                                title: { label: 'Section Title', type: 'text' }
+                            },
+                            render: (data) => `<div style="padding: 20px; display: flex; gap: 20px;">
+                                <div style="flex: 1;">
+                                    <h3 style="border-bottom: 2px solid var(--secondary-color); padding-bottom: 5px; margin-bottom: 10px; font-size: 14px;">${data.title || 'Bill To'}</h3>
+                                    <p><strong>{client_name}</strong><br>{client_address}<br>{client_email}</p>
+                                </div>
+                                <div style="flex: 1;">
+                                    <h3 style="border-bottom: 2px solid var(--secondary-color); padding-bottom: 5px; margin-bottom: 10px; font-size: 14px;">Estimate Details</h3>
+                                    <p><strong>#:</strong> {estimate_number}<br><strong>Date:</strong> {estimate_date}<br><strong>Expires:</strong> {expiry_date}</p>
+                                </div>
+                            </div>`
+                        },
+                        items_table: {
+                            label: 'Items Table',
+                            desc: 'Dynamic list of items',
+                            fields: {},
+                            render: (data) => `<div style="padding: 0 20px;">
+                                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                                    <thead>
+                                        <tr style="background-color: var(--primary-color); color: white;">
+                                            <th style="padding: 10px; text-align: left;">Item</th>
+                                            <th style="padding: 10px; text-align: right;">Price</th>
+                                            <th style="padding: 10px; text-align: right;">Qty</th>
+                                            <th style="padding: 10px; text-align: right;">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {LOOP_ITEMS}
+                                        <tr style="border-bottom: 1px solid #eee;">
+                                            <td style="padding: 10px;"><strong>{item_name}</strong><br><span style="font-size: 12px; color: #777;">{item_description}</span></td>
+                                            <td style="padding: 10px; text-align: right;">{item_price}</td>
+                                            <td style="padding: 10px; text-align: right;">{item_quantity}</td>
+                                            <td style="padding: 10px; text-align: right;">{item_total}</td>
+                                        </tr>
+                                        {END_LOOP}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Subtotal:</td>
+                                            <td style="padding: 10px; text-align: right;">{subtotal}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: var(--primary-color); font-size: 16px;">Grand Total:</td>
+                                            <td style="padding: 10px; text-align: right; font-weight: bold; color: var(--primary-color); font-size: 16px;">{grand_total}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>`
+                        },
+                        text_block: {
+                            label: 'Text Block',
+                            desc: 'Rich text area',
+                            fields: {
+                                content: { label: 'Content', type: 'richtext' },
+                                // Typography
+                                fontSize: { label: 'Font Size (px)', type: 'text' },
+                                fontWeight: { label: 'Weight', type: 'select', options: ['normal', 'bold', '300', '500', '700'] },
+                                textColor: { label: 'Text Color', type: 'color' },
+                                // Spacing & Border
+                                paddingTop: { label: 'Pad Top', type: 'text' },
+                                paddingBottom: { label: 'Pad Bot', type: 'text' },
+                                border: { label: 'Border (e.g. 1px solid #ccc)', type: 'text' },
+                                borderRadius: { label: 'Radius (px)', type: 'text' }
+                            },
+                            render: (data) => `<div style="
+                                padding: ${data.paddingTop || '20'}px 20px ${data.paddingBottom || '20'}px; 
+                                font-size: ${data.fontSize || '14'}px; 
+                                font-weight: ${data.fontWeight || 'normal'}; 
+                                color: ${data.textColor || 'inherit'};
+                                border: ${data.border || 'none'};
+                                border-radius: ${data.borderRadius || '0'}px;
+                            ">${data.content || 'Enter text here...'}</div>`
+                        },
+                         spacer: {
+                            label: 'Spacer',
+                            desc: 'Vertical gap',
+                            fields: {
+                                height: { label: 'Height (px)', type: 'text' }
+                            },
+                            render: (data) => `<div style="height: ${data.height || '20'}px;"></div>`
+                        },
+                        divider: {
+                            label: 'Divider',
+                            desc: 'Horizontal Line',
+                            fields: {
+                                color: { label: 'Color', type: 'color' },
+                                width: { label: 'Thickness (px)', type: 'text' },
+                                style: { label: 'Style', type: 'select', options: ['solid', 'dashed', 'dotted'] },
+                                margin: { label: 'Margin Y (px)', type: 'text' }
+                            },
+                            render: (data) => `<div style="padding: ${data.margin || '20'}px 0;">
+                                <hr style="border: 0; border-top: ${data.width || '1'}px ${data.style || 'solid'} ${data.color || '#e5e7eb'};">
+                            </div>`
+                        },
+                        footer: {
+                            label: 'Footer',
+                            desc: 'Terms & Notes',
+                            fields: {
+                                showTerms: { label: 'Show Terms', type: 'checkbox' },
+                                centerText: { label: 'Center Text', type: 'text' }
+                            },
+                            render: (data) => `<div style="padding: 20px; margin-top: 30px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
+                                ${data.showTerms ? '<h4>Terms & Conditions</h4><p>{terms}</p>' : ''}
+                                <div style="text-align: center; margin-top: 20px;">${data.centerText || ''}</div>
+                            </div>`
+                        }
+                    },
 
+                    debounceTimer: null,
+                    systemTemplates: @json($systemTemplates),
+                    
                     init() {
+                         // Decide text or visual tab initially
+                         if (this.blocks && this.blocks.length > 0) {
+                             this.activeTab = 'visual';
+                         } else {
+                             // If no blocks but has HTML, probably custom code or legacy
+                             if (this.html && this.html.length > 50) {
+                                this.activeTab = 'html';
+                             } else {
+                                this.activeTab = 'visual'; // Default for new-ish but empty
+                             }
+                         }
+
+                        this.$watch('blocks', () => this.compileBlocks(), { deep: true });
+
                         this.$watch('html', () => this.updatePreview());
                         this.$watch('css', () => this.updatePreview());
                         // Watch styling properties to update preview instantly
@@ -371,12 +686,6 @@
                         this.$watch('watermarkText', () => this.updatePreview());
                         this.$watch('watermarkOpacity', () => this.updatePreview());
                         
-                        // Watch Manual Input changes (since they aren't x-model assigned to vars used in preview body construction directly in the same way, 
-                        // but actually I should bind them to x-model to make this clean. 
-                        // For now, let's just use existing x-model if I added it? 
-                        // Wait, I only added name attributes, not x-model for watermark.
-                        // I should add x-model to watermark inputs.)
-
                         this.$watch('activeTab', (val) => {
                             if (val === 'preview') this.updatePreview();
                         });
@@ -385,54 +694,74 @@
                         setTimeout(() => this.updatePreview(), 500);
                     },
 
-                    loadTheme(theme) {
+                    addBlock(type) {
+                        this.blocks.push({
+                            id: Date.now(),
+                            type: type,
+                            data: { bgColor: '#ffffff', align: 'left' }
+                        });
+                        this.selectedBlockIndex = this.blocks.length - 1;
+                        this.compileBlocks();
+                    },
+
+                    removeBlock(index) {
+                        this.blocks.splice(index, 1);
+                        this.selectedBlockIndex = null;
+                        this.compileBlocks();
+                    },
+                    duplicateBlock(index) {
+                        const blockToClone = this.blocks[index];
+                        const newBlock = {
+                            id: Date.now(), // Unique ID
+                            type: blockToClone.type,
+                            data: JSON.parse(JSON.stringify(blockToClone.data)) // Deep copy
+                        };
+                        this.blocks.splice(index + 1, 0, newBlock); // Insert after
+                        this.selectedBlockIndex = index + 1;
+                        this.compileBlocks();
+                    },
+                    moveBlock(index, direction) {
+                         if (index + direction < 0 || index + direction >= this.blocks.length) return;
+                         const temp = this.blocks[index];
+                         this.blocks[index] = this.blocks[index + direction];
+                         this.blocks[index + direction] = temp;
+                         this.selectedBlockIndex = index + direction;
+                         this.blocks = [...this.blocks]; 
+                         this.compileBlocks();
+                    },
+
+                    compileBlocks() {
+                         // IMPORTANT: Only overwrite HTML if in visual mode prevents accidental data loss
+                         // when purely switching tabs? No, user expects visual to correspond to code.
+                         // But if they edited code manually, visual builder can't reverse it.
+                         // So we only compile if we are actively using blocks.
+                         
+                         // Simple guard: If blocks are empty, don't wipe HTML (unless we just deleted the last block?)
+                         if (this.blocks.length === 0 && this.activeTab !== 'visual') return;
+                         
+                        let compiledHtml = `<html><body>`;
+                        this.blocks.forEach(block => {
+                            const def = this.availableBlocks[block.type];
+                            if (def) {
+                                compiledHtml += `<!-- BLOCK: ${block.type} -->\n`;
+                                compiledHtml += def.render(block.data) + '\n';
+                            }
+                        });
+                        compiledHtml += `</body></html>`;
+                        this.html = compiledHtml;
+                    },
+
+                    loadSystemTemplate(templateId) {
+                        if (!templateId) return;
                         if (!confirm('This will overwrite your current HTML and CSS. Continue?')) return;
 
-                        if (theme === 'modern') {
-                            this.html = `<h1>Estimate #{estimate_number}</h1>
-                                    <div class="header-box" style="background: var(--primary-color); color: white; padding: 20px;">
-                                      <h2>{company_name}</h2>
-                                    </div>
-                                    <div style="margin-top: 20px;">
-                                      <strong>Bill To:</strong> {client_name}<br>
-                                      {client_email}
-                                    </div>
-                                    {LOOP_ITEMS}
-                                    <div style="border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between;">
-                                      <span>{item_name}</span>
-                                      <span>{item_total}</span>
-                                    </div>
-                                    {END_LOOP}
-                                    <div style="text-align: right; margin-top: 20px; font-weight: bold; color: var(--secondary-color);">
-                                      Grand Total: {grand_total}
-                                    </div>`;
-                            this.css = `.header-box { border-radius: 5px; }`;
-                        } else if (theme === 'classic') {
-                            this.html = `<div style="text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 20px;">
-                                      <h1 style="color: var(--primary-color);">{company_name}</h1>
-                                      <p>Estimate #{estimate_number}</p>
-                                    </div>
-                                    <table style="width: 100%; border-collapse: collapse;">
-                                      <tr style="background: var(--secondary-color); color: white;">
-                                        <th style="padding: 10px;">Item</th>
-                                        <th style="padding: 10px;">Cost</th>
-                                      </tr>
-                                      {LOOP_ITEMS}
-                                      <tr>
-                                        <td style="padding: 10px; border-bottom: 1px solid #ddd;">{item_name}</td>
-                                        <td style="padding: 10px; border-bottom: 1px solid #ddd;">{item_total}</td>
-                                      </tr>
-                                      {END_LOOP}
-                                    </table>`;
-                            this.css = `table { font-size: 14px; }`;
-                        } else if (theme === 'minimal') {
-                            this.html = `<h1>{estimate_number}</h1>
-                                    <hr style="border-top: 1px dashed #ccc;">
-                                    {LOOP_ITEMS}
-                                    <p>{item_name} .......................... {item_total}</p>
-                                    {END_LOOP}
-                                    <h3>Total: {grand_total}</h3>`;
-                            this.css = `body { font-family: 'Courier', monospace; }`;
+                        const template = this.systemTemplates.find(t => t.id == templateId);
+                        if (template) {
+                            this.html = template.html_content || '';
+                            this.css = template.css_content || '';
+                            if (template.primary_color) this.primaryColor = template.primary_color;
+                            if (template.secondary_color) this.secondaryColor = template.secondary_color;
+                            if (template.font_family) this.fontFamily = template.font_family;
                         }
                     },
 

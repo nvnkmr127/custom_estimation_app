@@ -196,6 +196,63 @@ class ApprovalController extends Controller
     }
 
     /**
+     * Request changes on an estimate
+     */
+    public function requestChanges(Request $request, Estimate $estimate)
+    {
+        try {
+            $user = auth()->user();
+
+            // Find pending approval for this user
+            $approval = $estimate->approvals()
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
+
+            if (!$approval) {
+                return redirect()->back()->with('error', 'You do not have permission to request changes on this estimate.');
+            }
+
+            $validated = $request->validate([
+                'comments' => 'required|string|min:5',
+            ]);
+
+            // Update approval status
+            $approval->update([
+                'status' => 'changes_requested',
+                'comments' => $validated['comments'],
+            ]);
+
+            // Dispatch Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalChangeRequested(
+                $estimate->id,
+                $approval->id,
+                $user->id,
+                $validated['comments']
+            ));
+
+            // Update estimate status to draft so it can be edited
+            $estimate->update([
+                'approval_status' => 'draft', // Reset approval status
+                'status' => 'draft',          // Reset main status
+            ]);
+
+            // Dispatch EstimateChangeRequested (Internal)
+            // $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateChangeRequested($estimate->id, $user->id, $validated['comments']));
+
+            return redirect()->back()->with('success', 'Changes requested successfully. The estimate has been reverted to draft.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Estimate Change Request Failed', [
+                'estimate_id' => $estimate->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Requesting changes failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Toggle checklist item status via AJAX
      */
     public function toggleChecklistItem(Request $request, Estimate $estimate)
