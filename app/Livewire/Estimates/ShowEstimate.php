@@ -24,6 +24,7 @@ class ShowEstimate extends Component
     public $checklists;
     public $declineReasons;
     public $userApproval;
+    public $diff;
     public $activityLogs;
 
     protected $listeners = [
@@ -61,6 +62,19 @@ class ShowEstimate extends Component
             ->get();
 
         $this->latestVersion = $this->allVersions->first();
+
+        // Calculate Diff if previous version exists
+        $this->diff = null;
+        if ($this->estimate->version > 1) {
+            $previousVersion = $this->allVersions->firstWhere('version', $this->estimate->version - 1);
+            if ($previousVersion) {
+                try {
+                    $this->diff = (new \App\Services\EstimateDiffService)->calculateDiff($previousVersion, $this->estimate);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to calculate estimate diff: ' . $e->getMessage());
+                }
+            }
+        }
 
         // Load checklists if in approval workflow
         if ($this->estimate->status === 'waiting_approval' && $this->estimate->approvalChain) {
@@ -181,26 +195,23 @@ class ShowEstimate extends Component
         }
     }
 
-    public function createVersion()
+    public function createVersion(\App\Services\EstimateService $estimateService)
     {
         try {
             DB::beginTransaction();
 
-            // Call the controller method for version creation
-            $response = app(\App\Http\Controllers\EstimateController::class)
-                ->createVersion($this->estimate);
+            $newEstimate = $estimateService->createVersion($this->estimate);
 
             DB::commit();
 
-            // Redirect to the new version
-            if ($response instanceof \Illuminate\Http\RedirectResponse) {
-                return $response;
-            }
-
-            $this->dispatch('estimateUpdated');
-            session()->flash('success', 'New version created successfully.');
+            return redirect()->route('estimates.edit', $newEstimate)
+                ->with('success', 'New version created! You are now editing version ' . $newEstimate->version);
         } catch (\Exception $e) {
             DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Failed to create version: ' . $e->getMessage(), [
+                'estimate_id' => $this->estimate->id,
+                'exception' => $e
+            ]);
             session()->flash('error', 'Failed to create version: ' . $e->getMessage());
         }
     }
