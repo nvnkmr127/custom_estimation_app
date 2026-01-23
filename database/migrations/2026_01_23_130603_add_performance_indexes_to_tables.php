@@ -162,7 +162,7 @@ return new class extends Migration {
             } catch (\Exception $e) {
             }
             try {
-                $table->index(['causer_type', 'causer_id'], 'activity_logs_causer_idx');
+                $table->index('user_id');
             } catch (\Exception $e) {
             }
             try {
@@ -202,67 +202,178 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('followers', function (Blueprint $table) {
-            $table->dropIndex(['user_id']);
-            $table->dropIndex('followers_followable_idx');
+            try {
+                $table->dropIndex(['user_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex('followers_followable_idx');
+            } catch (\Exception $e) {
+            }
         });
 
         Schema::table('product_images', function (Blueprint $table) {
-            $table->dropIndex(['product_id']);
-            $table->dropIndex(['display_order']);
+            try {
+                $table->dropIndex(['product_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['display_order']);
+            } catch (\Exception $e) {
+            }
         });
 
         Schema::table('activity_logs', function (Blueprint $table) {
-            $table->dropIndex('activity_logs_subject_idx');
-            $table->dropIndex('activity_logs_causer_idx');
-            $table->dropIndex(['action']);
+            try {
+                $table->dropIndex('activity_logs_subject_idx');
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['user_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['action']);
+            } catch (\Exception $e) {
+            }
         });
 
         Schema::table('estimate_comments', function (Blueprint $table) {
-            $table->dropIndex(['estimate_id']);
-            $table->dropIndex(['user_id']);
-            $table->dropIndex(['status']);
-            $table->dropIndex(['is_read']);
-            $table->dropIndex('estimate_comments_commentable_idx');
-            $table->dropIndex(['deleted_at']);
+            try {
+                $table->dropIndex(['estimate_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['user_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['status']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['is_read']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex('estimate_comments_commentable_idx');
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['deleted_at']);
+            } catch (\Exception $e) {
+            }
         });
 
         Schema::table('estimate_approvals', function (Blueprint $table) {
-            $table->dropIndex(['estimate_id']);
-            $table->dropIndex(['user_id']);
-            $table->dropIndex(['status']);
-            $table->dropIndex('estimate_approvals_composite_idx');
+            try {
+                $table->dropIndex(['estimate_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['user_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['status']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex('estimate_approvals_composite_idx');
+            } catch (\Exception $e) {
+            }
         });
 
         Schema::table('products', function (Blueprint $table) {
-            $table->dropIndex(['category_id']);
-            $table->dropIndex(['status']);
-            $table->dropIndex(['is_featured']);
-            $table->dropIndex(['sort_order']);
-            $table->dropIndex(['unit_type_id']);
-            $table->dropIndex(['deleted_at']);
+            try {
+                $table->dropIndex(['category_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['status']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['is_featured']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['sort_order']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['unit_type_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['deleted_at']);
+            } catch (\Exception $e) {
+            }
         });
 
         Schema::table('estimate_sections', function (Blueprint $table) {
-            $table->dropIndex(['estimate_id']);
-            $table->dropIndex(['deleted_at']);
+            try {
+                $table->dropIndex(['estimate_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['deleted_at']);
+            } catch (\Exception $e) {
+            }
         });
 
         Schema::table('estimate_items', function (Blueprint $table) {
-            $table->dropIndex(['estimate_id']);
-            $table->dropIndex(['estimate_section_id']);
-            $table->dropIndex(['product_id']);
-            $table->dropIndex(['unit_type_id']);
-            $table->dropIndex(['deleted_at']);
+            try {
+                $table->dropIndex(['estimate_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['estimate_section_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['product_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['unit_type_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['deleted_at']);
+            } catch (\Exception $e) {
+            }
         });
 
         Schema::table('estimates', function (Blueprint $table) {
-            $table->dropIndex(['status']);
-            $table->dropIndex(['client_id']);
-            $table->dropIndex(['created_by']);
-            $table->dropIndex(['approval_chain_id']);
-            $table->dropIndex(['approval_status']);
-            $table->dropIndex(['estimate_date']);
-            $table->dropIndex(['deleted_at']);
+            try {
+                $table->dropIndex(['status']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['client_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['created_by']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['approval_chain_id']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['approval_status']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['estimate_date']);
+            } catch (\Exception $e) {
+            }
+            try {
+                $table->dropIndex(['deleted_at']);
+            } catch (\Exception $e) {
+            }
         });
     }
 };
