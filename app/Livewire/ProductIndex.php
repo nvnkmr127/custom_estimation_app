@@ -223,7 +223,7 @@ class ProductIndex extends Component
         $this->showEditModal = true;
     }
 
-    public function saveProduct()
+    public function saveProduct(\App\Services\ProductService $productService)
     {
         $rules = [
             'productForm.name' => 'required|string|max:255',
@@ -231,9 +231,8 @@ class ProductIndex extends Component
             'productForm.category_id' => 'required|exists:product_categories,id',
             'productForm.unit_price' => 'required|numeric|min:0',
             'productForm.unit_type' => 'required|string',
-            'productForm.unit_type_id' => 'nullable|exists:unit_types,id', // Added
+            'productForm.unit_type_id' => 'nullable|exists:unit_types,id',
             'productForm.status' => 'required|in:active,retired,pending',
-            // Added rules for new fields
             'productForm.tax_1' => 'nullable|numeric|min:0|max:100',
             'productForm.dimensions.length' => 'nullable|numeric|min:0',
             'productForm.dimensions.width' => 'nullable|numeric|min:0',
@@ -258,59 +257,38 @@ class ProductIndex extends Component
         }
 
         try {
-            \DB::transaction(function () {
-                // Process tags
-                $tagsArray = array_map('trim', explode(',', $this->productForm['tags']));
-                $tagsArray = array_filter($tagsArray);
-
-                // Process attributes
-                $attributesMap = [];
-                foreach ($this->extraAttributes as $attr) {
-                    if (!empty($attr['key'])) {
-                        $attributesMap[$attr['key']] = $attr['value'];
-                    }
+            // Process attributes
+            $attributesMap = [];
+            foreach ($this->extraAttributes as $attr) {
+                if (!empty($attr['key'])) {
+                    $attributesMap[$attr['key']] = $attr['value'];
                 }
+            }
 
-                $data = $this->productForm;
-                $data['tags'] = $tagsArray;
-                $data['attributes'] = $attributesMap;
+            // Prepare Data for Service
+            $data = $this->productForm;
+            // Tags extraction is handled by Service if string, but we are passing string here. Service handles it.
+            // But we need to ensure the service receives what it expects.
+            // Service::parseTags handles "string" or "array".
+            // Livewire model is string.
 
-                if ($this->productForm['id']) {
-                    $product = Product::find($this->productForm['id']);
-                    $product->update($data);
-                    \Log::info('Product updated', ['id' => $product->id]);
-                    session()->flash('success', 'Product updated successfully');
-                } else {
-                    $product = Product::create($data);
-                    \Log::info('Product created', ['id' => $product->id]);
-                    session()->flash('success', 'Product created successfully');
-                }
+            $data['attributes'] = $attributesMap;
+            // Map options to structure expected by Service
+            // Service expects array of ['name' => ..., 'values' => [...]]
+            // Livewire $this->options matches this structure.
+            $data['options'] = $this->options;
 
-                // Sync Options
-                $product->options()->delete();
-                foreach ($this->options as $opt) {
-                    if (!empty($opt['name'])) {
-                        $optionModel = $product->options()->create(['name' => $opt['name']]);
-                        foreach ($opt['values'] as $val) {
-                            if (!empty($val['value'])) {
-                                $optionModel->values()->create($val);
-                            }
-                        }
-                    }
-                }
+            if ($this->productForm['id']) {
+                $product = Product::find($this->productForm['id']);
+                $productService->updateProduct($product, $data, $this->newImages);
+                \Log::info('Product updated', ['id' => $product->id]);
+                session()->flash('success', 'Product updated successfully');
+            } else {
+                $product = $productService->createProduct($data, $this->newImages);
+                \Log::info('Product created', ['id' => $product->id]);
+                session()->flash('success', 'Product created successfully');
+            }
 
-                // Handle New Images
-                if (!empty($this->newImages)) {
-                    $lastOrder = $product->images()->max('display_order') ?? 0;
-                    foreach ($this->newImages as $image) {
-                        $path = $image->store('products', 'public');
-                        $product->images()->create([
-                            'image_path' => $path,
-                            'display_order' => ++$lastOrder,
-                        ]);
-                    }
-                }
-            });
         } catch (\Exception $e) {
             \Log::error('Error saving product', [
                 'error' => $e->getMessage(),
@@ -321,7 +299,7 @@ class ProductIndex extends Component
         }
 
         $this->showEditModal = false;
-        $this->reset(['editingProduct', 'productForm', 'options', 'extraAttributes', 'newImages', 'existingImages']); // Modified
+        $this->reset(['editingProduct', 'productForm', 'options', 'extraAttributes', 'newImages', 'existingImages']);
     }
 
     public function deleteImage($imageId) // Added
@@ -353,7 +331,7 @@ class ProductIndex extends Component
 
     public function render()
     {
-        $query = Product::with('category');
+        $query = Product::with(['category', 'images']);
 
         if (!empty($this->search)) {
             $query->search($this->search);

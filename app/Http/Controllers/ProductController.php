@@ -78,9 +78,10 @@ class ProductController extends Controller
         $this->authorize('create', Product::class);
 
         $validated = $this->validateProduct($request);
+        $validated['is_featured'] = $request->boolean('is_featured');
 
         try {
-            $this->productService->createProduct($validated, $request);
+            $this->productService->createProduct($validated, $request->file('images') ?? []);
 
             return redirect()->route('products.index')
                 ->with('success', 'Product added successfully');
@@ -131,9 +132,10 @@ class ProductController extends Controller
         $this->authorize('update', $product);
 
         $validated = $this->validateProduct($request, $product->id);
+        $validated['is_featured'] = $request->boolean('is_featured');
 
         try {
-            $this->productService->updateProduct($product, $validated, $request);
+            $this->productService->updateProduct($product, $validated, $request->file('images') ?? []);
 
             return redirect()->route('products.index')
                 ->with('success', 'Product updated successfully');

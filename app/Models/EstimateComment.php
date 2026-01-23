@@ -114,8 +114,18 @@ class EstimateComment extends Model
     /**
      * Mark as read
      */
+    /**
+     * Mark as read
+     */
     public function markAsRead()
     {
         $this->update(['is_read' => true]);
+    }
+
+    protected $appends = ['formatted_date'];
+
+    public function getFormattedDateAttribute()
+    {
+        return $this->created_at->format('M j, g:i A');
     }
 }

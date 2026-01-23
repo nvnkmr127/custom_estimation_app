@@ -17,6 +17,12 @@
 </head>
 
 <body class="h-full bg-slate-50 font-sans antialiased text-slate-900">
+    <!-- Skip to main content link for accessibility -->
+    <a href="#main-content"
+        class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+        Skip to main content
+    </a>
+
     <x-global-search />
     <div x-data="{ sidebarOpen: false }" class="min-h-full">
 
@@ -471,7 +477,7 @@
                 </header>
             @endif
 
-            <main class="flex-1 py-8 sm:py-10">
+            <main id="main-content" class="flex-1 py-8 sm:py-10">
                 <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     @if (session('success'))
                         <div

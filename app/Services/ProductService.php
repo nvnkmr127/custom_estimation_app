@@ -26,12 +26,15 @@ class ProductService
 
     /**
      * Handle product image uploads.
+     *
+     * @param  array|\Illuminate\Http\UploadedFile[]  $images
      */
-    public function handleImages(Request $request, Product $product): void
+    public function handleImages(array $images, Product $product): void
     {
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('products/'.$product->id, 'public');
+        foreach ($images as $image) {
+            // Check if it's an uploaded file instance
+            if ($image instanceof \Illuminate\Http\UploadedFile) {
+                $path = $image->store('products/' . $product->id, 'public');
                 $product->images()->create([
                     'image_path' => $path,
                 ]);
@@ -44,14 +47,25 @@ class ProductService
      */
     public function handleOptions(array $options, Product $product): void
     {
-        if (! empty($options)) {
+        if (!empty($options)) {
             foreach ($options as $optData) {
+                // Skip empty names
+                if (empty($optData['name'])) {
+                    continue;
+                }
+
                 $option = $product->options()->create(['name' => $optData['name']]);
-                foreach ($optData['values'] as $valData) {
-                    $option->values()->create([
-                        'value' => $valData['value'],
-                        'price_adjustment' => $valData['price_adjustment'] ?? 0,
-                    ]);
+
+                if (isset($optData['values']) && is_array($optData['values'])) {
+                    foreach ($optData['values'] as $valData) {
+                        if (empty($valData['value'])) {
+                            continue;
+                        }
+                        $option->values()->create([
+                            'value' => $valData['value'],
+                            'price_adjustment' => $valData['price_adjustment'] ?? 0,
+                        ]);
+                    }
                 }
             }
         }
@@ -102,6 +116,7 @@ class ProductService
                         'sku' => $sku ?: null,
                         'category_id' => $category->id,
                         'unit_price' => $price,
+                        'unit_type_id' => null, // Default to manual
                         'unit_type' => $unitType ?: 'nos',
                         'tags' => $this->parseTags($tags),
                         'description' => $description,
@@ -112,7 +127,7 @@ class ProductService
                 });
 
             } catch (\Exception $e) {
-                $errors[] = "Row {$rowNumber}: ".$e->getMessage();
+                $errors[] = "Row {$rowNumber}: " . $e->getMessage();
             }
         }
 
@@ -127,17 +142,25 @@ class ProductService
     /**
      * Create a new product with images and options.
      */
-    public function createProduct(array $data, Request $request): Product
+    public function createProduct(array $data, array $images = []): Product
     {
-        return DB::transaction(function () use ($data, $request) {
+        return DB::transaction(function () use ($data, $images) {
+            // Set Defaults
             $data['status'] = $data['status'] ?? 'active';
-            $data['is_featured'] = $request->boolean('is_featured');
-            $data['tags'] = $this->parseTags($data['tags'] ?? null);
+            $data['is_featured'] = isset($data['is_featured']) ? (bool) $data['is_featured'] : false;
+
+            // Parse tags if string
+            if (isset($data['tags'])) {
+                $data['tags'] = $this->parseTags($data['tags']);
+            }
 
             $product = Product::create($data);
 
-            $this->handleImages($request, $product);
-            if (! empty($data['options'])) {
+            if (!empty($images)) {
+                $this->handleImages($images, $product);
+            }
+
+            if (!empty($data['options'])) {
                 $this->handleOptions($data['options'], $product);
             }
 
@@ -148,19 +171,26 @@ class ProductService
     /**
      * Update an existing product.
      */
-    public function updateProduct(Product $product, array $data, Request $request): Product
+    public function updateProduct(Product $product, array $data, array $images = []): Product
     {
-        return DB::transaction(function () use ($product, $data, $request) {
-            $data['is_featured'] = $request->boolean('is_featured');
-            $data['tags'] = $this->parseTags($data['tags'] ?? null);
+        return DB::transaction(function () use ($product, $data, $images) {
+            if (isset($data['is_featured'])) {
+                $data['is_featured'] = (bool) $data['is_featured'];
+            }
+
+            if (isset($data['tags'])) {
+                $data['tags'] = $this->parseTags($data['tags']);
+            }
 
             $product->update($data);
 
-            $this->handleImages($request, $product);
+            if (!empty($images)) {
+                $this->handleImages($images, $product);
+            }
 
             // Sync Options: Full Replace
             $product->options()->delete();
-            if (! empty($data['options'])) {
+            if (!empty($data['options'])) {
                 $this->handleOptions($data['options'], $product);
             }
 

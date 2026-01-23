@@ -30,6 +30,28 @@
 }" class="min-h-screen pb-12">
     <!-- Header Section -->
     <div class="mb-10">
+        <nav class="flex mb-4" aria-label="Breadcrumb">
+            <ol role="list" class="flex items-center space-x-2">
+                <li>
+                    <div>
+                        <a href="{{ route('dashboard') }}" class="text-slate-400 hover:text-slate-500">
+                            <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="sr-only">Dashboard</span>
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 flex-shrink-0 text-slate-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                            <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+                        </svg>
+                        <span class="ml-2 text-sm font-medium text-slate-700" aria-current="page">Product Library</span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
                 <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Product Library</h1>
@@ -716,7 +738,7 @@
                     <h3 class="text-2xl font-black text-slate-900 mb-2 tracking-tight">Bulk Import Products</h3>
                     <p class="text-slate-500 font-medium mb-6">Upload a CSV file to update or add products in bulk.</p>
                     
-                    <div class="mb-6 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex items-center justify-between group cursor-pointer">
+                    <a href="{{ route('products.template') }}" class="mb-6 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex items-center justify-between group cursor-pointer hover:bg-indigo-50 transition-colors">
                         <div class="flex items-center gap-3">
                             <div class="h-10 w-10 flex items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm transition-transform group-hover:scale-110">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
@@ -726,7 +748,7 @@
                                 <div class="text-xs text-indigo-600 font-bold underline decoration-2 underline-offset-4">Download CSV Template &rarr;</div>
                             </div>
                         </div>
-                    </div>
+                    </a>
 
                     <div class="relative group">
                         <div class="flex flex-col items-center px-6 py-10 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 transition-all group-hover:bg-slate-100 group-hover:border-indigo-300">

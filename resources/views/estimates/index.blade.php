@@ -234,6 +234,7 @@
                             <option value="mark_accepted">Mark as Accepted</option>
                             <option value="mark_declined">Mark as Declined</option>
                             <option value="mark_draft">Revert to Draft</option>
+                            <option value="batch_download">Batch Download PDFs</option>
                             <option value="delete">Delete</option>
                         </select>
                         <button type="submit"
@@ -284,13 +285,15 @@
                                             Estimate #{{ $estimate->estimate_number }}
                                         </a>
                                         <div class="text-xs text-gray-500 mt-0.5">
-                                            {{ ucfirst(str_replace('_', ' ', $estimate->type)) }}</div>
+                                            {{ ucfirst(str_replace('_', ' ', $estimate->type)) }}
+                                        </div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         <div class="font-medium text-gray-900">{{ $estimate->client?->name ?? 'No Client' }}
                                         </div>
                                         <div class="text-xs text-gray-400">Created by
-                                            {{ $estimate->creator?->name ?? 'System' }}</div>
+                                            {{ $estimate->creator?->name ?? 'System' }}
+                                        </div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         <div>{{ $estimate->estimate_date->format('M d, Y') }}</div>
@@ -337,4 +340,22 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('bulkActionForm');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    const actionSelect = this.querySelector('select[name="action"]');
+                    if (actionSelect && actionSelect.value === 'batch_download') {
+                        this.action = "{{ route('estimates.batch-download') }}";
+                        this.target = "_blank"; // Open download in new tab
+                    } else {
+                        this.action = "{{ route('estimates.bulk-update') }}";
+                        this.target = "_self";
+                    }
+                });
+            }
+        });
+    </script>
 </x-app-layout>

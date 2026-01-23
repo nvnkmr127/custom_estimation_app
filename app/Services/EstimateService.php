@@ -11,8 +11,246 @@ use Illuminate\Support\Facades\Log;
 
 class EstimateService
 {
-    public function __construct()
+    private $dispatcher;
+
+    public function __construct(\App\Core\Events\EventDispatcherInterface $dispatcher)
     {
+        $this->dispatcher = $dispatcher;
+    }
+
+    /**
+     * Create a new estimate with sections and items.
+     * 
+     * @param array $data Input data for estimate
+     * @param array $itemsOrSections Data for items or sections
+     * @param string $type 'standard' or 'room_based'
+     * @return Estimate
+     * @throws \Exception
+     */
+    public function createEstimate(array $data, array $itemsOrSections, string $type): Estimate
+    {
+        $attempts = 0;
+        $maxAttempts = 3;
+        $lastException = null;
+
+        while ($attempts < $maxAttempts) {
+            $attempts++;
+
+            $data['estimate_number'] = $this->generateNextNumber();
+            $data['created_by'] = auth()->id();
+
+            DB::beginTransaction();
+            try {
+                $estimate = Estimate::create($data);
+
+                if ($type === 'room_based') {
+                    foreach ($itemsOrSections as $sectionIndex => $sectionData) {
+                        $section = $estimate->sections()->create([
+                            'name' => $sectionData['name'],
+                            'order_index' => $sectionIndex,
+                        ]);
+
+                        if (isset($sectionData['items'])) {
+                            foreach ($sectionData['items'] as $itemIndex => $itemData) {
+                                $oi = $itemData['order_index'] ?? $itemIndex;
+                                $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
+                            }
+                        }
+                    }
+                } else {
+                    // Standard
+                    foreach ($itemsOrSections as $itemIndex => $itemData) {
+                        $oi = $itemData['order_index'] ?? $itemIndex;
+                        $this->createEstimateItem($estimate, null, $itemData, $oi);
+                    }
+                }
+
+                $this->recalculateTotals($estimate);
+
+                ActivityLog::log('created', $estimate, "Estimate #{$estimate->estimate_number} created by " . auth()->user()->name);
+
+                DB::commit();
+
+                // Dispatch Event
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateCreated($estimate, auth()->id()));
+
+                return $estimate;
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                // If unique constraint violation, retry
+                if (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'UNIQUE constraint failed')) {
+                    $lastException = $e;
+                    continue;
+                }
+                throw $e;
+            }
+        }
+
+        throw new \Exception('Failed to create estimate (Unique Number Collision) after multiple attempts. Please try again.');
+    }
+
+    /**
+     * Update an estimate.
+     * 
+     * @param Estimate $estimate
+     * @param array $data Validated estimate data
+     * @param array $itemsOrSections Data for items or sections
+     * @param string $type
+     * @param bool $forceBranch Force a new version creation
+     * @return Estimate The updated or new estimate (if branched)
+     */
+    public function updateEstimate(Estimate $estimate, array $data, array $itemsOrSections, string $type, bool $forceBranch = false): Estimate
+    {
+        DB::beginTransaction();
+        try {
+            $isBranched = false;
+            $originalNumber = $estimate->estimate_number;
+
+            // Strict State Locking & Forced Versioning Logic
+            $isFinalized = in_array($estimate->status, [
+                Estimate::STATUS_SENT,
+                Estimate::STATUS_ACCEPTED,
+                Estimate::STATUS_DECLINED,
+                Estimate::STATUS_EXPIRED
+            ]);
+
+            $needsBranching = $forceBranch || $isFinalized;
+
+            // Also apply existing collaborator logic
+            if ($estimate->is_current_version && auth()->id() !== $estimate->created_by && !auth()->user()->hasRole(['admin', 'super_admin', 'super-admin'])) {
+                $needsBranching = true;
+            }
+
+            if ($needsBranching) {
+                // Create new "Proposal Version" - SKIP item duplication because we will save the form data
+                $newVersion = $this->createVersion($estimate, false, true);
+
+                // Switch context to new version
+                $estimate = $newVersion;
+                $isBranched = true;
+
+                // Notify Creator
+                if (auth()->id() !== $estimate->created_by && $estimate->creator) {
+                    $estimate->creator->notify(new \App\Notifications\EstimateProposalNotification($estimate, auth()->user()));
+                }
+            }
+
+            $estimate->update($data);
+
+            // Sync Sections/Items
+            if ($type === 'room_based') {
+                $inputSectionIds = array_filter(array_column($itemsOrSections, 'id'));
+
+                // If branched, we don't delete from old estimate, but new estimate is empty anyway.
+                // If NOT branched, we verify deletes.
+                if (!$isBranched) {
+                    $estimate->sections()->whereNotIn('id', $inputSectionIds)->delete();
+                }
+
+                foreach ($itemsOrSections as $sectionIndex => $sectionData) {
+                    // Sanitize IDs if branched
+                    if ($isBranched) {
+                        $sectionData['id'] = null;
+                        if (isset($sectionData['items'])) {
+                            foreach ($sectionData['items'] as &$i)
+                                $i['id'] = null;
+                        }
+                    }
+
+                    if (!empty($sectionData['id'])) {
+                        $section = $estimate->sections()->where('id', $sectionData['id'])->first();
+                        if ($section) {
+                            $section->update([
+                                'name' => $sectionData['name'],
+                                'order_index' => $sectionIndex,
+                            ]);
+                        } else {
+                            $section = $estimate->sections()->create([
+                                'name' => $sectionData['name'],
+                                'order_index' => $sectionIndex,
+                            ]);
+                        }
+                    } else {
+                        $section = $estimate->sections()->create([
+                            'name' => $sectionData['name'],
+                            'order_index' => $sectionIndex,
+                        ]);
+                    }
+
+                    // Sync Items
+                    if (isset($sectionData['items'])) {
+                        $itemsToProcess = $sectionData['items'];
+                        if (!$isBranched) {
+                            $inputItemIds = array_filter(array_column($itemsToProcess, 'id'));
+                            $section->items()->whereNotIn('id', $inputItemIds)->delete();
+                        }
+
+                        foreach ($itemsToProcess as $itemIndex => $itemData) {
+                            $oi = $itemData['order_index'] ?? $itemIndex;
+                            if (!empty($itemData['id']) && !$isBranched) {
+                                $item = $estimate->items()->where('id', $itemData['id'])->first();
+                                if ($item) {
+                                    $this->updateEstimateItem($item, $section->id, $itemData, $oi);
+                                } else {
+                                    $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
+                                }
+                            } else {
+                                $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
+                            }
+                        }
+                    } else {
+                        $section->items()->delete();
+                    }
+                }
+            } else {
+                // Standard Type
+                $itemsToProcess = $itemsOrSections;
+                if ($isBranched) {
+                    // Clean IDs
+                    foreach ($itemsToProcess as &$i)
+                        $i['id'] = null;
+                }
+
+                if (!$isBranched) {
+                    $inputItemIds = array_filter(array_column($itemsToProcess, 'id'));
+                    $estimate->items()->whereNotIn('id', $inputItemIds)->delete();
+                }
+
+                foreach ($itemsToProcess as $itemIndex => $itemData) {
+                    $oi = $itemData['order_index'] ?? $itemIndex;
+                    if (!empty($itemData['id']) && !$isBranched) {
+                        $item = $estimate->items()->where('id', $itemData['id'])->first();
+                        if ($item) {
+                            $this->updateEstimateItem($item, null, $itemData, $oi);
+                        } else {
+                            $this->createEstimateItem($estimate, null, $itemData, $oi);
+                        }
+                    } else {
+                        $this->createEstimateItem($estimate, null, $itemData, $oi);
+                    }
+                }
+            }
+
+            $this->recalculateTotals($estimate);
+
+            if ($isBranched) {
+                ActivityLog::log('created_proposal', $estimate, "Created revision v{$estimate->version} from locked/shared estimate {$originalNumber}.");
+            } else {
+                ActivityLog::log('updated', $estimate, "Estimate #{$estimate->estimate_number} updated by " . auth()->user()->name);
+            }
+
+            DB::commit();
+
+            // Dispatch Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateUpdated($estimate, auth()->id(), $estimate->getChanges()));
+
+            return $estimate;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     /**
@@ -277,9 +515,6 @@ class EstimateService
         }
 
         try {
-            // Notify client (Refactored to use Event)
-            // $estimate->client->notify(new \App\Notifications\EstimateSentToClient($estimate));
-
             // Dispatch Event instead of direct email
             event(new \App\Core\Events\Estimates\EstimateSent(
                 $estimate->id,

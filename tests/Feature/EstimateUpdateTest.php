@@ -35,7 +35,7 @@ class EstimateUpdateTest extends TestCase
 
         $section = $estimate->sections()->create(['name' => 'Room 1', 'order_index' => 0]);
         $item = $section->items()->create([
-            'estimate_id' => $estimate->id, // Add this if your model requires it, though usually section_id suffices via relationship
+            'estimate_id' => $estimate->id,
             'name' => 'Original Item',
             'quantity' => 1,
             'unit_price' => 100,
@@ -45,8 +45,6 @@ class EstimateUpdateTest extends TestCase
         $originalItemId = $item->id;
 
         // 2. Prepare Update Payload
-        // We keep the original item (by passing its ID) and change its quantity.
-        // We add a new item.
         $payload = [
             'title' => 'Updated Estimate',
             'client_id' => $client->id,
@@ -61,7 +59,7 @@ class EstimateUpdateTest extends TestCase
                     'name' => 'Renamed Room',
                     'items' => [
                         [
-                            'id' => $originalItemId, // CRITICAL: Passing ID to ensure update, not recreate
+                            'id' => $originalItemId,
                             'name' => 'Original Item Updated',
                             'quantity' => 2,
                             'unit_price' => 100,
@@ -79,7 +77,10 @@ class EstimateUpdateTest extends TestCase
         ];
 
         // 3. Act
-        $response = $this->put(route('estimates.update', $estimate), $payload);
+        // Manually pass CSRF to avoid 419 if middleware is stubborn
+        $token = 'test-token';
+        $this->withSession(['_token' => $token]);
+        $response = $this->put(route('estimates.update', $estimate), $payload, ['X-CSRF-TOKEN' => $token]);
 
         // 4. Assert
         $response->assertRedirect();
