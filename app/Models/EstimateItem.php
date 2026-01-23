@@ -25,6 +25,7 @@ class EstimateItem extends Model
         'original_price',
         'length',
         'width',
+        'height',
         'formula',
         'internal_note',
         'options',

@@ -49,9 +49,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/estimates/{estimate}/analytics/export', [App\Http\Controllers\AnalyticsController::class, 'export'])->name('estimates.analytics.export');
 
     // Estimates Show (Livewire Component)
-    Route::get('/estimates/{estimate}', \App\Livewire\Estimates\ShowEstimate::class)->name('estimates.show');
-
     Route::resource('estimates', EstimateController::class)->except(['show']);
+
+    // Estimates Show (Livewire Component)
+    Route::get('/estimates/{estimate}', \App\Livewire\Estimates\ShowEstimate::class)->name('estimates.show');
 
     Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
 

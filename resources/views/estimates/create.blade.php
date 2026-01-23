@@ -470,6 +470,15 @@
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
                                                                 </div>
+                                                                <div class="flex items-center gap-2">
+                                                                    <span
+                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                                    <input type="number" step="0.01"
+                                                                        x-model="item.height" placeholder="0"
+                                                                        class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                                    <span
+                                                                        class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                                </div>
                                                             </div>
                                                             <div class="flex flex-col items-center">
                                                                 <span
@@ -744,6 +753,15 @@
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                         <input type="number" step="0.01" x-model="item.width"
                                                             placeholder="0" @input="calculateQuantity(item)"
+                                                            class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                        <span
+                                                            class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <span
+                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                        <input type="number" step="0.01" x-model="item.height"
+                                                            placeholder="0"
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>

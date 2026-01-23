@@ -311,9 +311,10 @@ class EstimateController extends Controller
             'items.*.internal_note' => 'nullable|string',
             'items.*.unit_type_id' => 'nullable|exists:unit_types,id',
             'items.*.unit_type' => 'required_with:items.*.unit_type_id|string',
-            'sections.*.items.*.internal_note' => 'nullable|string',
             'sections.*.items.*.unit_type_id' => 'nullable|exists:unit_types,id',
             'sections.*.items.*.unit_type' => 'required_with:sections.*.items.*.unit_type_id|string',
+            'tax_1' => 'nullable|numeric|min:0',
+            'tax_2' => 'nullable|numeric|min:0',
         ]);
 
         // Additional custom validation for unit configuration
@@ -523,6 +524,8 @@ class EstimateController extends Controller
             'type' => 'required|in:standard,room_based',
             'items.*.internal_note' => 'nullable|string',
             'sections.*.items.*.internal_note' => 'nullable|string',
+            'tax_1' => 'nullable|numeric|min:0',
+            'tax_2' => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();

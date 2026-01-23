@@ -1,8 +1,8 @@
 <div x-data="{ 
-    showUploadModal: @entangle('showUploadModal'), 
-    showRetireModal: @entangle('showRetireModal'), 
-    showSuggestModal: @entangle('showSuggestModal'),
-    showEditModal: @entangle('showEditModal'),
+    showUploadModal: $wire.entangle('showUploadModal'), 
+    showRetireModal: $wire.entangle('showRetireModal'), 
+    showSuggestModal: $wire.entangle('showSuggestModal'),
+    showEditModal: $wire.entangle('showEditModal'),
     initQuill() {
         if (!document.getElementById('quill-editor')) return;
         if (this.quill) return;
