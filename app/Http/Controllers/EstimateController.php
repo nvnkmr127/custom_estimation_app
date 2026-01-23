@@ -256,8 +256,9 @@ class EstimateController extends Controller
                 $t->items = $items;
             }
             return $t;
-        });
-        $packages = ItemPackage::all();
+        })->values();
+
+        $packages = ItemPackage::all()->values();
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
         $pdfTemplates = PdfTemplate::where('is_active', true)->get();
@@ -416,8 +417,8 @@ class EstimateController extends Controller
         $this->authorize('update', $estimate);
 
         $products = Product::with(['images', 'options.values'])->get();
-        $templates = RoomTemplate::all();
-        $packages = ItemPackage::all();
+        $templates = RoomTemplate::all()->values();
+        $packages = ItemPackage::all()->values();
         $clients = Client::orderBy('name')->get();
         $approvalChains = ApprovalChain::activeWithSteps();
         $pdfTemplates = PdfTemplate::where('is_active', true)->get();

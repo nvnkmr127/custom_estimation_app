@@ -9,371 +9,217 @@ return new class extends Migration {
     /**
      * Run the migrations.
      */
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
-        // Add indexes to estimates table for common queries
-        Schema::table('estimates', function (Blueprint $table) {
-            try {
-                $table->index('status');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('client_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('created_by');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('approval_chain_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('approval_status');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('estimate_date');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('deleted_at');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->addIndexes('estimates', [
+            ['columns' => 'status', 'name' => 'estimates_status_index'],
+            ['columns' => 'client_id', 'name' => 'estimates_client_id_index'],
+            ['columns' => 'created_by', 'name' => 'estimates_created_by_index'],
+            ['columns' => 'approval_chain_id', 'name' => 'estimates_approval_chain_id_index'],
+            ['columns' => 'approval_status', 'name' => 'estimates_approval_status_index'],
+            ['columns' => 'estimate_date', 'name' => 'estimates_estimate_date_index'],
+            ['columns' => 'deleted_at', 'name' => 'estimates_deleted_at_index'],
+        ]);
 
-        // Add indexes to estimate_items table
-        Schema::table('estimate_items', function (Blueprint $table) {
-            try {
-                $table->index('estimate_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('estimate_section_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('product_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('unit_type_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('deleted_at');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->addIndexes('estimate_items', [
+            ['columns' => 'estimate_id', 'name' => 'estimate_items_estimate_id_index'],
+            ['columns' => 'estimate_section_id', 'name' => 'estimate_items_estimate_section_id_index'],
+            ['columns' => 'product_id', 'name' => 'estimate_items_product_id_index'],
+            ['columns' => 'unit_type_id', 'name' => 'estimate_items_unit_type_id_index'],
+            ['columns' => 'deleted_at', 'name' => 'estimate_items_deleted_at_index'],
+        ]);
 
-        // Add indexes to estimate_sections table
-        Schema::table('estimate_sections', function (Blueprint $table) {
-            try {
-                $table->index('estimate_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('deleted_at');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->addIndexes('estimate_sections', [
+            ['columns' => 'estimate_id', 'name' => 'estimate_sections_estimate_id_index'],
+            ['columns' => 'deleted_at', 'name' => 'estimate_sections_deleted_at_index'],
+        ]);
 
-        // Add indexes to products table
-        Schema::table('products', function (Blueprint $table) {
-            try {
-                $table->index('category_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('status');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('is_featured');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('sort_order');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('unit_type_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('deleted_at');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->addIndexes('products', [
+            ['columns' => 'category_id', 'name' => 'products_category_id_index'],
+            ['columns' => 'status', 'name' => 'products_status_index'],
+            ['columns' => 'is_featured', 'name' => 'products_is_featured_index'],
+            ['columns' => 'sort_order', 'name' => 'products_sort_order_index'],
+            ['columns' => 'unit_type_id', 'name' => 'products_unit_type_id_index'],
+            ['columns' => 'deleted_at', 'name' => 'products_deleted_at_index'],
+        ]);
 
-        // Add indexes to estimate_approvals table
-        Schema::table('estimate_approvals', function (Blueprint $table) {
-            try {
-                $table->index('estimate_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('user_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('status');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index(['estimate_id', 'user_id', 'status'], 'estimate_approvals_composite_idx');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->addIndexes('estimate_approvals', [
+            ['columns' => 'estimate_id', 'name' => 'estimate_approvals_estimate_id_index'],
+            ['columns' => 'user_id', 'name' => 'estimate_approvals_user_id_index'],
+            ['columns' => 'status', 'name' => 'estimate_approvals_status_index'],
+            ['columns' => ['estimate_id', 'user_id', 'status'], 'name' => 'estimate_approvals_composite_idx'],
+        ]);
 
-        // Add indexes to estimate_comments table
-        Schema::table('estimate_comments', function (Blueprint $table) {
-            try {
-                $table->index('estimate_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('user_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('status');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('is_read');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index(['commentable_type', 'commentable_id'], 'estimate_comments_commentable_idx');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('deleted_at');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->addIndexes('estimate_comments', [
+            ['columns' => 'estimate_id', 'name' => 'estimate_comments_estimate_id_index'],
+            ['columns' => 'user_id', 'name' => 'estimate_comments_user_id_index'],
+            ['columns' => 'status', 'name' => 'estimate_comments_status_index'],
+            ['columns' => 'is_read', 'name' => 'estimate_comments_is_read_index'],
+            ['columns' => ['commentable_type', 'commentable_id'], 'name' => 'estimate_comments_commentable_idx'],
+            ['columns' => 'deleted_at', 'name' => 'estimate_comments_deleted_at_index'],
+        ]);
 
-        // Add indexes to activity_logs table
-        Schema::table('activity_logs', function (Blueprint $table) {
-            try {
-                $table->index(['subject_type', 'subject_id'], 'activity_logs_subject_idx');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('user_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('action');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->addIndexes('activity_logs', [
+            ['columns' => ['subject_type', 'subject_id'], 'name' => 'activity_logs_subject_idx'],
+            ['columns' => 'user_id', 'name' => 'activity_logs_user_id_index'],
+            ['columns' => 'action', 'name' => 'activity_logs_action_index'],
+        ]);
 
-        // Add indexes to product_images table
-        Schema::table('product_images', function (Blueprint $table) {
-            try {
-                $table->index('product_id');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->index('display_order');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->addIndexes('product_images', [
+            ['columns' => 'product_id', 'name' => 'product_images_product_id_index'],
+            ['columns' => 'display_order', 'name' => 'product_images_display_order_index'],
+        ]);
 
-        // Add indexes to followers table
-        Schema::table('followers', function (Blueprint $table) {
-            try {
-                $table->index('user_id');
-            } catch (\Exception $e) {
+        $this->addIndexes('followers', [
+            ['columns' => 'user_id', 'name' => 'followers_user_id_index'],
+            ['columns' => ['followable_type', 'followable_id'], 'name' => 'followers_followable_idx'],
+        ]);
+    }
+
+    /**
+     * Add indexes to a table if they don't exist.
+     */
+    private function addIndexes(string $table, array $indexes): void
+    {
+        if (!Schema::hasTable($table)) {
+            return;
+        }
+
+        $existingIndexes = collect(Schema::getIndexes($table))->pluck('name')->toArray();
+
+        foreach ($indexes as $indexData) {
+            $name = $indexData['name'];
+            $columns = (array) $indexData['columns'];
+
+            // Skip if index already exists
+            if (in_array($name, $existingIndexes)) {
+                continue;
             }
-            try {
-                $table->index(['followable_type', 'followable_id'], 'followers_followable_idx');
-            } catch (\Exception $e) {
+
+            // Verify all columns exist
+            foreach ($columns as $column) {
+                if (!Schema::hasColumn($table, $column)) {
+                    continue 2;
+                }
             }
-        });
+
+            try {
+                Schema::table($table, function (Blueprint $tableObj) use ($columns, $name) {
+                    $tableObj->index($columns, $name);
+                });
+            } catch (\Exception $e) {
+                // Fail silently if index cannot be created
+            }
+        }
     }
 
     /**
      * Reverse the migrations.
      */
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::table('followers', function (Blueprint $table) {
-            try {
-                $table->dropIndex(['user_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex('followers_followable_idx');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->dropIndexes('followers', [
+            'user_id',
+            'followers_followable_idx',
+        ]);
 
-        Schema::table('product_images', function (Blueprint $table) {
-            try {
-                $table->dropIndex(['product_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['display_order']);
-            } catch (\Exception $e) {
-            }
-        });
+        $this->dropIndexes('product_images', [
+            'product_id',
+            'display_order',
+        ]);
 
-        Schema::table('activity_logs', function (Blueprint $table) {
-            try {
-                $table->dropIndex('activity_logs_subject_idx');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['user_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['action']);
-            } catch (\Exception $e) {
-            }
-        });
+        $this->dropIndexes('activity_logs', [
+            'activity_logs_subject_idx',
+            'user_id',
+            'action',
+        ]);
 
-        Schema::table('estimate_comments', function (Blueprint $table) {
-            try {
-                $table->dropIndex(['estimate_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['user_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['status']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['is_read']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex('estimate_comments_commentable_idx');
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['deleted_at']);
-            } catch (\Exception $e) {
-            }
-        });
+        $this->dropIndexes('estimate_comments', [
+            'estimate_id',
+            'user_id',
+            'status',
+            'is_read',
+            'estimate_comments_commentable_idx',
+            'deleted_at',
+        ]);
 
-        Schema::table('estimate_approvals', function (Blueprint $table) {
-            try {
-                $table->dropIndex(['estimate_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['user_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['status']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex('estimate_approvals_composite_idx');
-            } catch (\Exception $e) {
-            }
-        });
+        $this->dropIndexes('estimate_approvals', [
+            'estimate_id',
+            'user_id',
+            'status',
+            'estimate_approvals_composite_idx',
+        ]);
 
-        Schema::table('products', function (Blueprint $table) {
-            try {
-                $table->dropIndex(['category_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['status']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['is_featured']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['sort_order']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['unit_type_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['deleted_at']);
-            } catch (\Exception $e) {
-            }
-        });
+        $this->dropIndexes('products', [
+            'category_id',
+            'status',
+            'is_featured',
+            'sort_order',
+            'unit_type_id',
+            'deleted_at',
+        ]);
 
-        Schema::table('estimate_sections', function (Blueprint $table) {
-            try {
-                $table->dropIndex(['estimate_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['deleted_at']);
-            } catch (\Exception $e) {
-            }
-        });
+        $this->dropIndexes('estimate_sections', [
+            'estimate_id',
+            'deleted_at',
+        ]);
 
-        Schema::table('estimate_items', function (Blueprint $table) {
-            try {
-                $table->dropIndex(['estimate_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['estimate_section_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['product_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['unit_type_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['deleted_at']);
-            } catch (\Exception $e) {
-            }
-        });
+        $this->dropIndexes('estimate_items', [
+            'estimate_id',
+            'estimate_section_id',
+            'product_id',
+            'unit_type_id',
+            'deleted_at',
+        ]);
 
-        Schema::table('estimates', function (Blueprint $table) {
-            try {
-                $table->dropIndex(['status']);
-            } catch (\Exception $e) {
+        $this->dropIndexes('estimates', [
+            'status',
+            'client_id',
+            'created_by',
+            'approval_chain_id',
+            'approval_status',
+            'estimate_date',
+            'deleted_at',
+        ]);
+    }
+
+    /**
+     * Drop indexes from a table if they exist.
+     */
+    private function dropIndexes(string $table, array $indexes): void
+    {
+        if (!Schema::hasTable($table)) {
+            return;
+        }
+
+        $existingIndexes = collect(Schema::getIndexes($table))->pluck('name')->toArray();
+
+        foreach ($indexes as $index) {
+            // Check if index exists by name or by column convention
+            $indexName = $index;
+            if (!in_array($indexName, $existingIndexes)) {
+                // If it's a simple column, Laravel's convention is table_column_index
+                $conventionName = $table . '_' . $index . '_index';
+                if (in_array($conventionName, $existingIndexes)) {
+                    $indexName = $conventionName;
+                } else {
+                    continue; // Skip if not found
+                }
             }
+
             try {
-                $table->dropIndex(['client_id']);
+                Schema::table($table, function (Blueprint $tableObj) use ($indexName) {
+                    $tableObj->dropIndex($indexName);
+                });
             } catch (\Exception $e) {
+                // Fail silently
             }
-            try {
-                $table->dropIndex(['created_by']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['approval_chain_id']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['approval_status']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['estimate_date']);
-            } catch (\Exception $e) {
-            }
-            try {
-                $table->dropIndex(['deleted_at']);
-            } catch (\Exception $e) {
-            }
-        });
+        }
     }
 };
