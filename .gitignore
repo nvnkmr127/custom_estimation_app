@@ -58,16 +58,15 @@ _ide_helper_models.php
 ehthumbs.db
 Thumbs.db
 desktop.ini
+cookies.txt
 
 # NPM and Node
 node_modules/
 npm-debug.log
 yarn-error.log
-package-lock.json
 
 # Composer
 /vendor/
-composer.lock
 
 # Testing
 .phpunit.result.cache
