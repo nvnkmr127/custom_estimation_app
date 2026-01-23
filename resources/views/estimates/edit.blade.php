@@ -87,8 +87,8 @@
                 </div>
                 <div class="flex gap-3">
                     <!-- Template Loader -->
-                    <div class="relative" x-data="{ open: false }">
-                        <button type="button" @click="open = !open" @click.away="open = false"
+                    <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                        <button type="button" @click="open = !open"
                             class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50">
                             <svg class="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path
@@ -250,8 +250,8 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <!-- Package Loader for Section -->
-                                    <div class="relative" x-data="{ pkgOpen: false }">
-                                        <button type="button" @click="pkgOpen = !pkgOpen" @click.away="pkgOpen = false"
+                                    <div class="relative" x-data="{ pkgOpen: false }" @click.away="pkgOpen = false">
+                                        <button type="button" @click="pkgOpen = !pkgOpen"
                                             class="text-xs font-semibold text-indigo-600 hover:text-indigo-900 flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded">
                                             + Add Package
                                         </button>

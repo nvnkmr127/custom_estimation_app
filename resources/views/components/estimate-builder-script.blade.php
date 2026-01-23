@@ -413,7 +413,6 @@
                     tax_2: 0,
                     length: '',
                     width: '',
-                    width: '',
                     formula: '',
                     showCalculator: false,
                     options: []
