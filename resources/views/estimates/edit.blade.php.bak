@@ -392,7 +392,6 @@
                                                                 <div class="relative">
                                                                     <template x-if="item.unit_type_id">
                                                                         <select x-model="item.unit_type"
-                                                                            :class="hasItemError(item, sectionIndex) && (!item.unit_type || item.unit_type === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-indigo-200 bg-indigo-50/30'"
                                                                             class="block w-full rounded-lg border-indigo-200 bg-indigo-50/30 py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
                                                                             <template
                                                                                 x-for="u in getUnitsByTypeId(item.unit_type_id)"
