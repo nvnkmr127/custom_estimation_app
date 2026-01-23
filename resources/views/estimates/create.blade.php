@@ -259,8 +259,8 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <!-- Package Loader for Section -->
-                                    <div class="relative" x-data="{ pkgOpen: false }">
-                                        <button type="button" @click="pkgOpen = !pkgOpen" @click.away="pkgOpen = false"
+                                    <div class="relative" x-data="{ pkgOpen: false }" @click.away="pkgOpen = false">
+                                        <button type="button" @click="pkgOpen = !pkgOpen"
                                             class="text-xs font-semibold text-indigo-600 hover:text-indigo-900 flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded">
                                             + Add Package
                                         </button>
