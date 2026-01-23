@@ -68,6 +68,13 @@ class ApprovalChain extends Model
     {
         return $query->where('is_active', true)->with('steps')->orderBy('name');
     }
+    public function approvers()
+    {
+        return $this->belongsToMany(User::class, 'approval_chain_steps', 'approval_chain_id', 'user_id')
+            ->withPivot(['role', 'order', 'timeout_hours', 'timeout_action'])
+            ->orderBy('approval_chain_steps.order');
+    }
+
     public function fallbackUser()
     {
         return $this->belongsTo(User::class, 'fallback_user_id');

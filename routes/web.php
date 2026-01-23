@@ -20,7 +20,7 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', App\Livewire\Dashboard::class)->name('dashboard');
 
     // Profile (Standard Breeze)
     // AI Generation
@@ -48,7 +48,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/estimates/{estimate}/analytics', [App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('estimates.analytics');
     Route::get('/estimates/{estimate}/analytics/export', [App\Http\Controllers\AnalyticsController::class, 'export'])->name('estimates.analytics.export');
 
-    Route::resource('estimates', EstimateController::class);
+    // Estimates Show (Livewire Component)
+    Route::get('/estimates/{estimate}', \App\Livewire\Estimates\ShowEstimate::class)->name('estimates.show');
+
+    Route::resource('estimates', EstimateController::class)->except(['show']);
 
     Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
 

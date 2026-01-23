@@ -39,8 +39,49 @@
     </script>
     <div x-data="estimateBuilder(window.estimateData)" x-init="init()" class="pb-20">
 
-        <form action="{{ route('estimates.store') }}" method="POST" @submit.prevent="submitForm" class="space-y-8">
+        <form action="{{ route('estimates.store') }}" method="POST" @submit.prevent="submitForm" class="space-y-8"
+            novalidate>
             @csrf
+
+            <!-- Validation Errors Alert -->
+            <div x-show="validationErrors.length > 0" x-cloak
+                class="rounded-xl border-2 border-rose-200 bg-rose-50 p-6 shadow-sm">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-base font-bold text-rose-900 mb-2">Please Complete Required Fields</h3>
+                        <p class="text-sm text-rose-700 mb-4">
+                            The following fields are required or incomplete. Please review and complete them before
+                            saving:
+                        </p>
+                        <ul class="space-y-2">
+                            <template x-for="(error, index) in validationErrors" :key="index">
+                                <li class="flex items-start gap-2 text-sm">
+                                    <svg class="h-5 w-5 text-rose-500 flex-shrink-0 mt-0.5" fill="currentColor"
+                                        viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    <div>
+                                        <span class="font-semibold text-rose-900" x-text="error.location"></span>
+                                        <span class="text-rose-700">-</span>
+                                        <span class="text-rose-800" x-text="error.itemName"></span>
+                                        <span class="text-rose-700">:</span>
+                                        <span class="text-rose-600" x-text="error.message"></span>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </div>
+            </div>
 
             <!-- Quick Actions Toolbar -->
             <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between"
@@ -180,14 +221,6 @@
                     </h2>
 
                     <div class="flex gap-3">
-                        <button type="button" @click="addSection" x-show="estimate.type === 'room_based'"
-                            class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                            <svg class="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path
-                                    d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                            </svg>
-                            Add Room
-                        </button>
                         <button type="button" @click="openProductPicker(null)" x-show="estimate.type === 'standard'"
                             class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                             <svg class="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -195,6 +228,14 @@
                                     d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                             </svg>
                             Add Item
+                        </button>
+                        <button type="button" @click="addSection" x-show="estimate.type === 'room_based'"
+                            class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                            <svg class="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                            </svg>
+                            Add Room
                         </button>
                     </div>
                 </div>
@@ -335,11 +376,15 @@
                                                                 <div class="relative group">
                                                                     <select x-model="item.unit_type_id"
                                                                         @change="onUnitTypeChange(item)"
-                                                                        class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white">
+                                                                        :class="hasItemError(item, sectionIndex) && (!item.unit_type_id || item.unit_type_id === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-slate-200 bg-slate-50/50'"
+                                                                        class="block w-full rounded-lg py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white">
                                                                         <option value="">Manual</option>
-                                                                        <template x-for="type in unitTypes"
+                                                                        <template
+                                                                            x-for="type in getFilteredUnitTypes(sectionIndex)"
                                                                             :key="type.id">
-                                                                            <option :value="type.id" x-text="type.name">
+                                                                            <option :value="String(type.id)"
+                                                                                x-text="type.name"
+                                                                                :selected="String(type.id) === String(item.unit_type_id)">
                                                                             </option>
                                                                         </template>
                                                                     </select>
@@ -357,18 +402,22 @@
                                                                 <div class="relative">
                                                                     <template x-if="item.unit_type_id">
                                                                         <select x-model="item.unit_type"
-                                                                            class="block w-full rounded-lg border-indigo-200 bg-indigo-50/30 py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
+                                                                            :class="hasItemError(item, sectionIndex) && (!item.unit_type || item.unit_type === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-indigo-200 bg-indigo-50/30'"
+                                                                            class="block w-full rounded-lg py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
                                                                             <template
                                                                                 x-for="u in getUnitsByTypeId(item.unit_type_id)"
                                                                                 :key="u">
-                                                                                <option :value="u" x-text="u"></option>
+                                                                                <option :value="u" x-text="u"
+                                                                                    :selected="u === item.unit_type">
+                                                                                </option>
                                                                             </template>
                                                                         </select>
                                                                     </template>
                                                                     <template x-if="!item.unit_type_id">
                                                                         <input type="text" x-model="item.unit_type"
                                                                             placeholder="e.g. nos"
-                                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50 py-1.5 px-2 text-[11px] font-bold text-slate-700 text-center focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                            :class="hasItemError(item, sectionIndex) && (!item.unit_type || item.unit_type === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-slate-200 bg-slate-50'"
+                                                                            class="block w-full rounded-lg py-1.5 px-2 text-[11px] font-bold text-slate-700 text-center focus:ring-2 focus:ring-indigo-600 shadow-sm">
                                                                     </template>
                                                                 </div>
                                                             </div>
@@ -402,16 +451,20 @@
                                                             style="display: none;">
                                                             <div class="flex flex-col gap-1.5">
                                                                 <div class="flex items-center gap-2">
+                                                                    <span
+                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                                                     <input type="number" step="0.01"
-                                                                        x-model="item.length" placeholder="L"
+                                                                        x-model="item.length" placeholder="0"
                                                                         @input="calculateQuantity(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
                                                                 </div>
                                                                 <div class="flex items-center gap-2">
+                                                                    <span
+                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                                     <input type="number" step="0.01"
-                                                                        x-model="item.width" placeholder="W"
+                                                                        x-model="item.width" placeholder="0"
                                                                         @input="calculateQuantity(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
@@ -519,13 +572,13 @@
 
                     </template>
 
-                    <button type="button" @click="addSection"
-                        class="w-full py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex items-center justify-center gap-2">
+                    <button type="button" @click="openProductPicker(null)"
+                        class="w-full py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex items-center justify-center gap-2">
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path
                                 d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                         </svg>
-                        Add New Room
+                        Add Item
                     </button>
                 </div>
 
@@ -612,7 +665,8 @@
                                                     <div class="relative group">
                                                         <select x-model="item.unit_type_id"
                                                             @change="onUnitTypeChange(item)"
-                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white">
+                                                            :class="hasItemError(item, null) && (!item.unit_type_id || item.unit_type_id === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-slate-200 bg-slate-50/50'"
+                                                            class="block w-full rounded-lg py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white">
                                                             <option value="">Manual</option>
                                                             <template x-for="type in unitTypes" :key="type.id">
                                                                 <option :value="type.id" x-text="type.name"></option>
@@ -631,7 +685,8 @@
                                                     <div class="relative">
                                                         <template x-if="item.unit_type_id">
                                                             <select x-model="item.unit_type"
-                                                                class="block w-full rounded-lg border-indigo-200 bg-indigo-50/30 py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
+                                                                :class="hasItemError(item, null) && (!item.unit_type || item.unit_type === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-indigo-200 bg-indigo-50/30'"
+                                                                class="block w-full rounded-lg py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
                                                                 <template
                                                                     x-for="u in getUnitsByTypeId(item.unit_type_id)"
                                                                     :key="u">
@@ -642,7 +697,8 @@
                                                         <template x-if="!item.unit_type_id">
                                                             <input type="text" x-model="item.unit_type"
                                                                 placeholder="e.g. nos"
-                                                                class="block w-full rounded-lg border-slate-200 bg-slate-50 py-1.5 px-2 text-[11px] font-bold text-slate-700 text-center focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                :class="hasItemError(item, null) && (!item.unit_type || item.unit_type === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-slate-200 bg-slate-50'"
+                                                                class="block w-full rounded-lg py-1.5 px-2 text-[11px] font-bold text-slate-700 text-center focus:ring-2 focus:ring-indigo-600 shadow-sm">
                                                         </template>
                                                     </div>
                                                 </div>
@@ -675,15 +731,19 @@
                                                 style="display: none;">
                                                 <div class="flex flex-col gap-1.5">
                                                     <div class="flex items-center gap-2">
+                                                        <span
+                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                                         <input type="number" step="0.01" x-model="item.length"
-                                                            placeholder="L" @input="calculateQuantity(item)"
+                                                            placeholder="0" @input="calculateQuantity(item)"
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
                                                     </div>
                                                     <div class="flex items-center gap-2">
+                                                        <span
+                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                         <input type="number" step="0.01" x-model="item.width"
-                                                            placeholder="W" @input="calculateQuantity(item)"
+                                                            placeholder="0" @input="calculateQuantity(item)"
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -769,13 +829,22 @@
                     </table>
                 </div>
 
-                <button type="button" @click="openProductPicker(null)"
+                <button type="button" @click="openProductPicker(null)" x-show="estimate.type === 'standard'"
                     class="h-full min-h-[160px] border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
                     <svg class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
                         <path
                             d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                     </svg>
                     <span>Add Item</span>
+                </button>
+
+                <button type="button" @click="addSection" x-show="estimate.type === 'room_based'"
+                    class="h-full min-h-[160px] w-full border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
+                    <svg class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                    </svg>
+                    <span>Add New Room</span>
                 </button>
             </div>
 

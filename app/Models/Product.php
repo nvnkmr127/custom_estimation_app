@@ -28,6 +28,9 @@ class Product extends Model
         'attributes',
         'dimensions',
         'tags',
+        'tax_1',
+        'tax_2',
+        'formula',
     ];
 
     protected $casts = [
@@ -131,6 +134,6 @@ class Product extends Model
             return $imagePath;
         }
 
-        return \Illuminate\Support\Facades\Storage::url($imagePath);
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($imagePath);
     }
 }

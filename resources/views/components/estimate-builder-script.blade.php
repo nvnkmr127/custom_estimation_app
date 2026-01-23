@@ -57,6 +57,7 @@
                 grandTotal: 0
             },
             isSubmitting: false,
+            validationErrors: [],
 
             hasCustomItems() {
                 const allItems = this.estimate.type === 'room_based'
@@ -100,6 +101,14 @@
                     item.tax_2 = parseFloat(item.tax_2 || 0);
                     item.unit_type_id = item.unit_type_id || null;
                     item._showTypePicker = false;
+                    // Preserve the size field if it exists
+                    item.size = item.size || '';
+                    // Preserve dimension fields
+                    item.length = item.length || '';
+                    item.width = item.width || '';
+                    item.formula = item.formula || '';
+                    // Auto-show calculator if item has length and width values
+                    item.showCalculator = !!(item.length && item.width);
                     // Hydrate image from relation if available and not set
                     if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
                         item.image_url = '/storage/' + item.product.images[0].image_path;
@@ -240,6 +249,26 @@
                     item.unit_type = 'nos';
                 }
             },
+
+            getFilteredUnitTypes(sectionIndex) {
+                // For standard estimates (not room-based), show all unit types
+                if (this.estimate.type !== 'room_based') {
+                    return this.unitTypes;
+                }
+
+                // Get the section
+                const section = this.estimate.sections[sectionIndex];
+                if (!section) return this.unitTypes;
+
+                // If section has no allowed_unit_types or it's empty, show all (backward compatibility)
+                if (!section.allowed_unit_types || section.allowed_unit_types.length === 0) {
+                    return this.unitTypes;
+                }
+
+                // Filter unit types based on section's allowed list
+                return this.unitTypes.filter(ut => section.allowed_unit_types.some(id => String(id) === String(ut.id)));
+            },
+
 
             selectProduct(product) {
                 // Check for options
@@ -423,7 +452,11 @@
 
             // --- Importers ---
             applyTemplate(template) {
-                const newSection = { name: template.name, items: [] };
+                const newSection = {
+                    name: template.name,
+                    items: [],
+                    allowed_unit_types: template.allowed_unit_types || [] // Store allowed unit types from template
+                };
                 if (Array.isArray(template.items)) {
                     newSection.items = template.items.map(i => {
                         // Resolve fields (Priority: Template Item > Product)
@@ -440,6 +473,10 @@
                             }
                         }
 
+                        // Get unit_type_id from template item or product, ensure it's a string or null
+                        const unitTypeId = i.unit_type_id || i.product?.unit_type_id || null;
+                        const unitTypeIdString = unitTypeId ? String(unitTypeId) : null;
+
                         return {
                             id: null,
                             name: i.item_name || i.name || '',
@@ -447,12 +484,13 @@
                             quantity: parseFloat(i.quantity || 1),
                             size: i.size || '',
                             unit_type: i.unit_type || i.product?.unit_type || 'nos',
-                            unit_type_id: i.unit_type_id || i.product?.unit_type_id || null,
+                            unit_type_id: unitTypeIdString,
                             description: desc,
                             image_url: imageUrl,
                             tax_1: 0,
                             tax_2: 0,
                             length: '', width: '', formula: '', showCalculator: false,
+                            _showTypePicker: !!unitTypeIdString, // Show picker if unit type is set
                             options: []
                         };
                     });
@@ -588,12 +626,98 @@
                 this.calculateTotals();
             },
 
+            // --- Validation ---
+            hasItemError(item, sectionIndex = null) {
+                const location = sectionIndex !== null
+                    ? `${this.estimate.sections[sectionIndex].name} - Item #${this.estimate.sections[sectionIndex].items.indexOf(item) + 1}`
+                    : `Item #${this.estimate.items.indexOf(item) + 1}`;
+
+                return this.validationErrors.some(err =>
+                    err.location === location && err.itemName === (item.name || 'Unnamed Item')
+                );
+            },
+
+            validateForm() {
+                this.validationErrors = [];
+                const errors = [];
+
+                // Validate required fields
+                if (!this.estimate.client_id || this.estimate.client_id === '') {
+                    errors.push({
+                        location: 'Estimate Details',
+                        itemName: 'Client / Lead',
+                        message: 'Please select a client or lead'
+                    });
+                }
+
+                if (!this.estimate.pdf_template_id || this.estimate.pdf_template_id === '') {
+                    errors.push({
+                        location: 'Estimate Details',
+                        itemName: 'PDF Template',
+                        message: 'Please select a PDF template'
+                    });
+                }
+
+                if (!this.estimate.estimate_date || this.estimate.estimate_date === '') {
+                    errors.push({
+                        location: 'Estimate Details',
+                        itemName: 'Estimate Date',
+                        message: 'Please select an estimate date'
+                    });
+                }
+
+                // Validate unit configurations
+                const validateItem = (item, location) => {
+                    // Check if unit configuration is started but not completed
+                    if (item._showTypePicker || item.unit_type_id) {
+                        // If unit type picker is shown or unit_type_id is set, we need both fields
+                        if (!item.unit_type_id || item.unit_type_id === '') {
+                            errors.push({
+                                location: location,
+                                itemName: item.name || 'Unnamed Item',
+                                message: 'Unit Type is required'
+                            });
+                        }
+
+                        if (!item.unit_type || item.unit_type === '') {
+                            errors.push({
+                                location: location,
+                                itemName: item.name || 'Unnamed Item',
+                                message: 'Unit is required'
+                            });
+                        }
+                    }
+                };
+
+                if (this.estimate.type === 'room_based') {
+                    this.estimate.sections.forEach((section, sIdx) => {
+                        section.items.forEach((item, iIdx) => {
+                            validateItem(item, `${section.name} - Item #${iIdx + 1}`);
+                        });
+                    });
+                } else {
+                    this.estimate.items.forEach((item, iIdx) => {
+                        validateItem(item, `Item #${iIdx + 1}`);
+                    });
+                }
+
+                this.validationErrors = errors;
+                return errors.length === 0;
+            },
+
             // --- Form Submission ---
             previewPdf() {
                 this.submitHiddenForm('{{ route("estimates.preview") }}', true);
             },
 
             submitForm() {
+                // Validate all required fields before submission
+                if (!this.validateForm()) {
+                    // Scroll to top to show error message
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+
                 const actionUrl = this.estimate.id
                     ? `{{ route('estimates.update', ':id') }}`.replace(':id', this.estimate.id)
                     : `{{ route('estimates.store') }}`;
@@ -621,7 +745,7 @@
                 };
 
                 // Basic Fields
-                const fields = ['client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type', 'coupon_code_id'];
+                const fields = ['client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type', 'coupon_code_id', 'pdf_template_id'];
                 fields.forEach(f => {
                     let val = this.estimate[f];
                     if (f === 'discount_value') {

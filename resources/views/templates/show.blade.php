@@ -1,127 +1,140 @@
 <x-app-layout>
-    <div class="sm:flex sm:items-center sm:justify-between mb-8">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $template->name }}</h1>
-            <p class="mt-2 text-sm text-slate-500">Room Template Details</p>
-        </div>
-        <div class="mt-4 sm:ml-16 sm:mt-0 flex gap-3">
-            <a href="{{ route('templates.edit', $template) }}"
-                class="rounded-lg bg-indigo-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-all duration-200">
-                Edit Template
-            </a>
-            <a href="{{ route('templates.index') }}"
-                class="rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-all duration-200">
-                Back to List
-            </a>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Main Details -->
-        <div class="lg:col-span-2 space-y-8">
-            <!-- Basic Info -->
-            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl overflow-hidden">
-                <div class="px-6 py-5 border-b border-gray-200">
-                    <h3 class="text-base font-semibold leading-6 text-gray-900">Template Information</h3>
-                </div>
-                <div class="px-6 py-5">
-                    <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                        <div class="sm:col-span-1">
-                            <dt class="text-sm font-medium text-gray-500">Template Name</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ $template->name }}</dd>
-                        </div>
-                        <div class="sm:col-span-1">
-                            <!-- Optional stats or info can go here -->
-                        </div>
-                        <div class="sm:col-span-2">
-                            <dt class="text-sm font-medium text-gray-500">Description</dt>
-                            <dd class="mt-1 text-sm text-gray-900">
-                                {{ $template->description ?? 'No description provided.' }}</dd>
-                        </div>
-                    </dl>
-                </div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <!-- Header -->
+        <div class="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div class="space-y-1">
+                <nav class="flex mb-2" aria-label="Breadcrumb">
+                    <ol role="list" class="flex items-center space-x-2">
+                        <li>
+                            <a href="{{ route('templates.index') }}" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors">Templates</a>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <svg class="h-3 w-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M9 5l7 7-7 7"/></svg>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-900">View Template</span>
+                        </li>
+                    </ol>
+                </nav>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">{{ $template->name }}</h1>
+                <p class="text-slate-500 font-medium">Detailed configuration for this room template.</p>
             </div>
-
-            <!-- Items -->
-            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl overflow-hidden">
-                <div class="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-                    <h3 class="text-base font-semibold leading-6 text-gray-900">Template Items</h3>
-                    <span
-                        class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
-                        {{ count($template->items ?? []) }} items
-                    </span>
-                </div>
-                <div class="border-t border-gray-200">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Item Name</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Product Link</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Default Qty</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Default Price</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @forelse($template->items as $item)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {{ $item['item_name'] }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        @if(isset($item['product_id']) && $item['product_id'])
-                                            <span
-                                                class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Linked
-                                                Product</span>
-                                        @else
-                                            <span class="text-gray-400">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $item['quantity'] }} {{ $item['unit_type'] ?? '' }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ config('app.currency_symbol', '$') }}{{ number_format($item['unit_price'] ?? 0, 2) }}
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No items in this
-                                        template.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+            
+            <div class="flex items-center gap-3">
+                <a href="{{ route('templates.edit', $template) }}"
+                    class="inline-flex items-center px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
+                    <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    Edit Template
+                </a>
+                <a href="{{ route('templates.index') }}"
+                    class="inline-flex items-center px-6 py-2.5 rounded-xl bg-white text-slate-700 text-sm font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
+                    Back to List
+                </a>
             </div>
         </div>
 
-        <!-- Sidebar / Actions -->
-        <div class="lg:col-span-1 space-y-8">
-            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl overflow-hidden">
-                <div class="px-6 py-5 border-b border-gray-200">
-                    <h3 class="text-base font-semibold leading-6 text-gray-900">Actions</h3>
-                </div>
-                <div class="px-6 py-5 space-y-3">
-                    <p class="text-sm text-gray-500 mb-4">Templates help you start estimates faster by pre-populating
-                        rooms.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
+            <!-- Details & Stats -->
+            <div class="lg:col-span-1 space-y-8">
+                <!-- Summary Card -->
+                <div class="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/40 border border-slate-100">
+                    <h2 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-6">Overview</h2>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Description</div>
+                            <p class="text-slate-700 font-medium leading-relaxed">
+                                {{ $template->description ?: 'No additional notes provided for this template.' }}
+                            </p>
+                        </div>
 
+                        <div class="pt-6 border-t border-slate-50 grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Items</div>
+                                <div class="text-2xl font-black text-slate-900">{{ count($template->items ?? []) }}</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Created</div>
+                                <div class="text-sm font-bold text-slate-900">{{ $template->created_at->format('M d, Y') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="bg-rose-50/50 rounded-3xl p-8 border border-rose-100">
+                    <h2 class="text-xs font-black text-rose-600 uppercase tracking-widest mb-4">Management</h2>
+                    <p class="text-[11px] text-rose-400 font-bold uppercase tracking-tight mb-6 leading-normal">Deleting this template will not affect existing estimates but it will be permanently removed from the library.</p>
+                    
                     <form action="{{ route('templates.destroy', $template) }}" method="POST"
-                        onsubmit="return confirm('Are you sure you want to delete this template?');">
+                        onsubmit="return confirm('Permanently delete this room template?');">
                         @csrf
                         @method('DELETE')
                         <button type="submit"
-                            class="w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-rose-600 shadow-sm ring-1 ring-inset ring-rose-300 hover:bg-rose-50 sm:w-auto">
+                            class="w-full py-3 rounded-2xl bg-white border border-rose-200 text-rose-600 text-xs font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all shadow-sm">
                             Delete Template
                         </button>
                     </form>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+                    <div class="px-8 py-8 border-b border-slate-50 bg-slate-50/30">
+                        <h3 class="text-xl font-black text-slate-900 tracking-tight">Included Products</h3>
+                        <p class="mt-1 text-sm text-slate-500 font-medium tracking-tight">Products that will be pre-filled when using this room template.</p>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead>
+                                <tr class="bg-slate-50/50">
+                                    <th class="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
+                                    <th class="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Qty</th>
+                                    <th class="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit Type</th>
+                                    <th class="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Est. Price</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50 bg-white">
+                                @forelse($template->items as $item)
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-8 py-6">
+                                            <div class="flex flex-col">
+                                                <div class="text-sm font-black text-slate-900 leading-tight">{{ $item['item_name'] }}</div>
+                                                @if(isset($item['description']) && $item['description'])
+                                                    <div class="text-[11px] font-bold text-slate-400 mt-0.5">{{ $item['description'] }}</div>
+                                                @endif
+                                                
+                                                @if(isset($item['options']) && is_array($item['options']))
+                                                    <div class="flex flex-wrap gap-1 mt-2">
+                                                        @foreach($item['options'] as $opt)
+                                                            <span class="inline-flex px-2 py-0.5 rounded-md bg-indigo-50 text-[9px] font-black text-indigo-600 border border-indigo-100 uppercase tracking-tighter">
+                                                                {{ $opt['name'] }}: {{ $opt['value'] }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-6 text-center">
+                                            <span class="text-sm font-black text-slate-900">{{ $item['quantity'] }}</span>
+                                        </td>
+                                        <td class="px-6 py-6 font-bold">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-500 uppercase tracking-widest border border-slate-200/50">
+                                                {{ $item['unit_type'] ?? 'nos' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-8 py-6 text-right">
+                                            <div class="text-sm font-black text-slate-900">₹{{ number_format($item['unit_price'] ?? 0, 2) }}</div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="px-8 py-12 text-center text-slate-400 font-medium">No items defined in this template.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

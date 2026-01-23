@@ -1,8 +1,12 @@
 import './bootstrap';
-import Alpine from 'alpinejs';
-import collapse from '@alpinejs/collapse';
+// import Alpine from 'alpinejs';
+// import collapse from '@alpinejs/collapse';
 
-Alpine.plugin(collapse);
-window.Alpine = Alpine;
+// // Register plugins before starting Alpine
+// Alpine.plugin(collapse);
 
-Alpine.start();
+// // Make Alpine available globally
+// window.Alpine = Alpine;
+
+// Start Alpine
+// Alpine.start();

@@ -309,8 +309,41 @@ class EstimateController extends Controller
             'coupon_code_id' => 'nullable|exists:coupon_codes,id',
             'type' => 'required|in:standard,room_based',
             'items.*.internal_note' => 'nullable|string',
+            'items.*.unit_type_id' => 'nullable|exists:unit_types,id',
+            'items.*.unit_type' => 'required_with:items.*.unit_type_id|string',
             'sections.*.items.*.internal_note' => 'nullable|string',
+            'sections.*.items.*.unit_type_id' => 'nullable|exists:unit_types,id',
+            'sections.*.items.*.unit_type' => 'required_with:sections.*.items.*.unit_type_id|string',
         ]);
+
+        // Additional custom validation for unit configuration
+        if ($request->type === 'standard' && $request->has('items')) {
+            foreach ($request->items as $index => $item) {
+                if (isset($item['unit_type_id']) && !empty($item['unit_type_id'])) {
+                    if (empty($item['unit_type'])) {
+                        return back()->withInput()->withErrors([
+                            "items.{$index}.unit_type" => "Unit is required when Unit Type is configured."
+                        ]);
+                    }
+                }
+            }
+        }
+
+        if ($request->type === 'room_based' && $request->has('sections')) {
+            foreach ($request->sections as $sectionIndex => $section) {
+                if (isset($section['items'])) {
+                    foreach ($section['items'] as $itemIndex => $item) {
+                        if (isset($item['unit_type_id']) && !empty($item['unit_type_id'])) {
+                            if (empty($item['unit_type'])) {
+                                return back()->withInput()->withErrors([
+                                    "sections.{$sectionIndex}.items.{$itemIndex}.unit_type" => "Unit is required when Unit Type is configured in {$section['name']}."
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         $attempts = 0;
         $maxAttempts = 3;

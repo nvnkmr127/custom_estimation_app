@@ -10,9 +10,7 @@ class RoomTemplateController extends Controller
 {
     public function index()
     {
-        $templates = RoomTemplate::latest()->paginate(10);
-
-        return view('templates.index', compact('templates'));
+        return view('templates.index');
     }
 
     public function show(RoomTemplate $template)
@@ -42,7 +40,18 @@ class RoomTemplateController extends Controller
             'items.*.unit_type_id' => 'nullable|exists:unit_types,id',
             'items.*.description' => 'nullable|string',
             'items.*.options' => 'nullable|array',
+            'allowed_unit_types' => 'nullable|array',
+            'allowed_unit_types.*' => 'exists:unit_types,id',
         ]);
+
+        // Convert empty string unit_type_id to null
+        if (isset($validated['items'])) {
+            foreach ($validated['items'] as &$item) {
+                if (isset($item['unit_type_id']) && $item['unit_type_id'] === '') {
+                    $item['unit_type_id'] = null;
+                }
+            }
+        }
 
         RoomTemplate::create($validated);
 
@@ -71,7 +80,18 @@ class RoomTemplateController extends Controller
             'items.*.unit_type_id' => 'nullable|exists:unit_types,id',
             'items.*.description' => 'nullable|string',
             'items.*.options' => 'nullable|array',
+            'allowed_unit_types' => 'nullable|array',
+            'allowed_unit_types.*' => 'exists:unit_types,id',
         ]);
+
+        // Convert empty string unit_type_id to null
+        if (isset($validated['items'])) {
+            foreach ($validated['items'] as &$item) {
+                if (isset($item['unit_type_id']) && $item['unit_type_id'] === '') {
+                    $item['unit_type_id'] = null;
+                }
+            }
+        }
 
         $template->update($validated);
 

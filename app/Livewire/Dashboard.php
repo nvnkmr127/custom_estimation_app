@@ -1,12 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Livewire;
 
+use Livewire\Component;
 use App\Models\Estimate;
+use Livewire\Attributes\Layout;
 
-class DashboardController extends Controller
+class Dashboard extends Component
 {
-    public function index()
+    #[Layout('layouts.app')]
+    public function render()
     {
         $cacheDuration = 300; // 5 minutes
 
@@ -57,7 +60,7 @@ class DashboardController extends Controller
         $recent_tasks = \App\Models\Task::with('assignedTo')->latest()->take(5)->get();
         $recent_activities = \App\Models\ActivityLog::with('user')->latest()->take(10)->get();
 
-        return view('dashboard', compact(
+        return view('livewire.dashboard', compact(
             'stats',
             'pipeline_revenue',
             'converted_revenue',

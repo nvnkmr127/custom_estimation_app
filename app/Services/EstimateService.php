@@ -320,7 +320,8 @@ class EstimateService
         $prefix = "EST-{$year}-";
 
         // Get recent estimates to find the highest sequence number
-        $estimates = Estimate::where('estimate_number', 'like', "{$prefix}%")
+        $estimates = Estimate::withTrashed()
+            ->where('estimate_number', 'like', "{$prefix}%")
             ->orderByRaw('LENGTH(estimate_number) DESC')
             ->orderBy('estimate_number', 'desc')
             ->limit(10)
@@ -352,7 +353,7 @@ class EstimateService
         // Loop to ensure uniqueness (handling race conditions and skipped numbers)
         do {
             $candidate = $prefix . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
-            $exists = Estimate::where('estimate_number', $candidate)->exists();
+            $exists = Estimate::withTrashed()->where('estimate_number', $candidate)->exists();
             if ($exists) {
                 $nextSequence++;
             }

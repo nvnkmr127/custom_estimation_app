@@ -105,15 +105,19 @@ class ProductController extends Controller
         $categories = ProductCategory::all();
 
         // Prepare complex data for the view
-        $productAttributes = json_encode($product->attributes ?? []);
-        $productOptions = json_encode($product->options->load('values')->map(function ($opt) {
+        $productAttributes = $product->attributes ?? [];
+        $productOptions = $product->options->load('values')->map(function ($opt) {
             return [
                 'name' => $opt->name,
                 'values' => $opt->values->map(function ($v) {
                     return ['value' => $v->value, 'price_adjustment' => $v->price_adjustment];
                 })
             ];
-        }));
+        });
+
+        // Tags are handled via standard input or x-model string splitting if needed, 
+        // but passing the raw string or array is fine. 
+        // The view expects a string for the input value.
         $productTags = is_array($product->tags) ? implode(',', $product->tags) : ($product->tags ?? '');
 
         return view('products.edit', compact('product', 'categories', 'productAttributes', 'productOptions', 'productTags'));
@@ -314,6 +318,7 @@ class ProductController extends Controller
             'unit_type_id' => 'nullable|exists:unit_types,id',
             'unit_type' => 'required|string',
             'calculation_method' => 'nullable|string|in:standard,formula',
+            'formula' => 'nullable|string|max:255',
             'is_featured' => 'nullable|boolean',
             'images.*' => 'nullable|image|max:5120',
             'dimensions' => 'nullable|array',
