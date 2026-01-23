@@ -465,14 +465,14 @@
 
             @if (isset($header))
                 <header class="bg-white border-b border-slate-200">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-screen-2xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
                 </header>
             @endif
 
             <main class="flex-1 py-8 sm:py-10">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     @if (session('success'))
                         <div
                             class="rounded-xl bg-emerald-50 p-4 mb-6 border border-emerald-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
