@@ -12,7 +12,7 @@
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
 
     <!-- Scripts -->
-    <!-- Scripts -->
+    @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -529,6 +529,7 @@
         </div>
     </div>
     @stack('scripts')
+    @livewireScripts
 </body>
 
 </html>

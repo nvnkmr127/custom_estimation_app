@@ -9,8 +9,9 @@
             </div>
             <div class="flex flex-wrap items-center gap-3">
                 <a href="{{ route('templates.create') }}"
-                    class="inline-flex items-center px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
-                    <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    class="inline-flex items-center px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold shadow-sm hover:bg-slate-800 transition-all active:scale-95 group">
+                    <svg class="mr-2 h-5 w-5 text-indigo-400 group-hover:rotate-90 transition-transform duration-300"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                     New Template
@@ -32,10 +33,10 @@
                     </svg>
                 </div>
                 <input type="text" wire:model.live.debounce.300ms="search"
-                    class="block w-full rounded-xl border-slate-200 bg-slate-50/50 py-3 pl-11 pr-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm"
+                    class="block w-full rounded-xl border-slate-200 bg-slate-50/30 py-3 pl-11 pr-4 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all sm:text-sm"
                     placeholder="Search templates by name or description...">
                 <div wire:loading wire:target="search" class="absolute inset-y-0 right-0 pr-4 flex items-center">
-                    <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    <svg class="animate-spin h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none"
                         viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
                         </circle>
@@ -48,9 +49,9 @@
 
             <div class="flex items-center gap-3">
                 <!-- View Mode Toggle -->
-                <div class="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
+                <div class="flex items-center p-1 bg-slate-50 rounded-xl border border-slate-200 shadow-inner">
                     <button wire:click="setViewMode('table')"
-                        class="p-2 rounded-lg transition-all {{ $viewMode === 'table' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">
+                        class="p-2 rounded-lg transition-all {{ $viewMode === 'table' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600' }}">
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd"
                                 d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
@@ -58,7 +59,7 @@
                         </svg>
                     </button>
                     <button wire:click="setViewMode('grid')"
-                        class="p-2 rounded-lg transition-all {{ $viewMode === 'grid' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">
+                        class="p-2 rounded-lg transition-all {{ $viewMode === 'grid' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600' }}">
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path
                                 d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -79,8 +80,8 @@
     <!-- Listings -->
     <div class="relative">
         <div wire:loading.delay.longest class="absolute inset-x-0 -top-1 z-50">
-            <div class="h-1 w-full bg-indigo-100 overflow-hidden rounded-full">
-                <div class="h-full bg-indigo-600 animate-progress origin-left-right"></div>
+            <div class="h-1 w-full bg-slate-100 overflow-hidden rounded-full">
+                <div class="h-full bg-slate-900 animate-progress origin-left-right"></div>
             </div>
         </div>
 
@@ -107,16 +108,17 @@
                             </thead>
                             <tbody class="divide-y divide-slate-50 bg-white">
                                 @foreach($templates as $template)
-                                    <tr wire:key="row-{{ $template->id }}" class="hover:bg-slate-50/50 transition-all group">
+                                    <tr wire:key="row-{{ $template->id }}"
+                                        class="hover:bg-slate-50/50 transition-all group border-b border-slate-50 last:border-0">
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-4">
                                                 <div
-                                                    class="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold group-hover:scale-110 transition-transform">
+                                                    class="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold group-hover:scale-110 group-hover:bg-slate-900 group-hover:text-white transition-all duration-300">
                                                     {{ substr($template->name, 0, 1) }}
                                                 </div>
                                                 <div>
                                                     <a href="{{ route('templates.edit', $template) }}"
-                                                        class="text-sm font-bold text-slate-900 leading-tight hover:text-indigo-600 transition-colors">
+                                                        class="text-sm font-bold text-slate-900 leading-tight hover:text-slate-600 transition-colors">
                                                         {{ $template->name }}
                                                     </a>
                                                 </div>
@@ -134,7 +136,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-right">
                                             <div class="flex items-center justify-end gap-2">
                                                 <a href="{{ route('templates.show', $template) }}"
-                                                    class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                                                    class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
                                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                         stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -144,7 +146,7 @@
                                                     </svg>
                                                 </a>
                                                 <a href="{{ route('templates.edit', $template) }}"
-                                                    class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                                                    class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
                                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                         stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -173,16 +175,16 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     @foreach($templates as $template)
                         <div wire:key="card-{{ $template->id }}"
-                            class="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col">
+                            class="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:border-slate-400 transition-all duration-300 flex flex-col">
                             <div class="p-6 flex-1">
                                 <div class="flex items-start justify-between mb-4">
                                     <div
-                                        class="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
+                                        class="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-500 text-xl font-black shadow-inner group-hover:bg-slate-900 group-hover:text-white transition-all duration-300">
                                         {{ substr($template->name, 0, 1) }}
                                     </div>
                                     <div class="flex gap-1">
                                         <a href="{{ route('templates.edit', $template) }}"
-                                            class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                                            class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all">
                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                                 stroke-width="2.5">
                                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -192,7 +194,7 @@
                                     </div>
                                 </div>
                                 <h3
-                                    class="text-lg font-black text-slate-900 mb-2 leading-tight group-hover:text-indigo-600 transition-colors">
+                                    class="text-lg font-black text-slate-900 mb-2 leading-tight group-hover:text-slate-600 transition-colors">
                                     {{ $template->name }}
                                 </h3>
                                 <p class="text-sm text-slate-500 line-clamp-2 mb-4">
@@ -205,9 +207,9 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                            <div class="px-6 py-4 bg-slate-50/10 border-t border-slate-100 flex items-center justify-between">
                                 <a href="{{ route('templates.show', $template) }}"
-                                    class="text-xs font-black text-slate-600 hover:text-indigo-600 transition-colors uppercase tracking-widest">
+                                    class="text-xs font-black text-slate-500 hover:text-slate-900 transition-colors uppercase tracking-widest">
                                     Preview &rarr;
                                 </a>
                                 <button wire:click="deleteTemplate({{ $template->id }})" wire:confirm="Are you sure?"

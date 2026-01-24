@@ -20,12 +20,12 @@
             
             <div class="flex items-center gap-3">
                 <a href="{{ route('templates.edit', $template) }}"
-                    class="inline-flex items-center px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95">
-                    <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    class="inline-flex items-center px-6 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold shadow-sm hover:bg-slate-800 transition-all active:scale-95 group">
+                    <svg class="mr-2 h-4 w-4 text-indigo-400 group-hover:rotate-6 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     Edit Template
                 </a>
                 <a href="{{ route('templates.index') }}"
-                    class="inline-flex items-center px-6 py-2.5 rounded-xl bg-white text-slate-700 text-sm font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
+                    class="inline-flex items-center px-6 py-2.5 rounded-xl bg-white text-slate-600 text-sm font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
                     Back to List
                 </a>
             </div>
@@ -35,8 +35,8 @@
             <!-- Details & Stats -->
             <div class="lg:col-span-1 space-y-8">
                 <!-- Summary Card -->
-                <div class="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/40 border border-slate-100">
-                    <h2 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-6">Overview</h2>
+                <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
+                    <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Overview</h2>
                     
                     <div class="space-y-6">
                         <div>
@@ -78,10 +78,10 @@
 
             <!-- Items Table -->
             <div class="lg:col-span-2">
-                <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
-                    <div class="px-8 py-8 border-b border-slate-50 bg-slate-50/30">
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="px-8 py-8 border-b border-slate-50 bg-slate-50/20">
                         <h3 class="text-xl font-black text-slate-900 tracking-tight">Included Products</h3>
-                        <p class="mt-1 text-sm text-slate-500 font-medium tracking-tight">Products that will be pre-filled when using this room template.</p>
+                        <p class="mt-1 text-sm text-slate-400 font-medium tracking-tight">Products that will be pre-filled when using this room template.</p>
                     </div>
 
                     <div class="overflow-x-auto">
@@ -90,16 +90,17 @@
                                 <tr class="bg-slate-50/50">
                                     <th class="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
                                     <th class="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Qty</th>
+                                    <th class="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Dimensions</th>
                                     <th class="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit Type</th>
                                     <th class="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Est. Price</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-50 bg-white">
                                 @forelse($template->items as $item)
-                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <tr class="hover:bg-slate-50/30 transition-colors border-b border-slate-50 last:border-0">
                                         <td class="px-8 py-6">
                                             <div class="flex flex-col">
-                                                <div class="text-sm font-black text-slate-900 leading-tight">{{ $item['item_name'] }}</div>
+                                                <div class="text-sm font-black text-slate-900 leading-tight group-hover:text-slate-600">{{ $item['item_name'] }}</div>
                                                 @if(isset($item['description']) && $item['description'])
                                                     <div class="text-[11px] font-bold text-slate-400 mt-0.5">{{ $item['description'] }}</div>
                                                 @endif
@@ -118,6 +119,15 @@
                                         <td class="px-6 py-6 text-center">
                                             <span class="text-sm font-black text-slate-900">{{ $item['quantity'] }}</span>
                                         </td>
+                                        <td class="px-6 py-6 text-center">
+                                            @if(!empty($item['length']) || !empty($item['width']) || !empty($item['height']))
+                                                <span class="text-[11px] font-bold text-slate-500">
+                                                    {{ $item['length'] ?? '-' }} × {{ $item['width'] ?? '-' }} × {{ $item['height'] ?? '-' }}
+                                                </span>
+                                            @else
+                                                <span class="text-[11px] text-slate-300">-</span>
+                                            @endif
+                                        </td>
                                         <td class="px-6 py-6 font-bold">
                                             <span class="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-500 uppercase tracking-widest border border-slate-200/50">
                                                 {{ $item['unit_type'] ?? 'nos' }}
@@ -129,7 +139,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-8 py-12 text-center text-slate-400 font-medium">No items defined in this template.</td>
+                                        <td colspan="5" class="px-8 py-12 text-center text-slate-400 font-medium">No items defined in this template.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

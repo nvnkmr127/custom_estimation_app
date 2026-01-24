@@ -50,6 +50,11 @@
                 options: {}, // { option_id: value_id }
                 basePrice: 0
             },
+            roomModal: {
+                isOpen: false,
+                name: '',
+                templateId: ''
+            },
             totals: {
                 subtotal: 0,
                 totalTax: 0,
@@ -434,6 +439,34 @@
                 this.estimate.sections.push({ name: 'Room ' + count, items: [] });
                 // Re-init sortable for new DOM elements
                 this.$nextTick(() => this.initSortable());
+            },
+
+            openRoomModal() {
+                this.roomModal.name = '';
+                this.roomModal.templateId = '';
+                this.roomModal.isOpen = true;
+            },
+
+            confirmRoom() {
+                if (this.roomModal.templateId) {
+                    const template = this.templates.find(t => t.id == this.roomModal.templateId);
+                    if (template) {
+                        this.applyTemplate(template);
+                        this.roomModal.isOpen = false;
+                        return;
+                    }
+                }
+
+                if (this.roomModal.name.trim()) {
+                    this.estimate.sections.push({
+                        name: this.roomModal.name.trim(),
+                        items: []
+                    });
+                    this.roomModal.isOpen = false;
+                    this.$nextTick(() => this.initSortable());
+                } else {
+                    alert('Please enter a room name or select a template.');
+                }
             },
 
             removeSection(index) {
