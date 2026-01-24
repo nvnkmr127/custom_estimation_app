@@ -21,6 +21,26 @@ class SmtpMailGateway implements MailGatewayInterface
     public function send(string $to, string $subject, string $body, array $attachments = []): bool
     {
         try {
+            // override config from DB settings if available
+            $host = \App\Models\Setting::getCached('smtp_host');
+            if ($host) {
+                config([
+                    'mail.mailers.smtp.host' => $host,
+                    'mail.mailers.smtp.port' => \App\Models\Setting::getCached('smtp_port', 587),
+                    'mail.mailers.smtp.encryption' => \App\Models\Setting::getCached('smtp_encryption', 'tls'),
+                    'mail.mailers.smtp.username' => \App\Models\Setting::getCached('smtp_username'),
+                    'mail.mailers.smtp.password' => \App\Models\Setting::getCached('smtp_password'),
+                    'mail.from.address' => \App\Models\Setting::getCached('smtp_from_address', config('mail.from.address')),
+                    'mail.from.name' => \App\Models\Setting::getCached('smtp_from_name', config('mail.from.name')),
+                ]);
+
+                // Force detailed debug logging for SMTP if needed (optional)
+                // Log::info('Using Custom SMTP Config', config('mail.mailers.smtp'));
+
+                // Purge the 'smtp' driver to ensure a fresh instance with new config is created
+                Mail::purge('smtp');
+            }
+
             Mail::html($body, function ($message) use ($to, $subject, $attachments) {
                 $message->to($to)
                     ->subject($subject);

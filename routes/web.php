@@ -21,6 +21,9 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
 
 // Tracking (Public)
 Route::get('t/{estimate}/pixel.png', [App\Http\Controllers\TrackingController::class, 'pixel'])->name('tracking.pixel');
+// Email Tracking
+Route::get('tracking/open/{id}', [App\Http\Controllers\EmailTrackingController::class, 'trackOpen'])->name('tracking.open');
+Route::get('tracking/click/{id}', [App\Http\Controllers\EmailTrackingController::class, 'trackClick'])->name('tracking.click');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', App\Livewire\Dashboard::class)->name('dashboard');

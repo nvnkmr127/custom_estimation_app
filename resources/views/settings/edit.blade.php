@@ -329,82 +329,185 @@
 
                         </div>
                     </div>
-                    <!-- Section 5: Integrations -->
-                    <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
-                        <div class="px-4 sm:px-0">
-                            <h2 class="text-base font-semibold leading-7 text-slate-900">Integrations</h2>
-                            <p class="mt-1 text-sm leading-6 text-slate-600">Connect your CRM and external tools to
-                                synchronize
-                                data.</p>
+                </div>
+            </div>
+
+            <!-- Section 5: Email Configuration -->
+            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
+                <div class="px-4 sm:px-0">
+                    <h2 class="text-base font-semibold leading-7 text-slate-900">Email Configuration (SMTP)</h2>
+                    <p class="mt-1 text-sm leading-6 text-slate-600">Configure your custom SMTP server to send emails.
+                        Leave blank to use system defaults (.env).</p>
+                </div>
+
+                <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl md:col-span-2">
+                    <div class="px-4 py-6 sm:p-8">
+                        <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+
+                            <div class="sm:col-span-4">
+                                <label for="smtp_host" class="block text-sm font-medium leading-6 text-slate-900">SMTP
+                                    Host</label>
+                                <div class="mt-2">
+                                    <input type="text" name="smtp_host" id="smtp_host"
+                                        value="{{ old('smtp_host', $settings['smtp_host'] ?? '') }}"
+                                        placeholder="smtp.mailgun.org"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label for="smtp_port"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Port</label>
+                                <div class="mt-2">
+                                    <input type="number" name="smtp_port" id="smtp_port"
+                                        value="{{ old('smtp_port', $settings['smtp_port'] ?? '587') }}"
+                                        placeholder="587"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                            </div>
+
+                            <div class="sm:col-span-3">
+                                <label for="smtp_username"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Username</label>
+                                <div class="mt-2">
+                                    <input type="text" name="smtp_username" id="smtp_username"
+                                        value="{{ old('smtp_username', $settings['smtp_username'] ?? '') }}"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                            </div>
+
+                            <div class="sm:col-span-3">
+                                <label for="smtp_password"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Password</label>
+                                <div class="mt-2" x-data="{ show: false }">
+                                    <div class="relative">
+                                        <input :type="show ? 'text' : 'password'" name="smtp_password"
+                                            id="smtp_password"
+                                            value="{{ old('smtp_password', $settings['smtp_password'] ?? '') }}"
+                                            class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        <button type="button" @click="show = !show"
+                                            class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600">
+                                            <span x-show="!show" class="text-xs">Show</span>
+                                            <span x-show="show" class="text-xs">Hide</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sm:col-span-3">
+                                <label for="smtp_encryption"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Encryption</label>
+                                <div class="mt-2">
+                                    <select id="smtp_encryption" name="smtp_encryption"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        <option value="tls" {{ (old('smtp_encryption', $settings['smtp_encryption'] ?? 'tls') == 'tls') ? 'selected' : '' }}>TLS</option>
+                                        <option value="ssl" {{ (old('smtp_encryption', $settings['smtp_encryption'] ?? '') == 'ssl') ? 'selected' : '' }}>SSL</option>
+                                        <option value="null" {{ (old('smtp_encryption', $settings['smtp_encryption'] ?? '') == 'null') ? 'selected' : '' }}>None</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-span-full border-t border-gray-100 pt-4 mt-2">
+                                <h3 class="text-sm font-medium text-slate-900 mb-4">Sender Identity</h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="smtp_from_address"
+                                            class="block text-xs font-medium text-slate-700">From Address</label>
+                                        <input type="email" name="smtp_from_address" id="smtp_from_address"
+                                            value="{{ old('smtp_from_address', $settings['smtp_from_address'] ?? '') }}"
+                                            placeholder="notifications@yourcompany.com"
+                                            class="mt-1 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm">
+                                    </div>
+                                    <div>
+                                        <label for="smtp_from_name"
+                                            class="block text-xs font-medium text-slate-700">From Name</label>
+                                        <input type="text" name="smtp_from_name" id="smtp_from_name"
+                                            value="{{ old('smtp_from_name', $settings['smtp_from_name'] ?? '') }}"
+                                            placeholder="Acme Corp Team"
+                                            class="mt-1 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm">
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
+                    </div>
+                </div>
+            </div>
 
-                        <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl md:col-span-2">
-                            <div class="px-4 py-6 sm:p-8">
-                                <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                                    <div class="col-span-full">
-                                        <h3 class="text-sm font-medium text-slate-900 mb-4">Perfex CRM</h3>
-                                        <div class="grid grid-cols-1 gap-y-6">
-                                            <div>
-                                                <label for="perfex_api_url"
-                                                    class="block text-sm font-medium leading-6 text-slate-900">API
-                                                    URL</label>
-                                                <div class="mt-2">
-                                                    <input type="url" name="perfex_api_url" id="perfex_api_url"
-                                                        value="{{ old('perfex_api_url', $settings['perfex_api_url'] ?? '') }}"
-                                                        placeholder="https://your-perfex-install.com/api/"
-                                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                                </div>
-                                                <p class="mt-1 text-xs text-slate-500">Must end with /api/ and use
-                                                    HTTPS.</p>
-                                            </div>
+            <!-- Section 6: Integrations -->
+            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
+                <div class="px-4 sm:px-0">
+                    <h2 class="text-base font-semibold leading-7 text-slate-900">Integrations</h2>
+                    <p class="mt-1 text-sm leading-6 text-slate-600">Connect your CRM and external tools to
+                        synchronize
+                        data.</p>
+                </div>
 
-                                            <div>
-                                                <label for="perfex_api_token"
-                                                    class="block text-sm font-medium leading-6 text-slate-900">API
-                                                    Token</label>
-                                                <div class="mt-2 text-password-container" x-data="{ show: false }">
-                                                    <div class="relative">
-                                                        <input :type="show ? 'text' : 'password'"
-                                                            name="perfex_api_token" id="perfex_api_token"
-                                                            value="{{ old('perfex_api_token', $settings['perfex_api_token'] ?? '') }}"
-                                                            class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                                        <button type="button" @click="show = !show"
-                                                            class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600">
-                                                            <svg x-show="!show" class="h-5 w-5" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="1.5"
-                                                                    d="M2.036 12.322a1.012 1.012 0 010-.644C3.399 8.049 7.21 5 12 5c4.791 0 8.601 3.049 9.964 6.322a1.012 1.012 0 010 .644C20.601 15.951 16.791 19 12 19c-4.791 0-8.601-3.049-9.964-6.322z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="1.5"
-                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
-                                                            <svg x-show="show" class="h-5 w-5" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor"
-                                                                style="display: none;">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="1.5"
-                                                                    d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M15 15l-3-3m0 0l-3-3m3 3L9 15m3-3l3-3M3 3l18 18" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <p class="mt-1 text-xs text-slate-500">API key from Perfex Setup -> API.
-                                                </p>
+                <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl md:col-span-2">
+                    <div class="px-4 py-6 sm:p-8">
+                        <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                            <div class="col-span-full">
+                                <h3 class="text-sm font-medium text-slate-900 mb-4">Perfex CRM</h3>
+                                <div class="grid grid-cols-1 gap-y-6">
+                                    <div>
+                                        <label for="perfex_api_url"
+                                            class="block text-sm font-medium leading-6 text-slate-900">API
+                                            URL</label>
+                                        <div class="mt-2">
+                                            <input type="url" name="perfex_api_url" id="perfex_api_url"
+                                                value="{{ old('perfex_api_url', $settings['perfex_api_url'] ?? '') }}"
+                                                placeholder="https://your-perfex-install.com/api/"
+                                                class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                        </div>
+                                        <p class="mt-1 text-xs text-slate-500">Must end with /api/ and use
+                                            HTTPS.</p>
+                                    </div>
+
+                                    <div>
+                                        <label for="perfex_api_token"
+                                            class="block text-sm font-medium leading-6 text-slate-900">API
+                                            Token</label>
+                                        <div class="mt-2 text-password-container" x-data="{ show: false }">
+                                            <div class="relative">
+                                                <input :type="show ? 'text' : 'password'" name="perfex_api_token"
+                                                    id="perfex_api_token"
+                                                    value="{{ old('perfex_api_token', $settings['perfex_api_token'] ?? '') }}"
+                                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                                <button type="button" @click="show = !show"
+                                                    class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600">
+                                                    <svg x-show="!show" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                        stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="1.5"
+                                                            d="M2.036 12.322a1.012 1.012 0 010-.644C3.399 8.049 7.21 5 12 5c4.791 0 8.601 3.049 9.964 6.322a1.012 1.012 0 010 .644C20.601 15.951 16.791 19 12 19c-4.791 0-8.601-3.049-9.964-6.322z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <svg x-show="show" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                        stroke="currentColor" style="display: none;">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="1.5"
+                                                            d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M15 15l-3-3m0 0l-3-3m3 3L9 15m3-3l3-3M3 3l18 18" />
+                                                    </svg>
+                                                </button>
                                             </div>
                                         </div>
+                                        <p class="mt-1 text-xs text-slate-500">API key from Perfex Setup -> API.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="flex items-center justify-end gap-x-6 border-t border-slate-900/10 pt-4 px-4 sm:px-0">
-                        <button type="button" class="text-sm font-semibold leading-6 text-slate-900">Cancel</button>
-                        <button type="submit"
-                            class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save
-                            All Settings</button>
-                    </div>
+            <div class="flex items-center justify-end gap-x-6 border-t border-slate-900/10 pt-4 px-4 sm:px-0">
+                <button type="button" class="text-sm font-semibold leading-6 text-slate-900">Cancel</button>
+                <button type="submit"
+                    class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save
+                    All Settings</button>
+            </div>
         </form>
     </div>
 </x-app-layout>

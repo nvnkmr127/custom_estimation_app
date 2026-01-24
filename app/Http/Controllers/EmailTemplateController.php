@@ -35,6 +35,7 @@ class EmailTemplateController extends Controller
             'subject' => 'required|string',
             'body_html' => 'required|string',
             'description' => 'nullable|string',
+            'variables' => 'nullable|array',
         ]);
 
         EmailTemplate::create($validated);
@@ -69,6 +70,7 @@ class EmailTemplateController extends Controller
             'subject' => 'required|string',
             'body_html' => 'required|string',
             'description' => 'nullable|string',
+            'variables' => 'nullable|array',
         ]);
 
         $emailTemplate->update($validated);

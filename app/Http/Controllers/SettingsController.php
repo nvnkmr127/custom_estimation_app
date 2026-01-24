@@ -57,6 +57,15 @@ class SettingsController extends Controller
             // Perfex CRM
             'perfex_api_url' => 'nullable|url|max:255',
             'perfex_api_token' => 'nullable|string|max:255',
+
+            // SMTP Settings
+            'smtp_host' => 'nullable|string|max:255',
+            'smtp_port' => 'nullable|numeric|max:65535',
+            'smtp_username' => 'nullable|string|max:255',
+            'smtp_password' => 'nullable|string|max:255',
+            'smtp_encryption' => 'nullable|in:tls,ssl,null',
+            'smtp_from_address' => 'nullable|email|max:255',
+            'smtp_from_name' => 'nullable|string|max:255',
         ]);
 
         // Fields to save directly from input
@@ -88,6 +97,14 @@ class SettingsController extends Controller
             'estimate_client_note',
             'perfex_api_url',
             'perfex_api_token',
+            // SMTP
+            'smtp_host',
+            'smtp_port',
+            'smtp_username',
+            'smtp_password',
+            'smtp_encryption',
+            'smtp_from_address',
+            'smtp_from_name',
         ];
 
         foreach ($keys as $key) {

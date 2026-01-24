@@ -163,8 +163,11 @@
                                     <span
                                         class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white"
                                         x-text="index + 1"></span>
-                                    <span class="text-sm font-medium text-gray-900">Step <span
-                                            x-text="index + 1"></span></span>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Step <span
+                                                x-text="index + 1"></span></p>
+                                        <p class="text-xs text-gray-500" x-text="getUserName(step.user_id)"></p>
+                                    </div>
                                 </div>
                                 <div x-show="index < steps.length - 1" class="flex justify-center py-2">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
@@ -192,12 +195,18 @@
     <script>
         function approvalChainBuilder() {
             return {
-                steps: @json($approvalChain->steps->map(fn($step) => ['user_id' => $step->user_id])),
+                steps: @json(old('steps', $approvalChain->steps->map(fn($step) => ['user_id' => $step->user_id]))),
+                users: @json($users),
                 addStep() {
                     this.steps.push({ user_id: '' });
                 },
                 removeStep(index) {
                     this.steps.splice(index, 1);
+                },
+                getUserName(userId) {
+                    if (!userId) return 'Select Approver';
+                    const user = this.users.find(u => u.id == userId);
+                    return user ? user.name : 'Unknown User';
                 }
             }
         }

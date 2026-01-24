@@ -107,7 +107,7 @@
 
                                 <div class="flex-1">
                                     <label class="block text-sm font-medium text-gray-900 mb-2">Approver</label>
-                                    <select :name="'steps[' + index + '][user_id]'" required
+                                    <select :name="'steps[' + index + '][user_id]'" x-model="step.user_id" required
                                         class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
                                         <option value="">Select approver...</option>
                                         @foreach($users as $user)
@@ -158,8 +158,11 @@
                                     <span
                                         class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white"
                                         x-text="index + 1"></span>
-                                    <span class="text-sm font-medium text-gray-900">Step <span
-                                            x-text="index + 1"></span></span>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Step <span
+                                                x-text="index + 1"></span></p>
+                                        <p class="text-xs text-gray-500" x-text="getUserName(step.user_id)"></p>
+                                    </div>
                                 </div>
                                 <div x-show="index < steps.length - 1" class="flex justify-center py-2">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
@@ -187,12 +190,18 @@
     <script>
         function approvalChainBuilder() {
             return {
-                steps: [],
+                steps: @json(old('steps', [])),
+                users: @json($users),
                 addStep() {
-                    this.steps.push({});
+                    this.steps.push({ user_id: '' });
                 },
                 removeStep(index) {
                     this.steps.splice(index, 1);
+                },
+                getUserName(userId) {
+                    if (!userId) return 'Select Approver';
+                    const user = this.users.find(u => u.id == userId);
+                    return user ? user.name : 'Unknown User';
                 }
             }
         }
