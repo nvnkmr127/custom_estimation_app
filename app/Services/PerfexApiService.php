@@ -62,6 +62,22 @@ class PerfexApiService
     }
 
     /**
+     * Update existing Proposal in Perfex
+     */
+    public function updateProposal($id, $data)
+    {
+        return $this->request('put', "proposals/$id", $data);
+    }
+
+    /**
+     * Create Lead in Perfex
+     */
+    public function createLead($data)
+    {
+        return $this->request('post', 'leads', $data);
+    }
+
+    /**
      * Sync Estimate to Perfex
      */
     public function syncEstimate(\App\Models\Estimate $estimate)
@@ -69,8 +85,17 @@ class PerfexApiService
         $estimate->load('items');
         $client = \App\Models\Client::find($estimate->client_id);
 
-        if (!$client || !$client->perfex_id) {
-            return ['status' => false, 'message' => 'Client not linked to Perfex'];
+        if (!$client) {
+            return ['status' => false, 'message' => 'Client not found'];
+        }
+
+        // Auto-link or create client in Perfex if missing
+        if (!$client->perfex_id) {
+            $this->findOrCreatePerfexClient($client);
+        }
+
+        if (!$client->perfex_id) {
+            return ['status' => false, 'message' => 'Client could not be synced to Perfex CRM'];
         }
 
         $proposalData = [
@@ -87,16 +112,66 @@ class PerfexApiService
             'status' => 6, // Draft
         ];
 
+        // START FIX: Update if exists, Create if new
+        if ($estimate->perfex_proposal_id) {
+            $response = $this->updateProposal($estimate->perfex_proposal_id, $proposalData);
+
+            if (isset($response['status']) && $response['status'] == true) {
+                return ['status' => true, 'id' => $estimate->perfex_proposal_id, 'action' => 'updated'];
+            }
+
+            // If update failed (e.g. deleted in CRM), try create? 
+            // For now, logging error.
+            Log::warning("Perfex Update Failed for Proposal #{$estimate->perfex_proposal_id}, trying creation.");
+        }
+        // END FIX
+
         $response = $this->createProposal($proposalData);
 
         if (isset($response['status']) && $response['status'] == true && isset($response['id'])) {
             $estimate->perfex_proposal_id = $response['id'];
             $estimate->save();
 
-            return ['status' => true, 'id' => $response['id']];
+            return ['status' => true, 'id' => $response['id'], 'action' => 'created'];
         }
 
         return ['status' => false, 'message' => $response['message'] ?? $response['error'] ?? 'Unknown API Error'];
+    }
+
+    /**
+     * Helper to find or create client in Perfex based on email
+     */
+    protected function findOrCreatePerfexClient(\App\Models\Client $client)
+    {
+        if (empty($client->email))
+            return false;
+
+        // 1. Search by email
+        $searchResults = $this->searchLeads($client->email);
+
+        if (!empty($searchResults) && is_array($searchResults) && isset($searchResults[0]['id'])) {
+            $client->perfex_id = $searchResults[0]['id'];
+            $client->save();
+            return true;
+        }
+
+        // 2. If not found, create new Lead
+        $leadData = [
+            'name' => $client->name,
+            'email' => $client->email,
+            'address' => $client->address,
+            'status' => 2, // 'Contacted' or Configurable default
+            'source' => 5, // 'Web' or Configurable default
+        ];
+
+        $createResponse = $this->createLead($leadData);
+        if (isset($createResponse['status']) && $createResponse['status'] == true && isset($createResponse['id'])) {
+            $client->perfex_id = $createResponse['id'];
+            $client->save();
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -118,7 +193,7 @@ class PerfexApiService
 
             // MOCK MODE FOR LOCAL DEV
             if (app()->environment('local')) {
-                return $this->getMockResponse($endpoint, $data);
+                return $this->getMockResponse($endpoint, $data, $method);
             }
 
             Log::error('Perfex API Configuration Invalid');
@@ -160,7 +235,7 @@ class PerfexApiService
     /**
      * Generate Mock Data for Testing
      */
-    protected function getMockResponse($endpoint, $data)
+    protected function getMockResponse($endpoint, $data, $method = 'post')
     {
         // Mock Search
         if (strpos($endpoint, 'leads/search') !== false) {
@@ -223,7 +298,18 @@ class PerfexApiService
 
         // Mock Proposal Create
         if ($endpoint === 'proposals') {
-            return ['status' => true, 'id' => 888, 'message' => 'Mock Proposal Created'];
+            // Mock Create
+            if ($method === 'post')
+                return ['status' => true, 'id' => 888, 'message' => 'Mock Proposal Created'];
+            // Mock Update
+            if ($method === 'put')
+                return ['status' => true, 'message' => 'Mock Proposal Updated'];
+        }
+
+        if ($endpoint === 'leads') {
+            // Mock Create Lead
+            if ($method === 'post')
+                return ['status' => true, 'id' => 995, 'message' => 'Mock Lead Created'];
         }
 
         return ['status' => false, 'message' => 'Mock Endpoint Not Found'];

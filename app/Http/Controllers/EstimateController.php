@@ -517,6 +517,18 @@ class EstimateController extends Controller
             return back()->with('error', 'Invalid status.');
         }
 
+        // --- Lifecycle Enforcement ---
+
+        // 1. Cannot manually mark as SENT unless APPROVED (unless user is admin and we allow bypass)
+        if ($status === Estimate::STATUS_SENT && $estimate->status !== Estimate::STATUS_APPROVED && !auth()->user()->hasRole(['super_admin', 'admin'])) {
+            return back()->with('error', 'Estimate must be approved before it can be marked as Sent.');
+        }
+
+        // 2. Cannot manually mark as ACCEPTED from DRAFT (must be SENT)
+        if ($status === Estimate::STATUS_ACCEPTED && !in_array($estimate->status, [Estimate::STATUS_SENT, Estimate::STATUS_APPROVED]) && !auth()->user()->hasRole(['super_admin', 'admin'])) {
+            return back()->with('error', 'Estimate must be Sent or Approved before it can be marked as Accepted.');
+        }
+
         $oldStatus = $estimate->status;
         $estimate->update(['status' => $status]);
 
@@ -605,6 +617,8 @@ class EstimateController extends Controller
         }
 
         $service = new PdfRenderingService;
+        // Increase memory limit for PDF generation
+        ini_set('memory_limit', '512M');
         $path = $service->renderAndCache($template, $estimate);
 
         if (!$path || !file_exists($path)) {
@@ -656,6 +670,8 @@ class EstimateController extends Controller
      */
     public function duplicateItem(EstimateItem $item)
     {
+        $this->authorize('update', $item->estimate);
+
         $newItem = $item->replicate();
         $newItem->order_index = $item->order_index + 1;
         $newItem->save();

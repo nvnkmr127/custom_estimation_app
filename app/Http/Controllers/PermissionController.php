@@ -45,6 +45,9 @@ class PermissionController extends Controller
     /**
      * Update role permissions.
      */
+    /**
+     * Update role permissions.
+     */
     public function update(Request $request, $role)
     {
         $roles = PermissionService::getRoles();
@@ -60,39 +63,33 @@ class PermissionController extends Controller
 
         $selectedPermissions = $validated['permissions'] ?? [];
 
-        // Update the PermissionService mapping
-        // Note: This updates the code file directly
-        $this->updatePermissionMapping($role, $selectedPermissions);
+        // DB Transaction for safety
+        \Illuminate\Support\Facades\DB::transaction(function () use ($role, $selectedPermissions) {
+            // Delete existing
+            \App\Models\RolePermission::where('role', $role)->delete();
+
+            // Insert new
+            $data = [];
+            foreach ($selectedPermissions as $permission) {
+                $data[] = [
+                    'role' => $role,
+                    'permission' => $permission,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if (!empty($data)) {
+                \App\Models\RolePermission::insert($data);
+            }
+        });
+
+        // Clear cache
+        PermissionService::clearCache($role);
 
         return redirect()->route('permissions.index')
             ->with('success', 'Permissions updated successfully for ' . $roles[$role]['name']);
     }
 
-    /**
-     * Update permission mapping in PermissionService.
-     */
-    private function updatePermissionMapping($role, $permissions)
-    {
-        $filePath = app_path('Services/PermissionService.php');
-        $content = file_get_contents($filePath);
-
-        // Find the ROLE_PERMISSIONS array
-        $pattern = "/'$role'\s*=>\s*\[(.*?)\]/s";
-
-        // Format new permissions
-        $permissionsStr = implode(",\n            ", array_map(function ($p) {
-            return "self::$p";
-        }, $permissions));
-
-        $replacement = "'$role' => [\n            $permissionsStr,\n        ]";
-
-        $content = preg_replace($pattern, $replacement, $content);
-
-        file_put_contents($filePath, $content);
-
-        // Clear any cached config
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
-        }
-    }
+    // Removed updatePermissionMapping as it's no longer needed
 }

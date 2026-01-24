@@ -110,6 +110,7 @@ class EstimateService
 
             // Strict State Locking & Forced Versioning Logic
             $isFinalized = in_array($estimate->status, [
+                Estimate::STATUS_APPROVED,
                 Estimate::STATUS_SENT,
                 Estimate::STATUS_ACCEPTED,
                 Estimate::STATUS_DECLINED,
@@ -258,7 +259,9 @@ class EstimateService
      */
     public function createEstimateItem(Estimate $estimate, ?int $sectionId, array $itemData, int $orderIndex): EstimateItem
     {
-        $unitPrice = $itemData['unit_price'];
+        $unitPrice = round($itemData['unit_price'], 2);
+        // Cost: Default to 0 if not provided
+        $cost = isset($itemData['cost']) ? round($itemData['cost'], 2) : 0;
         $originalPrice = null;
         $isComplimentary = isset($itemData['is_complimentary']) && $itemData['is_complimentary'];
 
@@ -267,7 +270,7 @@ class EstimateService
             $unitPrice = 0;
         }
 
-        $itemSubtotal = $unitPrice * $itemData['quantity'];
+        $itemSubtotal = round($unitPrice * $itemData['quantity'], 2);
         $total = $itemSubtotal;
 
         return $estimate->items()->create([
@@ -276,6 +279,7 @@ class EstimateService
             'name' => $itemData['name'],
             'description' => $itemData['description'] ?? null,
             'unit_price' => $unitPrice,
+            'cost' => $cost,
             'quantity' => $itemData['quantity'],
             'unit_type' => $itemData['unit_type'] ?? 'nos',
             'tax_1' => $itemData['tax_1'] ?? 0,
@@ -299,7 +303,8 @@ class EstimateService
      */
     public function updateEstimateItem(EstimateItem $item, ?int $sectionId, array $itemData, int $orderIndex): void
     {
-        $unitPrice = $itemData['unit_price'];
+        $unitPrice = round($itemData['unit_price'], 2);
+        $cost = isset($itemData['cost']) ? round($itemData['cost'], 2) : $item->cost ?? 0;
         $originalPrice = null;
         $isComplimentary = isset($itemData['is_complimentary']) && $itemData['is_complimentary'];
 
@@ -308,7 +313,7 @@ class EstimateService
             $unitPrice = 0;
         }
 
-        $itemSubtotal = $unitPrice * $itemData['quantity'];
+        $itemSubtotal = round($unitPrice * $itemData['quantity'], 2);
         $total = $itemSubtotal;
 
         $item->update([
@@ -317,6 +322,7 @@ class EstimateService
             'name' => $itemData['name'],
             'description' => $itemData['description'] ?? null,
             'unit_price' => $unitPrice,
+            'cost' => $cost,
             'quantity' => $itemData['quantity'],
             'unit_type' => $itemData['unit_type'] ?? 'nos',
             'tax_1' => $itemData['tax_1'] ?? 0,
@@ -342,27 +348,81 @@ class EstimateService
     {
         $estimate->load('items');
 
-        $subtotal = $estimate->items->sum(function ($item) {
-            return $item->unit_price * $item->quantity;
-        });
+        // Fetch Tax Calculation Method
+        // Options: 'subtotal_minus_discount' (Default), 'subtotal_only' (Gross)
+        $taxMethod = \App\Models\Setting::getCached('tax_calculation_method', 'subtotal_minus_discount');
 
-        $totalTax = ($subtotal * ($estimate->tax_1 + $estimate->tax_2)) / 100;
+        // 1. Calculate Line Item Totals with Rounding
+        $subtotal = 0;
+        $totalCost = 0; // NEW: Track Cost
 
+        foreach ($estimate->items as $item) {
+            $lineTotal = round($item->unit_price * $item->quantity, 2);
+            $lineCost = round(($item->cost ?? 0) * $item->quantity, 2);
+
+            $subtotal += $lineTotal;
+            $totalCost += $lineCost;
+
+            // Ensure item's cached total is correct
+            if (abs($item->total - $lineTotal) > 0.001) {
+                // Determine if we should save this. 
+                // Fix the item total if it's wrong in DB to ensure consistency
+                $item->total = $lineTotal;
+                $item->saveQuietly(); // Use saveQuietly to avoid triggering events if possible, or just save()
+            }
+        }
+        $subtotal = round($subtotal, 2);
+
+        // 2. Calculate Discount
         $discountTotal = 0;
         if ($estimate->discount_value > 0) {
             if ($estimate->discount_type === 'percentage') {
-                $discountTotal = $subtotal * ($estimate->discount_value / 100);
+                $discountTotal = round($subtotal * ($estimate->discount_value / 100), 2);
             } else {
-                $discountTotal = $estimate->discount_value;
+                $discountTotal = round($estimate->discount_value, 2);
             }
         }
 
-        $grandTotal = ($subtotal + $totalTax) - $discountTotal - ($estimate->coupon_discount ?? 0);
+        // Ensure discount doesn't exceed subtotal
+        $discountTotal = min($discountTotal, $subtotal);
+
+        // 3. Calculate Tax Base
+        if ($taxMethod === 'subtotal_only') {
+            // Tax calculated on Gross Subtotal
+            $taxableAmount = $subtotal;
+        } else {
+            // Default: Tax calculated on Net (Subtotal - Discount)
+            $taxableAmount = $subtotal - $discountTotal;
+        }
+
+        // 4. Calculate Tax
+        // We use the global estimate tax rates for now as per current schema design
+        // If per-item tax is needed, we would sum($item->total * $item->tax_rate)
+        $tax1Amount = round($taxableAmount * ($estimate->tax_1 / 100), 2);
+        $tax2Amount = round($taxableAmount * ($estimate->tax_2 / 100), 2);
+        $totalTax = $tax1Amount + $tax2Amount;
+
+        // 5. Coupon (Applied after tax? Or before? Usually coupons are payment methods or pre-tax discounts)
+        // Current logic treated it as a final deduction. Let's keep it but ensure rounding.
+        $couponAmount = round($estimate->coupon_discount ?? 0, 2);
+
+        $grandTotal = round(($subtotal - $discountTotal) + $totalTax - $couponAmount, 2);
+
+        // Prevent negative total
+        $grandTotal = max(0, $grandTotal);
+
+        // 6. Calculate Margin/Profit
+        // Margin = (Revenue - Cost) / Revenue * 100
+        // Revenue here effectively is Net Subtotal (Subtotal - Discount - Coupon?)
+        // Let's use simplified: (Subtotal - Discount) - Cost
+        $netRevenue = $subtotal - $discountTotal;
+        $grossProfit = $netRevenue - $totalCost;
 
         // --- Approval Chain Logic ---
         $chainToAssign = null;
-        $totalDiscountAmount = $discountTotal + ($estimate->coupon_discount ?? 0);
-        $discountPercentage = ($subtotal > 0) ? ($totalDiscountAmount / $subtotal) * 100 : 0;
+        // Discount % logic: Based on gross subtotal
+        $discountPercentage = ($subtotal > 0) ? (($discountTotal + $couponAmount) / $subtotal) * 100 : 0;
+        $discountPercentage = round($discountPercentage, 2);
 
         // 1. Check for Discount-based Approval (Highest Priority)
         $discountChain = ApprovalChain::where('is_active', true)
@@ -386,13 +446,20 @@ class EstimateService
                 ->first();
         }
 
-        $estimate->update([
+        $updateData = [
             'subtotal' => $subtotal,
             'total_tax' => $totalTax,
             'discount_total' => $discountTotal,
             'grand_total' => $grandTotal,
+            'total_cost' => $totalCost,
+            'gross_profit' => $grossProfit,
             'approval_chain_id' => $chainToAssign ? $chainToAssign->id : null,
-        ]);
+        ];
+
+        // If we had columns for cost/margin, we would save them here.
+        // For now, we just calculated them.
+
+        $estimate->update($updateData);
     }
 
     /**
@@ -522,8 +589,13 @@ class EstimateService
                 'email'
             ));
 
-            // Update status if it was draft
-            if ($estimate->status === Estimate::STATUS_DRAFT) {
+            // Ensure estimate is approved before sending
+            if (!in_array($estimate->status, [Estimate::STATUS_APPROVED, Estimate::STATUS_SENT])) {
+                throw new \Exception('Estimate must be approved before it can be sent to the client.');
+            }
+
+            // Update status if it was approved
+            if ($estimate->status === Estimate::STATUS_APPROVED) {
                 $estimate->update(['status' => Estimate::STATUS_SENT]);
             }
 

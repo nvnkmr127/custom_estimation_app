@@ -17,6 +17,7 @@ class EstimateItem extends Model
         'description',
         'size',
         'unit_price',
+        'cost',
         'quantity',
         'unit_type',
         'unit_type_id',

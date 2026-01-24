@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -38,7 +39,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['super_admin', 'estimator_admin', 'sales_manager', 'sales'])],
+            'role' => ['required', 'string', Rule::in(array_keys(PermissionService::getRoles()))],
             'max_discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
@@ -74,7 +75,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         // Protect Super Admin from non-Super Admin
-        if ($user->hasRole('super_admin') && ! auth()->user()->hasRole('super_admin')) {
+        if ($user->hasRole('super_admin') && !auth()->user()->hasRole('super_admin')) {
             return back()->with('error', 'You do not have permission to modify a Super Admin.');
         }
 
@@ -82,16 +83,16 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['super_admin', 'estimator_admin', 'sales_manager', 'sales'])],
+            'role' => ['required', 'string', Rule::in(array_keys(PermissionService::getRoles()))],
             'max_discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         // Only Super Admin can change someone to Super Admin or change a Super Admin's role
-        if (($validated['role'] === 'super_admin' || $user->hasRole('super_admin')) && ! auth()->user()->hasRole('super_admin')) {
+        if (($validated['role'] === 'super_admin' || $user->hasRole('super_admin')) && !auth()->user()->hasRole('super_admin')) {
             return back()->with('error', 'Only Super Admins can manage Super Admin roles.');
         }
 
-        if (! empty($validated['password'])) {
+        if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);
@@ -129,11 +130,10 @@ class UserController extends Controller
      */
     private function getAvailableRoles()
     {
-        return [
-            'super_admin' => 'Super Admin - Full system access',
-            'estimator_admin' => 'Estimator Admin - Manage estimates and products',
-            'sales_manager' => 'Sales Manager - Approve estimates',
-            'sales' => 'Sales - Create and manage estimates',
-        ];
+        $roles = PermissionService::getRoles();
+
+        return collect($roles)->mapWithKeys(function ($details, $key) {
+            return [$key => $details['name'] . ' - ' . $details['description']];
+        })->toArray();
     }
 }

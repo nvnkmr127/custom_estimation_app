@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Estimate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ApprovalController extends Controller
 {
@@ -39,7 +40,15 @@ class ApprovalController extends Controller
     public function submit(Estimate $estimate)
     {
         try {
+            // Guard: Prevent double submission
+            if ($estimate->approval_status === 'submitted' || $estimate->status === Estimate::STATUS_APPROVED) {
+                return redirect()->back()->with('error', 'This estimate is already submitted or approved.');
+            }
+
             $createdApprovals = $estimate->submitForApproval();
+
+            // Sync status
+            $estimate->update(['status' => Estimate::STATUS_WAITING_APPROVAL]);
 
             // Dispatch events
             foreach ($createdApprovals as $approval) {
@@ -61,17 +70,26 @@ class ApprovalController extends Controller
      */
     public function approve(Request $request, Estimate $estimate)
     {
-        try {
+        return DB::transaction(function () use ($request, $estimate) {
             $user = auth()->user();
+
+            // Refresh and Lock estimate for update to prevent race conditions
+            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->first();
+
+            // Ensure estimate is in a state that allows approval
+            if ($estimate->status !== Estimate::STATUS_WAITING_APPROVAL && $estimate->approval_status !== 'submitted') {
+                return redirect()->back()->with('error', 'This estimate is not currently waiting for approval.');
+            }
 
             // Find pending approval for this user
             $approval = $estimate->approvals()
                 ->where('user_id', $user->id)
                 ->where('status', 'pending')
+                ->lockForUpdate() // Lock the approval record too
                 ->first();
 
             if (!$approval) {
-                return redirect()->back()->with('error', 'You do not have permission to approve this estimate.');
+                return redirect()->back()->with('error', 'You do not have permission to approve this estimate or it has already been processed.');
             }
 
             // Check if all mandatory checklist items are completed
@@ -97,21 +115,18 @@ class ApprovalController extends Controller
                 $user->id
             ));
 
-            // Check if there are other pending approvals for this stage
-            // We can check strictly by order, but checking global pending status is safer
-            // provided the next steps haven't been created yet.
+            // Check if all approvals are complete
+            // We use the fresh state after locking
             $hasPending = $estimate->approvals()->where('status', 'pending')->exists();
 
             if (!$hasPending) {
                 // If all approvals for this stage are done, check what's next
-                // Check if all approvals are complete
                 if ($estimate->isFullyApproved()) {
                     $estimate->update([
                         'approval_status' => 'approved',
-                        'status' => 'approved',
+                        'status' => Estimate::STATUS_APPROVED,
                     ]);
-                    // Dispatch EstimateApproved if needed via internal flow?
-                    // "EstimateApproved" (Internal)
+
                     $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, $user->id, 'internal'));
 
                 } else {
@@ -134,15 +149,7 @@ class ApprovalController extends Controller
             }
 
             return redirect()->back()->with('success', 'Estimate approved successfully.');
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Estimate Approval Failed', [
-                'estimate_id' => $estimate->id,
-                'user_id' => auth()->id(),
-                'error' => $e->getMessage(),
-            ]);
-
-            return redirect()->back()->with('error', 'Approval failed: ' . $e->getMessage());
-        }
+        });
     }
 
     /**

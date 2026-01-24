@@ -35,6 +35,7 @@ class GenerateBatchPdfZip implements ShouldQueue
      */
     public function handle(): void
     {
+        ini_set('memory_limit', '512M');
         $user = User::find($this->userId);
         if (!$user) {
             return;

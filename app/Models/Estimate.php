@@ -52,6 +52,8 @@ class Estimate extends Model
         'discount_type',
         'discount_value',
         'grand_total',
+        'total_cost',
+        'gross_profit',
         'client_note',
         'admin_note',
         'terms',
@@ -113,7 +115,7 @@ class Estimate extends Model
 
     protected $casts = [
         'estimate_date' => 'date',
-        'expiry_date' => 'date',
+        'expiry_date' => 'datetime',
         'signed_at' => 'datetime',
         'last_engagement_at' => 'datetime',
         'last_nurtured_at' => 'datetime',
@@ -132,7 +134,12 @@ class Estimate extends Model
 
     public function getPublicUrlAttribute()
     {
-        return \Illuminate\Support\Facades\URL::signedRoute('portal.show', $this);
+        // Expire link when estimate expires, or default to 30 days if null
+        // Ensure accurate Carbon instance if casting fails for some reason, though $casts covers it.
+        $expiration = $this->expiry_date ? $this->expiry_date->endOfDay() : now()->addDays(30);
+
+        // Pass parameters as an array for route binding
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.show', $expiration, ['estimate' => $this->id]);
     }
 
     public function approvalChain()

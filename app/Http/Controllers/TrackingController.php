@@ -15,50 +15,16 @@ class TrackingController extends Controller
         $estimate = Estimate::find($estimate_id);
 
         if ($estimate) {
-            $estimate->increment('view_count');
+            // Only tracking email open time, NOT incrementing view count (view count is for portal visits)
+            $estimate->touch(); // Updated_at
             $estimate->update([
-                'email_opened_at' => now(), // Keep existing logic or strictly map to 'pixel' meaning 'viewed'? Pixel usually means viewed.
-                'last_viewed_at' => now(),
+                'email_opened_at' => now(),
             ]);
 
-            $viewCount = $estimate->view_count;
-            $threshold = config('estimation.nudge_threshold', 3);
-            ActivityLog::log('email_opened', $estimate, "Estimate #{$estimate->estimate_number} viewed (Count: {$viewCount}) from IP: ".request()->ip());
+            ActivityLog::log('email_opened', $estimate, "Estimate #{$estimate->estimate_number} email opened from IP: " . request()->ip());
 
-            // Smart Nudge Logic: Threshold views, not accepted/declined/expired, no task yet
-            if (
-                $viewCount >= $threshold
-                && ! in_array($estimate->status, ['accepted', 'declined', 'expired'])
-                && ! $estimate->nudge_task_created
-            ) {
-
-                // Linking to Perfex
-                $perfexService = new \App\Services\PerfexApiService;
-                $relType = 'proposal';
-                $relId = $estimate->perfex_proposal_id;
-
-                if ($relId) {
-                    $description = "Smart Nudge: Client has viewed Estimate #{$estimate->estimate_number} {$viewCount} times but not accepted.";
-
-                    $taskData = [
-                        'name' => 'Follow up on Estimate #'.$estimate->estimate_number,
-                        'description' => $description,
-                        'priority' => 3, // Medium/High
-                        'startdate' => now()->format('Y-m-d'),
-                        'rel_type' => $relType,
-                        'rel_id' => $relId,
-                    ];
-
-                    $response = $perfexService->createTask($taskData);
-
-                    if (isset($response['id']) || (isset($response['status']) && $response['status'] == true)) {
-                        $estimate->update(['nudge_task_created' => true]);
-                        ActivityLog::log('system_action', $estimate, 'Smart Nudge: CRM Task Created for follow-up.');
-                    } else {
-                        \Illuminate\Support\Facades\Log::warning('Smart Nudge Task Failed: '.json_encode($response));
-                    }
-                }
-            }
+            // NOTE: Removed Smart Nudge logic from Pixel. 
+            // Nudges should only trigger on actual Portal Page Views to avoid false positives.
         }
 
         // Return a 1x1 transparent pixel

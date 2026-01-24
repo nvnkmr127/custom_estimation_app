@@ -21,8 +21,8 @@ class PdfRenderingService
 
         $this->settings = \App\Models\Setting::pluck('value', 'key');
 
-        // Prepare variables once
-        $this->variables = $this->prepareVariables();
+        // Prepare variables once (pass HTML content for lazy loading logic)
+        $this->variables = $this->prepareVariables($template->html_content);
 
         $html = $template->html_content;
 
@@ -39,6 +39,9 @@ class PdfRenderingService
 
         // 4. Inject CSS
         $cssVars = ":root { --primary-color: {$template->primary_color}; --secondary-color: {$template->secondary_color}; --font-body: {$template->font_family}; } body { font-family: var(--font-body) !important; } .page-break-before { page-break-before: always; } .page-break-after { page-break-after: always; } .avoid-break { page-break-inside: avoid; }";
+
+        // Add default styles for comments (formerly inline)
+        $cssVars .= " .item-comments { margin-top: 5px; font-size: 0.9em; color: #555; } .comment-row { margin-bottom: 2px; } .clarified-status { color: green; font-weight: bold; } .item-image { max-width: 50px; max-height: 50px; object-fit: contain; }";
 
         $finalCss = $cssVars . ($template->css_content ?? '');
 
@@ -93,7 +96,7 @@ class PdfRenderingService
         }, $html);
     }
 
-    protected function prepareVariables()
+    protected function prepareVariables($htmlContent = '')
     {
         $vars = [
             // Estimate Details
@@ -103,6 +106,10 @@ class PdfRenderingService
             'expiry_date' => $this->estimate->expiry_date ? \Carbon\Carbon::parse($this->estimate->expiry_date)->format('M d, Y') : 'N/A',
             'status' => ucfirst($this->estimate->status),
             'currency' => $this->estimate->currency,
+
+            // Creator Info
+            'estimator_name' => $this->estimate->creator->name ?? 'N/A',
+            'estimator_email' => $this->estimate->creator->email ?? 'N/A',
 
             // Values
             'subtotal' => number_format((float) $this->estimate->subtotal, 2),
@@ -122,6 +129,7 @@ class PdfRenderingService
             'company_phone' => $this->settings['company_phone'] ?? '',
             'company_address' => $this->settings['company_address_street'] ?? '',
             'company_city' => $this->settings['company_address_city'] ?? '',
+            'company_logo' => $this->settings['company_logo'] ?? '',
 
             // Notes
             'client_note' => nl2br($this->estimate->client_note ?? ''),
@@ -137,21 +145,37 @@ class PdfRenderingService
             '_raw_room_based' => $this->estimate->type === 'room_based' ? 1 : 0,
         ];
 
-        // Generate Chart if requested and room_based
-        if ($this->estimate->type === 'room_based' && $this->estimate->sections->count() > 0) {
-            $vars['CHART_ROOMS'] = $this->generateRoomChartUrl(); // Legacy support
-        } else {
-            $vars['CHART_ROOMS'] = 'https://placehold.co/1x1?text=';
+        // Process Company Logo
+        if (!empty($vars['company_logo'])) {
+            $path = public_path($vars['company_logo']);
+            if (file_exists($path)) {
+                $vars['company_logo'] = '<img src="file://' . $path . '" class="company-logo" style="max-height: 80px;" />';
+            } else {
+                $vars['company_logo'] = '';
+            }
+        }
+
+        // Lazy Load Charts only if requested in template
+        if (strpos($htmlContent, '{CHART_ROOMS}') !== false) {
+            $vars['CHART_ROOMS'] = ($this->estimate->type === 'room_based' && $this->estimate->sections->count() > 0)
+                ? $this->generateRoomChartUrl()
+                : 'https://placehold.co/1x1?text=';
         }
 
         // New Dynamic Charts
-        $vars['CHART_SECTIONS_PIE'] = $this->generateQuickChart('pie', 'sections');
-        $vars['CHART_SECTIONS_DOUGHNUT'] = $this->generateQuickChart('doughnut', 'sections');
-        $vars['CHART_SECTIONS_BAR'] = $this->generateQuickChart('bar', 'sections');
+        if (strpos($htmlContent, '{CHART_SECTIONS_PIE}') !== false)
+            $vars['CHART_SECTIONS_PIE'] = $this->generateQuickChart('pie', 'sections');
+        if (strpos($htmlContent, '{CHART_SECTIONS_DOUGHNUT}') !== false)
+            $vars['CHART_SECTIONS_DOUGHNUT'] = $this->generateQuickChart('doughnut', 'sections');
+        if (strpos($htmlContent, '{CHART_SECTIONS_BAR}') !== false)
+            $vars['CHART_SECTIONS_BAR'] = $this->generateQuickChart('bar', 'sections');
 
-        $vars['CHART_ITEMS_PIE'] = $this->generateQuickChart('pie', 'items');
-        $vars['CHART_ITEMS_DOUGHNUT'] = $this->generateQuickChart('doughnut', 'items');
-        $vars['CHART_ITEMS_BAR'] = $this->generateQuickChart('bar', 'items');
+        if (strpos($htmlContent, '{CHART_ITEMS_PIE}') !== false)
+            $vars['CHART_ITEMS_PIE'] = $this->generateQuickChart('pie', 'items');
+        if (strpos($htmlContent, '{CHART_ITEMS_DOUGHNUT}') !== false)
+            $vars['CHART_ITEMS_DOUGHNUT'] = $this->generateQuickChart('doughnut', 'items');
+        if (strpos($htmlContent, '{CHART_ITEMS_BAR}') !== false)
+            $vars['CHART_ITEMS_BAR'] = $this->generateQuickChart('bar', 'items');
 
         return $vars;
     }
@@ -325,15 +349,13 @@ class PdfRenderingService
             // Format Comments
             $commentsHtml = '';
             if ($item->comments->isNotEmpty()) {
-                $commentsHtml = '<div class="item-comments" style="margin-top: 5px; font-size: 0.9em; color: #555;">';
+                $commentsHtml = '<div class="item-comments">';
                 foreach ($item->comments as $comment) {
                     // Only show comments relevant to client (or all if desired? Defaulting to all for now as 'client' usually sees the PDF)
-                    // You might want to filter: if ($comment->type === 'internal') continue; 
-
-                    $statusLabel = $comment->status === 'clarified' ? '<span style="color: green; font-weight: bold;">[Clarified]</span> ' : '';
+                    $statusLabel = $comment->status === 'clarified' ? '<span class="clarified-status">[Clarified]</span> ' : '';
                     $author = $comment->isClientComment() ? ($comment->client_name ?: 'Client') : ($comment->user->name ?? 'Staff');
 
-                    $commentsHtml .= '<div class="comment-row" style="margin-bottom: 2px;">'
+                    $commentsHtml .= '<div class="comment-row">'
                         . $statusLabel
                         . '<strong>' . htmlspecialchars($author) . ':</strong> '
                         . nl2br(htmlspecialchars($comment->comment))
@@ -342,15 +364,33 @@ class PdfRenderingService
                 $commentsHtml .= '</div>';
             }
 
+            // Process Item Image
+            $itemImageHtml = '';
+            // Assuming item has relation to product or if image is stored on item directly (usually via product)
+            $product = $item->product;
+            if ($product && $product->images && $product->images->count() > 0) {
+                $imagePath = $product->images->first()->path ?? $product->images->first()->url; // adjust based on actual model
+                // We need absolute path for file://
+                if ($imagePath && !filter_var($imagePath, FILTER_VALIDATE_URL)) {
+                    $absPath = public_path($imagePath);
+                    if (file_exists($absPath)) {
+                        $itemImageHtml = '<img src="file://' . $absPath . '" class="item-image" />';
+                    }
+                }
+            }
+
             $itemHtml = $block;
             $itemVars = [
                 '{item_name}' => $item->name,
                 '{item_description}' => $item->description ?? '',
+                '{item_image}' => $itemImageHtml,
                 '{item_quantity}' => $item->quantity + 0,
                 '{item_unit}' => $item->unit_type,
                 '{item_unit_full}' => ($item->unitType ? $item->unitType->name . ': ' : '') . $item->unit_type,
                 '{item_price}' => number_format($item->unit_price, 2),
                 '{item_subtotal}' => number_format($item->unit_price * $item->quantity, 2),
+                '{item_tax_1_percent}' => $item->tax_1 + 0,
+                '{item_tax_2_percent}' => $item->tax_2 + 0,
                 '{item_tax_percent}' => $item->tax_1 + $item->tax_2,
                 '{item_total}' => number_format($item->total, 2),
                 '{item_comments}' => $commentsHtml,
@@ -434,6 +474,9 @@ class PdfRenderingService
                 'company_phone' => 'Your company phone',
                 'company_address' => 'Your company street address',
                 'company_city' => 'Your company city',
+                'company_logo' => 'Company logo image tag',
+                'estimator_name' => 'Name of the person who created the estimate',
+                'estimator_email' => 'Email of the estimator',
             ],
             'Notes & Terms' => [
                 'client_note' => 'Notes visible to client',
@@ -445,11 +488,14 @@ class PdfRenderingService
                 'END_LOOP' => 'End of items loop block',
                 'item_name' => 'Name of the line item',
                 'item_description' => 'Description of the item',
+                'item_image' => 'Image of the item (if available)',
                 'item_quantity' => 'Quantity',
                 'item_unit' => 'Unit type (e.g., hrs, pcs)',
                 'item_unit_full' => 'Full unit name if available',
                 'item_price' => 'Unit price',
                 'item_subtotal' => 'Price * Quantity',
+                'item_tax_1_percent' => 'Tax 1 Rate',
+                'item_tax_2_percent' => 'Tax 2 Rate',
                 'item_tax_percent' => 'Total tax rate for item',
                 'item_total' => 'Total line cost including tax',
                 'item_comments' => 'Formatted HTML block of item comments',

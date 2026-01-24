@@ -11,7 +11,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Bind the EventDispatcherInterface to the Laravel implementation
+        $this->app->bind(
+            \App\Core\Events\EventDispatcherInterface::class,
+            \App\Infrastructure\Events\LaravelEventDispatcher::class
+        );
+
+        // Bind MailGatewayInterface to SmtpMailGateway
+        $this->app->bind(
+            \App\Services\Mail\Contracts\MailGatewayInterface::class,
+            \App\Services\Mail\Gateways\SmtpMailGateway::class
+        );
     }
 
     /**
@@ -20,18 +30,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         try {
-            // Bind the EventDispatcherInterface to the Laravel implementation
-            $this->app->bind(
-                \App\Core\Events\EventDispatcherInterface::class,
-                \App\Infrastructure\Events\LaravelEventDispatcher::class
-            );
-
-            // Bind MailGatewayInterface to SmtpMailGateway
-            $this->app->bind(
-                \App\Services\Mail\Contracts\MailGatewayInterface::class,
-                \App\Services\Mail\Gateways\SmtpMailGateway::class
-            );
-
             // Register the global event logger
             // Note: LogDomainEvent logic is now handled by LaravelEventDispatcher dispatching LogEvent job directly.
 

@@ -29,6 +29,18 @@ class PortalController extends Controller
             abort(403, 'This link has expired or is invalid.');
         }
 
+        // Restrict access based on status
+        $allowedStatuses = [
+            Estimate::STATUS_SENT,
+            Estimate::STATUS_ACCEPTED,
+            Estimate::STATUS_DECLINED,
+            Estimate::STATUS_EXPIRED
+        ];
+
+        if (!in_array($estimate->status, $allowedStatuses)) {
+            abort(403, 'This estimate is not yet available for viewing.');
+        }
+
         // Track view
         $this->analytics->logAccess($estimate, 'view');
         $estimate->increment('view_count');
@@ -62,6 +74,46 @@ class PortalController extends Controller
                 $follower->notify(new \App\Notifications\HotLeadAlert($estimate, [
                     'reason' => "High Velocity: Viewed {$recentViews} times in the last hour."
                 ]));
+            }
+        }
+        // ---------------------------
+
+        // --- Smart Nudge Logic (Moved from Pixel Tracking) ---
+        $viewCount = $estimate->view_count;
+        $nudgeThreshold = config('estimation.nudge_threshold', 3);
+
+        if (
+            $viewCount >= $nudgeThreshold
+            && !in_array($estimate->status, ['accepted', 'declined', 'expired'])
+            && !$estimate->nudge_task_created
+        ) {
+            $relId = $estimate->perfex_proposal_id;
+
+            if ($relId) {
+                // We use a job to avoid blocking the user view
+                // For now, doing it inline as per previous logic, but robustly
+                try {
+                    $description = "Smart Nudge: Client has viewed Estimate #{$estimate->estimate_number} {$viewCount} times on the portal but not accepted.";
+                    $taskData = [
+                        'name' => 'Follow up on Estimate #' . $estimate->estimate_number,
+                        'description' => $description,
+                        'priority' => 3, // Medium/High
+                        'startdate' => now()->format('Y-m-d'),
+                        'rel_type' => 'proposal',
+                        'rel_id' => $relId,
+                    ];
+
+                    $response = $this->perfexApi->createTask($taskData); // Using injected service
+
+                    if (isset($response['id']) || (isset($response['status']) && $response['status'] == true)) {
+                        $estimate->update(['nudge_task_created' => true]);
+                        \App\Models\ActivityLog::log('system_action', $estimate, 'Smart Nudge: CRM Task Created for follow-up.');
+                    } else {
+                        \Illuminate\Support\Facades\Log::warning('Smart Nudge Task Failed: ' . json_encode($response));
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Smart Nudge Exception: ' . $e->getMessage());
+                }
             }
         }
         // ---------------------------

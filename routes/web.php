@@ -19,6 +19,9 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::post('/estimates/{estimate}/request-call', [App\Http\Controllers\PortalController::class, 'requestCall'])->name('request-call')->middleware('signed');
 });
 
+// Tracking (Public)
+Route::get('t/{estimate}/pixel.png', [App\Http\Controllers\TrackingController::class, 'pixel'])->name('tracking.pixel');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', App\Livewire\Dashboard::class)->name('dashboard');
 
@@ -56,6 +59,58 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
 
+    // General Resources (Protected by Policies)
+    Route::get('/approvals', [App\Http\Controllers\ApprovalController::class, 'index'])->name('approvals.index');
+    Route::resource('clients', App\Http\Controllers\ClientController::class);
+
+    // Comments & Notes
+    Route::post('estimates/{estimate}/comments', [App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
+    Route::get('estimates/{estimate}/comments', [App\Http\Controllers\CommentController::class, 'index'])->name('comments.index');
+    Route::patch('comments/{comment}/read', [App\Http\Controllers\CommentController::class, 'markAsRead'])->name('comments.read');
+    Route::post('estimates/{estimate}/comments/read-all', [App\Http\Controllers\CommentController::class, 'markAllAsRead'])->name('comments.readAll');
+    Route::patch('comments/{comment}/status', [App\Http\Controllers\CommentController::class, 'updateStatus'])->name('comments.status');
+    Route::delete('comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
+
+    // Product Library
+    Route::resource('products', App\Http\Controllers\ProductController::class)->except(['show']);
+    Route::get('products/actions/template', [App\Http\Controllers\ProductController::class, 'downloadTemplate'])->name('products.template');
+    Route::post('products/actions/import', [App\Http\Controllers\ProductController::class, 'import'])->name('products.import');
+    Route::get('products/pending/list', [App\Http\Controllers\ProductController::class, 'pending'])->name('products.pending');
+    Route::post('products/suggest', [App\Http\Controllers\ProductController::class, 'suggest'])->name('products.suggest');
+    Route::post('products/{product}/approve', [App\Http\Controllers\ProductController::class, 'approve'])->name('products.approve');
+    Route::post('products/{product}/retire', [App\Http\Controllers\ProductController::class, 'retire'])->name('products.retire');
+    Route::post('products/{product}/activate', [App\Http\Controllers\ProductController::class, 'activate'])->name('products.activate');
+
+    // Estimate Actions
+    Route::post('estimate-items/{item}/duplicate', [App\Http\Controllers\EstimateController::class, 'duplicateItem'])->name('estimate-items.duplicate');
+    Route::post('estimates/{estimate}/copy', [App\Http\Controllers\EstimateController::class, 'copy'])->name('estimates.copy');
+    Route::post('estimates/{estimate}/mark-as/{status}', [App\Http\Controllers\EstimateController::class, 'markAs'])->name('estimates.mark-as');
+    Route::post('estimates/{estimate}/reply', [App\Http\Controllers\EstimateController::class, 'storeComment'])->name('estimates.reply');
+    Route::post('estimates/bulk-update', [App\Http\Controllers\EstimateController::class, 'bulkUpdate'])->name('estimates.bulk-update');
+    Route::post('estimates/{estimate}/send', [App\Http\Controllers\EstimateController::class, 'sendToClient'])->name('estimates.send');
+    Route::post('estimates/{estimate}/followers', [App\Http\Controllers\EstimateController::class, 'addFollower'])->name('estimates.followers.add');
+    Route::delete('estimates/{estimate}/followers/{user}', [App\Http\Controllers\EstimateController::class, 'removeFollower'])->name('estimates.followers.remove');
+
+    // Version approval remains strict/admin mostly, but we can move it here and let Policy handle (Controller checks strictly anyway)
+    Route::post('estimates/{estimate}/approve-version', [App\Http\Controllers\EstimateController::class, 'approveVersion'])->name('estimates.approve-version');
+
+    // Tasks
+    Route::resource('tasks', App\Http\Controllers\TaskController::class);
+    Route::post('tasks/{task}/complete', [App\Http\Controllers\TaskController::class, 'complete'])->name('tasks.complete');
+
+    // Reminders
+    Route::get('reminders', [App\Http\Controllers\ReminderController::class, 'index'])->name('reminders.index');
+    Route::post('reminders', [App\Http\Controllers\ReminderController::class, 'store'])->name('reminders.store');
+    Route::delete('reminders/{reminder}', [App\Http\Controllers\ReminderController::class, 'destroy'])->name('reminders.destroy');
+    Route::post('reminders/{reminder}/read', [App\Http\Controllers\ReminderController::class, 'markAsRead'])->name('reminders.read');
+
+    // System Features
+    Route::get('search', App\Http\Controllers\SearchController::class)->name('search');
+
+    Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
     // Admin Only Routes
     Route::middleware(['role:super_admin,estimator_admin'])->group(function () {
         // Templates
@@ -81,8 +136,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('categories', \App\Http\Controllers\ProductCategoryController::class);
 
 
-        // Approvals
-        Route::get('/approvals', [App\Http\Controllers\ApprovalController::class, 'index'])->name('approvals.index');
 
         // User Management (Super Admin Only)
         Route::resource('users', App\Http\Controllers\UserController::class);
@@ -91,50 +144,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/permissions/{role}', [App\Http\Controllers\PermissionController::class, 'update'])->name('permissions.update');
 
 
-        // Clients
-        Route::resource('clients', App\Http\Controllers\ClientController::class);
 
         // Coupon Codes
         Route::resource('coupons', App\Http\Controllers\CouponCodeController::class);
         Route::post('coupons/validate-code', [App\Http\Controllers\CouponCodeController::class, 'verify'])->name('coupons.validate');
 
-        // Comments
-        Route::post('estimates/{estimate}/comments', [App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
-        Route::get('estimates/{estimate}/comments', [App\Http\Controllers\CommentController::class, 'index'])->name('comments.index');
-        Route::patch('comments/{comment}/read', [App\Http\Controllers\CommentController::class, 'markAsRead'])->name('comments.read');
-        Route::post('estimates/{estimate}/comments/read-all', [App\Http\Controllers\CommentController::class, 'markAllAsRead'])->name('comments.readAll');
-        Route::patch('comments/{comment}/status', [App\Http\Controllers\CommentController::class, 'updateStatus'])->name('comments.status');
-        Route::delete('comments/{comment}', [App\Http\Controllers\CommentController::class, 'destroy'])->name('comments.destroy');
 
-        // Product Library
-        Route::resource('products', App\Http\Controllers\ProductController::class)->except(['show']);
-        Route::get('products/actions/template', [App\Http\Controllers\ProductController::class, 'downloadTemplate'])->name('products.template');
-        Route::post('products/actions/import', [App\Http\Controllers\ProductController::class, 'import'])->name('products.import');
-        Route::get('products/pending/list', [App\Http\Controllers\ProductController::class, 'pending'])->name('products.pending');
-        Route::post('products/suggest', [App\Http\Controllers\ProductController::class, 'suggest'])->name('products.suggest');
-        Route::post('products/{product}/approve', [App\Http\Controllers\ProductController::class, 'approve'])->name('products.approve');
-        Route::post('products/{product}/retire', [App\Http\Controllers\ProductController::class, 'retire'])->name('products.retire');
-        Route::post('products/{product}/activate', [App\Http\Controllers\ProductController::class, 'activate'])->name('products.activate');
 
-        // Estimate Items
-        Route::post('estimate-items/{item}/duplicate', [App\Http\Controllers\EstimateController::class, 'duplicateItem'])->name('estimate-items.duplicate');
 
-        // Estimate Admin Actions
-        Route::post('estimates/{estimate}/copy', [App\Http\Controllers\EstimateController::class, 'copy'])->name('estimates.copy');
-        Route::post('estimates/{estimate}/mark-as/{status}', [App\Http\Controllers\EstimateController::class, 'markAs'])->name('estimates.mark-as');
-        Route::post('estimates/{estimate}/reply', [App\Http\Controllers\EstimateController::class, 'storeComment'])->name('estimates.reply');
-        Route::post('estimates/bulk-update', [App\Http\Controllers\EstimateController::class, 'bulkUpdate'])->name('estimates.bulk-update');
-        Route::post('estimates/{estimate}/send', [App\Http\Controllers\EstimateController::class, 'sendToClient'])->name('estimates.send');
-        Route::post('estimates/{estimate}/followers', [App\Http\Controllers\EstimateController::class, 'addFollower'])->name('estimates.followers.add');
-        Route::delete('estimates/{estimate}/followers/{user}', [App\Http\Controllers\EstimateController::class, 'removeFollower'])->name('estimates.followers.remove');
-        Route::post('estimates/{estimate}/approve-version', [App\Http\Controllers\EstimateController::class, 'approveVersion'])->name('estimates.approve-version');
-
-        // Tracking
-        Route::get('t/{estimate}/pixel.png', [App\Http\Controllers\TrackingController::class, 'pixel'])->name('tracking.pixel');
-
-        // Tasks
-        Route::resource('tasks', App\Http\Controllers\TaskController::class);
-        Route::post('tasks/{task}/complete', [App\Http\Controllers\TaskController::class, 'complete'])->name('tasks.complete');
 
         // Activity Logs
         Route::get('activities', [App\Http\Controllers\ActivityLogController::class, 'index'])->name('activities.index');
@@ -143,19 +160,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Event Logs (System Events)
         Route::resource('event-logs', App\Http\Controllers\EventLogController::class)->only(['index', 'show']);
 
-        // Reminders
-        Route::get('reminders', [App\Http\Controllers\ReminderController::class, 'index'])->name('reminders.index');
-        Route::post('reminders', [App\Http\Controllers\ReminderController::class, 'store'])->name('reminders.store');
-        Route::delete('reminders/{reminder}', [App\Http\Controllers\ReminderController::class, 'destroy'])->name('reminders.destroy');
-        Route::post('reminders/{reminder}/read', [App\Http\Controllers\ReminderController::class, 'markAsRead'])->name('reminders.read');
 
-        // Search
-        Route::get('search', App\Http\Controllers\SearchController::class)->name('search');
-
-        // Notifications
-        Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
-        Route::post('notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
-        Route::post('notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
 
         // Perfex
         Route::get('/perfex/leads', [App\Http\Controllers\PerfexController::class, 'index'])->name('perfex.index');

@@ -61,10 +61,14 @@ class SearchController extends Controller
             ->get();
 
         foreach ($products as $product) {
+            $url = auth()->user()->can('update', $product)
+                ? route('products.edit', $product)
+                : route('products.index', ['search' => $product->name]);
+
             $results[] = [
                 'type' => 'Product',
                 'title' => $product->name,
-                'url' => route('products.edit', $product),
+                'url' => $url,
                 'icon' => 'cube',
             ];
         }

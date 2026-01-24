@@ -19,6 +19,8 @@ class CommentController extends Controller
      */
     public function store(Request $request, Estimate $estimate)
     {
+        $this->authorize('view', $estimate);
+
         $validated = $request->validate([
             'commentable_type' => 'required|string',
             'commentable_id' => 'nullable|integer',
@@ -73,6 +75,8 @@ class CommentController extends Controller
      */
     public function index(Estimate $estimate)
     {
+        $this->authorize('view', $estimate);
+
         $comments = $estimate->comments()
             ->with(['user', 'commentable', 'replies.user'])
             ->whereNull('parent_id')
