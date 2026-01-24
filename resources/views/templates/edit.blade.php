@@ -95,26 +95,32 @@
                                 class="text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:text-rose-700 transition-colors">Clear</button>
                         </template>
                     </div>
-                    <div class="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                    <div class="max-h-[220px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                         <template x-for="unitType in unitTypes" :key="unitType.id">
                             <label
-                                class="flex-shrink-0 flex flex-col items-center p-5 rounded-[1.75rem] border-2 border-slate-50 bg-slate-50/30 hover:bg-white hover:border-indigo-400 hover:shadow-xl hover:shadow-indigo-50 transition-all cursor-pointer group w-36 relative overflow-hidden"
-                                :class="allowedUnitTypes.includes(String(unitType.id)) ? 'ring-2 ring-indigo-600 border-transparent bg-indigo-50/30 shadow-lg shadow-indigo-100' : ''">
-                                <input type="checkbox" :value="String(unitType.id)" x-model="allowedUnitTypes"
-                                    class="sr-only">
-                                <div class="absolute top-2 right-2 transition-opacity"
-                                    :class="allowedUnitTypes.includes(String(unitType.id)) ? 'opacity-100' : 'opacity-0'">
-                                    <svg class="h-4 w-4 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
-                                    </svg>
+                                class="flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer group"
+                                :class="allowedUnitTypes.includes(String(unitType.id)) ? 'bg-indigo-50/50 border-indigo-500/30 shadow-sm shadow-indigo-100/50' : 'bg-slate-50/30 border-slate-100 hover:bg-white hover:border-indigo-200'">
+
+                                <div class="flex items-center gap-3">
+                                    <div class="relative flex items-center justify-center h-5 w-5 rounded-lg border transition-all duration-200"
+                                        :class="allowedUnitTypes.includes(String(unitType.id)) ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300 group-hover:border-indigo-300'">
+                                        <svg x-show="allowedUnitTypes.includes(String(unitType.id))" x-transition.scale
+                                            class="h-3.5 w-3.5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <span
+                                        class="text-xs font-bold text-slate-700 uppercase tracking-tight group-hover:text-indigo-700 transition-colors"
+                                        x-text="unitType.name"></span>
                                 </div>
+
                                 <span
-                                    class="text-xs font-black text-slate-950 group-hover:text-indigo-600 transition-colors text-center uppercase tracking-tight"
-                                    x-text="unitType.name"></span>
-                                <span
-                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-2 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100"
+                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-white px-2 py-0.5 rounded-lg border border-slate-100"
                                     x-text="unitType.units[0]"></span>
+                                <input type="checkbox" :value="String(unitType.id)" x-model="allowedUnitTypes"
+                                    class="hidden">
                             </label>
                         </template>
                     </div>
@@ -228,6 +234,8 @@
                                         <td class="px-6 py-8">
                                             <input type="hidden" :name="`items[${index}][product_id]`"
                                                 :value="item.product_id">
+                                            <input type="hidden" :name="`items[${index}][unit_type_id]`"
+                                                :value="item.unit_type_id">
                                             <div class="flex flex-col space-y-2 relative group-item">
                                                 <input type="text" :name="`items[${index}][item_name]`"
                                                     x-model="item.item_name" required
@@ -671,7 +679,9 @@
                         </div>
 
                         <div class="p-8">
-                            <label class="block text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4">Edit Description</label>
+                            <label
+                                class="block text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4">Edit
+                                Description</label>
                             <textarea x-model="descriptionModal.text" rows="8"
                                 class="block w-full rounded-[1.5rem] border-slate-200 bg-slate-50/50 py-4 px-5 text-slate-600 text-sm leading-relaxed font-medium focus:ring-2 focus:ring-slate-950 focus:bg-white transition-all shadow-inner placeholder:text-slate-300"
                                 placeholder="Enter detailed specifications..."></textarea>
@@ -684,7 +694,8 @@
                             </button>
                             <button type="button" @click="saveModalDescription()"
                                 class="px-10 py-3 rounded-2xl bg-slate-950 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 flex items-center gap-2">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="3">
                                     <path d="M5 13l4 4L19 7" />
                                 </svg>
                                 Save Changes
@@ -855,6 +866,24 @@
         .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </x-app-layout>
