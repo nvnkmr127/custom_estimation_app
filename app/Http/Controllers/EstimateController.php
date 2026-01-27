@@ -569,7 +569,7 @@ class EstimateController extends Controller
         $this->authorize('view', $estimate);
 
         // Load items for the view
-        $estimate->load(['sections.items', 'comments.user', 'followers']);
+        $estimate->load(['sections.items', 'comments.user']);
 
         // Render PDF Template HTML
         $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first() ?? \App\Models\PdfTemplate::first();
