@@ -83,12 +83,21 @@
         @endif
 
 
-        <!-- PDF Template View -->
         <div class="w-full bg-slate-50 relative">
             @if(isset($htmlContent) && $htmlContent)
-                <iframe srcdoc="{{ $htmlContent }}" class="w-full h-[800px] border-0"
-                    onload="this.style.height = this.contentWindow.document.body.scrollHeight + 'px'">
-                </iframe>
+                <iframe id="portalPreviewIframe" class="w-full h-[800px] border-0"></iframe>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const iframe = document.getElementById('portalPreviewIframe');
+                        if (iframe) {
+                            iframe.srcdoc = {!! json_encode($htmlContent) !!};
+                            // Auto-resize
+                            iframe.onload = function () {
+                                iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 'px';
+                            };
+                        }
+                    });
+                </script>
             @else
                 <div class="p-12 text-center text-slate-500">
                     <p>Preview not available.</p>

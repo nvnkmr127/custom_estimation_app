@@ -59,51 +59,60 @@ class PdfTemplateSeeder extends Seeder
         <table class="items-table">
             <thead>
                 <tr>
-                    <th width="50%">Item Description</th>
-                    <th width="15%" class="text-center">Quantity</th>
-                    <th width="15%" class="text-right">Price</th>
-                    <th width="20%" class="text-right">Total</th>
+                    <th width="10%">Image</th>
+                    <th width="15%">Unit Config</th>
+                    <th width="30%">Item Details</th>
+                    <th width="10%" class="text-center">Size</th>
+                    <th width="10%" class="text-right">Price</th>
+                    <th width="10%" class="text-center">Quantity</th>
+                    <th width="15%" class="text-right">Total</th>
                 </tr>
             </thead>
             <tbody>
                 {LOOP_SECTIONS}
                 <tr class="section-header">
-                    <td colspan="4">{section_name}</td>
+                    <td colspan="7">{section_name}</td>
                 </tr>
                     {LOOP_ITEMS}
                     <tr>
+                        <td class="text-center">{item_image}</td>
+                        <td style="font-size: 10px; color: #64748b;">{item_unit_configuration}</td>
                         <td>
                             <span class="item-name">{item_name}</span>
                             <div class="item-desc">{item_description}</div>
                             {item_comments}
                         </td>
+                        <td class="text-center">{item_size}</td>
+                        <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
                         <td class="text-center" style="font-weight: 700; color: #0f172a;">
                             {item_quantity}<br>
                             <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">{item_unit}</span>
                         </td>
-                        <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
                         <td class="text-right" style="font-weight: 800; color: #0f172a;">{currency} {item_total}</td>
                     </tr>
                     {END_LOOP}
                 <tr>
-                    <td colspan="3" class="text-right" style="padding: 10px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Room Total</td>
+                    <td colspan="6" class="text-right" style="padding: 10px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Room Total</td>
                     <td class="text-right" style="padding: 10px; font-weight: 800; color: #0f172a; border-bottom: 2px solid #e2e8f0;">{currency} {section_subtotal}</td>
                 </tr>
-                {END_LOOP}
+                {END_LOOP_SECTIONS}
                 
                 {IF_NOT_room_based}
                     {LOOP_ITEMS}
                     <tr>
+                        <td class="text-center">{item_image}</td>
+                        <td style="font-size: 10px; color: #64748b;">{item_unit_configuration}</td>
                         <td>
                             <span class="item-name">{item_name}</span>
                             <div class="item-desc">{item_description}</div>
                             {item_comments}
                         </td>
+                        <td class="text-center">{item_size}</td>
+                        <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
                         <td class="text-center" style="font-weight: 700; color: #0f172a;">
                             {item_quantity}<br>
                             <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">{item_unit}</span>
                         </td>
-                        <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
                         <td class="text-right" style="font-weight: 800; color: #0f172a;">{currency} {item_total}</td>
                     </tr>
                     {END_LOOP}
@@ -253,46 +262,55 @@ h3 { margin-bottom: 10px; font-weight: 600; color: #334155; }
             <table class="premium-table">
                 <thead>
                     <tr>
-                        <th width="50%">Description</th>
-                        <th width="15%" class="text-center">Qty</th>
-                        <th width="15%" class="text-right">Price</th>
-                        <th width="20%" class="text-right">Total</th>
+                        <th width="10%"></th>
+                        <th width="15%" class="text-left">Details</th>
+                        <th width="30%">Description</th>
+                        <th width="10%" class="text-center">Size</th>
+                        <th width="10%" class="text-right">Price</th>
+                        <th width="10%" class="text-center">Qty</th>
+                        <th width="15%" class="text-right">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     {LOOP_SECTIONS}
                     <tr class="section-row">
-                        <td colspan="4">{section_name}</td>
+                        <td colspan="7">{section_name}</td>
                     </tr>
                         {LOOP_ITEMS}
                         <tr>
+                            <td class="text-center">{item_image}</td>
+                            <td style="font-size: 10px; color: #94a3b8; font-family: monospace;">{item_unit_configuration}</td>
                             <td>
                                 <span class="item-name">{item_name}</span>
                                 <div class="item-desc">{item_description}</div>
                                 {item_comments}
                             </td>
+                            <td class="text-center" style="font-size: 10px;">{item_size}</td>
+                            <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
                             <td class="text-center" style="font-weight: 700; color: #1e293b;">
                                 {item_quantity}<br>
                                 <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">{item_unit}</span>
                             </td>
-                            <td class="text-right" style="color: #475569;">{currency} {item_price}</td>
                             <td class="text-right" style="font-weight: 800; color: #0f172a;">{currency} {item_total}</td>
                         </tr>
                         {END_LOOP}
                     <tr>
-                        <td colspan="3" class="text-right sub-label">Subtotal ({section_name})</td>
+                        <td colspan="6" class="text-right sub-label">Subtotal ({section_name})</td>
                         <td class="text-right sub-val">{currency} {section_subtotal}</td>
                     </tr>
-                    {END_LOOP}
+                    {END_LOOP_SECTIONS}
                     
                     {IF_NOT_room_based}
                         {LOOP_ITEMS}
                         <tr>
+                            <td class="text-center">{item_image}</td>
+                            <td style="font-size: 10px; color: #94a3b8; font-family: monospace;">{item_unit_configuration}</td>
                             <td>
                                 <span class="item-name">{item_name}</span>
                                 <div class="item-desc">{item_description}</div>
                                 {item_comments}
                             </td>
+                            <td class="text-center" style="font-size: 10px;">{item_size}</td>
                             <td class="text-center" style="font-weight: 700; color: #1e293b;">
                                 {item_quantity}<br>
                                 <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">{item_unit}</span>
@@ -441,21 +459,28 @@ body { margin: 0; padding: 0; font-family: "Georgia", serif; color: #444; }
             <tr><td colspan="3" class="section-title">{section_name}</td></tr>
                 {LOOP_ITEMS}
                 <tr class="item-row">
-                    <td width="60%">
+                    <td width="55%">
                         <strong>{item_name}</strong>
                         <div class="dim">{item_description}</div>
+                        <div class="dim" style="font-family: monospace;">{item_unit_configuration} | {item_size}</div>
                         {item_comments}
                     </td>
                     <td width="15%" class="text-center">{item_quantity} {item_unit}</td>
-                    <td width="25%" class="text-right">{item_total}</td>
+                    <td width="10%">{item_image}</td>
+                    <td width="20%" class="text-right">{item_total}</td>
                 </tr>
                 {END_LOOP}
-            {END_LOOP}
+            {END_LOOP_SECTIONS}
 
             {IF_NOT_room_based}
                 {LOOP_ITEMS}
                 <tr class="item-row">
-                    <td width="60%"><strong>{item_name}</strong><br><span class="dim">{item_description}</span>{item_comments}</td>
+                    <td width="60%">
+                        <strong>{item_name}</strong>
+                        <div class="dim">{item_description}</div>
+                        <div class="dim" style="font-family: monospace;">{item_unit_configuration} | {item_size}</div>
+                        {item_comments}
+                    </td>
                     <td width="15%" class="text-center">{item_quantity} {item_unit}</td>
                     <td width="25%" class="text-right">{item_total}</td>
                 </tr>

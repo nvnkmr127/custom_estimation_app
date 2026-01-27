@@ -707,19 +707,19 @@
             },
 
             calculateQuantity(item) {
-                if (item.length < 0) item.length = 0;
-                if (item.width < 0) item.width = 0;
-                if (item.height < 0) item.height = 0;
+                const l = parseFloat(item.length) || 0;
+                const w = parseFloat(item.width) || 0;
+                const h = parseFloat(item.height) || 0;
 
-                if (item.length && item.width && item.height) {
-                    const l = parseFloat(item.length) || 0;
-                    const w = parseFloat(item.width) || 0;
-                    const h = parseFloat(item.height) || 0;
-                    if (l >= 0 && w >= 0 && h >= 0) {
+                if (l > 0 && w > 0) {
+                    if (h > 0) {
                         item.quantity = (l * w * h).toFixed(2);
                         item.formula = 'volume';
-                        this.calculateTotals();
+                    } else {
+                        item.quantity = (l * w).toFixed(2);
+                        item.formula = 'area';
                     }
+                    this.calculateTotals();
                 }
             },
 

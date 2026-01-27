@@ -15,6 +15,11 @@ class PdfTemplateVersion extends Model
         'html_content',
         'css_content',
         'created_by',
+        'content_structure',
+    ];
+
+    protected $casts = [
+        'content_structure' => 'array',
     ];
 
     public function template()

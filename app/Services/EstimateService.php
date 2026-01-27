@@ -376,7 +376,8 @@ class EstimateService
 
         // 1. Calculate Line Item Totals with Rounding
         $subtotal = 0;
-        $totalCost = 0; // NEW: Track Cost
+        $totalCost = 0;
+        $sectionSubtotals = [];
 
         foreach ($estimate->items as $item) {
             $lineTotal = round($item->unit_price * $item->quantity, 2);
@@ -385,15 +386,26 @@ class EstimateService
             $subtotal += $lineTotal;
             $totalCost += $lineCost;
 
+            // Track for sections if applicable
+            if ($item->estimate_section_id) {
+                if (!isset($sectionSubtotals[$item->estimate_section_id])) {
+                    $sectionSubtotals[$item->estimate_section_id] = 0;
+                }
+                $sectionSubtotals[$item->estimate_section_id] += $lineTotal;
+            }
+
             // Ensure item's cached total is correct
             if (abs($item->total - $lineTotal) > 0.001) {
-                // Determine if we should save this. 
-                // Fix the item total if it's wrong in DB to ensure consistency
                 $item->total = $lineTotal;
-                $item->saveQuietly(); // Use saveQuietly to avoid triggering events if possible, or just save()
+                $item->saveQuietly();
             }
         }
         $subtotal = round($subtotal, 2);
+
+        // Update Section totals in the DB
+        foreach ($sectionSubtotals as $sectionId => $amount) {
+            \App\Models\EstimateSection::where('id', $sectionId)->update(['subtotal' => round($amount, 2)]);
+        }
 
         // 2. Calculate Discount
         $discountTotal = 0;
@@ -418,14 +430,11 @@ class EstimateService
         }
 
         // 4. Calculate Tax
-        // We use the global estimate tax rates for now as per current schema design
-        // If per-item tax is needed, we would sum($item->total * $item->tax_rate)
         $tax1Amount = round($taxableAmount * ($estimate->tax_1 / 100), 2);
         $tax2Amount = round($taxableAmount * ($estimate->tax_2 / 100), 2);
         $totalTax = $tax1Amount + $tax2Amount;
 
-        // 5. Coupon (Applied after tax? Or before? Usually coupons are payment methods or pre-tax discounts)
-        // Current logic treated it as a final deduction. Let's keep it but ensure rounding.
+        // 5. Coupon
         $couponAmount = round($estimate->coupon_discount ?? 0, 2);
 
         $grandTotal = round(($subtotal - $discountTotal) + $totalTax - $couponAmount, 2);

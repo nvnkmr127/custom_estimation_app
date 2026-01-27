@@ -577,7 +577,7 @@ class EstimateController extends Controller
         $htmlContent = '';
         if ($template) {
             $service = new PdfRenderingService;
-            $htmlContent = $service->render($template, $estimate);
+            $htmlContent = $service->render($template, $estimate, true);
         }
 
         return view('portal.estimates.show', compact('estimate', 'htmlContent'));

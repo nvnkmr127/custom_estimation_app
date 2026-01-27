@@ -571,7 +571,10 @@
                                 <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
                                     <thead>
                                         <tr style="background-color: var(--primary-color); color: white;">
+                                            <th style="padding: 10px; text-align: left;">Image</th>
+                                            <th style="padding: 10px; text-align: left;">Config</th>
                                             <th style="padding: 10px; text-align: left;">Item</th>
+                                            <th style="padding: 10px; text-align: center;">Size</th>
                                             <th style="padding: 10px; text-align: right;">Price</th>
                                             <th style="padding: 10px; text-align: right;">Qty</th>
                                             <th style="padding: 10px; text-align: right;">Total</th>
@@ -580,21 +583,24 @@
                                     <tbody>
                                         {LOOP_ITEMS}
                                         <tr style="border-bottom: 1px solid #eee;">
-                                            <td style="padding: 10px;"><strong>{item_name}</strong><br><span style="font-size: 12px; color: #777;">{item_description}</span></td>
+                                            <td style="padding: 10px; text-align: center;">{item_image}</td>
+                                            <td style="padding: 10px; font-size: 10px; color: #666;">{item_unit_configuration}</td>
+                                            <td style="padding: 10px;"><strong>{item_name}</strong><br><span style="font-size: 12px; color: #777;">{item_description}</span>{item_comments}</td>
+                                            <td style="padding: 10px; text-align: center;">{item_size}</td>
                                             <td style="padding: 10px; text-align: right;">{item_price}</td>
-                                            <td style="padding: 10px; text-align: right;">{item_quantity}</td>
+                                            <td style="padding: 10px; text-align: right;">{item_quantity} {item_unit}</td>
                                             <td style="padding: 10px; text-align: right;">{item_total}</td>
                                         </tr>
                                         {END_LOOP}
                                     </tbody>
                                     <tfoot>
-                                        <tr>
-                                            <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Subtotal:</td>
-                                            <td style="padding: 10px; text-align: right;">{subtotal}</td>
+                                        <tr style="font-weight: bold; font-size: 1.1em;">
+                                            <td colspan="6" style="padding: 15px 10px 10px; text-align: right;">Subtotal:</td>
+                                            <td style="padding: 15px 10px 10px; text-align: right;">{subtotal}</td>
                                         </tr>
-                                        <tr>
-                                            <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: var(--primary-color); font-size: 16px;">Grand Total:</td>
-                                            <td style="padding: 10px; text-align: right; font-weight: bold; color: var(--primary-color); font-size: 16px;">{grand_total}</td>
+                                        <tr style="font-weight: bold; color: var(--primary-color); font-size: 1.3em;">
+                                            <td colspan="6" style="padding: 10px; text-align: right;">Grand Total:</td>
+                                            <td style="padding: 10px; text-align: right;">{grand_total}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -855,23 +861,30 @@
                         if (type === 'table') {
                             snippet = `
                                                         <table class="w-full border-collapse">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th class="border-b p-2 text-left">Item</th>
-                                                                    <th class="border-b p-2 text-right">Price</th>
-                                                                    <th class="border-b p-2 text-right">Total</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {LOOP_ITEMS}
-                                                                <tr>
-                                                                    <td class="border-b p-2">{item_name}</td>
-                                                                    <td class="border-b p-2 text-right">{item_price}</td>
-                                                                    <td class="border-b p-2 text-right">{item_total}</td>
-                                                                </tr>
-                                                                {END_LOOP}
-                                                            </tbody>
-                                                        </table>`;
+                                                                        <thead>
+                                                                            <tr class="bg-gray-100 text-gray-700">
+                                                                                <th class="p-2 text-left">Image</th>
+                                                                                <th class="p-2 text-left">Config</th>
+                                                                                <th class="p-2 text-left">Item Details</th>
+                                                                                <th class="p-2 text-center">Size</th>
+                                                                                <th class="p-2 text-right">Price</th>
+                                                                                <th class="p-2 text-right">Total</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {LOOP_ITEMS}
+                                                                            <tr>
+                                                                                <td class="border-b p-2 text-center">{item_image}</td>
+                                                                                <td class="border-b p-2 text-xs text-gray-500">{item_unit_configuration}</td>
+                                                                                <td class="border-b p-2"><strong>{item_name}</strong>{item_comments}</td>
+                                                                                <td class="border-b p-2 text-center">{item_size}</td>
+                                                                                <td class="border-b p-2 text-right">{item_price}</td>
+                                                                                <td class="border-b p-2 text-right">{item_total}</td>
+                                                                            </tr>
+                                                                            {END_LOOP}
+                                                                        </tbody>
+                                                                    </table>
+`;
                         } else if (type === '2col') {
                             snippet = `
                                                         <div style="display: flex; gap: 20px;">

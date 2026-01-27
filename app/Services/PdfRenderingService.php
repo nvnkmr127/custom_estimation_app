@@ -12,10 +12,12 @@ class PdfRenderingService
     protected $settings;
 
     protected $variables = [];
+    protected $isWeb = false;
 
-    public function render(PdfTemplate $template, Estimate $estimate)
+    public function render(PdfTemplate $template, Estimate $estimate, $isWeb = false)
     {
         $this->estimate = $estimate;
+        $this->isWeb = $isWeb;
         // Ensure comments are loaded for PDF generation to avoid N+1
         $this->estimate->loadMissing(['items.comments.user', 'sections.items.comments.user']);
 
@@ -35,7 +37,7 @@ class PdfRenderingService
         $html = $this->replaceVariables($html);
 
         // 3. Process Images (Convert relative URLs to absolute paths for DOMPDF)
-        $html = $this->processImages($html);
+        $html = $this->processImages($html, $isWeb);
 
         // 4. Inject CSS
         $cssVars = ":root { --primary-color: {$template->primary_color}; --secondary-color: {$template->secondary_color}; --font-body: {$template->font_family}; } body { font-family: var(--font-body) !important; } .page-break-before { page-break-before: always; } .page-break-after { page-break-after: always; } .avoid-break { page-break-inside: avoid; }";
@@ -73,10 +75,10 @@ class PdfRenderingService
         return $html;
     }
 
-    protected function processImages($html)
+    protected function processImages($html, $isWeb = false)
     {
         // Convert src="/..." to absolute file paths
-        return preg_replace_callback('/src=["\']([^"\']+)["\']/i', function ($matches) {
+        return preg_replace_callback('/src=["\']([^"\']+)["\']/i', function ($matches) use ($isWeb) {
             $src = $matches[1];
 
             // If it's already http/https, leave it (though DOMPDF might need enable_remote)
@@ -86,6 +88,9 @@ class PdfRenderingService
 
             // If it starts with /, map to public path
             if (strpos($src, '/') === 0) {
+                if ($isWeb) {
+                    return $matches[0];
+                }
                 $path = public_path($src);
                 if (file_exists($path)) {
                     return 'src="file://' . $path . '"';
@@ -304,10 +309,10 @@ class PdfRenderingService
     protected function parseSections($html)
     {
         if ($this->estimate->type !== 'room_based') {
-            return preg_replace('/\{LOOP_SECTIONS\}.*?\{END_LOOP\}/s', '', $html);
+            return preg_replace('/\{LOOP_SECTIONS\}.*?\{END_LOOP_SECTIONS\}/s', '', $html);
         }
 
-        return preg_replace_callback('/\{LOOP_SECTIONS\}(.*?)\{END_LOOP\}/s', function ($matches) {
+        return preg_replace_callback('/\{LOOP_SECTIONS\}(.*?)\{END_LOOP_SECTIONS\}/s', function ($matches) {
             $sectionBlock = $matches[1];
             $renderedSections = '';
 
@@ -366,15 +371,20 @@ class PdfRenderingService
 
             // Process Item Image
             $itemImageHtml = '';
-            // Assuming item has relation to product or if image is stored on item directly (usually via product)
             $product = $item->product;
             if ($product && $product->images && $product->images->count() > 0) {
-                $imagePath = $product->images->first()->path ?? $product->images->first()->url; // adjust based on actual model
-                // We need absolute path for file://
-                if ($imagePath && !filter_var($imagePath, FILTER_VALIDATE_URL)) {
-                    $absPath = public_path($imagePath);
-                    if (file_exists($absPath)) {
-                        $itemImageHtml = '<img src="file://' . $absPath . '" class="item-image" />';
+                $image = $product->images->first();
+                $imagePath = $image->path ?? $image->url ?? null;
+
+                if ($imagePath) {
+                    if (filter_var($imagePath, FILTER_VALIDATE_URL)) {
+                        $itemImageHtml = '<img src="' . $imagePath . '" class="item-image" />';
+                    } else {
+                        $absPath = public_path($imagePath);
+                        if (file_exists($absPath)) {
+                            $src = $this->isWeb ? $imagePath : 'file://' . $absPath;
+                            $itemImageHtml = '<img src="' . $src . '" class="item-image" />';
+                        }
                     }
                 }
             }
@@ -394,6 +404,8 @@ class PdfRenderingService
                 '{item_tax_percent}' => $item->tax_1 + $item->tax_2,
                 '{item_total}' => number_format($item->total, 2),
                 '{item_comments}' => $commentsHtml,
+                '{item_size}' => $item->size ?? '',
+                '{item_unit_configuration}' => $this->formatUnitConfiguration($item),
             ];
 
             foreach ($itemVars as $key => $value) {
@@ -403,6 +415,37 @@ class PdfRenderingService
         }
 
         return $renderedItems;
+    }
+
+    protected function formatUnitConfiguration($item)
+    {
+        $parts = [];
+        if (!empty($item->length))
+            $parts[] = 'L: ' . ($item->length + 0);
+        if (!empty($item->width))
+            $parts[] = 'W: ' . ($item->width + 0);
+        if (!empty($item->height))
+            $parts[] = 'H: ' . ($item->height + 0);
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        // Auto-detect label if formula is missing or generic
+        $formula = $item->formula;
+        if (empty($formula) || $formula === 'fixed') {
+            $formula = (count($parts) === 3) ? 'volume' : 'area';
+        }
+
+        $label = ucfirst($formula);
+        $config = $label . ' (' . implode(' x ', $parts) . ')';
+
+        // Add the unit (e.g. Sqft, Cum) if present to complete the "unit configuration"
+        if (!empty($item->unit_type)) {
+            $config .= ' ' . $item->unit_type;
+        }
+
+        return $config;
     }
 
     /**
@@ -489,6 +532,8 @@ class PdfRenderingService
                 'item_name' => 'Name of the line item',
                 'item_description' => 'Description of the item',
                 'item_image' => 'Image of the item (if available)',
+                'item_size' => 'Size of the item',
+                'item_unit_configuration' => 'Formula and dimensions (e.g. Area (L: 10 x W: 5))',
                 'item_quantity' => 'Quantity',
                 'item_unit' => 'Unit type (e.g., hrs, pcs)',
                 'item_unit_full' => 'Full unit name if available',
@@ -502,7 +547,7 @@ class PdfRenderingService
             ],
             'Sections (Room Based)' => [
                 'LOOP_SECTIONS' => 'Start of section loop (for room-based estimates)',
-                'END_LOOP' => 'End of section loop',
+                'END_LOOP_SECTIONS' => 'End of section loop (Required for nesting)',
                 'section_name' => 'Name of the section/room',
                 'section_subtotal' => 'Subtotal for the section',
             ],

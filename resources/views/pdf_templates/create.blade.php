@@ -104,7 +104,8 @@
 
                     <!-- Security & Control -->
                     <div>
-                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Security & Control</h3>
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Security & Control
+                        </h3>
 
                         <div class="space-y-3">
                             <div class="flex items-center">
@@ -117,7 +118,8 @@
                             <div class="flex items-center">
                                 <input type="checkbox" id="is_password_protected" name="is_password_protected" value="1"
                                     class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                                <label for="is_password_protected" class="ml-2 block text-sm text-gray-900">Password Protect
+                                <label for="is_password_protected" class="ml-2 block text-sm text-gray-900">Password
+                                    Protect
                                     <br><span class="text-xs text-gray-500">(Uses Client Email)</span></label>
                             </div>
 
@@ -131,7 +133,8 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Watermark Opacity</label>
                                 <div class="flex items-center gap-2">
-                                    <input type="range" name="watermark_opacity" x-model="watermarkOpacity" min="0" max="1" step="0.1"
+                                    <input type="range" name="watermark_opacity" x-model="watermarkOpacity" min="0"
+                                        max="1" step="0.1"
                                         class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                                 </div>
                             </div>
@@ -182,13 +185,17 @@
                             <div>{admin_note}</div>
 
                             <div class="font-bold text-gray-800 mt-2">Items Loop</div>
-                            <div>{LOOP_ITEMS}...{END_LOOP}</div>
+                            <div class="text-xs text-gray-500 mb-1 font-sans italic">Use inside
+                                {LOOP_ITEMS}...{END_LOOP}</div>
                             <div>{item_name}</div>
                             <div>{item_description}</div>
-                            <div>{item_quantity}</div>
+                            <div>{item_image}</div>
+                            <div>{item_size}</div>
                             <div>{item_unit}</div>
                             <div>{item_unit_full}</div>
+                            <div>{item_unit_configuration}</div>
                             <div>{item_price}</div>
+                            <div>{item_quantity}</div>
                             <div>{item_subtotal}</div>
                             <div>{item_tax_percent}</div>
                             <div>{item_total}</div>
@@ -311,10 +318,13 @@
                     <div x-show="activeTab === 'visual'" class="absolute inset-0 bg-gray-50 flex overflow-hidden">
                         <!-- Block Palette -->
                         <div class="w-64 bg-white border-r border-gray-200 overflow-y-auto flex flex-col">
-                            <div class="p-3 bg-gray-100 border-b border-gray-200 font-semibold text-xs text-gray-500 uppercase">Available Blocks</div>
+                            <div
+                                class="p-3 bg-gray-100 border-b border-gray-200 font-semibold text-xs text-gray-500 uppercase">
+                                Available Blocks</div>
                             <div class="p-2 space-y-2">
                                 <template x-for="(block, type) in availableBlocks" :key="type">
-                                    <div @click="addBlock(type)" class="cursor-pointer border border-gray-200 rounded p-3 hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm bg-white">
+                                    <div @click="addBlock(type)"
+                                        class="cursor-pointer border border-gray-200 rounded p-3 hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm bg-white">
                                         <div class="font-medium text-sm text-gray-800" x-text="block.label"></div>
                                         <div class="text-xs text-gray-500" x-text="block.desc"></div>
                                     </div>
@@ -323,104 +333,153 @@
                         </div>
 
                         <!-- Canvas / Stack -->
-                        <div class="flex-1 overflow-y-auto p-8 bg-gray-100 pb-32"> <!-- Added padding bottom for scrolling -->
-                             <div class="max-w-3xl mx-auto space-y-4" id="sortable-blocks">
+                        <div class="flex-1 overflow-y-auto p-8 bg-gray-100 pb-32">
+                            <!-- Added padding bottom for scrolling -->
+                            <div class="max-w-3xl mx-auto space-y-4" id="sortable-blocks">
                                 <template x-for="(block, index) in blocks" :key="block.id">
                                     <div class="bg-white border rounded shadow-sm relative group"
                                         :class="{'border-indigo-500 ring-2 ring-indigo-200': selectedBlockIndex === index, 'border-gray-200 hover:border-gray-300': selectedBlockIndex !== index}"
                                         @click="selectedBlockIndex = index">
-                                        
+
                                         <!-- Block Header / Actions -->
-                                        <div class="flex items-center justify-between p-2 bg-gray-50 border-b border-gray-100 rounded-t cursor-move drag-handle">
+                                        <div
+                                            class="flex items-center justify-between p-2 bg-gray-50 border-b border-gray-100 rounded-t cursor-move drag-handle">
                                             <div class="flex items-center gap-2">
-                                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
-                                                <span class="text-xs font-bold uppercase text-gray-500" x-text="availableBlocks[block.type].label"></span>
+                                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M4 8h16M4 16h16"></path>
+                                                </svg>
+                                                <span class="text-xs font-bold uppercase text-gray-500"
+                                                    x-text="availableBlocks[block.type].label"></span>
                                             </div>
-                                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button type="button" @click.stop="duplicateBlock(index)" class="p-1 hover:bg-blue-100 rounded text-blue-600" title="Duplicate">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                            <div
+                                                class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button type="button" @click.stop="duplicateBlock(index)"
+                                                    class="p-1 hover:bg-blue-100 rounded text-blue-600"
+                                                    title="Duplicate">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                                        </path>
+                                                    </svg>
                                                 </button>
-                                                <button type="button" @click.stop="removeBlock(index)" class="p-1 hover:bg-red-100 rounded text-red-600" title="Delete">✕</button>
+                                                <button type="button" @click.stop="removeBlock(index)"
+                                                    class="p-1 hover:bg-red-100 rounded text-red-600"
+                                                    title="Delete">✕</button>
                                             </div>
                                         </div>
 
                                         <!-- Block Properties Form -->
                                         <div class="p-4" x-show="selectedBlockIndex === index">
                                             <div class="grid grid-cols-1 gap-3">
-                                                <template x-for="(fieldDef, fieldName) in availableBlocks[block.type].fields" :key="fieldName">
+                                                <template
+                                                    x-for="(fieldDef, fieldName) in availableBlocks[block.type].fields"
+                                                    :key="fieldName">
                                                     <div>
-                                                        <label class="block text-xs font-medium text-gray-700 mb-1" x-text="fieldDef.label"></label>
-                                                        
+                                                        <label class="block text-xs font-medium text-gray-700 mb-1"
+                                                            x-text="fieldDef.label"></label>
+
                                                         <template x-if="fieldDef.type === 'text'">
-                                                            <input type="text" x-model="block.data[fieldName]" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
+                                                            <input type="text" x-model="block.data[fieldName]"
+                                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
                                                         </template>
-                                                        
+
                                                         <template x-if="fieldDef.type === 'textarea'">
-                                                            <textarea x-model="block.data[fieldName]" rows="3" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs"></textarea>
+                                                            <textarea x-model="block.data[fieldName]" rows="3"
+                                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs"></textarea>
                                                         </template>
 
                                                         <template x-if="fieldDef.type === 'richtext'">
-                                                    <div class="border border-gray-300 rounded-md overflow-hidden bg-white">
-                                                         <!-- Toolbar -->
-                                                         <div class="flex items-center gap-1 p-1 bg-gray-50 border-b border-gray-200">
-                                                             <button type="button" @click="document.execCommand('bold', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700 font-bold" title="Bold">B</button>
-                                                             <button type="button" @click="document.execCommand('italic', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700 italic" title="Italic">I</button>
-                                                             <button type="button" @click="document.execCommand('underline', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700 underline" title="Underline">U</button>
-                                                             <div class="w-px h-4 bg-gray-300 mx-1"></div>
-                                                             <button type="button" @click="document.execCommand('insertUnorderedList', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700" title="Bulleted List">• List</button>
-                                                             <button type="button" @click="document.execCommand('justifyLeft', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700" title="Align Left">←</button>
-                                                             <button type="button" @click="document.execCommand('justifyCenter', false, null)" class="p-1 hover:bg-gray-200 rounded text-gray-700" title="Align Center">↔</button>
-                                                         </div>
-                                                         <!-- Editor -->
-                                                         <div 
-                                                            contenteditable="true" 
-                                                            class="p-3 min-h-[100px] outline-none text-sm"
-                                                            @input="block.data[fieldName] = $el.innerHTML"
-                                                            x-html="block.data[fieldName] || ''">
-                                                         </div>
-                                                    </div>
-                                                </template>
-
-                                                <template x-if="fieldDef.type === 'color'">
-                                                            <div class="flex items-center gap-2">
-                                                                <input type="color" x-model="block.data[fieldName]" class="h-6 w-8 p-0 border rounded">
-                                                                <input type="text" x-model="block.data[fieldName]" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
+                                                            <div
+                                                                class="border border-gray-300 rounded-md overflow-hidden bg-white">
+                                                                <!-- Toolbar -->
+                                                                <div
+                                                                    class="flex items-center gap-1 p-1 bg-gray-50 border-b border-gray-200">
+                                                                    <button type="button"
+                                                                        @click="document.execCommand('bold', false, null)"
+                                                                        class="p-1 hover:bg-gray-200 rounded text-gray-700 font-bold"
+                                                                        title="Bold">B</button>
+                                                                    <button type="button"
+                                                                        @click="document.execCommand('italic', false, null)"
+                                                                        class="p-1 hover:bg-gray-200 rounded text-gray-700 italic"
+                                                                        title="Italic">I</button>
+                                                                    <button type="button"
+                                                                        @click="document.execCommand('underline', false, null)"
+                                                                        class="p-1 hover:bg-gray-200 rounded text-gray-700 underline"
+                                                                        title="Underline">U</button>
+                                                                    <div class="w-px h-4 bg-gray-300 mx-1"></div>
+                                                                    <button type="button"
+                                                                        @click="document.execCommand('insertUnorderedList', false, null)"
+                                                                        class="p-1 hover:bg-gray-200 rounded text-gray-700"
+                                                                        title="Bulleted List">• List</button>
+                                                                    <button type="button"
+                                                                        @click="document.execCommand('justifyLeft', false, null)"
+                                                                        class="p-1 hover:bg-gray-200 rounded text-gray-700"
+                                                                        title="Align Left">←</button>
+                                                                    <button type="button"
+                                                                        @click="document.execCommand('justifyCenter', false, null)"
+                                                                        class="p-1 hover:bg-gray-200 rounded text-gray-700"
+                                                                        title="Align Center">↔</button>
+                                                                </div>
+                                                                <!-- Editor -->
+                                                                <div contenteditable="true"
+                                                                    class="p-3 min-h-[100px] outline-none text-sm"
+                                                                    @input="block.data[fieldName] = $el.innerHTML"
+                                                                    x-html="block.data[fieldName] || ''">
+                                                                </div>
                                                             </div>
                                                         </template>
 
-                                                         <template x-if="fieldDef.type === 'select'">
-                                                            <select x-model="block.data[fieldName]" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
+                                                        <template x-if="fieldDef.type === 'color'">
+                                                            <div class="flex items-center gap-2">
+                                                                <input type="color" x-model="block.data[fieldName]"
+                                                                    class="h-6 w-8 p-0 border rounded">
+                                                                <input type="text" x-model="block.data[fieldName]"
+                                                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
+                                                            </div>
+                                                        </template>
+
+                                                        <template x-if="fieldDef.type === 'select'">
+                                                            <select x-model="block.data[fieldName]"
+                                                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs">
                                                                 <template x-for="opt in fieldDef.options" :key="opt">
-                                                                     <option :value="opt" x-text="opt"></option>
+                                                                    <option :value="opt" x-text="opt"></option>
                                                                 </template>
                                                             </select>
                                                         </template>
-                                                        
+
                                                         <template x-if="fieldDef.type === 'checkbox'">
                                                             <div class="flex items-center">
-                                                                <input type="checkbox" x-model="block.data[fieldName]" class="h-4 w-4 text-indigo-600 border-gray-300 rounded">
-                                                                <span class="ml-2 text-sm text-gray-600" x-text="fieldDef.label"></span>
+                                                                <input type="checkbox" x-model="block.data[fieldName]"
+                                                                    class="h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                                                                <span class="ml-2 text-sm text-gray-600"
+                                                                    x-text="fieldDef.label"></span>
                                                             </div>
                                                         </template>
                                                     </div>
                                                 </template>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Minimized Preview (when not selected) -->
-                                        <div class="p-2 text-sm text-gray-400 italic" x-show="selectedBlockIndex !== index">
+                                        <div class="p-2 text-sm text-gray-400 italic"
+                                            x-show="selectedBlockIndex !== index">
                                             Click to edit settings...
                                         </div>
                                     </div>
                                 </template>
-                                
-                                <div x-show="blocks.length === 0" class="text-center py-10 text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">
+
+                                <div x-show="blocks.length === 0"
+                                    class="text-center py-10 text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">
                                     <p>No blocks added yet.</p>
                                     <p class="text-xs">Click a block from the left to start.</p>
                                 </div>
-                             </div>
+                            </div>
                         </div>
-                        
+
                         <!-- Hidden input to store structure -->
                         <input type="hidden" name="content_structure" :value="JSON.stringify(blocks)">
                     </div>
@@ -450,508 +509,521 @@
     </div>
 
     @push('scripts')
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
-        <script>
-            document.addEventListener('alpine:init', () => {
-                Alpine.data('templateEditor', () => ({
-                    activeTab: 'visual', // Default to Visual
-                    html: `{{ old('html_content', '<html><body><h1>New Template</h1>\n\n<p>Start designing your invoice...</p>\n\n<footer style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: #777;">\n    &copy; {company_name}. All rights reserved.\n</footer></body></html>') }}`, 
-                    css: `{{ old('css_content') }}`,
-                    paperSize: 'a4',
-                    orientation: 'portrait',
-                    primaryColor: '#333333',
-                    secondaryColor: '#555555',
-                    fontFamily: 'Helvetica',
-                    watermarkText: '',
-                    watermarkOpacity: '0.1',
-                    
-                    // Visual Builder Data
-                    blocks: [], // [ {id: 1, type: 'header', data: {...}} ]
-                    selectedBlockIndex: null,
-                    availableBlocks: {
-                        header: {
-                            label: 'Company Header',
-                            desc: 'Logo, Name, Address',
-                            fields: {
-                                showLogo: { label: 'Show Logo', type: 'checkbox' },
-                                align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
-                                bgColor: { label: 'Background', type: 'color' },
-                                // Advanced Styling
-                                paddingTop: { label: 'Padding Top (px)', type: 'text' },
-                                paddingBottom: { label: 'Padding Bottom (px)', type: 'text' }
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+            <script>
+                document.addEventListener('alpine:init', () => {
+                    Alpine.data('templateEditor', () => ({
+                        activeTab: 'visual', // Default to Visual
+                        html: `{{ old('html_content', '<html><body><h1>New Template</h1>\n\n<p>Start designing your invoice...</p>\n\n<footer style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 12px; color: #777;">\n    &copy; {company_name}. All rights reserved.\n</footer></body></html>') }}`,
+                        css: `{{ old('css_content') }}`,
+                        paperSize: 'a4',
+                        orientation: 'portrait',
+                        primaryColor: '#333333',
+                        secondaryColor: '#555555',
+                        fontFamily: 'Helvetica',
+                        watermarkText: '',
+                        watermarkOpacity: '0.1',
+
+                        // Visual Builder Data
+                        blocks: [], // [ {id: 1, type: 'header', data: {...}} ]
+                        selectedBlockIndex: null,
+                        availableBlocks: {
+                            header: {
+                                label: 'Company Header',
+                                desc: 'Logo, Name, Address',
+                                fields: {
+                                    showLogo: { label: 'Show Logo', type: 'checkbox' },
+                                    align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
+                                    bgColor: { label: 'Background', type: 'color' },
+                                    // Advanced Styling
+                                    paddingTop: { label: 'Padding Top (px)', type: 'text' },
+                                    paddingBottom: { label: 'Padding Bottom (px)', type: 'text' }
+                                },
+                                render: (data) => `<div style="padding: ${data.paddingTop || '20'}px 20px ${data.paddingBottom || '20'}px; background-color: ${data.bgColor || 'transparent'}; text-align: ${data.align || 'left'};">
+                                            ${data.showLogo ? '<img src="https://placehold.co/100x50?text=LOGO" style="margin-bottom:10px;">' : ''}
+                                            <h1 style="margin:0; font-size: 24px; color: var(--primary-color);">{company_name}</h1>
+                                            <p style="margin: 5px 0; font-size: 12px; color: #555;">{company_address} | {company_email}</p>
+                                        </div>`
                             },
-                            render: (data) => `<div style="padding: ${data.paddingTop || '20'}px 20px ${data.paddingBottom || '20'}px; background-color: ${data.bgColor || 'transparent'}; text-align: ${data.align || 'left'};">
-                                ${data.showLogo ? '<img src="https://placehold.co/100x50?text=LOGO" style="margin-bottom:10px;">' : ''}
-                                <h1 style="margin:0; font-size: 24px; color: var(--primary-color);">{company_name}</h1>
-                                <p style="margin: 5px 0; font-size: 12px; color: #555;">{company_address} | {company_email}</p>
-                            </div>`
-                        },
-                        columns_2: {
-                            label: '2 Columns',
-                            desc: 'Split content 50/50',
-                            fields: {
-                                col1_title: { label: 'Left Title', type: 'text' },
-                                col1_content: { label: 'Left Content', type: 'textarea' },
-                                col2_title: { label: 'Right Title', type: 'text' },
-                                col2_content: { label: 'Right Content', type: 'textarea' }
+                            columns_2: {
+                                label: '2 Columns',
+                                desc: 'Split content 50/50',
+                                fields: {
+                                    col1_title: { label: 'Left Title', type: 'text' },
+                                    col1_content: { label: 'Left Content', type: 'textarea' },
+                                    col2_title: { label: 'Right Title', type: 'text' },
+                                    col2_content: { label: 'Right Content', type: 'textarea' }
+                                },
+                                render: (data) => `<div style="display: flex; gap: 20px; padding: 20px;">
+                                            <div style="flex: 1;">
+                                                ${data.col1_title ? `<h3 style="border-bottom: 2px solid var(--secondary-color); font-size: 14px; margin-bottom: 10px;">${data.col1_title}</h3>` : ''}
+                                                <div>${data.col1_content || 'Left column content...'}</div>
+                                            </div>
+                                            <div style="flex: 1;">
+                                                ${data.col2_title ? `<h3 style="border-bottom: 2px solid var(--secondary-color); font-size: 14px; margin-bottom: 10px;">${data.col2_title}</h3>` : ''}
+                                                <div>${data.col2_content || 'Right column content...'}</div>
+                                            </div>
+                                        </div>`
                             },
-                            render: (data) => `<div style="display: flex; gap: 20px; padding: 20px;">
-                                <div style="flex: 1;">
-                                    ${data.col1_title ? `<h3 style="border-bottom: 2px solid var(--secondary-color); font-size: 14px; margin-bottom: 10px;">${data.col1_title}</h3>` : ''}
-                                    <div>${data.col1_content || 'Left column content...'}</div>
-                                </div>
-                                <div style="flex: 1;">
-                                    ${data.col2_title ? `<h3 style="border-bottom: 2px solid var(--secondary-color); font-size: 14px; margin-bottom: 10px;">${data.col2_title}</h3>` : ''}
-                                    <div>${data.col2_content || 'Right column content...'}</div>
-                                </div>
-                            </div>`
-                        },
-                        image: {
-                            label: 'Image',
-                            desc: 'Insert via URL',
-                            fields: {
-                                src: { label: 'Image URL', type: 'text', placeholder: 'https://...' },
-                                width: { label: 'Width (px or %)', type: 'text' },
-                                align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] }
+                            image: {
+                                label: 'Image',
+                                desc: 'Insert via URL',
+                                fields: {
+                                    src: { label: 'Image URL', type: 'text', placeholder: 'https://...' },
+                                    width: { label: 'Width (px or %)', type: 'text' },
+                                    align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] }
+                                },
+                                render: (data) => `<div style="padding: 20px; text-align: ${data.align || 'center'};">
+                                            <img src="${data.src || 'https://placehold.co/400x200?text=Placeholder+Image'}" style="max-width: 100%; width: ${data.width || 'auto'};">
+                                        </div>`
                             },
-                            render: (data) => `<div style="padding: 20px; text-align: ${data.align || 'center'};">
-                                <img src="${data.src || 'https://placehold.co/400x200?text=Placeholder+Image'}" style="max-width: 100%; width: ${data.width || 'auto'};">
-                            </div>`
-                        },
-                        chart: {
-                            label: 'Chart',
-                            desc: 'Dynamic graph',
-                            fields: {
-                                type: { label: 'Chart Type', type: 'select', options: ['Pie', 'Doughnut', 'Bar'] },
-                                source: { label: 'Data Source', type: 'select', options: ['Sections', 'Items'] },
-                                align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] }
+                            chart: {
+                                label: 'Chart',
+                                desc: 'Dynamic graph',
+                                fields: {
+                                    type: { label: 'Chart Type', type: 'select', options: ['Pie', 'Doughnut', 'Bar'] },
+                                    source: { label: 'Data Source', type: 'select', options: ['Sections', 'Items'] },
+                                    align: { label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] }
+                                },
+                                render: (data) => {
+                                    const type = (data.type || 'Pie').toUpperCase();
+                                    const source = (data.source || 'Sections').toUpperCase();
+                                    const variable = `{CHART_${source}_${type}}`;
+
+                                    return `<div style="padding: 20px; text-align: ${data.align || 'center'};">
+                                                <h3 style="margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--secondary-color);">${data.source || 'Sections'} ${data.type || 'Chart'}</h3>
+                                                <img src="${variable}" style="max-width: 100%; width: 500px; height: auto;">
+                                                <p style="font-size: 11px; color: #888; font-style: italic; margin-top: 5px;">* Chart data rendered dynamically in PDF</p>
+                                            </div>`;
+                                }
                             },
-                            render: (data) => {
-                                const type = (data.type || 'Pie').toUpperCase();
-                                const source = (data.source || 'Sections').toUpperCase();
-                                const variable = `{CHART_${source}_${type}}`;
-                                
-                                return `<div style="padding: 20px; text-align: ${data.align || 'center'};">
-                                    <h3 style="margin-bottom: 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--secondary-color);">${data.source || 'Sections'} ${data.type || 'Chart'}</h3>
-                                    <img src="${variable}" style="max-width: 100%; width: 500px; height: auto;">
-                                    <p style="font-size: 11px; color: #888; font-style: italic; margin-top: 5px;">* Chart data rendered dynamically in PDF</p>
-                                </div>`;
+                            client_info: {
+                                label: 'Client Info',
+                                desc: 'Bill To / Ship To columns',
+                                fields: {
+                                    title: { label: 'Section Title', type: 'text' }
+                                },
+                                render: (data) => `<div style="padding: 20px; display: flex; gap: 20px;">
+                                            <div style="flex: 1;">
+                                                <h3 style="border-bottom: 2px solid var(--secondary-color); padding-bottom: 5px; margin-bottom: 10px; font-size: 14px;">${data.title || 'Bill To'}</h3>
+                                                <p><strong>{client_name}</strong><br>{client_address}<br>{client_email}</p>
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <h3 style="border-bottom: 2px solid var(--secondary-color); padding-bottom: 5px; margin-bottom: 10px; font-size: 14px;">Estimate Details</h3>
+                                                <p><strong>#:</strong> {estimate_number}<br><strong>Date:</strong> {estimate_date}<br><strong>Expires:</strong> {expiry_date}</p>
+                                            </div>
+                                        </div>`
+                            },
+                            items_table: {
+                                label: 'Items Table',
+                                desc: 'Dynamic list of items',
+                                fields: {},
+                                render: (data) => `<div style="padding: 0 20px;">
+                                        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                                            <thead>
+                                                <tr style="background-color: var(--primary-color); color: white;">
+                                                    <th style="padding: 10px; text-align: left;">Image</th>
+                                                    <th style="padding: 10px; text-align: left;">Config</th>
+                                                    <th style="padding: 10px; text-align: left;">Item</th>
+                                                    <th style="padding: 10px; text-align: center;">Size</th>
+                                                    <th style="padding: 10px; text-align: right;">Price</th>
+                                                    <th style="padding: 10px; text-align: right;">Qty</th>
+                                                    <th style="padding: 10px; text-align: right;">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {LOOP_ITEMS}
+                                                <tr style="border-bottom: 1px solid #eee;">
+                                                    <td style="padding: 10px; text-align: center;">{item_image}</td>
+                                                    <td style="padding: 10px; font-size: 10px; color: #666;">{item_unit_configuration}</td>
+                                                    <td style="padding: 10px;"><strong>{item_name}</strong><br><span style="font-size: 12px; color: #777;">{item_description}</span>{item_comments}</td>
+                                                    <td style="padding: 10px; text-align: center;">{item_size}</td>
+                                                    <td style="padding: 10px; text-align: right;">{item_price}</td>
+                                                    <td style="padding: 10px; text-align: right;">{item_quantity} {item_unit}</td>
+                                                    <td style="padding: 10px; text-align: right;">{item_total}</td>
+                                                </tr>
+                                                {END_LOOP}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr style="font-weight: bold; font-size: 1.1em;">
+                                                    <td colspan="6" style="padding: 15px 10px 10px; text-align: right;">Subtotal:</td>
+                                                    <td style="padding: 15px 10px 10px; text-align: right;">{subtotal}</td>
+                                                </tr>
+                                                <tr style="font-weight: bold; color: var(--primary-color); font-size: 1.3em;">
+                                                    <td colspan="6" style="padding: 10px; text-align: right;">Grand Total:</td>
+                                                    <td style="padding: 10px; text-align: right;">{grand_total}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>`
+                            },
+                            text_block: {
+                                label: 'Text Block',
+                                desc: 'Rich text area',
+                                fields: {
+                                    content: { label: 'Content', type: 'richtext' },
+                                    // Typography
+                                    fontSize: { label: 'Font Size (px)', type: 'text' },
+                                    fontWeight: { label: 'Weight', type: 'select', options: ['normal', 'bold', '300', '500', '700'] },
+                                    textColor: { label: 'Text Color', type: 'color' },
+                                    // Spacing & Border
+                                    paddingTop: { label: 'Pad Top', type: 'text' },
+                                    paddingBottom: { label: 'Pad Bot', type: 'text' },
+                                    border: { label: 'Border (e.g. 1px solid #ccc)', type: 'text' },
+                                    borderRadius: { label: 'Radius (px)', type: 'text' }
+                                },
+                                render: (data) => `<div style="
+                                            padding: ${data.paddingTop || '20'}px 20px ${data.paddingBottom || '20'}px; 
+                                            font-size: ${data.fontSize || '14'}px; 
+                                            font-weight: ${data.fontWeight || 'normal'}; 
+                                            color: ${data.textColor || 'inherit'};
+                                            border: ${data.border || 'none'};
+                                            border-radius: ${data.borderRadius || '0'}px;
+                                        ">${data.content || 'Enter text here...'}</div>`
+                            },
+                            spacer: {
+                                label: 'Spacer',
+                                desc: 'Vertical gap',
+                                fields: {
+                                    height: { label: 'Height (px)', type: 'text' }
+                                },
+                                render: (data) => `<div style="height: ${data.height || '20'}px;"></div>`
+                            },
+                            divider: {
+                                label: 'Divider',
+                                desc: 'Horizontal Line',
+                                fields: {
+                                    color: { label: 'Color', type: 'color' },
+                                    width: { label: 'Thickness (px)', type: 'text' },
+                                    style: { label: 'Style', type: 'select', options: ['solid', 'dashed', 'dotted'] },
+                                    margin: { label: 'Margin Y (px)', type: 'text' }
+                                },
+                                render: (data) => `<div style="padding: ${data.margin || '20'}px 0;">
+                                            <hr style="border: 0; border-top: ${data.width || '1'}px ${data.style || 'solid'} ${data.color || '#e5e7eb'};">
+                                        </div>`
+                            },
+                            footer: {
+                                label: 'Footer',
+                                desc: 'Terms & Notes',
+                                fields: {
+                                    showTerms: { label: 'Show Terms', type: 'checkbox' },
+                                    centerText: { label: 'Center Text', type: 'text' }
+                                },
+                                render: (data) => `<div style="padding: 20px; margin-top: 30px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
+                                            ${data.showTerms ? '<h4>Terms & Conditions</h4><p>{terms}</p>' : ''}
+                                            <div style="text-align: center; margin-top: 20px;">${data.centerText || ''}</div>
+                                        </div>`
                             }
                         },
-                        client_info: {
-                            label: 'Client Info',
-                            desc: 'Bill To / Ship To columns',
-                            fields: {
-                                title: { label: 'Section Title', type: 'text' }
-                            },
-                            render: (data) => `<div style="padding: 20px; display: flex; gap: 20px;">
-                                <div style="flex: 1;">
-                                    <h3 style="border-bottom: 2px solid var(--secondary-color); padding-bottom: 5px; margin-bottom: 10px; font-size: 14px;">${data.title || 'Bill To'}</h3>
-                                    <p><strong>{client_name}</strong><br>{client_address}<br>{client_email}</p>
-                                </div>
-                                <div style="flex: 1;">
-                                    <h3 style="border-bottom: 2px solid var(--secondary-color); padding-bottom: 5px; margin-bottom: 10px; font-size: 14px;">Estimate Details</h3>
-                                    <p><strong>#:</strong> {estimate_number}<br><strong>Date:</strong> {estimate_date}<br><strong>Expires:</strong> {expiry_date}</p>
-                                </div>
-                            </div>`
-                        },
-                        items_table: {
-                            label: 'Items Table',
-                            desc: 'Dynamic list of items',
-                            fields: {},
-                            render: (data) => `<div style="padding: 0 20px;">
-                                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                                    <thead>
-                                        <tr style="background-color: var(--primary-color); color: white;">
-                                            <th style="padding: 10px; text-align: left;">Item</th>
-                                            <th style="padding: 10px; text-align: right;">Price</th>
-                                            <th style="padding: 10px; text-align: right;">Qty</th>
-                                            <th style="padding: 10px; text-align: right;">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {LOOP_ITEMS}
-                                        <tr style="border-bottom: 1px solid #eee;">
-                                            <td style="padding: 10px;"><strong>{item_name}</strong><br><span style="font-size: 12px; color: #777;">{item_description}</span></td>
-                                            <td style="padding: 10px; text-align: right;">{item_price}</td>
-                                            <td style="padding: 10px; text-align: right;">{item_quantity}</td>
-                                            <td style="padding: 10px; text-align: right;">{item_total}</td>
-                                        </tr>
-                                        {END_LOOP}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Subtotal:</td>
-                                            <td style="padding: 10px; text-align: right;">{subtotal}</td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: var(--primary-color); font-size: 16px;">Grand Total:</td>
-                                            <td style="padding: 10px; text-align: right; font-weight: bold; color: var(--primary-color); font-size: 16px;">{grand_total}</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>`
-                        },
-                        text_block: {
-                            label: 'Text Block',
-                            desc: 'Rich text area',
-                            fields: {
-                                content: { label: 'Content', type: 'richtext' },
-                                // Typography
-                                fontSize: { label: 'Font Size (px)', type: 'text' },
-                                fontWeight: { label: 'Weight', type: 'select', options: ['normal', 'bold', '300', '500', '700'] },
-                                textColor: { label: 'Text Color', type: 'color' },
-                                // Spacing & Border
-                                paddingTop: { label: 'Pad Top', type: 'text' },
-                                paddingBottom: { label: 'Pad Bot', type: 'text' },
-                                border: { label: 'Border (e.g. 1px solid #ccc)', type: 'text' },
-                                borderRadius: { label: 'Radius (px)', type: 'text' }
-                            },
-                            render: (data) => `<div style="
-                                padding: ${data.paddingTop || '20'}px 20px ${data.paddingBottom || '20'}px; 
-                                font-size: ${data.fontSize || '14'}px; 
-                                font-weight: ${data.fontWeight || 'normal'}; 
-                                color: ${data.textColor || 'inherit'};
-                                border: ${data.border || 'none'};
-                                border-radius: ${data.borderRadius || '0'}px;
-                            ">${data.content || 'Enter text here...'}</div>`
-                        },
-                         spacer: {
-                            label: 'Spacer',
-                            desc: 'Vertical gap',
-                            fields: {
-                                height: { label: 'Height (px)', type: 'text' }
-                            },
-                            render: (data) => `<div style="height: ${data.height || '20'}px;"></div>`
-                        },
-                        divider: {
-                            label: 'Divider',
-                            desc: 'Horizontal Line',
-                            fields: {
-                                color: { label: 'Color', type: 'color' },
-                                width: { label: 'Thickness (px)', type: 'text' },
-                                style: { label: 'Style', type: 'select', options: ['solid', 'dashed', 'dotted'] },
-                                margin: { label: 'Margin Y (px)', type: 'text' }
-                            },
-                            render: (data) => `<div style="padding: ${data.margin || '20'}px 0;">
-                                <hr style="border: 0; border-top: ${data.width || '1'}px ${data.style || 'solid'} ${data.color || '#e5e7eb'};">
-                            </div>`
-                        },
-                        footer: {
-                            label: 'Footer',
-                            desc: 'Terms & Notes',
-                            fields: {
-                                showTerms: { label: 'Show Terms', type: 'checkbox' },
-                                centerText: { label: 'Center Text', type: 'text' }
-                            },
-                            render: (data) => `<div style="padding: 20px; margin-top: 30px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
-                                ${data.showTerms ? '<h4>Terms & Conditions</h4><p>{terms}</p>' : ''}
-                                <div style="text-align: center; margin-top: 20px;">${data.centerText || ''}</div>
-                            </div>`
-                        }
-                    },
 
-                    debounceTimer: null,
-                    systemTemplates: @json($systemTemplates),
-                    
-                    init() {
-                        // Decide text or visual tab initially
-                        if (this.blocks && this.blocks.length > 0) {
-                            this.activeTab = 'visual';
-                        } else {
-                           this.activeTab = 'visual';
-                        }
+                        debounceTimer: null,
+                        systemTemplates: @json($systemTemplates),
 
-                        // Watch for compiles
-                        this.$watch('blocks', () => this.compileBlocks(), { deep: true });
+                        init() {
+                            // Decide text or visual tab initially
+                            if (this.blocks && this.blocks.length > 0) {
+                                this.activeTab = 'visual';
+                            } else {
+                                this.activeTab = 'visual';
+                            }
 
-                        this.$watch('html', () => this.updatePreview());
-                        this.$watch('css', () => this.updatePreview());
-                        // Watch styling properties to update preview instantly
-                        this.$watch('primaryColor', () => this.updatePreview());
-                        this.$watch('secondaryColor', () => this.updatePreview());
-                        this.$watch('fontFamily', () => this.updatePreview());
-                        this.$watch('watermarkText', () => this.updatePreview());
-                        this.$watch('watermarkOpacity', () => this.updatePreview());
+                            // Watch for compiles
+                            this.$watch('blocks', () => this.compileBlocks(), { deep: true });
 
-                        this.$watch('activeTab', (val) => {
-                            if (val === 'preview') this.updatePreview();
-                        });
-                        
-                        // Initialize SortableJS
-                        this.$nextTick(() => {
-                            if (document.getElementById('sortable-blocks')) {
-                                new Sortable(document.getElementById('sortable-blocks'), {
-                                    animation: 150,
-                                    handle: '.drag-handle',
-                                    onEnd: (evt) => {
-                                        // Re-order active blocks based on DOM order
-                                        // This is a bit tricky with Alpine reactivity, so we'll do a simple swap or move
-                                        // Actually, simpler: let's just grab the indices
-                                        const itemEl = evt.item;
-                                        const newIndex = evt.newIndex;
-                                        const oldIndex = evt.oldIndex;
-                                        
-                                        if (newIndex === oldIndex) return;
-                                        
-                                        // Move in array
-                                        const movedItem = this.blocks.splice(oldIndex, 1)[0];
-                                        this.blocks.splice(newIndex, 0, movedItem);
-                                        
-                                        // Fix selected index if needed
-                                        if (this.selectedBlockIndex === oldIndex) {
-                                            this.selectedBlockIndex = newIndex;
-                                        } else if (oldIndex < this.selectedBlockIndex && newIndex >= this.selectedBlockIndex) {
-                                            this.selectedBlockIndex--;
-                                        } else if (oldIndex > this.selectedBlockIndex && newIndex <= this.selectedBlockIndex) {
-                                            this.selectedBlockIndex++;
+                            this.$watch('html', () => this.updatePreview());
+                            this.$watch('css', () => this.updatePreview());
+                            // Watch styling properties to update preview instantly
+                            this.$watch('primaryColor', () => this.updatePreview());
+                            this.$watch('secondaryColor', () => this.updatePreview());
+                            this.$watch('fontFamily', () => this.updatePreview());
+                            this.$watch('watermarkText', () => this.updatePreview());
+                            this.$watch('watermarkOpacity', () => this.updatePreview());
+
+                            this.$watch('activeTab', (val) => {
+                                if (val === 'preview') this.updatePreview();
+                            });
+
+                            // Initialize SortableJS
+                            this.$nextTick(() => {
+                                if (document.getElementById('sortable-blocks')) {
+                                    new Sortable(document.getElementById('sortable-blocks'), {
+                                        animation: 150,
+                                        handle: '.drag-handle',
+                                        onEnd: (evt) => {
+                                            // Re-order active blocks based on DOM order
+                                            // This is a bit tricky with Alpine reactivity, so we'll do a simple swap or move
+                                            // Actually, simpler: let's just grab the indices
+                                            const itemEl = evt.item;
+                                            const newIndex = evt.newIndex;
+                                            const oldIndex = evt.oldIndex;
+
+                                            if (newIndex === oldIndex) return;
+
+                                            // Move in array
+                                            const movedItem = this.blocks.splice(oldIndex, 1)[0];
+                                            this.blocks.splice(newIndex, 0, movedItem);
+
+                                            // Fix selected index if needed
+                                            if (this.selectedBlockIndex === oldIndex) {
+                                                this.selectedBlockIndex = newIndex;
+                                            } else if (oldIndex < this.selectedBlockIndex && newIndex >= this.selectedBlockIndex) {
+                                                this.selectedBlockIndex--;
+                                            } else if (oldIndex > this.selectedBlockIndex && newIndex <= this.selectedBlockIndex) {
+                                                this.selectedBlockIndex++;
+                                            }
+
+                                            this.compileBlocks();
                                         }
-                                        
-                                        this.compileBlocks();
-                                    }
-                                });
+                                    });
+                                }
+                            });
+
+                            // Default blocks for new template
+                            if (!this.html) { // Only if blank
+                                this.addBlock('header');
+                                this.addBlock('client_info');
+                                this.addBlock('items_table');
+                                this.addBlock('footer');
                             }
-                        });
 
-                        // Default blocks for new template
-                         if (!this.html) { // Only if blank
-                             this.addBlock('header');
-                             this.addBlock('client_info');
-                             this.addBlock('items_table');
-                             this.addBlock('footer');
-                         }
-                         
-                         // If old input for content_structure exists (e.g. valid err), load it. But here we are just initing.
-                         
-                         setTimeout(() => this.updatePreview(), 500);
-                    },
+                            // If old input for content_structure exists (e.g. valid err), load it. But here we are just initing.
 
-                    addBlock(type) {
-                        this.blocks.push({
-                            id: Date.now(),
-                            type: type,
-                            data: { bgColor: '#ffffff', align: 'left' } // Defaults
-                        });
-                        this.selectedBlockIndex = this.blocks.length - 1;
-                        this.compileBlocks();
-                    },
+                            setTimeout(() => this.updatePreview(), 500);
+                        },
 
-                    removeBlock(index) {
-                        this.blocks.splice(index, 1);
-                        this.selectedBlockIndex = null;
-                        this.compileBlocks();
-                    },
-                    duplicateBlock(index) {
-                        const blockToClone = this.blocks[index];
-                        const newBlock = {
-                            id: Date.now(), // Unique ID
-                            type: blockToClone.type,
-                            data: JSON.parse(JSON.stringify(blockToClone.data)) // Deep copy
-                        };
-                        this.blocks.splice(index + 1, 0, newBlock); // Insert after
-                        this.selectedBlockIndex = index + 1;
-                        this.compileBlocks();
-                    },
-                    moveBlock(index, direction) {
-                         if (index + direction < 0 || index + direction >= this.blocks.length) return;
-                         const temp = this.blocks[index];
-                         this.blocks[index] = this.blocks[index + direction];
-                         this.blocks[index + direction] = temp;
-                         this.selectedBlockIndex = index + direction; // Follow selection
-                         // Trigger update
-                         this.blocks = [...this.blocks]; 
-                         this.compileBlocks();
-                    },
+                        addBlock(type) {
+                            this.blocks.push({
+                                id: Date.now(),
+                                type: type,
+                                data: { bgColor: '#ffffff', align: 'left' } // Defaults
+                            });
+                            this.selectedBlockIndex = this.blocks.length - 1;
+                            this.compileBlocks();
+                        },
 
-                    compileBlocks() {
-                        // Generate HTML from blocks
-                        let compiledHtml = `<html><body>`;
-                        
-                        this.blocks.forEach(block => {
-                            const def = this.availableBlocks[block.type];
-                            if (def) {
-                                compiledHtml += `<!-- BLOCK: ${block.type} -->\n`;
-                                compiledHtml += def.render(block.data) + '\n';
+                        removeBlock(index) {
+                            this.blocks.splice(index, 1);
+                            this.selectedBlockIndex = null;
+                            this.compileBlocks();
+                        },
+                        duplicateBlock(index) {
+                            const blockToClone = this.blocks[index];
+                            const newBlock = {
+                                id: Date.now(), // Unique ID
+                                type: blockToClone.type,
+                                data: JSON.parse(JSON.stringify(blockToClone.data)) // Deep copy
+                            };
+                            this.blocks.splice(index + 1, 0, newBlock); // Insert after
+                            this.selectedBlockIndex = index + 1;
+                            this.compileBlocks();
+                        },
+                        moveBlock(index, direction) {
+                            if (index + direction < 0 || index + direction >= this.blocks.length) return;
+                            const temp = this.blocks[index];
+                            this.blocks[index] = this.blocks[index + direction];
+                            this.blocks[index + direction] = temp;
+                            this.selectedBlockIndex = index + direction; // Follow selection
+                            // Trigger update
+                            this.blocks = [...this.blocks];
+                            this.compileBlocks();
+                        },
+
+                        compileBlocks() {
+                            // Generate HTML from blocks
+                            let compiledHtml = `<html><body>`;
+
+                            this.blocks.forEach(block => {
+                                const def = this.availableBlocks[block.type];
+                                if (def) {
+                                    compiledHtml += `<!-- BLOCK: ${block.type} -->\n`;
+                                    compiledHtml += def.render(block.data) + '\n';
+                                }
+                            });
+
+                            compiledHtml += `</body></html>`;
+
+                            this.html = compiledHtml;
+                            // No need for updatePreview() explicitly as this.html watcher will trigger it
+                        },
+
+                        selectedTemplate: '',
+
+                        loadSystemTemplate(id) {
+                            if (!id) return;
+                            const t = this.systemTemplates.find(x => x.id == id);
+                            if (t) {
+                                this.html = t.html_content;
+                                this.css = t.css_content;
+                                this.primaryColor = t.primary_color;
+                                this.secondaryColor = t.secondary_color;
+                                this.fontFamily = t.font_family;
                             }
-                        });
+                        },
 
-                        compiledHtml += `</body></html>`;
-                        
-                        this.html = compiledHtml;
-                        // No need for updatePreview() explicitly as this.html watcher will trigger it
-                    },
+                        getPreviewStyle() {
+                            // Base dimensions in mm
+                            let width, height;
+                            if (this.paperSize === 'a4') {
+                                width = 210; height = 297;
+                            } else { // Letter
+                                width = 215.9; height = 279.4;
+                            }
 
-                    selectedTemplate: '',
+                            if (this.orientation === 'landscape') {
+                                [width, height] = [height, width];
+                            }
 
-                    loadSystemTemplate(id) {
-                        if (!id) return;
-                        const t = this.systemTemplates.find(x => x.id == id);
-                        if (t) {
-                           this.html = t.html_content;
-                           this.css = t.css_content;
-                           this.primaryColor = t.primary_color;
-                           this.secondaryColor = t.secondary_color;
-                           this.fontFamily = t.font_family;
-                        }
-                    },
+                            return `width: ${width}mm; height: ${height}mm; min-height: ${height}mm;`;
+                        },
 
-                    getPreviewStyle() {
-                        // Base dimensions in mm
-                        let width, height;
-                        if (this.paperSize === 'a4') {
-                            width = 210; height = 297;
-                        } else { // Letter
-                            width = 215.9; height = 279.4;
-                        }
+                        updatePreview() {
+                            clearTimeout(this.debounceTimer);
+                            this.debounceTimer = setTimeout(() => {
+                                this.fetchPreview();
+                            }, 800);
+                        },
 
-                        if (this.orientation === 'landscape') {
-                            [width, height] = [height, width];
-                        }
+                        fetchPreview() {
+                            const iframe = document.getElementById('previewFrame');
+                            if (!iframe) return;
 
-                        return `width: ${width}mm; height: ${height}mm; min-height: ${height}mm;`;
-                    },
-
-                    updatePreview() {
-                        clearTimeout(this.debounceTimer);
-                        this.debounceTimer = setTimeout(() => {
-                            this.fetchPreview();
-                        }, 800);
-                    },
-
-                    fetchPreview() {
-                        const iframe = document.getElementById('previewFrame');
-                        if (!iframe) return;
-
-                        fetch('{{ route("pdf-templates.preview") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({
-                                html_content: this.html,
-                                css_content: this.css,
-                                watermark_text: this.watermarkText,
-                                watermark_opacity: this.watermarkOpacity,
-                                primary_color: this.primaryColor,
-                                secondary_color: this.secondaryColor,
-                                font_family: this.fontFamily
+                            fetch('{{ route("pdf-templates.preview") }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                },
+                                body: JSON.stringify({
+                                    html_content: this.html,
+                                    css_content: this.css,
+                                    watermark_text: this.watermarkText,
+                                    watermark_opacity: this.watermarkOpacity,
+                                    primary_color: this.primaryColor,
+                                    secondary_color: this.secondaryColor,
+                                    font_family: this.fontFamily
+                                })
                             })
-                        })
-                            .then(res => res.text())
-                            .then(html => {
-                                const doc = iframe.contentWindow.document;
-                                doc.open();
-                                doc.write(html);
+                                .then(res => res.text())
+                                .then(html => {
+                                    const doc = iframe.contentWindow.document;
+                                    doc.open();
+                                    doc.write(html);
 
-                                // Inject Styling Variables for Live Preview (without reloading from server necessarily, 
-                                // but our server preview endpoint uses CSS from body request, so just relying on server render is safer)
-                                // However, let's inject a style block to override root vars instantly for faster feedback
-                                const style = doc.createElement('style');
-                                style.innerHTML = `:root { 
-                                                                                        --primary-color: ${this.primaryColor}; 
-                                                                                        --secondary-color: ${this.secondaryColor}; 
-                                                                                        --font-body: ${this.fontFamily}; 
-                                                                                    } 
-                                                                                    body { font-family: var(--font-body) !important; }`;
-                                doc.head.appendChild(style);
+                                    // Inject Styling Variables for Live Preview (without reloading from server necessarily, 
+                                    // but our server preview endpoint uses CSS from body request, so just relying on server render is safer)
+                                    // However, let's inject a style block to override root vars instantly for faster feedback
+                                    const style = doc.createElement('style');
+                                    style.innerHTML = `:root { 
+                                                                                                    --primary-color: ${this.primaryColor}; 
+                                                                                                    --secondary-color: ${this.secondaryColor}; 
+                                                                                                    --font-body: ${this.fontFamily}; 
+                                                                                                } 
+                                                                                                body { font-family: var(--font-body) !important; }`;
+                                    doc.head.appendChild(style);
 
-                                doc.close();
-                            })
-                            .catch(err => console.error(err));
-                    },
+                                    doc.close();
+                                })
+                                .catch(err => console.error(err));
+                        },
 
-                    insertAtCursor(text) {
-                        const textarea = this.activeTab === 'html' ? document.getElementById('htmlEditor') : document.getElementById('cssEditor');
-                        if (!textarea) return;
+                        insertAtCursor(text) {
+                            const textarea = this.activeTab === 'html' ? document.getElementById('htmlEditor') : document.getElementById('cssEditor');
+                            if (!textarea) return;
 
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        const val = textarea.value;
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const val = textarea.value;
 
-                        const newVal = val.substring(0, start) + text + val.substring(end);
+                            const newVal = val.substring(0, start) + text + val.substring(end);
 
-                        // Update Alpine model
-                        if (this.activeTab === 'html') this.html = newVal;
-                        else this.css = newVal;
+                            // Update Alpine model
+                            if (this.activeTab === 'html') this.html = newVal;
+                            else this.css = newVal;
 
-                        // Restore cursor
-                        this.$nextTick(() => {
-                            textarea.focus();
-                            textarea.selectionStart = textarea.selectionEnd = start + text.length;
-                        });
-                    },
+                            // Restore cursor
+                            this.$nextTick(() => {
+                                textarea.focus();
+                                textarea.selectionStart = textarea.selectionEnd = start + text.length;
+                            });
+                        },
 
-                    insertSnippet(type) {
-                        let snippet = '';
-                        if (type === 'table') {
-                            snippet = `
-                                                                    <table class="w-full border-collapse">
-                                                                        <thead>
-                                                                            <tr>
-                                                                                <th class="border-b p-2 text-left">Item</th>
-                                                                                <th class="border-b p-2 text-right">Price</th>
-                                                                                <th class="border-b p-2 text-right">Total</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {LOOP_ITEMS}
-                                                                            <tr>
-                                                                                <td class="border-b p-2">{item_name}</td>
-                                                                                <td class="border-b p-2 text-right">{item_price}</td>
-                                                                                <td class="border-b p-2 text-right">{item_total}</td>
-                                                                            </tr>
-                                                                            {END_LOOP}
-                                                                        </tbody>
-                                                                    </table>`;
-                        } else if (type === '2col') {
-                            snippet = `
-                                                                    <div style="display: flex; gap: 20px;">
-                                                                        <div style="flex: 1;">Column 1</div>
-                                                                        <div style="flex: 1;">Column 2</div>
-                                                                    </div>`;
-                        } else if (type === 'img') {
-                            snippet = `<img src="https://placehold.co/150" alt="Placeholder" style="max-width: 100%;">`;
-                        } else if (type === 'header_footer') {
-                            // Switch to CSS tab if not already
-                            if (this.activeTab !== 'css') {
-                                alert('Switching to CSS tab to insert @page styles.');
-                                this.activeTab = 'css';
-                                // Defer slightly
-                                setTimeout(() => {
-                                    this.insertAtCursor(`@page { margin: 100px 25px; }
-                                                                    header { position: fixed; top: -60px; left: 0px; right: 0px; height: 50px; }
-                                                                    footer { position: fixed; bottom: -60px; left: 0px; right: 0px; height: 50px; }`);
-                                }, 100);
-                                return;
+                        insertSnippet(type) {
+                            let snippet = '';
+                            if (type === 'table') {
+                                snippet = `
+                                                                                <table class="w-full border-collapse">
+                                                                                <thead>
+                                                                                    <tr class="bg-gray-100 text-gray-700">
+                                                                                        <th class="p-2 text-left">Image</th>
+                                                                                        <th class="p-2 text-left">Config</th>
+                                                                                        <th class="p-2 text-left">Item Details</th>
+                                                                                        <th class="p-2 text-center">Size</th>
+                                                                                        <th class="p-2 text-right">Price</th>
+                                                                                        <th class="p-2 text-right">Total</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    {LOOP_ITEMS}
+                                                                                    <tr>
+                                                                                        <td class="border-b p-2 text-center">{item_image}</td>
+                                                                                        <td class="border-b p-2 text-xs text-gray-500">{item_unit_configuration}</td>
+                                                                                        <td class="border-b p-2"><strong>{item_name}</strong>{item_comments}</td>
+                                                                                        <td class="border-b p-2 text-center">{item_size}</td>
+                                                                                        <td class="border-b p-2 text-right">{item_price}</td>
+                                                                                        <td class="border-b p-2 text-right">{item_total}</td>
+                                                                                    </tr>
+                                                                                    {END_LOOP}
+                                                                                </tbody>
+                                                                            </table>
+        `;
+                            } else if (type === '2col') {
+                                snippet = `
+                                                                                <div style="display: flex; gap: 20px;">
+                                                                                    <div style="flex: 1;">Column 1</div>
+                                                                                    <div style="flex: 1;">Column 2</div>
+                                                                                </div>`;
+                            } else if (type === 'img') {
+                                snippet = `<img src="https://placehold.co/150" alt="Placeholder" style="max-width: 100%;">`;
+                            } else if (type === 'header_footer') {
+                                // Switch to CSS tab if not already
+                                if (this.activeTab !== 'css') {
+                                    alert('Switching to CSS tab to insert @page styles.');
+                                    this.activeTab = 'css';
+                                    // Defer slightly
+                                    setTimeout(() => {
+                                        this.insertAtCursor(`@page { margin: 100px 25px; }
+                                                                                header { position: fixed; top: -60px; left: 0px; right: 0px; height: 50px; }
+                                                                                footer { position: fixed; bottom: -60px; left: 0px; right: 0px; height: 50px; }`);
+                                    }, 100);
+                                    return;
+                                }
+                                snippet = `@page { margin: 100px 25px; }
+                                                                            header { position: fixed; top: -60px; left: 0px; right: 0px; height: 50px; }
+                                                                            footer { position: fixed; bottom: -60px; left: 0px; right: 0px; height: 50px; }`;
+                            } else if (type === 'watermark') {
+                                snippet = `<div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 100px; color: #000; opacity: 0.1; white-space: nowrap; z-index: -1;">
+                                                                              DRAFT
+                                                                            </div>`;
+                            } else if (type === 'pagenumber') {
+                                if (this.activeTab !== 'css') {
+                                    alert('Switching to CSS for page numbers.');
+                                    this.activeTab = 'css';
+                                    setTimeout(() => {
+                                        this.insertAtCursor(`.page-number:after { content: counter(page); }`);
+                                    }, 100);
+                                    return;
+                                }
+                                snippet = `.page-number:after { content: counter(page); }`;
+                            } else if (type === 'logic_if') {
+                                snippet = `{IF_has_discount}\n  <div class="alert">Has Discount!</div>\n{END_IF}`;
+                            } else if (type === 'page_break') {
+                                snippet = `<div class="page-break-after"></div>`;
                             }
-                            snippet = `@page { margin: 100px 25px; }
-                                                                header { position: fixed; top: -60px; left: 0px; right: 0px; height: 50px; }
-                                                                footer { position: fixed; bottom: -60px; left: 0px; right: 0px; height: 50px; }`;
-                        } else if (type === 'watermark') {
-                            snippet = `<div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 100px; color: #000; opacity: 0.1; white-space: nowrap; z-index: -1;">
-                                                                  DRAFT
-                                                                </div>`;
-                        } else if (type === 'pagenumber') {
-                            if (this.activeTab !== 'css') {
-                                alert('Switching to CSS for page numbers.');
-                                this.activeTab = 'css';
-                                setTimeout(() => {
-                                    this.insertAtCursor(`.page-number:after { content: counter(page); }`);
-                                }, 100);
-                                return;
-                            }
-                            snippet = `.page-number:after { content: counter(page); }`;
-                        } else if (type === 'logic_if') {
-                            snippet = `{IF_has_discount}\n  <div class="alert">Has Discount!</div>\n{END_IF}`;
-                        } else if (type === 'page_break') {
-                            snippet = `<div class="page-break-after"></div>`;
+
+                            this.insertAtCursor(snippet);
                         }
-
-                        this.insertAtCursor(snippet);
-                    }
-                }));
-            });
-        </script>
+                    }));
+                });
+            </script>
     @endpush
 </x-app-layout>

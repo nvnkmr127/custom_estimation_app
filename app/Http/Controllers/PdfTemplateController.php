@@ -104,6 +104,7 @@ class PdfTemplateController extends Controller
             'version' => $pdfTemplate->versions()->count() + 1,
             'html_content' => $pdfTemplate->html_content,
             'css_content' => $pdfTemplate->css_content,
+            'content_structure' => $pdfTemplate->content_structure,
             'created_by' => auth()->id(),
         ]);
 
@@ -144,6 +145,7 @@ class PdfTemplateController extends Controller
         $pdfTemplate->update([
             'html_content' => $version->html_content,
             'css_content' => $version->css_content,
+            'content_structure' => $version->content_structure,
         ]);
 
         return back()->with('success', "Restored to version {$version->version}.");
@@ -178,10 +180,51 @@ class PdfTemplateController extends Controller
             'font_family' => $request->input('font_family', 'Helvetica'),
         ]);
 
-        $service = new PdfRenderingService;
+        // Set estimate type to room_based to show sections in preview
+        $estimate->type = 'room_based';
 
-        // Mock items needs logic in service or meaningful dummy data
-        // For now, let's just let the variables fail gracefully or show empty
+        // Create Dummy Sections
+        $section1 = new \App\Models\EstimateSection(['name' => 'Primary Bedroom', 'subtotal' => 1250.00]);
+        $section2 = new \App\Models\EstimateSection(['name' => 'Gourmet Kitchen', 'subtotal' => 2800.00]);
+
+        // Add dummy items for loops
+        $item1 = new \App\Models\EstimateItem([
+            'name' => 'Premium Wall Paint',
+            'description' => 'Two-coat eggshell finish with primer',
+            'quantity' => 1200,
+            'unit_price' => 1.50,
+            'total' => 1800.00,
+            'unit_type' => 'sqft',
+            'size' => 'Main Walls',
+            'formula' => 'area',
+            'length' => 60,
+            'width' => 20
+        ]);
+
+        $product1 = new \App\Models\Product();
+        $product1->setRelation('images', collect([
+            (object) ['url' => 'https://images.unsplash.com/photo-1562184552-997c461abbe6?auto=format&fit=crop&w=100&q=80']
+        ]));
+        $item1->setRelation('product', $product1);
+
+        $item2 = new \App\Models\EstimateItem([
+            'name' => 'Custom Cabinetry',
+            'description' => 'Solid oak with soft-close hinges',
+            'quantity' => 1,
+            'unit_price' => 2250.00,
+            'total' => 2250.00,
+            'unit_type' => 'ea',
+            'formula' => 'fixed'
+        ]);
+
+        // Attach items to sections
+        $section1->setRelation('items', collect([$item1]));
+        $section2->setRelation('items', collect([$item2]));
+
+        $estimate->setRelation('sections', collect([$section1, $section2]));
+        $estimate->setRelation('items', collect([$item1, $item2]));
+
+        $service = new PdfRenderingService;
 
         $renderedInfo = $service->render($tempTemplate, $estimate);
 
