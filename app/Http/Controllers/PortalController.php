@@ -12,9 +12,8 @@ class PortalController extends Controller
     protected $analytics;
     protected $dispatcher;
 
-    public function __construct(\App\Services\PerfexApiService $perfexApi, \App\Services\AnalyticsService $analytics, \App\Core\Events\EventDispatcherInterface $dispatcher)
+    public function __construct(\App\Services\AnalyticsService $analytics, \App\Core\Events\EventDispatcherInterface $dispatcher)
     {
-        $this->perfexApi = $perfexApi;
         $this->analytics = $analytics;
         $this->dispatcher = $dispatcher;
     }
@@ -51,72 +50,7 @@ class PortalController extends Controller
         // Dispatch Event
         $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateViewed($estimate->id, null, $request->ip()));
 
-        // --- Hot Lead Detection ---
-        $hotLeadThreshold = \App\Models\Setting::getCached('nurture_hot_lead_threshold', 3);
         $estimate->increment('engagement_score'); // Boost score on every view
-
-        // Check velocity (views in last hour)
-        $recentViews = \App\Models\ActivityLog::where('subject_type', Estimate::class)
-            ->where('subject_id', $estimate->id)
-            ->where('action', 'proposal_viewed')
-            ->where('created_at', '>=', now()->subHour())
-            ->count();
-
-        if ($recentViews >= $hotLeadThreshold) {
-            // Avoid spamming if already alerted recently (e.g., in last hour) could be better, but for now strict alert.
-            // Only alert if we haven't alerted for this velocity burst?
-            // Simple mechanism: Check if we sent an alert in last hour.
-            // We don't have an easy way to check notifications sent.
-            // Let's rely on the threshold.
-
-            foreach ($estimate->followers as $follower) {
-                // Optimization: Queue this check/send
-                $follower->notify(new \App\Notifications\HotLeadAlert($estimate, [
-                    'reason' => "High Velocity: Viewed {$recentViews} times in the last hour."
-                ]));
-            }
-        }
-        // ---------------------------
-
-        // --- Smart Nudge Logic (Moved from Pixel Tracking) ---
-        $viewCount = $estimate->view_count;
-        $nudgeThreshold = config('estimation.nudge_threshold', 3);
-
-        if (
-            $viewCount >= $nudgeThreshold
-            && !in_array($estimate->status, ['accepted', 'declined', 'expired'])
-            && !$estimate->nudge_task_created
-        ) {
-            $relId = $estimate->perfex_proposal_id;
-
-            if ($relId) {
-                // We use a job to avoid blocking the user view
-                // For now, doing it inline as per previous logic, but robustly
-                try {
-                    $description = "Smart Nudge: Client has viewed Estimate #{$estimate->estimate_number} {$viewCount} times on the portal but not accepted.";
-                    $taskData = [
-                        'name' => 'Follow up on Estimate #' . $estimate->estimate_number,
-                        'description' => $description,
-                        'priority' => 3, // Medium/High
-                        'startdate' => now()->format('Y-m-d'),
-                        'rel_type' => 'proposal',
-                        'rel_id' => $relId,
-                    ];
-
-                    $response = $this->perfexApi->createTask($taskData); // Using injected service
-
-                    if (isset($response['id']) || (isset($response['status']) && $response['status'] == true)) {
-                        $estimate->update(['nudge_task_created' => true]);
-                        \App\Models\ActivityLog::log('system_action', $estimate, 'Smart Nudge: CRM Task Created for follow-up.');
-                    } else {
-                        \Illuminate\Support\Facades\Log::warning('Smart Nudge Task Failed: ' . json_encode($response));
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Smart Nudge Exception: ' . $e->getMessage());
-                }
-            }
-        }
-        // ---------------------------
 
         // Load items for the view
         $estimate->load(['sections.items', 'comments.user']); // Load comments with user (if any internal replies are visible, though currently filtering for client)
@@ -179,8 +113,8 @@ class PortalController extends Controller
             'signer_location' => $location,
         ]);
 
-        // Auto-Sync to Perfex
-        $this->perfexApi->syncEstimate($estimate);
+        // Auto-Sync to Perfex (Queue to avoid blocking client)
+        \App\Jobs\SyncEstimateToPerfex::dispatch($estimate);
 
         // Notify Admins
         $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
@@ -196,7 +130,7 @@ class PortalController extends Controller
         // public int $approverId.
         // I will use 0 for now to indicate "External/Client". Alternatively, if the client has a user account (some systems do), use that.
         // Here, it seems clients don't log in to portal (signed url).
-        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate->id, 0, 'client'));
+        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, 0, 'client'));
 
         return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. It has also been synced to our CRM.');
     }
@@ -283,5 +217,39 @@ class PortalController extends Controller
         \App\Models\ActivityLog::log('call_requested', $estimate, "Client requested an immediate call.");
 
         return back()->with('success', 'Request received! We will call you shortly.');
+    }
+
+    /**
+     * Download the estimate PDF.
+     */
+    public function download(Request $request, Estimate $estimate)
+    {
+        if (!$request->hasValidSignature()) {
+            abort(403, 'Invalid or expired link.');
+        }
+
+        // Reuse PDF Service
+        $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first();
+
+        if (!$template) {
+            // Fallback
+            $template = \App\Models\PdfTemplate::first();
+        }
+
+        if (!$template) {
+            abort(404, 'PDF Template not found.');
+        }
+
+        $service = new \App\Services\PdfRenderingService;
+        ini_set('memory_limit', '512M');
+        $path = $service->renderAndCache($template, $estimate);
+
+        if (!$path || !file_exists($path)) {
+            abort(500, 'Failed to generate PDF.');
+        }
+
+        $this->analytics->logAccess($estimate, 'download');
+
+        return response()->download($path, "Estimate-{$estimate->estimate_number}.pdf");
     }
 }

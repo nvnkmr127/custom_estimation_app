@@ -129,4 +129,56 @@ class SettingsController extends Controller
 
         return redirect()->route('settings.edit')->with('success', 'Settings updated successfully.');
     }
+    public function testPerfex(Request $request, \App\Services\PerfexApiService $api)
+    {
+        try {
+            // Pull first few leads as a test
+            $response = $api->getLeads(1);
+
+            if (is_array($response) && (isset($response['error']) || (isset($response['status']) && $response['status'] === false))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $response['message'] ?? $response['error'] ?? 'Connection failed'
+                ]);
+            }
+
+            $sample = $response[0] ?? $response['data'][0] ?? null;
+            $mapped = null;
+
+            if ($sample) {
+                $mapped = [
+                    'name' => $sample['name'] ?? $sample['lead_name'] ?? 'Unknown',
+                    'email' => $sample['email'] ?? 'N/A',
+                    'property_name' => $sample['property_name'] ?? null,
+                    'property_address' => $sample['property_address'] ?? null,
+                ];
+
+                // Extract from custom fields in sample for preview
+                if (isset($sample['customfields']) && is_array($sample['customfields'])) {
+                    foreach ($sample['customfields'] as $cf) {
+                        $fieldName = strtolower($cf['name'] ?? '');
+                        $val = $cf['value'] ?? '';
+                        if (strpos($fieldName, 'property name') !== false && empty($mapped['property_name'])) {
+                            $mapped['property_name'] = $val;
+                        }
+                        if (strpos($fieldName, 'property address') !== false && empty($mapped['property_address'])) {
+                            $mapped['property_address'] = $val;
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully connected to Perfex CRM!',
+                'sample_data' => $sample,
+                'mapped_data' => $mapped
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Exception: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

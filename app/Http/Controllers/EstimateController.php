@@ -257,73 +257,22 @@ class EstimateController extends Controller
     /**
      * Store a newly created estimate in storage.
      */
-    public function store(Request $request)
+    public function store(\App\Http\Requests\StoreEstimateRequest $request)
     {
-        $this->authorize('create', Estimate::class);
-
-        $validated = $request->validate([
-            'client_id' => 'required|integer',
-            'estimate_date' => 'required|date',
-            'expiry_date' => 'nullable|date',
-            'status' => 'required|in:' . implode(',', [
-                Estimate::STATUS_DRAFT,
-                Estimate::STATUS_SENT,
-                Estimate::STATUS_ACCEPTED,
-                Estimate::STATUS_DECLINED,
-                Estimate::STATUS_EXPIRED,
-            ]),
-            'currency' => 'required|string|max:10',
-            'discount_type' => 'required|in:percentage,fixed',
-            'discount_value' => 'nullable|numeric|min:0',
-            'client_note' => 'nullable|string',
-            'admin_note' => 'nullable|string',
-            'terms' => 'nullable|string',
-            'pdf_theme' => 'nullable|string',
-            'pdf_template_id' => 'nullable|exists:pdf_templates,id',
-            'coupon_code_id' => 'nullable|exists:coupon_codes,id',
-            'type' => 'required|in:standard,room_based',
-            'items.*.internal_note' => 'nullable|string',
-            'items.*.unit_type_id' => 'nullable|exists:unit_types,id',
-            'items.*.unit_type' => 'required_with:items.*.unit_type_id|string',
-            'sections.*.items.*.unit_type_id' => 'nullable|exists:unit_types,id',
-            'sections.*.items.*.unit_type' => 'required_with:sections.*.items.*.unit_type_id|string',
-            'tax_1' => 'nullable|numeric|min:0',
-            'tax_2' => 'nullable|numeric|min:0',
-        ]);
-
-        // Additional custom validation for unit configuration
-        if ($request->type === 'standard' && $request->has('items')) {
-            foreach ($request->items as $index => $item) {
-                if (isset($item['unit_type_id']) && !empty($item['unit_type_id'])) {
-                    if (empty($item['unit_type'])) {
-                        return back()->withInput()->withErrors([
-                            "items.{$index}.unit_type" => "Unit is required when Unit Type is configured."
-                        ]);
-                    }
-                }
-            }
-        }
-
-        if ($request->type === 'room_based' && $request->has('sections')) {
-            foreach ($request->sections as $sectionIndex => $section) {
-                if (isset($section['items'])) {
-                    foreach ($section['items'] as $itemIndex => $item) {
-                        if (isset($item['unit_type_id']) && !empty($item['unit_type_id'])) {
-                            if (empty($item['unit_type'])) {
-                                return back()->withInput()->withErrors([
-                                    "sections.{$sectionIndex}.items.{$itemIndex}.unit_type" => "Unit is required when Unit Type is configured in {$section['name']}."
-                                ]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // Validation handled by FormRequest
+        $validated = $request->validated();
 
         try {
-            $itemsOrSections = $request->type === 'room_based' ? ($request->sections ?? []) : ($request->items ?? []);
+            $itemsOrSections = $request->type === 'room_based'
+                ? ($validated['sections'] ?? [])
+                : ($validated['items'] ?? []);
 
-            $estimate = $this->estimateService->createEstimate($validated, $itemsOrSections, $request->type);
+            // Ensure we don't pass the raw items/sections array as part of the main estimate attributes
+            // createEstimate expects: (data, itemsOrSections, type)
+            // We should strip items/sections from $validated for the first arg.
+            $estimateData = \Illuminate\Support\Arr::except($validated, ['items', 'sections']);
+
+            $estimate = $this->estimateService->createEstimate($estimateData, $itemsOrSections, $request->type);
 
             return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate created successfully.');
 
@@ -400,6 +349,18 @@ class EstimateController extends Controller
         $categories = ProductCategory::orderBy('name')->get();
         $estimate->load(['sections.items.product.images', 'items.product.images', 'couponCode']);
 
+        // Explicitly make cost and internal_note visible for staff/admin view
+        if ($estimate->items) {
+            $estimate->items->makeVisible(['cost', 'internal_note']);
+        }
+        if ($estimate->sections) {
+            foreach ($estimate->sections as $section) {
+                if ($section->items) {
+                    $section->items->makeVisible(['cost', 'internal_note']);
+                }
+            }
+        }
+
         $settings = Setting::getAllCached();
         $defaults = [
             'currency' => $settings['currency_code'] ?? 'USD',
@@ -417,54 +378,35 @@ class EstimateController extends Controller
     /**
      * Update the specified estimate in storage.
      */
-    public function update(Request $request, Estimate $estimate)
+    /**
+     * Update the specified estimate in storage.
+     */
+    public function update(\App\Http\Requests\UpdateEstimateRequest $request, Estimate $estimate)
     {
-        $this->authorize('update', $estimate);
-
-        // 1. Concurrency / Optimistic Locking Check
+        // Concurrency Check (Logic remains in Controller or could be in FormRequest, 
+        // but Request already validated last_update_timestamp format. 
+        // Actual logic:
         if ($request->has('last_update_timestamp')) {
             $clientTimestamp = \Carbon\Carbon::parse($request->last_update_timestamp);
             if ($estimate->updated_at->gt($clientTimestamp)) {
-                return back()->withInput()->withErrors(['error' => 'This estimate has been modified by another user or in another tab. Please refresh the page to see the latest changes. Data was not saved to prevent overwriting.']);
+                return back()->withInput()->withErrors(['error' => 'This estimate has been modified by another user. Please refresh.']);
             }
         }
 
-        $validated = $request->validate([
-            'client_id' => 'required|integer',
-            'estimate_date' => 'required|date',
-            'expiry_date' => 'nullable|date',
-            'status' => 'required|in:' . implode(',', [
-                Estimate::STATUS_DRAFT,
-                Estimate::STATUS_SENT,
-                Estimate::STATUS_ACCEPTED,
-                Estimate::STATUS_DECLINED,
-                Estimate::STATUS_EXPIRED,
-            ]),
-            'currency' => 'required|string|max:10',
-            'discount_type' => 'required|in:percentage,fixed',
-            'discount_value' => 'nullable|numeric|min:0',
-            'client_note' => 'nullable|string',
-            'admin_note' => 'nullable|string',
-            'terms' => 'nullable|string',
-            'pdf_theme' => 'nullable|string',
-            'pdf_template_id' => 'nullable|exists:pdf_templates,id',
-            'coupon_code_id' => 'nullable|exists:coupon_codes,id',
-            'type' => 'required|in:standard,room_based',
-            'items.*.internal_note' => 'nullable|string',
-            'sections.*.items.*.internal_note' => 'nullable|string',
-            'tax_1' => 'nullable|numeric|min:0',
-            'tax_2' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         try {
-            $itemsOrSections = $request->type === 'room_based' ? ($request->sections ?? []) : ($request->items ?? []);
+            $itemsOrSections = $request->type === 'room_based'
+                ? ($validated['sections'] ?? [])
+                : ($validated['items'] ?? []);
+
+            $estimateData = \Illuminate\Support\Arr::except($validated, ['items', 'sections', 'last_update_timestamp']);
 
             // Service handles branching, transactions, logic
-            $updatedEstimate = $this->estimateService->updateEstimate($estimate, $validated, $itemsOrSections, $request->type);
+            $updatedEstimate = $this->estimateService->updateEstimate($estimate, $estimateData, $itemsOrSections, $request->type);
 
             $msg = 'Estimate updated successfully.';
             if ($updatedEstimate->id !== $estimate->id) {
-                // ID changed means we branched
                 $msg = "A new version ({$updatedEstimate->estimate_number}) was created because the original was locked or shared.";
             }
 
@@ -505,28 +447,8 @@ class EstimateController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        $validStatuses = [
-            Estimate::STATUS_DRAFT,
-            Estimate::STATUS_SENT,
-            Estimate::STATUS_ACCEPTED,
-            Estimate::STATUS_DECLINED,
-            Estimate::STATUS_EXPIRED,
-        ];
-
-        if (!in_array($status, $validStatuses)) {
-            return back()->with('error', 'Invalid status.');
-        }
-
-        // --- Lifecycle Enforcement ---
-
-        // 1. Cannot manually mark as SENT unless APPROVED (unless user is admin and we allow bypass)
-        if ($status === Estimate::STATUS_SENT && $estimate->status !== Estimate::STATUS_APPROVED && !auth()->user()->hasRole(['super_admin', 'admin'])) {
-            return back()->with('error', 'Estimate must be approved before it can be marked as Sent.');
-        }
-
-        // 2. Cannot manually mark as ACCEPTED from DRAFT (must be SENT)
-        if ($status === Estimate::STATUS_ACCEPTED && !in_array($estimate->status, [Estimate::STATUS_SENT, Estimate::STATUS_APPROVED]) && !auth()->user()->hasRole(['super_admin', 'admin'])) {
-            return back()->with('error', 'Estimate must be Sent or Approved before it can be marked as Accepted.');
+        if (!$estimate->canTransitionTo($status)) {
+            return back()->with('error', "Cannot transition from {$estimate->status} to {$status}.");
         }
 
         $oldStatus = $estimate->status;
@@ -637,6 +559,28 @@ class EstimateController extends Controller
     public function preview(Request $request)
     {
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Preview the estimate as a client (Admin View).
+     */
+    public function portalPreview(Estimate $estimate)
+    {
+        $this->authorize('view', $estimate);
+
+        // Load items for the view
+        $estimate->load(['sections.items', 'comments.user', 'followers']);
+
+        // Render PDF Template HTML
+        $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first() ?? \App\Models\PdfTemplate::first();
+
+        $htmlContent = '';
+        if ($template) {
+            $service = new PdfRenderingService;
+            $htmlContent = $service->render($template, $estimate);
+        }
+
+        return view('portal.estimates.show', compact('estimate', 'htmlContent'));
     }
 
     /**

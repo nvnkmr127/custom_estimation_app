@@ -48,6 +48,9 @@ class ClientController extends Controller
             'zip' => 'nullable|string|max:20',
             'country' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+            'property_name' => 'nullable|string|max:255',
+            'property_address' => 'nullable|string|max:255',
+            'property_notes' => 'nullable|string',
         ]);
 
         Client::create($validated);
@@ -59,8 +62,19 @@ class ClientController extends Controller
     /**
      * Display the specified client.
      */
-    public function show(Client $client)
+    public function show($id)
     {
+        // Try to find by ID first, then by Perfex ID
+        $client = Client::where('id', $id)->orWhere('perfex_id', $id)->first();
+
+        if (!$client) {
+            abort(404);
+        }
+
+        if (request()->wantsJson()) {
+            return response()->json($client);
+        }
+
         $client->load([
             'estimates' => function ($query) {
                 $query->latest()->limit(10);
@@ -94,6 +108,9 @@ class ClientController extends Controller
             'zip' => 'nullable|string|max:20',
             'country' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+            'property_name' => 'nullable|string|max:255',
+            'property_address' => 'nullable|string|max:255',
+            'property_notes' => 'nullable|string',
         ]);
 
         $client->update($validated);

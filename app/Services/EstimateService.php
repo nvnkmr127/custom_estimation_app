@@ -8,6 +8,7 @@ use App\Models\Estimate;
 use App\Models\EstimateItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class EstimateService
 {
@@ -29,13 +30,20 @@ class EstimateService
      */
     public function createEstimate(array $data, array $itemsOrSections, string $type): Estimate
     {
+        // Simple Retry Loop not strictly needed for collisions anymore (resolved by DB Sequence), 
+        // but kept for other transient DB errors.
         $attempts = 0;
         $maxAttempts = 3;
-        $lastException = null;
+
+        // Ensure defaults for required fields to prevent NOT NULL violations
+        $data['tax_1'] = $data['tax_1'] ?? 0;
+        $data['tax_2'] = $data['tax_2'] ?? 0;
+        $data['discount_value'] = $data['discount_value'] ?? 0;
 
         while ($attempts < $maxAttempts) {
             $attempts++;
 
+            // Generate Number (Atomic, persistent via DB Locking)
             $data['estimate_number'] = $this->generateNextNumber();
             $data['created_by'] = auth()->id();
 
@@ -79,16 +87,21 @@ class EstimateService
             } catch (\Exception $e) {
                 DB::rollBack();
 
-                // If unique constraint violation, retry
-                if (str_contains($e->getMessage(), '23000') || str_contains($e->getMessage(), 'UNIQUE constraint failed')) {
-                    $lastException = $e;
+                // Refined Error Handling: Only retry on ACTUAL Unique Constraint Violations
+                // "UNIQUE constraint failed" (SQLite) or "Duplicate entry" (MySQL)
+                $msg = $e->getMessage();
+                if (str_contains($msg, 'UNIQUE constraint failed') || str_contains($msg, 'Duplicate entry')) {
+                    Log::critical("Estimate Unique Collision DESPITE Sequence Logic: {$data['estimate_number']}", ['error' => $msg]);
+                    usleep(100000);
                     continue;
                 }
+
+                // Re-throw generic or validation errors (like NOT NULL violations)
                 throw $e;
             }
         }
 
-        throw new \Exception('Failed to create estimate (Unique Number Collision) after multiple attempts. Please try again.');
+        throw new \Exception("Failed to create estimate after {$maxAttempts} attempts.");
     }
 
     /**
@@ -136,6 +149,15 @@ class EstimateService
                 if (auth()->id() !== $estimate->created_by && $estimate->creator) {
                     $estimate->creator->notify(new \App\Notifications\EstimateProposalNotification($estimate, auth()->user()));
                 }
+            }
+
+            // Logic Gap Fix: If estimate was rejected or has changes requested, editing it should reset approval status to 'draft'
+            // so the user knows it is a work-in-progress again.
+            if (in_array($estimate->approval_status, ['rejected', 'changes_requested'])) {
+                $estimate->approval_status = 'draft';
+                // We set property here, update() call below will persist it if we include it or separate call.
+                // Since $data is passed to update(), we should explicitly update this field.
+                $estimate->forceFill(['approval_status' => 'draft']);
             }
 
             $estimate->update($data);
@@ -456,6 +478,14 @@ class EstimateService
             'approval_chain_id' => $chainToAssign ? $chainToAssign->id : null,
         ];
 
+        // LOGIC GAP FIX: If there is no approval chain assigned (below threshold), 
+        // we can flag it as potentially auto-approved if the user attempts to submit it.
+        // Or we just update the status if it was waiting.
+        if (!$chainToAssign && $estimate->status === Estimate::STATUS_WAITING_APPROVAL) {
+            $updateData['status'] = Estimate::STATUS_APPROVED;
+            $updateData['approval_status'] = 'approved';
+        }
+
         // If we had columns for cost/margin, we would save them here.
         // For now, we just calculated them.
 
@@ -468,25 +498,32 @@ class EstimateService
     public function createVersion(Estimate $estimate, bool $replicateItems = true, bool $isProposal = false): Estimate
     {
         return DB::transaction(function () use ($estimate, $replicateItems, $isProposal) {
+            // Lock the family to prevent concurrent version generation
+            $rootId = $estimate->parent_id ?? $estimate->id;
+
+            // Acquire lock on all versions in this family to ensure max('version') is stable
+            // We select 'id' to minimize data but ensure rows are locked.
+            Estimate::where('id', $rootId)
+                ->orWhere('parent_id', $rootId)
+                ->lockForUpdate()
+                ->get(['id']);
+
             // 1. Handle is_current_version
-            if (!$isProposal) {
-                $estimate->update(['is_current_version' => false]);
-            }
+            // Always mark the old version as not current to ensure the new draft is visible (The "Active" version)
+            $estimate->update(['is_current_version' => false]);
 
             // 2. Replicate Estimate
             $newEstimate = $estimate->replicate();
 
             // Calculate next version number based on FAMILY maximum
-            $rootId = $estimate->parent_id ?? $estimate->id;
             $maxVersion = Estimate::where('id', $rootId)
                 ->orWhere('parent_id', $rootId)
                 ->max('version');
 
             $newEstimate->version = ($maxVersion ?? $estimate->version) + 1;
 
-            // If it's a proposal, it's NOT current yet.
-            // If it's a standard version bump (unlikely direct flow here, but generic), it is current.
-            $newEstimate->is_current_version = !$isProposal;
+            // The new version becomes the current, active draft.
+            $newEstimate->is_current_version = true;
 
             // If it's the first version, the parent is the original.
             // If it's already a child, the parent stays the same.
@@ -525,7 +562,7 @@ class EstimateService
                 'view_count',
             ]);
 
-            // Generate new estimate number
+            // Generate new estimate number (Uses new V2 Logic automatically)
             $newEstimate->estimate_number = $this->generateNextNumber();
 
             $newEstimate->status = Estimate::STATUS_DRAFT;
@@ -582,17 +619,17 @@ class EstimateService
         }
 
         try {
+            // Ensure estimate is approved before sending
+            if (!in_array($estimate->status, [Estimate::STATUS_APPROVED, Estimate::STATUS_SENT])) {
+                throw new \Exception('Estimate must be approved before it can be sent to the client.');
+            }
+
             // Dispatch Event instead of direct email
             event(new \App\Core\Events\Estimates\EstimateSent(
                 $estimate->id,
                 auth()->id() ?? 0, // Fallback for system actions
                 'email'
             ));
-
-            // Ensure estimate is approved before sending
-            if (!in_array($estimate->status, [Estimate::STATUS_APPROVED, Estimate::STATUS_SENT])) {
-                throw new \Exception('Estimate must be approved before it can be sent to the client.');
-            }
 
             // Update status if it was approved
             if ($estimate->status === Estimate::STATUS_APPROVED) {
@@ -621,53 +658,54 @@ class EstimateService
     }
 
     /**
-     * Generate the next available estimate number.
+     * Generate the next available estimate number using Database Sequence.
+     * Uses Row-Level Locking on a settings table to ensure strict sequential uniqueness.
      */
-    public function generateNextNumber(): string
+    public function generateNextNumber(array $excludeNumbers = []): string
     {
-        $year = date('Y');
-        $prefix = "EST-{$year}-";
+        // Execute in a separate transaction to ensure the sequence updates are atomic and committed 
+        // immediately, preventing race conditions even if the main transaction fails (resulting in gaps, not duplicates).
+        return DB::transaction(function () {
+            $year = date('Y');
+            $key = "estimate_sequence_{$year}";
+            $prefix = "EST-{$year}-";
 
-        // Get recent estimates to find the highest sequence number
-        $estimates = Estimate::withTrashed()
-            ->where('estimate_number', 'like', "{$prefix}%")
-            ->orderByRaw('LENGTH(estimate_number) DESC')
-            ->orderBy('estimate_number', 'desc')
-            ->limit(10)
-            ->get();
+            // Try to find and lock the sequence row
+            $setting = \App\Models\Setting::where('key', $key)->lockForUpdate()->first();
 
-        $maxSequence = 0;
+            if ($setting) {
+                // Simple Increment
+                $next = (int) $setting->value + 1;
+                $setting->update(['value' => $next]);
+            } else {
+                // Cold Start: Calculate from DB one last time to initialize the sequence
+                $maxSequence = 0;
 
-        foreach ($estimates as $estimate) {
-            $parts = explode('-', $estimate->estimate_number);
-            // Handle version suffixes like -v2 by stripping them first if needed, 
-            // but the regex approach below is safer for finding the base numeric part.
-            // Assuming standard format EST-YYYY-XXX
+                // We scan strictly to seed the sequence
+                $estimates = DB::table('estimates')
+                    ->where('estimate_number', 'like', "{$prefix}%")
+                    ->select('estimate_number')
+                    ->get();
 
-            // Allow for version suffixes in the check
-            $baseNumber = preg_replace('/-v\d+$/', '', $estimate->estimate_number);
-            $parts = explode('-', $baseNumber);
-            $suffix = end($parts);
+                foreach ($estimates as $est) {
+                    // Extract numeric part
+                    $numStr = str_replace($prefix, '', $est->estimate_number);
+                    $numStr = preg_replace('/-v\d+$/', '', $numStr);
 
-            if (is_numeric($suffix)) {
-                $sequence = (int) $suffix;
-                if ($sequence > $maxSequence) {
-                    $maxSequence = $sequence;
+                    if (is_numeric($numStr)) {
+                        $val = (int) $numStr;
+                        if ($val > $maxSequence)
+                            $maxSequence = $val;
+                    }
                 }
+
+                $next = $maxSequence + 1;
+
+                // Create the setting row
+                \App\Models\Setting::create(['key' => $key, 'value' => $next]);
             }
-        }
 
-        $nextSequence = $maxSequence + 1;
-
-        // Loop to ensure uniqueness (handling race conditions and skipped numbers)
-        do {
-            $candidate = $prefix . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
-            $exists = Estimate::withTrashed()->where('estimate_number', $candidate)->exists();
-            if ($exists) {
-                $nextSequence++;
-            }
-        } while ($exists);
-
-        return $candidate;
+            return $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
+        });
     }
 }

@@ -449,6 +449,89 @@
                             <div class="col-span-full">
                                 <h3 class="text-sm font-medium text-slate-900 mb-4">Perfex CRM</h3>
                                 <div class="grid grid-cols-1 gap-y-6">
+                                    <div x-data="{ 
+                                        testing: false, 
+                                        result: null,
+                                        testConnection() {
+                                            this.testing = true;
+                                            this.result = null;
+                                            fetch('{{ route('settings.perfex.test') }}')
+                                                .then(r => r.json())
+                                                .then(d => {
+                                                    this.result = d;
+                                                    this.testing = false;
+                                                })
+                                                .catch(e => {
+                                                    this.result = { success: false, message: 'JS Error: ' + e.message };
+                                                    this.testing = false;
+                                                });
+                                        }
+                                    }">
+                                        <div class="flex items-center gap-4 mb-4">
+                                            <button type="button" @click="testConnection" :disabled="testing"
+                                                class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:opacity-50">
+                                                <svg x-show="!testing" class="-ml-0.5 h-4 w-4 text-slate-400"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                </svg>
+                                                <svg x-show="testing"
+                                                    class="animate-spin -ml-0.5 h-4 w-4 text-slate-400" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                <span x-text="testing ? 'Testing...' : 'Test Data Pull'"></span>
+                                            </button>
+                                        </div>
+
+                                        <template x-if="result">
+                                            <div :class="result.success ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'"
+                                                class="rounded-lg p-4 text-sm mb-6">
+                                                <p class="font-bold flex items-center gap-2">
+                                                    <template x-if="result.success">
+                                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd"
+                                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                                clip-rule="evenodd" />
+                                                        </svg>
+                                                    </template>
+                                                    <span x-text="result.message"></span>
+                                                </p>
+
+                                                <template x-if="result.success && result.mapped_data">
+                                                    <div
+                                                        class="mt-3 border-t border-emerald-200 pt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                                                        <div>
+                                                            <span
+                                                                class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Mapped
+                                                                Name</span>
+                                                            <span class="font-medium"
+                                                                x-text="result.mapped_data.name || 'N/A'"></span>
+                                                        </div>
+                                                        <div>
+                                                            <span
+                                                                class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Mapped
+                                                                Email</span>
+                                                            <span class="font-medium"
+                                                                x-text="result.mapped_data.email || 'N/A'"></span>
+                                                        </div>
+                                                        <div class="col-span-2">
+                                                            <span
+                                                                class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Property
+                                                                Details</span>
+                                                            <span class="font-medium"
+                                                                x-text="result.mapped_data.property_name || 'No property mapped'"></span>
+                                                            <span class="block text-xs opacity-80"
+                                                                x-text="result.mapped_data.property_address || ''"></span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+
                                     <div>
                                         <label for="perfex_api_url"
                                             class="block text-sm font-medium leading-6 text-slate-900">API

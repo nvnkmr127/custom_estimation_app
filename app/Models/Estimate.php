@@ -81,6 +81,19 @@ class Estimate extends Model
         'engagement_score',
         'last_engagement_at',
         'last_nurtured_at',
+        'last_viewed_at',
+    ];
+
+    /**
+     * The attributes that should be hidden for arrays.
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'total_cost',
+        'gross_profit',
+        'internal_note',
+        'admin_note',
     ];
 
     public function client()
@@ -169,9 +182,6 @@ class Estimate extends Model
 
     /**
      * Submit estimate for approval workflow
-     */
-    /**
-     * Submit estimate for approval workflow
      * @return \Illuminate\Support\Collection
      */
     public function submitForApproval()
@@ -236,9 +246,6 @@ class Estimate extends Model
         return $createdApprovals;
     }
 
-    /**
-     * Get the next pending approval step
-     */
     /**
      * Get the next pending approval steps (collection)
      */
@@ -423,5 +430,39 @@ class Estimate extends Model
         }
 
         return false;
+    }
+
+    public function validStatusTransitions()
+    {
+        switch ($this->status) {
+            case self::STATUS_DRAFT:
+                return [self::STATUS_WAITING_APPROVAL, self::STATUS_SENT, self::STATUS_DRAFT];
+            case self::STATUS_WAITING_APPROVAL:
+                return [self::STATUS_APPROVED, self::STATUS_DECLINED, self::STATUS_DRAFT];
+            case self::STATUS_APPROVED:
+                return [self::STATUS_SENT, self::STATUS_DRAFT];
+            case self::STATUS_SENT:
+                return [self::STATUS_ACCEPTED, self::STATUS_DECLINED, self::STATUS_DRAFT]; // Can negotiate/update
+            case self::STATUS_ACCEPTED:
+                return [self::STATUS_SENT, self::STATUS_DRAFT]; // Reopen?
+            default:
+                return [self::STATUS_DRAFT];
+        }
+    }
+
+    public function canTransitionTo($newStatus, $user = null)
+    {
+        if ($newStatus === $this->status)
+            return true;
+        $user = $user ?? auth()->user();
+
+        // Admin override
+        if ($user && $user->hasRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        // Standard Lifecycle
+        $valid = $this->validStatusTransitions();
+        return in_array($newStatus, $valid);
     }
 }

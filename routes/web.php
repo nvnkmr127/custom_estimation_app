@@ -13,6 +13,7 @@ Route::get('/user-guide/{page}', [\App\Http\Controllers\DocumentationController:
 // Portal (Signed Routes)
 Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::get('/estimates/{estimate}', [App\Http\Controllers\PortalController::class, 'show'])->name('show')->middleware('signed');
+    Route::get('/estimates/{estimate}/download', [App\Http\Controllers\PortalController::class, 'download'])->name('download')->middleware('signed');
     Route::post('/estimates/{estimate}/accept', [App\Http\Controllers\PortalController::class, 'accept'])->name('accept')->middleware('signed');
     Route::post('/estimates/{estimate}/decline', [App\Http\Controllers\PortalController::class, 'decline'])->name('decline')->middleware('signed');
     Route::post('/estimates/{estimate}/comments', [App\Http\Controllers\PortalController::class, 'comment'])->name('comment')->middleware('signed');
@@ -49,6 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('estimates/{estimate}/pdf', [EstimateController::class, 'downloadPdf'])->name('estimates.pdf');
     Route::post('estimates/preview', [EstimateController::class, 'preview'])->name('estimates.preview');
     Route::post('estimates/batch-download', [EstimateController::class, 'batchDownload'])->name('estimates.batch-download');
+    Route::get('estimates/{estimate}/portal-preview', [EstimateController::class, 'portalPreview'])->name('estimates.portal-preview');
 
     // Analytics
     Route::get('/estimates/{estimate}/analytics', [App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('estimates.analytics');
@@ -110,6 +112,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // System Features
     Route::get('search', App\Http\Controllers\SearchController::class)->name('search');
 
+    // Perfex CRM Search (Accessible to all authenticated users for estimate building)
+    Route::get('/perfex/search', [App\Http\Controllers\PerfexController::class, 'searchClients'])->name('perfex.search');
+
     Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
@@ -127,6 +132,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Settings
         Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'edit'])->name('settings.edit');
         Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
+        Route::get('/settings/perfex/test', [App\Http\Controllers\SettingsController::class, 'testPerfex'])->name('settings.perfex.test');
 
         // Nurture Settings
         Route::get('/settings/nurture', [App\Http\Controllers\Admin\NurtureSettingsController::class, 'index'])->name('settings.nurture');
@@ -167,7 +173,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Perfex
         Route::get('/perfex/leads', [App\Http\Controllers\PerfexController::class, 'index'])->name('perfex.index');
-        Route::get('/perfex/search', [App\Http\Controllers\PerfexController::class, 'searchClients'])->name('perfex.search');
+
         Route::post('/perfex/import', [App\Http\Controllers\PerfexController::class, 'import'])->name('perfex.import');
         Route::post('/estimates/{estimate}/sync', [App\Http\Controllers\PerfexController::class, 'sync'])->name('estimates.sync');
 
@@ -236,3 +242,14 @@ Route::post('/webhooks/perfex', [App\Http\Controllers\PerfexWebhookController::c
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 require __DIR__ . '/auth.php';
+
+Route::get('/debug-estimate-7', function () {
+    $estimate = \App\Models\Estimate::find(7);
+    return [
+        'status' => $estimate ? $estimate->status : 'NOT_FOUND',
+        'generated_url' => $estimate ? $estimate->public_url : 'N/A',
+        'app_url_config' => config('app.url'),
+        'request_host' => request()->getHost(),
+    ];
+});
+

@@ -29,7 +29,7 @@ class AnalyticsService
             ->where('created_at', '>=', now()->subHours(24))
             ->exists();
 
-        $isUnique = ! $existing;
+        $isUnique = !$existing;
 
         $location = $this->resolveLocation($ip);
 
@@ -57,21 +57,22 @@ class AnalyticsService
         // Warning: HTTP call adds latency. Should be queued in production.
         // For this task, we'll do sync but handle errors gracefully.
 
-        try {
-            $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,city");
-            if ($json) {
-                $data = json_decode($json, true);
-                if (isset($data['status']) && $data['status'] === 'success') {
-                    return [
-                        'city' => $data['city'] ?? 'Unknown',
-                        'country' => $data['country'] ?? 'Unknown',
-                    ];
+        return \Illuminate\Support\Facades\Cache::remember("ip_loc_{$ip}", 86400, function () use ($ip) {
+            try {
+                $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,city");
+                if ($json) {
+                    $data = json_decode($json, true);
+                    if (isset($data['status']) && $data['status'] === 'success') {
+                        return [
+                            'city' => $data['city'] ?? 'Unknown',
+                            'country' => $data['country'] ?? 'Unknown',
+                        ];
+                    }
                 }
+            } catch (\Exception $e) {
+                // log error
             }
-        } catch (\Exception $e) {
-            // log error
-        }
-
-        return null;
+            return null;
+        });
     }
 }

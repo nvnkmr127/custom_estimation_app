@@ -20,6 +20,9 @@ class Client extends Model
         'zip',
         'country',
         'perfex_id',
+        'property_name',
+        'property_address',
+        'property_notes',
     ];
 
     public function estimates()

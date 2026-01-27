@@ -47,6 +47,19 @@ class ApprovalController extends Controller
 
             $createdApprovals = $estimate->submitForApproval();
 
+            if ($createdApprovals->isEmpty()) {
+                // No approval chain matched or no steps (Low value or misconfigured)
+                // Auto-approve if no chain is found
+                $estimate->update([
+                    'status' => Estimate::STATUS_APPROVED,
+                    'approval_status' => 'approved'
+                ]);
+
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'auto_skip'));
+
+                return redirect()->back()->with('success', 'Estimate approved automatically as it does not require additional authorization.');
+            }
+
             // Sync status
             $estimate->update(['status' => Estimate::STATUS_WAITING_APPROVAL]);
 

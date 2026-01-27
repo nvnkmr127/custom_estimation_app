@@ -26,6 +26,7 @@ class EventServiceProvider extends ServiceProvider
             WebhookListener::class,
             NotificationListener::class,
             \App\Listeners\AutomationListener::class,
+            \App\Listeners\EstimateIntelligenceListener::class,
         ],
     ];
 

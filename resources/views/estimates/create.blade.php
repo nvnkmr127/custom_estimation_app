@@ -143,6 +143,28 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        <!-- Client & Property Details Display -->
+                        <div x-show="selectedClient" x-transition
+                            class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <span
+                                        class="block text-[10px] uppercase tracking-wider font-bold text-slate-500">Contact
+                                        Details</span>
+                                    <p class="text-sm font-semibold text-slate-900" x-text="selectedClient?.name"></p>
+                                    <p class="text-xs text-slate-600" x-text="selectedClient?.email"></p>
+                                </div>
+                                <div x-show="selectedClient?.property_name || selectedClient?.property_address">
+                                    <span
+                                        class="block text-[10px] uppercase tracking-wider font-bold text-slate-500">Property
+                                        Details</span>
+                                    <p class="text-sm font-semibold text-slate-900"
+                                        x-text="selectedClient?.property_name"></p>
+                                    <p class="text-xs text-slate-600" x-text="selectedClient?.property_address"></p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="sm:col-span-2">
@@ -198,12 +220,14 @@
                         <!-- Type Selection (Radio or Toggle) -->
                         <div class="flex items-center space-x-4 mt-2">
                             <label class="flex items-center">
-                                <input type="radio" name="type" value="room_based" x-model="estimate.type"
+                                <input type="radio" name="type" value="room_based"
+                                    :checked="estimate.type === 'room_based'" @change="confirmModeSwitch($event)"
                                     class="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-600">
                                 <span class="ml-2 block text-sm font-medium text-slate-700">Room-Based</span>
                             </label>
                             <label class="flex items-center">
-                                <input type="radio" name="type" value="standard" x-model="estimate.type"
+                                <input type="radio" name="type" value="standard" :checked="estimate.type === 'standard'"
+                                    @change="confirmModeSwitch($event)"
                                     class="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-600">
                                 <span class="ml-2 block text-sm font-medium text-slate-700">Standard List</span>
                             </label>
@@ -237,13 +261,39 @@
                             </svg>
                             Add Room
                         </button>
+
+                        <div class="relative" x-data="{ pkgOpen: false }" @click.away="pkgOpen = false"
+                            x-show="estimate.type === 'room_based'">
+                            <button type="button" @click="pkgOpen = !pkgOpen"
+                                class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50">
+                                <svg class="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                                </svg>
+                                Add Package
+                            </button>
+                            <div x-show="pkgOpen"
+                                class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                style="display: none;">
+                                <div class="py-1">
+                                    <template x-for="pkg in packages" :key="pkg.id">
+                                        <button type="button" @click="applyPackage(pkg, null); pkgOpen = false"
+                                            class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                                            x-text="pkg.name"></button>
+                                    </template>
+                                    <div x-show="packages.length === 0" class="px-4 py-2 text-sm text-slate-500">No
+                                        packages available</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Room-Based List -->
                 <div x-show="estimate.type === 'room_based'" class="space-y-6 sections-container">
                     <template x-for="(section, sectionIndex) in estimate.sections" :key="sectionIndex">
-                        <div class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+                        <div class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden"
+                            :data-section-index="sectionIndex">
                             <!-- Room Header -->
                             <div
                                 class="bg-slate-50 border-b border-slate-200 px-4 py-3 sm:px-6 flex items-center justify-between gap-4">
@@ -256,33 +306,16 @@
                                     </div>
                                     <input type="text" x-model="section.name" placeholder="Room Name (e.g. Living Area)"
                                         class="block w-full text-lg font-bold bg-transparent border-0 p-0 text-slate-900 focus:ring-0 placeholder:text-slate-400">
+                                    <template x-if="section.is_package">
+                                        <span
+                                            class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 uppercase tracking-widest leading-none">
+                                            Package
+                                        </span>
+                                    </template>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <!-- Package Loader for Section -->
-                                    <div class="relative" x-data="{ pkgOpen: false }" @click.away="pkgOpen = false">
-                                        <button type="button" @click="pkgOpen = !pkgOpen"
-                                            class="text-xs font-semibold text-indigo-600 hover:text-indigo-900 flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded">
-                                            + Add Package
-                                        </button>
-                                        <div x-show="pkgOpen"
-                                            class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                                            style="display: none;">
-                                            <div class="py-1">
-                                                <template x-for="pkg in packages" :key="pkg.id">
-                                                    <button type="button"
-                                                        @click="applyPackage(pkg, sectionIndex); pkgOpen = false"
-                                                        class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
-                                                        x-text="pkg.name"></button>
-                                                </template>
-                                                <div x-show="packages.length === 0"
-                                                    class="px-4 py-2 text-sm text-slate-500">No packages</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="h-4 w-px bg-slate-300 mx-1"></div>
-
                                     <button type="button" @click="openProductPicker(sectionIndex)"
+                                        x-show="!section.is_package"
                                         class="text-sm font-medium text-slate-600 hover:text-indigo-600">
                                         + Add Item
                                     </button>
@@ -299,23 +332,23 @@
                                     <thead class="bg-slate-50/50">
                                         <tr>
                                             <th scope="col" class="w-10 py-4 px-3"></th>
-                                            <th scope="col"
+                                            <th scope="col" x-show="!section.is_package"
                                                 class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
                                                 Image
                                             </th>
-                                            <th scope="col"
+                                            <th scope="col" x-show="!section.is_package"
                                                 class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
                                                 Unit Configuration</th>
                                             <th scope="col"
                                                 class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                 Item Details</th>
-                                            <th scope="col"
+                                            <th scope="col" x-show="!section.is_package"
                                                 class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                                 Size</th>
                                             <th scope="col"
                                                 class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                                 Price</th>
-                                            <th scope="col"
+                                            <th scope="col" x-show="!section.is_package"
                                                 class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
                                                 Quantity</th>
                                             <th scope="col"
@@ -325,8 +358,10 @@
                                                     class="sr-only">Actions</span></th>
                                         </tr>
                                     </thead>
-                                    <tbody class="bg-white divide-y divide-slate-200 section-items-sortable">
-                                        <template x-for="(item, itemIndex) in section.items" :key="itemIndex">
+                                    <tbody class="bg-white divide-y divide-slate-200 section-items-sortable"
+                                        :data-section-index="sectionIndex">
+                                        <template x-for="(item, itemIndex) in section.items"
+                                            :key="item._uid || item.id || itemIndex">
                                             <tr class="group hover:bg-slate-50/50 transition-all duration-200">
                                                 <td
                                                     class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
@@ -336,7 +371,7 @@
                                                             stroke-width="2" d="M4 8h16M4 16h16" />
                                                     </svg>
                                                 </td>
-                                                <td class="px-3 py-4 align-middle">
+                                                <td class="px-3 py-4 align-middle" x-show="!section.is_package">
                                                     <template x-if="item.image_url">
                                                         <div class="relative h-12 w-12 mx-auto">
                                                             <img :src="item.image_url"
@@ -355,7 +390,7 @@
                                                         </div>
                                                     </template>
                                                 </td>
-                                                <td class="px-3 py-4">
+                                                <td class="px-3 py-4" x-show="!section.is_package">
                                                     <div class="flex flex-col gap-2">
                                                         <!-- Initial State: Show Button if no unit type assigned -->
                                                         <template x-if="!item.unit_type_id && !item._showTypePicker">
@@ -440,7 +475,7 @@
                                                         </div>
                                                     </template>
                                                 </td>
-                                                <td class="px-3 py-4">
+                                                <td class="px-3 py-4" x-show="!section.is_package">
                                                     <div class="relative">
                                                         <input type="text" x-model="item.size" placeholder="Enter Size"
                                                             class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-3 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all placeholder:text-slate-400"
@@ -475,6 +510,7 @@
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.height" placeholder="0"
+                                                                        @input="calculateQuantity(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -482,10 +518,10 @@
                                                             </div>
                                                             <div class="flex flex-col items-center">
                                                                 <span
-                                                                    class="text-[10px] font-bold text-slate-300 mb-0.5">AREA</span>
+                                                                    class="text-[10px] font-bold text-slate-300 mb-0.5">VOLUME</span>
                                                                 <span
                                                                     class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
-                                                                    x-text="(item.length && item.width) ? (item.length * item.width).toFixed(2) : '0.00'"></span>
+                                                                    x-text="(item.length && item.width && item.height) ? (item.length * item.width * item.height).toFixed(2) : '0.00'"></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -500,7 +536,7 @@
                                                             class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
                                                     </div>
                                                 </td>
-                                                <td class="px-3 py-4">
+                                                <td class="px-3 py-4" x-show="!section.is_package">
                                                     <div class="flex items-center justify-center gap-1.5">
                                                         <input type="number" step="0.01" x-model="item.quantity"
                                                             @input="calculateTotals"
@@ -581,14 +617,7 @@
 
                     </template>
 
-                    <button type="button" @click="openProductPicker(null)"
-                        class="w-full py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex items-center justify-center gap-2">
-                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                                d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                        </svg>
-                        Add Item
-                    </button>
+
                 </div>
 
                 <!-- Standard List Table -->
@@ -624,7 +653,8 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200 standard-items-sortable">
-                            <template x-for="(item, itemIndex) in estimate.items" :key="itemIndex">
+                            <template x-for="(item, itemIndex) in estimate.items"
+                                :key="item._uid || item.id || itemIndex">
                                 <tr class="group hover:bg-slate-50/50 transition-all duration-200">
                                     <td
                                         class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
@@ -635,26 +665,30 @@
                                         </svg>
                                     </td>
                                     <td class="px-3 py-4 align-middle">
-                                        <template x-if="item.image_url">
-                                            <div class="relative h-12 w-12 mx-auto">
-                                                <img :src="item.image_url"
-                                                    class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
-                                            </div>
-                                        </template>
-                                        <template x-if="!item.image_url">
-                                            <div
-                                                class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
-                                                <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
-                                                    stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
+                                        <template x-if="!item.is_package">
+                                            <div>
+                                                <template x-if="item.image_url">
+                                                    <div class="relative h-12 w-12 mx-auto">
+                                                        <img :src="item.image_url"
+                                                            class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
+                                                    </div>
+                                                </template>
+                                                <template x-if="!item.image_url">
+                                                    <div
+                                                        class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
+                                                        <svg class="h-6 w-6 text-slate-300" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
                                     </td>
                                     <td class="px-3 py-4">
-                                        <div class="flex flex-col gap-2">
+                                        <div class="flex flex-col gap-2" x-show="!item.is_package">
                                             <!-- Initial State: Show Button if no unit type assigned -->
                                             <template x-if="!item.unit_type_id && !item._showTypePicker">
                                                 <button type="button" @click="item._showTypePicker = true"
@@ -733,7 +767,7 @@
                                         <div class="relative">
                                             <input type="text" x-model="item.size" placeholder="Enter Size"
                                                 class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-3 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all placeholder:text-slate-400"
-                                                x-show="!item.showCalculator">
+                                                x-show="!item.showCalculator && !item.is_package">
 
                                             <div x-show="item.showCalculator"
                                                 class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"
@@ -761,7 +795,7 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                                         <input type="number" step="0.01" x-model="item.height"
-                                                            placeholder="0"
+                                                            placeholder="0" @input="calculateQuantity(item)"
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -769,10 +803,10 @@
                                                 </div>
                                                 <div class="flex flex-col items-center">
                                                     <span
-                                                        class="text-[10px] font-bold text-slate-300 mb-0.5">AREA</span>
+                                                        class="text-[10px] font-bold text-slate-300 mb-0.5">VOLUME</span>
                                                     <span
                                                         class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
-                                                        x-text="(item.length && item.width) ? (item.length * item.width).toFixed(2) : '0.00'"></span>
+                                                        x-text="(item.length && item.width && item.height) ? (item.length * item.width * item.height).toFixed(2) : '0.00'"></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -788,7 +822,7 @@
                                         </div>
                                     </td>
                                     <td class="px-3 py-4">
-                                        <div class="flex items-center justify-center gap-1.5">
+                                        <div class="flex items-center justify-center gap-1.5" x-show="!item.is_package">
                                             <input type="number" step="0.01" x-model="item.quantity"
                                                 @input="calculateTotals"
                                                 class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all"

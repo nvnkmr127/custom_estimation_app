@@ -61,8 +61,13 @@
                 discount: 0,
                 grandTotal: 0
             },
+            selectedClient: null,
             isSubmitting: false,
             validationErrors: [],
+
+            generateUid() {
+                return 'item-' + Math.random().toString(36).substr(2, 9);
+            },
 
             hasCustomItems() {
                 const allItems = this.estimate.type === 'room_based'
@@ -70,6 +75,38 @@
                     : this.estimate.items;
                 // Custom items have no product_id (or null)
                 return allItems.some(i => !i.product_id);
+            },
+
+            confirmModeSwitch(event) {
+                const newType = event.target.value;
+                // Current type is still in this.estimate.type because x-model syncs slightly differently or we override it
+                // Actually, if we use @change, x-model might have fired. 
+                // Better to use @click.prevent on the inputs in the View, logic here just handles the check.
+                // But the plan says: update radio buttons to use @change.
+
+                const currentType = this.estimate.type;
+
+                // If x-model already updated, we can't detect "change" easily from old state unless we track it.
+                // However, let's assume valid event.target.value is the *new* destination.
+
+                let hasItems = false;
+                if (currentType === 'room_based') {
+                    hasItems = this.estimate.sections.some(s => s.items.length > 0);
+                } else {
+                    hasItems = this.estimate.items.length > 0;
+                }
+
+                if (hasItems && newType !== currentType) {
+                    if (!confirm('Switching modes will hide your current items and they will be lost if you save. Do you want to continue?')) {
+                        // Revert
+                        this.estimate.type = currentType;
+                        event.target.checked = false; // Visual fix if needed, Alpine should handle it
+                        // Find the old radio and check it? Alpine x-model should do it if we set privacy.
+                        return; // Stop
+                    }
+                }
+                // If confirmed or no items, allow the change (x-model will handle update, or we set it)
+                this.estimate.type = newType;
             },
 
             filteredProducts() {
@@ -111,20 +148,45 @@
                     // Preserve dimension fields
                     item.length = item.length || '';
                     item.width = item.width || '';
+                    item.height = item.height || '';
                     item.formula = item.formula || '';
-                    // Auto-show calculator if item has length and width values
-                    item.showCalculator = !!(item.length && item.width);
+                    // Auto-show calculator if item has length, width and height values
+                    item.showCalculator = !!(item.length && item.width && item.height);
                     // Hydrate image from relation if available and not set
                     if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
                         item.image_url = '/storage/' + item.product.images[0].image_path;
                     }
                     if (!item.options) item.options = [];
+                    // Detect if item is from a package
+                    item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
                 };
 
                 if (this.estimate.type === 'room_based') {
-                    this.estimate.sections.forEach(s => s.items.forEach(hydrateItem));
+                    this.estimate.sections.forEach(s => {
+                        s.items.forEach(i => {
+                            hydrateItem(i);
+                            if (!i._uid) i._uid = 'item-' + Math.random().toString(36).substr(2, 9);
+                        });
+                        // Automatically detect if this section was added as a package
+                        if (s.items.length > 0 && s.items.every(i => i.is_package)) {
+                            s.is_package = true;
+                        }
+                    });
                 } else {
-                    this.estimate.items.forEach(hydrateItem);
+                    this.estimate.items.forEach(i => {
+                        hydrateItem(i);
+                        if (!i._uid) i._uid = 'item-' + Math.random().toString(36).substr(2, 9);
+                    });
+                }
+
+                // If editing (has client_id), fetch full client details
+                if (this.estimate.client_id) {
+                    fetch(`/clients/${this.estimate.client_id}`, {
+                        headers: { 'Accept': 'application/json' }
+                    })
+                        .then(r => r.json())
+                        .then(data => { this.selectedClient = data; })
+                        .catch(err => console.error('Error fetching initial client', err));
                 }
 
                 this.calculateTotals();
@@ -161,6 +223,11 @@
                     fetch(`{{ route('perfex.search') }}?q=${query}`)
                         .then(response => response.json())
                         .then(data => {
+                            if (!Array.isArray(data)) {
+                                console.error('Perfex Search Error:', data);
+                                choices.setChoices([], 'value', 'label', true);
+                                return;
+                            }
                             const formattedData = data.map(client => ({
                                 value: client.id,
                                 label: client.name + (client.email ? ` (${client.email})` : '')
@@ -171,7 +238,24 @@
                 });
 
                 el.addEventListener('change', (event) => {
-                    this.estimate.client_id = event.detail.value;
+                    const clientId = event.detail.value;
+                    this.estimate.client_id = clientId;
+                    this.selectedClient = null;
+
+                    if (clientId) {
+                        fetch(`/clients/${clientId}`, {
+                            headers: { 'Accept': 'application/json' }
+                        })
+                            .then(r => r.json())
+                            .then(data => {
+                                this.selectedClient = data;
+                                // Optionally auto-fill notes or other fields
+                                if (data.property_notes && !this.estimate.admin_note) {
+                                    this.estimate.admin_note = 'Property Notes: ' + data.property_notes;
+                                }
+                            })
+                            .catch(err => console.error('Error fetching client details', err));
+                    }
                 });
             },
 
@@ -309,10 +393,13 @@
                     image_url: (product.images && product.images.length > 0) ? '/storage/' + product.images[0].image_path : null,
                     length: '',
                     width: '',
+                    height: '',
                     formula: isFormula ? 'area' : '',
                     showCalculator: isFormula,
                     _showTypePicker: false,
-                    options: []
+                    options: [],
+                    is_package: false,
+                    _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                 };
                 this.pushItem(newItem);
                 this.productPicker.isOpen = false;
@@ -389,10 +476,13 @@
                     image_url: (product.images && product.images.length > 0) ? '/storage/' + product.images[0].image_path : null,
                     length: '',
                     width: '',
+                    height: '',
                     formula: isFormula ? 'area' : '',
                     showCalculator: isFormula,
                     _showTypePicker: false,
-                    options: selectedOptionsList
+                    options: selectedOptionsList,
+                    is_package: false,
+                    _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                 };
 
                 this.pushItem(newItem);
@@ -418,6 +508,7 @@
                     tax_2: 0,
                     length: '',
                     width: '',
+                    height: '',
                     formula: '',
                     showCalculator: false,
                     options: []
@@ -427,7 +518,7 @@
             },
 
             pushItem(item) {
-                if (this.productPicker.sectionIndex !== null) {
+                if (typeof this.productPicker.sectionIndex !== 'undefined' && this.productPicker.sectionIndex !== null) {
                     this.estimate.sections[this.productPicker.sectionIndex].items.push(item);
                 } else {
                     this.estimate.items.push(item);
@@ -521,9 +612,11 @@
                             image_url: imageUrl,
                             tax_1: 0,
                             tax_2: 0,
-                            length: '', width: '', formula: '', showCalculator: false,
+                            length: '', width: '', height: '', formula: '', showCalculator: false,
                             _showTypePicker: !!unitTypeIdString, // Show picker if unit type is set
-                            options: []
+                            options: [],
+                            is_package: false,
+                            _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                         };
                     });
                 }
@@ -545,30 +638,50 @@
                     description: `Package: ${pkg.name}`,
                     tax_1: 0,
                     tax_2: 0,
-                    length: '', width: '', formula: '', showCalculator: false,
-                    options: []
+                    length: '', width: '', height: '', formula: '', showCalculator: false,
+                    options: [],
+                    is_package: true,
+                    _uid: this.generateUid() // Add UID for package items
                 }));
-                if (sIdx !== null) this.estimate.sections[sIdx].items.push(...newItems);
-                else this.estimate.items.push(...newItems);
+                if (this.estimate.type === 'room_based') {
+                    this.estimate.sections.push({
+                        name: pkg.name,
+                        items: newItems,
+                        is_package: true
+                    });
+                    this.$nextTick(() => this.initSortable());
+                } else {
+                    this.estimate.items.push(...newItems);
+                }
                 this.calculateTotals();
             },
 
             // --- Calculations ---
             calculateItemTotal(item) {
-                return (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0);
+                const total = (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0);
+                return parseFloat(total.toFixed(2));
+            },
+
+            calculateSectionTotal(section) {
+                if (!section.items) return 0;
+                return section.items.reduce((sum, item) => sum + this.calculateItemTotal(item), 0);
             },
 
             calculateTotals() {
                 let subtotal = 0;
                 let totalTax = 0;
-                const allItems = this.estimate.type === 'room_based'
-                    ? this.estimate.sections.flatMap(s => s.items)
-                    : this.estimate.items;
 
-                allItems.forEach(item => {
-                    const itemTotal = this.calculateItemTotal(item);
-                    subtotal += itemTotal;
-                });
+                if (this.estimate.type === 'room_based') {
+                    this.estimate.sections.forEach(section => {
+                        const secTotal = this.calculateSectionTotal(section);
+                        section.subtotal = secTotal; // Update section subtotal for persistence
+                        subtotal += secTotal;
+                    });
+                } else {
+                    this.estimate.items.forEach(item => {
+                        subtotal += this.calculateItemTotal(item);
+                    });
+                }
 
                 const t1Rate = (parseFloat(this.estimate.tax_1) || 0) / 100;
                 const t2Rate = (parseFloat(this.estimate.tax_2) || 0) / 100;
@@ -596,13 +709,15 @@
             calculateQuantity(item) {
                 if (item.length < 0) item.length = 0;
                 if (item.width < 0) item.width = 0;
+                if (item.height < 0) item.height = 0;
 
-                if (item.length && item.width) {
+                if (item.length && item.width && item.height) {
                     const l = parseFloat(item.length) || 0;
                     const w = parseFloat(item.width) || 0;
-                    if (l >= 0 && w >= 0) {
-                        item.quantity = (l * w).toFixed(2);
-                        item.formula = 'area';
+                    const h = parseFloat(item.height) || 0;
+                    if (l >= 0 && w >= 0 && h >= 0) {
+                        item.quantity = (l * w * h).toFixed(2);
+                        item.formula = 'volume';
                         this.calculateTotals();
                     }
                 }

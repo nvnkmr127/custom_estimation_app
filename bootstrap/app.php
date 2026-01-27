@@ -36,22 +36,24 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->report(function (\Throwable $e) {
             try {
-                // Resolve dispatcher and dispatch SystemError
-                // We wrap in try-catch to avoid infinite loops if dispatch fails during exception handling
-                app(\App\Core\Events\EventDispatcherInterface::class)->dispatch(
-                    new \App\Core\Events\System\SystemError(
-                        $e->getMessage(),
-                        [
-                            'file' => $e->getFile(),
-                            'line' => $e->getLine(),
-                            'class' => get_class($e),
-                            // 'trace' => $e->getTraceAsString() // Optional: might be too large for context
-                        ]
-                    )
-                );
+                // Check if container has the binding first
+                if (app()->bound(\App\Core\Events\EventDispatcherInterface::class)) {
+                    app(\App\Core\Events\EventDispatcherInterface::class)->dispatch(
+                        new \App\Core\Events\System\SystemError(
+                            $e->getMessage(),
+                            [
+                                'file' => $e->getFile(),
+                                'line' => $e->getLine(),
+                                'class' => get_class($e),
+                            ]
+                        )
+                    );
+                }
             } catch (\Throwable $loggingError) {
                 // Fallback logging if event dispatching fails
-                \Illuminate\Support\Facades\Log::error("Failed to dispatch SystemError event: " . $loggingError->getMessage());
+                // Use stderr to ensure it's visible in tests even if file log fails
+                fwrite(STDERR, "CRITICAL FALLBACK: Failed to dispatch SystemError event. Original Error: " . $e->getMessage() . "\n");
+                // \Illuminate\Support\Facades\Log::error("Failed to dispatch SystemError event: " . $loggingError->getMessage());
             }
 
             if ($e instanceof \Illuminate\Database\QueryException) {

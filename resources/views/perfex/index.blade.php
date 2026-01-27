@@ -42,6 +42,8 @@
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status
                     </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email
                     </th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action
@@ -69,6 +71,10 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="font-medium text-slate-900">{{ $lead['property_name'] ?? '-' }}</div>
+                                <div class="text-xs text-slate-500">{{ $lead['property_address'] ?? '' }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $lead['email'] ?? '-' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -79,6 +85,8 @@
                                     <input type="hidden" name="name" value="{{ $lead['name'] ?? '' }}">
                                     <input type="hidden" name="company" value="{{ $lead['company'] ?? '' }}">
                                     <input type="hidden" name="email" value="{{ $lead['email'] ?? '' }}">
+                                    <input type="hidden" name="property_name" value="{{ $lead['property_name'] ?? '' }}">
+                                    <input type="hidden" name="property_address" value="{{ $lead['property_address'] ?? '' }}">
                                     <button type="submit"
                                         class="text-indigo-600 hover:text-indigo-900 font-semibold">Import</button>
                                 </form>

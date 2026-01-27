@@ -33,10 +33,21 @@ class EstimateItem extends Model
         'formula',
         'internal_note',
         'options',
+        'is_package',
     ];
 
     protected $casts = [
         'options' => 'array',
+    ];
+
+    /**
+     * The attributes that should be hidden for arrays.
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'cost',
+        'internal_note',
     ];
 
     public function estimate()
