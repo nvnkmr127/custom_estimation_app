@@ -92,7 +92,6 @@ class Estimate extends Model
     protected $hidden = [
         'total_cost',
         'gross_profit',
-        'internal_note',
         'admin_note',
     ];
 
@@ -415,7 +414,7 @@ class Estimate extends Model
 
     public function userCanEdit($user)
     {
-        if ($user->id === $this->created_by) {
+        if ($user->id == $this->created_by) {
             return true;
         }
 

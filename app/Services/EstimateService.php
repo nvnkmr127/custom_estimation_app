@@ -56,6 +56,7 @@ class EstimateService
                         $section = $estimate->sections()->create([
                             'name' => $sectionData['name'],
                             'order_index' => $sectionIndex,
+                            'is_package' => $sectionData['is_package'] ?? false,
                         ]);
 
                         if (isset($sectionData['items'])) {
@@ -188,17 +189,20 @@ class EstimateService
                             $section->update([
                                 'name' => $sectionData['name'],
                                 'order_index' => $sectionIndex,
+                                'is_package' => $sectionData['is_package'] ?? false,
                             ]);
                         } else {
                             $section = $estimate->sections()->create([
                                 'name' => $sectionData['name'],
                                 'order_index' => $sectionIndex,
+                                'is_package' => $sectionData['is_package'] ?? false,
                             ]);
                         }
                     } else {
                         $section = $estimate->sections()->create([
                             'name' => $sectionData['name'],
                             'order_index' => $sectionIndex,
+                            'is_package' => $sectionData['is_package'] ?? false,
                         ]);
                     }
 
@@ -317,6 +321,7 @@ class EstimateService
             'internal_note' => $itemData['internal_note'] ?? null,
             'unit_type_id' => $itemData['unit_type_id'] ?? null,
             'options' => $itemData['options'] ?? null,
+            'is_package' => $itemData['is_package'] ?? false,
         ]);
     }
 
@@ -360,6 +365,7 @@ class EstimateService
             'internal_note' => $itemData['internal_note'] ?? null,
             'unit_type_id' => $itemData['unit_type_id'] ?? null,
             'options' => $itemData['options'] ?? null,
+            'is_package' => $itemData['is_package'] ?? false,
         ]);
     }
 

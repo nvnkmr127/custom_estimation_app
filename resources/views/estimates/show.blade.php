@@ -47,7 +47,7 @@
             <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl overflow-hidden">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">
-                        {{ $estimate->type === 'room_based' ? 'Rooms & Items' : 'Line Items' }}
+                        {{ $estimate->type === 'room_based' ? 'Rooms & Items (Updated)' : 'Line Items' }}
                     </h2>
 
                     @if($estimate->type === 'room_based')
@@ -61,6 +61,7 @@
                                     <table class="min-w-full divide-y divide-slate-200">
                                         <thead class="bg-slate-50/50">
                                             <tr>
+                                                @if(!$section->is_package)
                                                 <th
                                                     class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
                                                     Image
@@ -68,18 +69,23 @@
                                                 <th
                                                     class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
                                                     Unit Configuration</th>
+                                                @endif
                                                 <th
                                                     class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                     Item Details</th>
+                                                @if(!$section->is_package)
                                                 <th
                                                     class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                                     Size</th>
+                                                @endif
                                                 <th
                                                     class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                                     Price</th>
+                                                @if(!$section->is_package)
                                                 <th
                                                     class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
                                                     Quantity</th>
+                                                @endif
                                                 <th
                                                     class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
                                                     Total</th>
@@ -88,6 +94,7 @@
                                         <tbody class="divide-y divide-slate-200 bg-white">
                                             @foreach($section->items as $item)
                                                 <tr class="group hover:bg-slate-50/30 transition-colors">
+                                                    @if(!$section->is_package)
                                                     <td class="px-3 py-4 align-middle">
                                                         @if($item->product && $item->product->images->isNotEmpty())
                                                             <div class="relative h-12 w-12 mx-auto">
@@ -116,6 +123,7 @@
                                                             {{ $item->unit_type }}
                                                         </div>
                                                     </td>
+                                                    @endif
                                                     <td
                                                         class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
                                                         <div class="min-w-0">
@@ -170,37 +178,45 @@
                                                             </button>
                                                         </div>
                                                     </td>
+                                                    @if(!$section->is_package)
                                                     <td
                                                         class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                        @if($item->length && $item->width)
+                                                        @if($item->length || $item->width || $item->height)
                                                             <div class="flex flex-col gap-1.5">
-                                                                <div class="flex items-center gap-2">
-                                                                    <span
-                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                    <span
-                                                                        class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
-                                                                        ft</span>
-                                                                </div>
-                                                                <div class="flex items-center gap-2">
-                                                                    <span
-                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                    <span
-                                                                        class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
-                                                                        ft</span>
-                                                                </div>
+                                                                @if($item->length)
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
+                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }} ft</span>
+                                                                    </div>
+                                                                @endif
+                                                                @if($item->width)
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
+                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }} ft</span>
+                                                                    </div>
+                                                                @endif
+                                                                @if($item->height)
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }} ft</span>
+                                                                    </div>
+                                                                @endif
                                                             </div>
                                                         @else
                                                             <span class="text-xs text-slate-400">-</span>
                                                         @endif
                                                     </td>
+                                                    @endif
                                                     <td
                                                         class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
                                                         {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
                                                     </td>
+                                                    @if(!$section->is_package)
                                                     <td
                                                         class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
                                                         <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
                                                     </td>
+                                                    @endif
                                                     <td
                                                         class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
                                                         {{ $estimate->currency }} {{ number_format($item->total, 2) }}
@@ -210,7 +226,7 @@
                                         </tbody>
                                         <tfoot class="bg-slate-50">
                                             <tr>
-                                                <td colspan="3" class="px-3 py-2 text-xs font-medium text-slate-500 text-right">
+                                                <td colspan="{{ $section->is_package ? '1' : '3' }}" class="px-3 py-2 text-xs font-medium text-slate-500 text-right">
                                                     Room Total</td>
                                                 <td class="px-3 py-2 text-xs font-bold text-slate-900 text-right">
                                                     {{ number_format($section->items->sum('total'), 2) }}
@@ -330,22 +346,30 @@
                                                                                     </div>
                                                                                 </td>
                                                                                 <td class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                                    @if($item->length && $item->width)
-                                                                                        <div class="flex flex-col gap-1.5">
-                                                                                            <div class="flex items-center gap-2">
-                                                                                                <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                                                <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
-                                                                                                    ft</span>
-                                                                                            </div>
-                                                                                            <div class="flex items-center gap-2">
-                                                                                                <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                                                <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
-                                                                                                    ft</span>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    @else
-                                                                                        <span class="text-xs text-slate-400">-</span>
-                                                                                    @endif
+                                                                                    @if($item->length || $item->width || $item->height)
+                                                            <div class="flex flex-col gap-1.5">
+                                                                @if($item->length)
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
+                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }} ft</span>
+                                                                    </div>
+                                                                @endif
+                                                                @if($item->width)
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
+                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }} ft</span>
+                                                                    </div>
+                                                                @endif
+                                                                @if($item->height)
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }} ft</span>
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        @else
+                                                            <span class="text-xs text-slate-400">-</span>
+                                                        @endif
                                                                                 </td>
                                                                                 <td
                                                                                     class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">

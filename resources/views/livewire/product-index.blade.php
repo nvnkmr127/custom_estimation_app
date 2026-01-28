@@ -499,6 +499,7 @@
                                             <select wire:model.live="productForm.calculation_method" :disabled="!$wire.isEditing" class="block w-full rounded-2xl border-slate-200 py-3 shadow-sm focus:ring-2 focus:ring-indigo-600 transition-all sm:text-sm appearance-none bg-no-repeat bg-[right_1rem_center] bg-[length:1em] disabled:bg-slate-50 disabled:text-slate-500">
                                                 <option value="standard">Standard (Qty * Unit Price)</option>
                                                 <option value="area">Area Based (L * W * Qty * Unit Price)</option>
+                                                <option value="area_lh">Area Based (L * H * Qty * Unit Price)</option>
                                                 <option value="volume">Volume Based (L * W * H * Qty * Unit Price)</option>
                                                 <option value="formula">Formula (Custom Expression)</option>
                                             </select>

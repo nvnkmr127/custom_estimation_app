@@ -21,7 +21,7 @@ class EstimatePolicy
             return true;
         }
 
-        if ($estimate->created_by === $user->id) {
+        if ($estimate->created_by == $user->id) {
             return true;
         }
 
@@ -57,7 +57,7 @@ class EstimatePolicy
             return false;
         }
 
-        if ($user->id === $estimate->created_by) {
+        if ($user->id == $estimate->created_by) {
             return true;
         }
 

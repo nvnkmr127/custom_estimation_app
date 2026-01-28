@@ -289,6 +289,19 @@ class EstimateController extends Controller
         $this->authorize('view', $estimate);
 
         $estimate->load('items.product.images', 'items.unitType', 'items.comments.user', 'sections.items.product.images', 'sections.items.unitType', 'sections.items.comments.user', 'approvals.user', 'checklistItems', 'creator');
+
+        // Explicitly make cost, internal_note, and admin_note visible for staff/admin view
+        $estimate->makeVisible(['admin_note']);
+        if ($estimate->items) {
+            $estimate->items->makeVisible(['cost', 'internal_note']);
+        }
+        if ($estimate->sections) {
+            foreach ($estimate->sections as $section) {
+                if ($section->items) {
+                    $section->items->makeVisible(['cost', 'internal_note']);
+                }
+            }
+        }
         $checklists = ApprovalChecklist::getAllCached();
         $declineReasons = DeclineReason::getActiveCached();
 
@@ -349,7 +362,8 @@ class EstimateController extends Controller
         $categories = ProductCategory::orderBy('name')->get();
         $estimate->load(['sections.items.product.images', 'items.product.images', 'couponCode']);
 
-        // Explicitly make cost and internal_note visible for staff/admin view
+        // Explicitly make cost, internal_note, and admin_note visible for staff/admin view
+        $estimate->makeVisible(['admin_note']);
         if ($estimate->items) {
             $estimate->items->makeVisible(['cost', 'internal_note']);
         }

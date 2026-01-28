@@ -151,7 +151,7 @@
                     item.height = item.height || '';
                     item.formula = item.formula || '';
                     // Auto-show calculator if item has length, width and height values
-                    item.showCalculator = !!(item.length && item.width && item.height);
+                    item.showCalculator = !!(item.length || item.width || item.height) || (item.formula === 'area' || item.formula === 'volume' || item.formula === 'area_lh');
                     // Hydrate image from relation if available and not set
                     if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
                         item.image_url = '/storage/' + item.product.images[0].image_path;
@@ -159,6 +159,23 @@
                     if (!item.options) item.options = [];
                     // Detect if item is from a package
                     item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
+                    // Ensure product_id is set if product relation exists
+                    if (!item.product_id && item.product) {
+                        item.product_id = item.product.id;
+                    }
+
+                    // Fallback: Match by name if product_id is missing (handles legacy saved items)
+                    if (!item.product_id) {
+                        const nameToMatch = (item.name || '').trim().toLowerCase();
+                        if (nameToMatch) {
+                            // Note: 'this.products' might not be available in 'hydrateItem' scope directly if it's outside.
+                            // However, 'hydrateItem' is defined INSIDE 'estimateBuilder' return object or scope.
+                            // Let's check context. hydrateItem is defined inside the component scope.
+                            // usage: this.products exists in component.
+                            const found = this.products.find(p => (p.name || '').trim().toLowerCase() === nameToMatch);
+                            if (found) item.product_id = found.id;
+                        }
+                    }
                 };
 
                 if (this.estimate.type === 'room_based') {
@@ -367,7 +384,11 @@
                     return;
                 }
 
-                const isFormula = product.calculation_method === 'formula';
+                const calcMethod = product.calculation_method;
+                const showCalc = ['formula', 'area', 'volume', 'area_lh'].includes(calcMethod);
+                let initFormula = '';
+                if (calcMethod === 'formula') initFormula = 'area';
+                else if (['area', 'volume', 'area_lh'].includes(calcMethod)) initFormula = calcMethod;
 
                 let sizeString = '';
                 if (product.dimensions) {
@@ -394,8 +415,8 @@
                     length: '',
                     width: '',
                     height: '',
-                    formula: isFormula ? 'area' : '',
-                    showCalculator: isFormula,
+                    formula: initFormula,
+                    showCalculator: showCalc,
                     _showTypePicker: false,
                     options: [],
                     is_package: false,
@@ -432,7 +453,11 @@
 
             confirmConfig() {
                 const product = this.configModal.product;
-                const isFormula = product.calculation_method === 'formula';
+                const calcMethod = product.calculation_method;
+                const showCalc = ['formula', 'area', 'volume', 'area_lh'].includes(calcMethod);
+                let initFormula = '';
+                if (calcMethod === 'formula') initFormula = 'area';
+                else if (['area', 'volume', 'area_lh'].includes(calcMethod)) initFormula = calcMethod;
 
                 let finalPrice = this.configModal.basePrice;
                 const selectedOptionsList = [];
@@ -477,8 +502,8 @@
                     length: '',
                     width: '',
                     height: '',
-                    formula: isFormula ? 'area' : '',
-                    showCalculator: isFormula,
+                    formula: initFormula,
+                    showCalculator: showCalc,
                     _showTypePicker: false,
                     options: selectedOptionsList,
                     is_package: false,
@@ -600,9 +625,22 @@
                         const unitTypeId = i.unit_type_id || i.product?.unit_type_id || null;
                         const unitTypeIdString = unitTypeId ? String(unitTypeId) : null;
 
+                        // Extract product_id if available, or try to find by name
+                        let productId = i.product_id || (i.product ? i.product.id : null);
+
+                        // Fallback: Match by name if product_id is missing (handles legacy templates)
+                        if (!productId) {
+                            const nameToMatch = (i.item_name || i.name || '').trim().toLowerCase();
+                            if (nameToMatch) {
+                                const found = this.products.find(p => (p.name || '').trim().toLowerCase() === nameToMatch);
+                                if (found) productId = found.id;
+                            }
+                        }
+
                         return {
                             id: null,
                             name: i.item_name || i.name || '',
+                            product_id: productId,
                             unit_price: parseFloat(i.unit_price || 0),
                             quantity: parseFloat(i.quantity || 1),
                             size: i.size || '',
@@ -719,6 +757,10 @@
                         item.quantity = (l * w).toFixed(2);
                         item.formula = 'area';
                     }
+                    this.calculateTotals();
+                } else if (l > 0 && h > 0) {
+                    item.quantity = (l * h).toFixed(2);
+                    item.formula = 'area_lh';
                     this.calculateTotals();
                 }
             },
@@ -906,12 +948,17 @@
                     this.estimate.sections.forEach((s, sIdx) => {
                         app(`sections[${sIdx}][name]`, s.name);
                         if (s.id) app(`sections[${sIdx}][id]`, s.id); // Validating ID presence
+                        app(`sections[${sIdx}][is_package]`, s.is_package ? 1 : 0);
 
                         s.items.forEach((i, iIdx) => {
                             for (const [k, v] of Object.entries(i)) {
                                 if (v !== null && v !== undefined && k !== 'image_url' && k !== 'options') {
+                                    // Explicitly cast booleans like is_package to 1/0
+                                    let val = v;
+                                    if (k === 'is_package') val = v ? 1 : 0;
+
                                     // Include ID if it exists for updates
-                                    app(`sections[${sIdx}][items][${iIdx}][${k}]`, v);
+                                    app(`sections[${sIdx}][items][${iIdx}][${k}]`, val);
                                 } else if (k === 'options' && Array.isArray(v)) {
                                     v.forEach((opt, oIdx) => {
                                         app(`sections[${sIdx}][items][${iIdx}][options][${oIdx}][name]`, opt.name);
@@ -926,7 +973,11 @@
                     this.estimate.items.forEach((i, iIdx) => {
                         for (const [k, v] of Object.entries(i)) {
                             if (v !== null && v !== undefined && k !== 'image_url' && k !== 'options') {
-                                app(`items[${iIdx}][${k}]`, v);
+                                // Explicitly cast booleans like is_package to 1/0
+                                let val = v;
+                                if (k === 'is_package') val = v ? 1 : 0;
+
+                                app(`items[${iIdx}][${k}]`, val);
                             } else if (k === 'options' && Array.isArray(v)) {
                                 v.forEach((opt, oIdx) => {
                                     app(`items[${iIdx}][options][${oIdx}][name]`, opt.name);

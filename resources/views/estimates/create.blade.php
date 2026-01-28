@@ -305,7 +305,8 @@
                                         </svg>
                                     </div>
                                     <input type="text" x-model="section.name" placeholder="Room Name (e.g. Living Area)"
-                                        class="block w-full text-lg font-bold bg-transparent border-0 p-0 text-slate-900 focus:ring-0 placeholder:text-slate-400">
+                                        readonly
+                                        class="block w-full text-lg font-bold bg-transparent border-0 p-0 text-slate-900 focus:ring-0 placeholder:text-slate-400 cursor-default">
                                     <template x-if="section.is_package">
                                         <span
                                             class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 uppercase tracking-widest leading-none">
@@ -461,9 +462,13 @@
                                                 </td>
                                                 <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
+                                                        :readonly="!!item.product_id || item.is_package"
+                                                        :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
                                                         class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                                     <input type="text" x-model="item.description"
                                                         placeholder="Description"
+                                                        :readonly="!!item.product_id || item.is_package"
+                                                        :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
                                                         class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                                     <template x-if="item.options && item.options.length > 0">
                                                         <div class="flex flex-wrap gap-1.5 mt-2">
@@ -518,10 +523,11 @@
                                                             </div>
                                                             <div class="flex flex-col items-center">
                                                                 <span
-                                                                    class="text-[10px] font-bold text-slate-300 mb-0.5">VOLUME</span>
+                                                                    class="text-[10px] font-bold text-slate-300 mb-0.5"
+                                                                    x-text="(item.length && item.width && item.height) ? 'VOLUME' : 'AREA'">VOLUME</span>
                                                                 <span
                                                                     class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
-                                                                    x-text="(item.length && item.width && item.height) ? (item.length * item.width * item.height).toFixed(2) : '0.00'"></span>
+                                                                    x-text="(item.length && item.width && item.height) ? (item.length * item.width * item.height).toFixed(2) : ((item.length && item.width) ? (item.length * item.width).toFixed(2) : ((item.length && item.height) ? (item.length * item.height).toFixed(2) : '0.00'))"></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -577,19 +583,17 @@
                                                             </svg>
                                                         </button>
 
-                                                        <!-- Internal Note Icon for Custom Items -->
-                                                        <template x-if="!item.product_id">
-                                                            <button type="button" @click="openInternalNoteModal(item)"
-                                                                class="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"
-                                                                title="Add Internal Note">
-                                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                                                    stroke="currentColor">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2"
-                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                </svg>
-                                                            </button>
-                                                        </template>
+                                                        <!-- Internal Note Icon -->
+                                                        <button type="button" @click="openInternalNoteModal(item)"
+                                                            class="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"
+                                                            title="Add Internal Note">
+                                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                                stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -750,8 +754,12 @@
                                     </td>
                                     <td class="px-3 py-4">
                                         <input type="text" x-model="item.name" placeholder="Item Name"
+                                            :readonly="!!item.product_id || item.is_package"
+                                            :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
                                             class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                         <input type="text" x-model="item.description" placeholder="Description"
+                                            :readonly="!!item.product_id || item.is_package"
+                                            :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
                                             class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                         <template x-if="item.options && item.options.length > 0">
                                             <div class="flex flex-wrap gap-1.5 mt-2">
@@ -802,11 +810,11 @@
                                                     </div>
                                                 </div>
                                                 <div class="flex flex-col items-center">
-                                                    <span
-                                                        class="text-[10px] font-bold text-slate-300 mb-0.5">VOLUME</span>
+                                                    <span class="text-[10px] font-bold text-slate-300 mb-0.5"
+                                                        x-text="(item.length && item.width && item.height) ? 'VOLUME' : 'AREA'">VOLUME</span>
                                                     <span
                                                         class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
-                                                        x-text="(item.length && item.width && item.height) ? (item.length * item.width * item.height).toFixed(2) : '0.00'"></span>
+                                                        x-text="(item.length && item.width && item.height) ? (item.length * item.width * item.height).toFixed(2) : ((item.length && item.width) ? (item.length * item.width).toFixed(2) : ((item.length && item.height) ? (item.length * item.height).toFixed(2) : '0.00'))"></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -860,19 +868,17 @@
                                                 </svg>
                                             </button>
 
-                                            <!-- Internal Note Icon for Custom Items -->
-                                            <template x-if="!item.product_id">
-                                                <button type="button" @click="openInternalNoteModal(item)"
-                                                    class="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"
-                                                    title="Add Internal Note">
-                                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                                        stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                </button>
-                                            </template>
+                                            <!-- Internal Note Icon -->
+                                            <button type="button" @click="openInternalNoteModal(item)"
+                                                class="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all border border-transparent hover:border-amber-100"
+                                                title="Add Internal Note">
+                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                    stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -930,7 +936,7 @@
                             class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                             placeholder="Payment terms, validity..."></textarea>
                     </div>
-                    <div x-show="hasCustomItems()" x-cloak>
+                    <div>
                         <label class="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1">Internal
                             Note</label>
                         <textarea x-model="estimate.admin_note" name="admin_note" rows="3"
