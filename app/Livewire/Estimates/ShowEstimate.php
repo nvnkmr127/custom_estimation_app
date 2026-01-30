@@ -368,7 +368,10 @@ class ShowEstimate extends Component
     {
         try {
             app()->call([app(\App\Http\Controllers\EstimateController::class), 'addFollower'], [
-                'request' => request()->merge(['user_id' => $userId]),
+                'request' => request()->merge([
+                    'user_id' => $userId,
+                    'permissions' => ['view', 'edit']
+                ]),
                 'estimate' => $this->estimate
             ]);
             $this->refreshEstimate();
