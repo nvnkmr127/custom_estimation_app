@@ -24,12 +24,15 @@ class NotificationListener implements ShouldQueue
      */
     public $backoff = 30;
 
+    protected $decisionService;
+
     /**
      * Create the event listener.
      */
-    public function __construct()
-    {
-        //
+    public function __construct(
+        \App\Services\Notifications\NotificationDecisionService $decisionService
+    ) {
+        $this->decisionService = $decisionService;
     }
 
     /**
@@ -37,7 +40,68 @@ class NotificationListener implements ShouldQueue
      */
     public function handle(DomainEvent $event): void
     {
-        // Placeholder: Logic to send in-app notifications will go here eventually.
+        // For in-app notifications, we usually need a recipient.
+        // We might need to determine the recipients based on the event type.
+        $recipients = $this->determineRecipients($event);
+
+        foreach ($recipients as $recipient) {
+            $decision = $this->decisionService->evaluate($event, $recipient);
+
+            if (!$decision->shouldNotify || !in_array('in-app', $decision->channels)) {
+                continue;
+            }
+
+            // Persistence: Notifications stored in the database
+            \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'type' => $event->getEventName(),
+                'notifiable_type' => get_class($recipient),
+                'notifiable_id' => $recipient->id,
+                'data' => json_encode(array_merge($event->getPayload(), [
+                    'urgency' => $decision->urgency,
+                    'event_id' => $event->getEventId(),
+                    'subject' => $this->generateSubject($event),
+                ])),
+                'read_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    protected function generateSubject(DomainEvent $event): string
+    {
+        return match ($event->getEventName()) {
+            'approval.requested' => 'New Approval Request',
+            'comment.added' => 'New Comment on Estimate',
+            'estimate.viewed' => 'Estimate Viewed by Client',
+            'user.registered' => 'Welcome to the Platform',
+            default => 'New Activity Notification',
+        };
+    }
+
+    protected function determineRecipients(DomainEvent $event): array
+    {
+        // Logic to find who should be notified for this event
+        // This usually depends on the event type.
+        $eventName = $event->getEventName();
+        $recipients = [];
+
+        if ($event instanceof \App\Core\Events\Approvals\ApprovalRequested) {
+            if ($user = \App\Models\User::find($event->approverUserId)) {
+                $recipients[] = $user;
+            }
+        } elseif ($event instanceof \App\Core\Events\Comments\CommentAdded) {
+            $comment = \App\Models\EstimateComment::find($event->commentId);
+            if ($comment && $comment->type === 'client') {
+                $estimate = $comment->estimate;
+                if ($estimate && $estimate->creator) {
+                    $recipients[] = $estimate->creator;
+                }
+            }
+        }
+
+        return $recipients;
     }
 
     /**

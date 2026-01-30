@@ -5,19 +5,22 @@ namespace App\Core\Events\Estimates;
 use App\Core\Events\BaseEvent;
 use App\Models\Estimate;
 
-class EstimateSent extends BaseEvent
+class EstimateSubmittedForApproval extends BaseEvent
 {
-    public function __construct(
-        public Estimate $estimate,
-        public int $senderId,
-        public string $method // e.g., 'email', 'bulk'
-    ) {
+    private $estimate;
+
+    public function __construct(Estimate $estimate, ?int $userId = null)
+    {
         parent::__construct();
+        $this->estimate = $estimate;
+        if ($userId) {
+            $this->triggeredBy = $userId;
+        }
     }
 
     public function getEventName(): string
     {
-        return 'estimate.sent';
+        return 'estimate.submitted_for_approval';
     }
 
     public function getPayload(): array
@@ -28,18 +31,23 @@ class EstimateSent extends BaseEvent
             'client_name' => $this->estimate->client ? $this->estimate->client->name : 'N/A',
             'grand_total' => $this->estimate->grand_total,
             'currency' => $this->estimate->currency,
-            'sender_id' => $this->senderId,
-            'method' => $this->method,
-            'view_link' => $this->estimate->public_url,
+            'submitted_by' => $this->getTriggeredBy(),
+            'submitted_at' => $this->getOccurredOn()->format('c'),
         ];
     }
+
     public function getEntityType(): string
     {
         return 'estimate';
     }
 
-    public function getEntityId(): int|string|null
+    public function getEntityId(): int
     {
         return $this->estimate->id;
+    }
+
+    public function getEstimate(): Estimate
+    {
+        return $this->estimate;
     }
 }

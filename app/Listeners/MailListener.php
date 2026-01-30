@@ -29,16 +29,19 @@ class MailListener implements ShouldQueue
      */
     protected $emailDispatcher;
     protected $preferenceService;
+    protected $decisionService;
 
     /**
      * Create the event listener.
      */
     public function __construct(
         \App\Services\Mail\EmailDispatcher $emailDispatcher,
-        \App\Services\Notifications\NotificationPreferenceService $preferenceService
+        \App\Services\Notifications\NotificationPreferenceService $preferenceService,
+        \App\Services\Notifications\NotificationDecisionService $decisionService
     ) {
         $this->emailDispatcher = $emailDispatcher;
         $this->preferenceService = $preferenceService;
+        $this->decisionService = $decisionService;
     }
 
     /**
@@ -77,14 +80,15 @@ class MailListener implements ShouldQueue
                     'requested_by' => $estimate->creator->name ?? 'System',
                     'view_url' => route('estimates.show', $estimate->id),
                 ],
-                $event->eventId
+                $event->eventId,
+                $event
             );
         }
     }
 
     protected function handleEstimateSent($event)
     {
-        $estimate = \App\Models\Estimate::find($event->estimateId);
+        $estimate = $event->estimate;
         if ($estimate && $estimate->client && $estimate->client->email) {
             // Clients don't have accounts, so we always send instant emails for now.
             $this->emailDispatcher->dispatch(
@@ -112,7 +116,8 @@ class MailListener implements ShouldQueue
                 'Welcome to ' . config('app.name'),
                 'emails.welcome',
                 ['name' => $user->name],
-                $event->eventId
+                $event->eventId,
+                $event
             );
         }
     }
@@ -138,7 +143,8 @@ class MailListener implements ShouldQueue
                         'comment_content' => $comment->comment,
                         'view_url' => route('estimates.show', $estimate->id),
                     ],
-                    $event->eventId
+                    $event->eventId,
+                    $event
                 );
             }
         }
@@ -170,7 +176,8 @@ class MailListener implements ShouldQueue
                     'view_url' => route('estimates.show', $estimate->id),
                     'client_name' => $estimate->client->name ?? 'Client',
                 ],
-                $event->eventId
+                $event->eventId,
+                $event
             );
         }
     }
@@ -184,22 +191,40 @@ class MailListener implements ShouldQueue
         string $subject,
         string $template,
         array $data,
-        ?string $eventId = null
+        ?string $eventId = null,
+        ?DomainEvent $event = null
     ): void {
-        if ($this->preferenceService->shouldNotifyInstant($user, $eventType)) {
-            $this->emailDispatcher->dispatch($user->email, $subject, $template, $data);
+        // Use NotificationDecisionService to evaluate
+        if ($event) {
+            $decision = $this->decisionService->evaluate($event, $user);
+            if (!$decision->shouldNotify || !in_array('email', $decision->channels)) {
+                return;
+            }
+
+            // Handle delay if any
+            if ($decision->delay > 0 && !app()->environment('testing')) {
+                // In a real app, we might re-queue with a delay.
+                // For this implementation, we'll just log it or let it pass if it's not a background job.
+                \Illuminate\Support\Facades\Log::info("Notification delayed by {$decision->delay}s for event {$eventType}");
+            }
+
+            // Inject context for conversion tracking
+            $data['event_type'] = $event->getEventName();
+            $data['entity_type'] = $event->getEntityType();
+            $data['entity_id'] = $event->getEntityId();
+        }
+
+        $priority = $event ? $event->getPriority() : \App\Core\Events\DomainEvent::PRIORITY_NORMAL;
+
+        if ($this->preferenceService->shouldNotifyInstant($user, $eventType, 'email', $priority)) {
+            $this->emailDispatcher->dispatch($user->email, $subject, $template, $data, null, $priority);
             return;
         }
 
-        if ($this->preferenceService->isDigest($user, $eventType)) {
-            // We need to pass the subject too if we want to show it in the digest,
-            // but usually digests have their own aggregate subject.
-            // Let's store the subject in the payload for reference.
+        if ($this->preferenceService->isDigest($user, $eventType, 'email', $priority)) {
             $data['subject'] = $subject;
-            $this->preferenceService->queueForDigest($user, $eventType, $template, $data, $eventId);
+            $this->preferenceService->queueForDigest($user, $eventType, $template, $data, $eventId, $priority);
         }
-
-        // If muted, we reach here and do nothing.
     }
 
     /**

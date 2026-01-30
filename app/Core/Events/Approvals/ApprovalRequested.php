@@ -12,6 +12,7 @@ class ApprovalRequested extends BaseEvent
         public int $approverUserId
     ) {
         parent::__construct();
+        $this->priority = self::PRIORITY_CRITICAL;
     }
 
     public function getEventName(): string

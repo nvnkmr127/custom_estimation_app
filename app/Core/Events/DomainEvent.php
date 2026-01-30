@@ -4,6 +4,11 @@ namespace App\Core\Events;
 
 interface DomainEvent
 {
+    const PRIORITY_CRITICAL = 'critical';
+    const PRIORITY_HIGH = 'high';
+    const PRIORITY_NORMAL = 'normal';
+    const PRIORITY_LOW = 'low';
+
     /**
      * Get the unique identifier for the event.
      */
@@ -28,4 +33,5 @@ interface DomainEvent
     public function getEntityId(): int|string|null;
     public function getTriggeredBy(): ?int;
     public function getSource(): string;
+    public function getPriority(): string;
 }

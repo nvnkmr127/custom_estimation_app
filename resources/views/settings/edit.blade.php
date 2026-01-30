@@ -578,6 +578,41 @@
                                         <p class="mt-1 text-xs text-slate-500">API key from Perfex Setup -> API.
                                         </p>
                                     </div>
+
+                                    <div class="border-t border-gray-100 pt-6 mt-6">
+                                        <h3 class="text-sm font-medium text-slate-900 mb-4">Webhooks</h3>
+                                        <div class="grid grid-cols-1 gap-y-6">
+                                            <div>
+                                                <label for="estimate_approval_webhook_url"
+                                                    class="block text-sm font-medium leading-6 text-slate-900">Estimate
+                                                    Sent for Approval Webhook</label>
+                                                <div class="mt-2">
+                                                    <input type="url" name="estimate_approval_webhook_url"
+                                                        id="estimate_approval_webhook_url"
+                                                        value="{{ old('estimate_approval_webhook_url', $settings['estimate_approval_webhook_url'] ?? '') }}"
+                                                        placeholder="https://hooks.zapier.com/..."
+                                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                                </div>
+                                                <p class="mt-1 text-xs text-slate-500">URL to receive estimate details
+                                                    when submitted for approval.</p>
+                                            </div>
+
+                                            <div>
+                                                <label for="estimate_client_webhook_url"
+                                                    class="block text-sm font-medium leading-6 text-slate-900">Estimate
+                                                    Sent to Client Webhook</label>
+                                                <div class="mt-2">
+                                                    <input type="url" name="estimate_client_webhook_url"
+                                                        id="estimate_client_webhook_url"
+                                                        value="{{ old('estimate_client_webhook_url', $settings['estimate_client_webhook_url'] ?? '') }}"
+                                                        placeholder="https://hooks.zapier.com/..."
+                                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                                </div>
+                                                <p class="mt-1 text-xs text-slate-500">URL to receive estimate details
+                                                    and view link when sent to a client.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

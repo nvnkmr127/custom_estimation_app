@@ -11,6 +11,7 @@ class UserRegistered extends BaseEvent
         public string $email
     ) {
         parent::__construct();
+        $this->priority = self::PRIORITY_CRITICAL;
     }
 
     public function getEventName(): string

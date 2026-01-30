@@ -649,7 +649,7 @@ class EstimateService
 
             // Dispatch Event instead of direct email
             event(new \App\Core\Events\Estimates\EstimateSent(
-                $estimate->id,
+                $estimate,
                 auth()->id() ?? 0, // Fallback for system actions
                 'email'
             ));

@@ -13,6 +13,7 @@ class CommentAdded extends BaseEvent
         public string $contentSnippet
     ) {
         parent::__construct();
+        $this->priority = self::PRIORITY_HIGH;
     }
 
     public function getEventName(): string

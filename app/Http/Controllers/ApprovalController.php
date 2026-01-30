@@ -64,6 +64,8 @@ class ApprovalController extends Controller
             $estimate->update(['status' => Estimate::STATUS_WAITING_APPROVAL]);
 
             // Dispatch events
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSubmittedForApproval($estimate, auth()->id()));
+
             foreach ($createdApprovals as $approval) {
                 $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRequested(
                     $estimate->id,

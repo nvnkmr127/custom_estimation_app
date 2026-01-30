@@ -22,15 +22,36 @@ class EmailDispatcher
      * @param string|null $view Template view name (optional)
      * @param array $data Data for the template
      * @param string|null $rawBody Raw HTML body (optional, used if view is null)
+     * @param string $priority Priority level (critical, high, normal, low)
      * @return void
      */
-    public function dispatch(string $to, string $subject, ?string $view = null, array $data = [], ?string $rawBody = null): void
+    public function dispatch(string $to, string $subject, ?string $view = null, array $data = [], ?string $rawBody = null, string $priority = 'normal'): void
     {
+        // 0. Priority Rule: High events trigger instant in-app (if we have a user)
+        if ($priority === \App\Core\Events\DomainEvent::PRIORITY_HIGH) {
+            $user = \App\Models\User::where('email', $to)->first();
+            if ($user) {
+                \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                    'id' => \Illuminate\Support\Str::uuid(),
+                    'type' => 'in_app_alert',
+                    'notifiable_type' => get_class($user),
+                    'notifiable_id' => $user->id,
+                    'data' => json_encode([
+                        'message' => $subject,
+                        'urgency' => $priority,
+                    ]),
+                    'read_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
         // 1. Render the body
         if ($view) {
-            $body = $this->templateService->render($view, $data);
+            $body = $this->templateService->render($view, $data, $priority);
         } else {
-            $body = $this->templateService->renderString($rawBody ?? '', $data);
+            $body = $this->templateService->renderString($rawBody ?? '', array_merge($data, $this->templateService->getContextVariables($priority, $data)));
         }
 
         // 2. Create Email Log for Tracking
@@ -38,7 +59,10 @@ class EmailDispatcher
             $log = \App\Models\EmailLog::create([
                 'recipient_email' => $to,
                 'subject' => $subject,
-                'status' => 'queued', // Will be updated to sent/failed by job if we extended it, for now starting as queued
+                'status' => 'queued',
+                'event_type' => data_get($data, 'event_type'),
+                'entity_type' => data_get($data, 'entity_type'),
+                'entity_id' => data_get($data, 'entity_id'),
             ]);
 
             // 3. Inject Tracking Pixel

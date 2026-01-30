@@ -14,6 +14,7 @@ abstract class BaseEvent implements DomainEvent
     public \DateTimeImmutable $occurredOn;
     public ?int $triggeredBy = null;
     public string $source = 'web';
+    public string $priority = 'normal';
 
     public function __construct()
     {
@@ -41,6 +42,11 @@ abstract class BaseEvent implements DomainEvent
     public function getSource(): string
     {
         return $this->source;
+    }
+
+    public function getPriority(): string
+    {
+        return $this->priority;
     }
 
     abstract public function getEventName(): string;

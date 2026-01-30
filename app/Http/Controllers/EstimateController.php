@@ -738,6 +738,11 @@ class EstimateController extends Controller
             'permissions' => $validated['permissions'] ?? [],
         ]);
 
+        $user = \App\Models\User::find($validated['user_id']);
+        if ($user) {
+            $user->notify(new \App\Notifications\EstimateFollowerAdded($estimate, $validated['permissions'] ?? []));
+        }
+
         return back()->with('success', 'Follower added.');
     }
 

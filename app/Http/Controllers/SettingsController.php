@@ -105,6 +105,9 @@ class SettingsController extends Controller
             'smtp_encryption',
             'smtp_from_address',
             'smtp_from_name',
+            // Webhooks
+            'estimate_approval_webhook_url',
+            'estimate_client_webhook_url',
         ];
 
         foreach ($keys as $key) {

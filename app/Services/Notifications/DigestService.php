@@ -44,6 +44,21 @@ class DigestService
             return;
         }
 
+        // 1. Highlight Critical Items
+        $criticalItems = $notifications->filter(function ($n) {
+            return ($n->payload['priority'] ?? 'normal') === \App\Core\Events\DomainEvent::PRIORITY_CRITICAL;
+        });
+
+        // 2. Group & Summarize remaining
+        $grouped = $notifications->groupBy('event_type');
+        $summaries = $grouped->map(function ($items, $type) {
+            return [
+                'type' => $type,
+                'count' => $items->count(),
+                'label' => ucwords(str_replace(['.', '_'], ' ', $type)),
+            ];
+        });
+
         $title = ucwords(str_replace('_', ' ', $frequency));
         $subject = "Your $title - " . now()->format('M d, Y');
 
@@ -54,7 +69,10 @@ class DigestService
                 'emails.digests.summary',
                 [
                     'recipient_name' => $user->name,
-                    'notifications' => $notifications,
+                    'notifications' => $notifications, // Kept for BC if template uses it
+                    'grouped_notifications' => $grouped,
+                    'summaries' => $summaries,
+                    'critical_items' => $criticalItems,
                     'frequency' => $frequency,
                     'date' => now()->format('M d, Y'),
                 ]

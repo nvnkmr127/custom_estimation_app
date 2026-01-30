@@ -22,13 +22,15 @@ class TemplateService
      *
      * @param string $view e.g. 'emails.welcome' or 'welcome_email'
      * @param array $data
+     * @param string $priority Priority level
      * @return string
      */
-    public function render(string $view, array $data = []): string
+    public function render(string $view, array $data = [], string $priority = 'normal'): string
     {
-        // 1. Inject Branding Variables
+        // 1. Inject Context & Branding Variables
+        $contextData = $this->getContextVariables($priority, $data);
         $brandData = $this->brandService->getBrandVariables();
-        $data = array_merge($brandData, $data);
+        $data = array_merge($brandData, $contextData, $data);
 
         // 2. Try to find Database Template
         // We match "emails.welcome" -> code "emails.welcome" OR just "welcome"?
@@ -50,6 +52,48 @@ class TemplateService
 
         // 3. Fallback to File View
         return View::make($view, $data)->render();
+    }
+
+    /**
+     * Generate context-specific variables based on priority and event data.
+     */
+    public function getContextVariables(string $priority, array $data): array
+    {
+        $urgencyLabel = match ($priority) {
+            'critical' => 'Urgent Action Required',
+            'high' => 'High Priority Update',
+            'low' => 'Low Priority',
+            default => 'Standard Notification',
+        };
+
+        $recommendedAction = match ($priority) {
+            'critical' => 'Please review and address this immediately.',
+            'high' => 'Please check this update as soon as possible.',
+            default => 'Review at your earliest convenience.',
+        };
+
+        $priorityBadge = match ($priority) {
+            'critical' => '<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">CRITICAL</span>',
+            'high' => '<span style="background:#ffedd5;color:#9a3412;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">HIGH</span>',
+            default => '<span style="background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">NORMAL</span>',
+        };
+
+        // Calculate expires_in if there's a timestamp
+        $expiresIn = 'No deadline specified';
+        if (isset($data['due_date'])) {
+            try {
+                $due = \Carbon\Carbon::parse($data['due_date']);
+                $expiresIn = $due->diffForHumans();
+            } catch (\Exception $e) {
+            }
+        }
+
+        return [
+            'urgency_label' => $urgencyLabel,
+            'recommended_action' => $recommendedAction,
+            'priority_badge' => $priorityBadge,
+            'expires_in' => $expiresIn,
+        ];
     }
 
     /**

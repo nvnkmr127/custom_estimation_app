@@ -19,13 +19,19 @@ class EmailLog extends Model
         'recipient_email',
         'subject',
         'status',
+        'event_type',
+        'entity_type',
+        'entity_id',
         'opened_at',
+        'converted_at',
+        'conversion_time_seconds',
         'click_data',
         'error_message',
     ];
 
     protected $casts = [
         'opened_at' => 'datetime',
+        'converted_at' => 'datetime',
         'click_data' => 'array',
     ];
 
