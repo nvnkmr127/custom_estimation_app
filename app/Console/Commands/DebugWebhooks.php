@@ -59,11 +59,7 @@ class DebugWebhooks extends Command
         if ($this->confirm('Would you like to dispatch a test EstimateCreated event? (Logs will appear in laravel.log)', false)) {
             $estimate = \App\Models\Estimate::first();
             if ($estimate) {
-                event(new EstimateCreated($estimate->id, [
-                    'id' => $estimate->id,
-                    'title' => $estimate->title,
-                    'total' => $estimate->grand_total
-                ], 1));
+                event(new EstimateCreated($estimate, $estimate->created_by ?? 1));
                 $this->info("Test event dispatched.");
                 $this->line("Check storage/logs/laravel.log for 'EventDispatcher: Dispatched to Laravel'");
             } else {
