@@ -262,19 +262,22 @@ class PdfRenderingService
         return $html;
     }
 
-    protected function parseConditionals($html)
+    protected function parseConditionals($html, $extraVars = [])
     {
-        // 1. Specific IF_NOT logic matches first to ensure they aren't consumed by generic IF (which matches "IF_NOT_...")
+        // Merge extra vars for local scope (e.g. section variables)
+        $scopeVars = array_merge($this->variables, $extraVars);
+
+        // 1. Specific IF_NOT logic matches first
         // {IF_NOT_variable}...{END_IF}
-        $html = preg_replace_callback('/\{IF_NOT_([a-zA-Z0-9_]+)\}(.*?)\{END_IF\}/s', function ($matches) {
+        $html = preg_replace_callback('/\{IF_NOT_([a-zA-Z0-9_]+)\}(.*?)\{END_IF\}/s', function ($matches) use ($scopeVars) {
             $key = $matches[1];
             $content = $matches[2];
 
             $checkKey = '_raw_' . $key;
-            $val = isset($this->variables[$checkKey]) ? $this->variables[$checkKey] : ($this->variables[$key] ?? null);
+            $val = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
 
-            if (isset($this->variables['_raw_' . $key])) {
-                $val = $this->variables['_raw_' . $key];
+            if (isset($scopeVars['_raw_' . $key])) {
+                $val = $scopeVars['_raw_' . $key];
                 $isTrue = $val > 0;
             } else {
                 $isTrue = !empty($val) && $val != 0;
@@ -284,19 +287,19 @@ class PdfRenderingService
         }, $html);
 
         // 2. Generic IF logic: {IF_variable}...{END_IF}
-        $html = preg_replace_callback('/\{IF_([a-zA-Z0-9_]+)\}(.*?)\{END_IF\}/s', function ($matches) {
+        $html = preg_replace_callback('/\{IF_([a-zA-Z0-9_]+)\}(.*?)\{END_IF\}/s', function ($matches) use ($scopeVars) {
             $key = $matches[1];
             $content = $matches[2];
 
             // For convenience, map common keys to their raw counterparts if valid
             $checkKey = '_raw_' . $key;
-            $val = isset($this->variables[$checkKey]) ? $this->variables[$checkKey] : ($this->variables[$key] ?? null);
+            $val = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
 
             // Determine truthiness
             $isTrue = !empty($val) && $val != 0;
 
-            if (isset($this->variables['_raw_' . $key])) {
-                $val = $this->variables['_raw_' . $key];
+            if (isset($scopeVars['_raw_' . $key])) {
+                $val = $scopeVars['_raw_' . $key];
                 $isTrue = $val > 0;
             }
 
@@ -317,7 +320,17 @@ class PdfRenderingService
             $renderedSections = '';
 
             foreach ($this->estimate->sections as $section) {
+                // Prepare Section Local Variables for conditionals
+                $sectionVars = [
+                    'section_is_package' => $section->is_package ? 1 : 0,
+                    '_raw_section_is_package' => $section->is_package ? 1 : 0,
+                ];
+
                 $sectionHtml = $sectionBlock;
+
+                // Process Section Conditionals (before replacements)
+                $sectionHtml = $this->parseConditionals($sectionHtml, $sectionVars);
+
                 $sectionHtml = str_replace('{section_name}', $section->name, $sectionHtml);
                 $sectionHtml = str_replace('{section_subtotal}', number_format($section->subtotal ?? 0, 2), $sectionHtml);
 

@@ -11,7 +11,7 @@
             estimate: {
                 status: 'draft',
                 currency: 'USD',
-                type: 'standard', // 'standard' or 'room_based',
+                type: 'room_based', // Force room_based to support mixed layouts
 
                 client_id: '',
                 client_note: '',
@@ -136,46 +136,59 @@
                 }
 
                 // Hydrate items (fix images, numbers)
+                // Hydrate items (fix images, numbers)
                 const hydrateItem = (item) => {
+                    // 1. Resolve Product ID first
+                    if (!item.product_id && item.product) {
+                        item.product_id = item.product.id;
+                    }
+                    // Fallback: Match by name if product_id is missing
+                    if (!item.product_id) {
+                        const nameToMatch = (item.name || '').trim().toLowerCase();
+                        if (nameToMatch && this.products) {
+                            const found = this.products.find(p => (p.name || '').trim().toLowerCase() === nameToMatch);
+                            if (found) {
+                                item.product_id = found.id;
+                            }
+                        }
+                    }
+
+                    // 2. Check for forced formula from product
+                    let forcedMethod = null;
+                    if (item.product_id && this.products) {
+                        const product = this.products.find(p => p.id == item.product_id);
+                        if (product && ['formula', 'area', 'volume', 'area_lh'].includes(product.calculation_method)) {
+                            forcedMethod = product.calculation_method;
+                        }
+                    }
+
+                    // 3. Basic Field Hydration
                     item.unit_price = parseFloat(item.unit_price || 0);
                     item.quantity = parseFloat(item.quantity || 1);
                     item.tax_1 = parseFloat(item.tax_1 || 0);
                     item.tax_2 = parseFloat(item.tax_2 || 0);
                     item.unit_type_id = item.unit_type_id || null;
                     item._showTypePicker = false;
-                    // Preserve the size field if it exists
                     item.size = item.size || '';
-                    // Preserve dimension fields
                     item.length = item.length || '';
                     item.width = item.width || '';
                     item.height = item.height || '';
-                    item.formula = item.formula || '';
-                    // Auto-show calculator if item has length, width and height values
-                    item.showCalculator = !!(item.length || item.width || item.height) || (item.formula === 'area' || item.formula === 'volume' || item.formula === 'area_lh');
-                    // Hydrate image from relation if available and not set
+
+                    // 4. Set Formula and ShowCalculator
+                    if (forcedMethod) {
+                        item.formula = forcedMethod;
+                    } else {
+                        item.formula = item.formula || '';
+                    }
+
+                    item.showCalculator = !!(item.length || item.width || item.height) || ['formula', 'area', 'volume', 'area_lh'].includes(item.formula);
+
                     if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
                         item.image_url = '/storage/' + item.product.images[0].image_path;
                     }
                     if (!item.options) item.options = [];
-                    // Detect if item is from a package
-                    item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
-                    // Ensure product_id is set if product relation exists
-                    if (!item.product_id && item.product) {
-                        item.product_id = item.product.id;
-                    }
 
-                    // Fallback: Match by name if product_id is missing (handles legacy saved items)
-                    if (!item.product_id) {
-                        const nameToMatch = (item.name || '').trim().toLowerCase();
-                        if (nameToMatch) {
-                            // Note: 'this.products' might not be available in 'hydrateItem' scope directly if it's outside.
-                            // However, 'hydrateItem' is defined INSIDE 'estimateBuilder' return object or scope.
-                            // Let's check context. hydrateItem is defined inside the component scope.
-                            // usage: this.products exists in component.
-                            const found = this.products.find(p => (p.name || '').trim().toLowerCase() === nameToMatch);
-                            if (found) item.product_id = found.id;
-                        }
-                    }
+                    item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
                 };
 
                 if (this.estimate.type === 'room_based') {
@@ -184,9 +197,13 @@
                             hydrateItem(i);
                             if (!i._uid) i._uid = 'item-' + Math.random().toString(36).substr(2, 9);
                         });
-                        // Automatically detect if this section was added as a package
+                        // Sync section_type from is_package if needed
+                        if (s.is_package && !s.section_type) s.section_type = 'package';
+                        if (!s.section_type) s.section_type = 'room';
+
+                        // Automatically detect if this section was added as a package (legacy backup)
                         if (s.items.length > 0 && s.items.every(i => i.is_package)) {
-                            s.is_package = true;
+                            s.section_type = 'package';
                         }
                     });
                 } else {
@@ -387,7 +404,7 @@
                 const calcMethod = product.calculation_method;
                 const showCalc = ['formula', 'area', 'volume', 'area_lh'].includes(calcMethod);
                 let initFormula = '';
-                if (calcMethod === 'formula') initFormula = 'area';
+                if (calcMethod === 'formula') initFormula = 'formula';
                 else if (['area', 'volume', 'area_lh'].includes(calcMethod)) initFormula = calcMethod;
 
                 let sizeString = '';
@@ -456,7 +473,7 @@
                 const calcMethod = product.calculation_method;
                 const showCalc = ['formula', 'area', 'volume', 'area_lh'].includes(calcMethod);
                 let initFormula = '';
-                if (calcMethod === 'formula') initFormula = 'area';
+                if (calcMethod === 'formula') initFormula = 'formula';
                 else if (['area', 'volume', 'area_lh'].includes(calcMethod)) initFormula = calcMethod;
 
                 let finalPrice = this.configModal.basePrice;
@@ -521,7 +538,10 @@
                 this.calculateTotals();
             },
 
-            addCustomItem() {
+            addCustomItem(sectionIndex = null) {
+                if (sectionIndex !== null) {
+                    this.productPicker.sectionIndex = sectionIndex;
+                }
                 const newItem = {
                     id: null,
                     name: '',
@@ -552,7 +572,7 @@
 
             addSection() {
                 const count = this.estimate.sections.length + 1;
-                this.estimate.sections.push({ name: 'Room ' + count, items: [] });
+                this.estimate.sections.push({ name: 'Room ' + count, items: [], section_type: 'room' });
                 // Re-init sortable for new DOM elements
                 this.$nextTick(() => this.initSortable());
             },
@@ -602,7 +622,9 @@
             applyTemplate(template) {
                 const newSection = {
                     name: template.name,
+                    name: template.name,
                     items: [],
+                    section_type: 'room',
                     allowed_unit_types: template.allowed_unit_types || [] // Store allowed unit types from template
                 };
                 if (Array.isArray(template.items)) {
@@ -685,7 +707,8 @@
                     this.estimate.sections.push({
                         name: pkg.name,
                         items: newItems,
-                        is_package: true
+                        section_type: 'package',
+                        is_package: true // Keep for legacy checks if any
                     });
                     this.$nextTick(() => this.initSortable());
                 } else {
@@ -749,6 +772,59 @@
                 const w = parseFloat(item.width) || 0;
                 const h = parseFloat(item.height) || 0;
 
+                // Check if the item is linked to a product with a strict calculation method
+                let forcedMethod = null;
+                let customFormulaString = null;
+
+                if (item.product_id) {
+                    const product = this.products.find(p => p.id == item.product_id);
+                    if (product) {
+                        if (product.calculation_method === 'formula') {
+                            forcedMethod = 'formula';
+                            customFormulaString = product.formula;
+                        } else if (['area', 'volume', 'area_lh'].includes(product.calculation_method)) {
+                            forcedMethod = product.calculation_method;
+                        }
+                    }
+                }
+
+                if (forcedMethod) {
+                    item.formula = forcedMethod;
+                    if (forcedMethod === 'formula' && customFormulaString) {
+                        try {
+                            // Replace variable placeholders (l, w, h) with values
+                            // Using word boundaries to avoid replacing parts of other words (though formula is likely simple)
+                            let expression = customFormulaString.toLowerCase()
+                                .replace(/\bl\b/g, l)
+                                .replace(/\bw\b/g, w)
+                                .replace(/\bh\b/g, h);
+
+                            // Basic sanitization: only allow numbers, math operators, parenthesis, and spaces
+                            if (/^[0-9+\-*/().\s]+$/.test(expression)) {
+                                // Safe(ish) evaluation
+                                const result = (new Function('return ' + expression))();
+                                item.quantity = isNaN(result) ? 0 : parseFloat(result).toFixed(2);
+                            } else {
+                                console.warn('Invalid characters in custom formula:', expression);
+                                item.quantity = 0;
+                            }
+                        } catch (e) {
+                            console.error('Error evaluating custom formula:', e);
+                            item.quantity = 0;
+                        }
+                    } else if (forcedMethod === 'volume') {
+                        item.quantity = (l * w * h).toFixed(2);
+                    } else if (forcedMethod === 'area_lh') {
+                        item.quantity = (l * h).toFixed(2);
+                    } else {
+                        // area
+                        item.quantity = (l * w).toFixed(2);
+                    }
+                    this.calculateTotals();
+                    return;
+                }
+
+                // Default Inference Logic
                 if (l > 0 && w > 0) {
                     if (h > 0) {
                         item.quantity = (l * w * h).toFixed(2);
@@ -757,12 +833,14 @@
                         item.quantity = (l * w).toFixed(2);
                         item.formula = 'area';
                     }
-                    this.calculateTotals();
                 } else if (l > 0 && h > 0) {
                     item.quantity = (l * h).toFixed(2);
                     item.formula = 'area_lh';
-                    this.calculateTotals();
+                } else {
+                    // Insufficient dimensions
+                    item.quantity = 0;
                 }
+                this.calculateTotals();
             },
 
             // --- Coupon Logic ---

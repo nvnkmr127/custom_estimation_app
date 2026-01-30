@@ -14,7 +14,7 @@ class EstimateSection extends Model
         'name',
         'order_index',
         'subtotal',
-        'is_package',
+        'section_type',
     ];
 
     public function estimate()

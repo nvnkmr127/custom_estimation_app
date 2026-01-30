@@ -56,7 +56,7 @@ class EstimateService
                         $section = $estimate->sections()->create([
                             'name' => $sectionData['name'],
                             'order_index' => $sectionIndex,
-                            'is_package' => $sectionData['is_package'] ?? false,
+                            'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                         ]);
 
                         if (isset($sectionData['items'])) {
@@ -189,20 +189,20 @@ class EstimateService
                             $section->update([
                                 'name' => $sectionData['name'],
                                 'order_index' => $sectionIndex,
-                                'is_package' => $sectionData['is_package'] ?? false,
+                                'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                             ]);
                         } else {
                             $section = $estimate->sections()->create([
                                 'name' => $sectionData['name'],
                                 'order_index' => $sectionIndex,
-                                'is_package' => $sectionData['is_package'] ?? false,
+                                'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                             ]);
                         }
                     } else {
                         $section = $estimate->sections()->create([
                             'name' => $sectionData['name'],
                             'order_index' => $sectionIndex,
-                            'is_package' => $sectionData['is_package'] ?? false,
+                            'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                         ]);
                     }
 
