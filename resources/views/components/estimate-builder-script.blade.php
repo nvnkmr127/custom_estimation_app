@@ -197,13 +197,15 @@
                             hydrateItem(i);
                             if (!i._uid) i._uid = 'item-' + Math.random().toString(36).substr(2, 9);
                         });
-                        // Sync section_type from is_package if needed
-                        if (s.is_package && !s.section_type) s.section_type = 'package';
-                        if (!s.section_type) s.section_type = 'room';
+                        // Robust Section Type Initialization
+                        if (!s.section_type) {
+                            // If coming from legacy data, infer from is_package flag
+                            s.section_type = s.is_package ? 'package' : 'room';
 
-                        // Automatically detect if this section was added as a package (legacy backup)
-                        if (s.items.length > 0 && s.items.every(i => i.is_package)) {
-                            s.section_type = 'package';
+                            // Legacy backup: check items if is_package is missing/ambiguous
+                            if (!s.is_package && s.items.length > 0 && s.items.every(i => i.is_package)) {
+                                s.section_type = 'package';
+                            }
                         }
                     });
                 } else {
@@ -556,6 +558,7 @@
                     height: '',
                     formula: '',
                     showCalculator: false,
+                    is_package: false,
                     options: []
                 };
                 this.pushItem(newItem);
