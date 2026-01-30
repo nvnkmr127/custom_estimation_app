@@ -33,6 +33,8 @@ class EstimateCreated extends BaseEvent
         return [
             'estimate_id' => $this->estimate->id,
             'creator_id' => $this->creatorId,
+            'online_view_url' => $this->estimate->public_url,
+            'pdf_download_url' => route('estimates.pdf', $this->estimate->id),
             'snapshot' => $this->snapshot,
         ];
     }

@@ -7,11 +7,14 @@ use App\Models\Estimate;
 
 class EstimateSent extends BaseEvent
 {
+    public readonly array $snapshot;
+
     public function __construct(
-        public Estimate $estimate,
-        public int $senderId,
-        public string $method // e.g., 'email', 'bulk'
+        public readonly Estimate $estimate,
+        public readonly int $senderId,
+        public readonly string $method // e.g., 'email', 'bulk'
     ) {
+        $this->snapshot = $estimate->toArray();
         parent::__construct();
     }
 
@@ -31,6 +34,7 @@ class EstimateSent extends BaseEvent
             'sender_id' => $this->senderId,
             'method' => $this->method,
             'view_link' => $this->estimate->public_url,
+            'snapshot' => $this->snapshot,
         ];
     }
     public function getEntityType(): string

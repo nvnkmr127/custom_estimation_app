@@ -41,6 +41,7 @@ class WebhookListener implements ShouldQueue
      */
     public function handle(DomainEvent $event): void
     {
+        \Illuminate\Support\Facades\Log::info("WebhookListener: Handling event " . $event->getEventName());
         $actorId = $event->getTriggeredBy();
         $actor = $actorId ? \App\Models\User::find($actorId) : null;
         $decision = $this->decisionService->evaluate($event, null, $actor);
@@ -90,6 +91,20 @@ class WebhookListener implements ShouldQueue
                 'urgency' => $decision->urgency,
             ]
         ];
+
+        // 0. Inject Estimate Links if applicable
+        if ($event->getEntityType() === 'estimate') {
+            $estimate = \App\Models\Estimate::find($event->getEntityId());
+            if ($estimate) {
+                $payload['links'] = [
+                    'online_view_url' => $estimate->public_url,
+                    'pdf_download_url' => route('estimates.pdf', $estimate->id),
+                ];
+                // Also add to main payload for easier access
+                $payload['online_view_url'] = $estimate->public_url;
+                $payload['pdf_download_url'] = route('estimates.pdf', $estimate->id);
+            }
+        }
 
         $jsonPayload = json_encode($payload);
         $headers = ['Content-Type' => 'application/json'];

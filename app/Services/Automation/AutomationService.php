@@ -356,14 +356,25 @@ class AutomationService
             'event_id' => $event->getEventId()
         ]);
 
-        $response = Http::timeout(10)->post($url, [
+        $payload = [
             'event' => $event->getEventName(),
             'payload' => $event->getPayload(),
             'metadata' => [
                 'event_id' => $event->getEventId(),
                 'occurred_at' => $event->getOccurredOn()->format('c'),
             ]
-        ]);
+        ];
+
+        // Inject Links for Estimates
+        if ($event->getEntityType() === 'estimate') {
+            $estimate = \App\Models\Estimate::find($event->getEntityId());
+            if ($estimate) {
+                $payload['online_view_url'] = $estimate->public_url;
+                $payload['pdf_download_url'] = route('estimates.pdf', $estimate->id);
+            }
+        }
+
+        $response = Http::timeout(10)->post($url, $payload);
 
         if ($response->failed()) {
             Log::error("Automation: Webhook failed", [

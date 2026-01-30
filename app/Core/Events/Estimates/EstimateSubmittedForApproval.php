@@ -7,12 +7,14 @@ use App\Models\Estimate;
 
 class EstimateSubmittedForApproval extends BaseEvent
 {
-    private $estimate;
+    public readonly array $snapshot;
 
-    public function __construct(Estimate $estimate, ?int $userId = null)
-    {
+    public function __construct(
+        public readonly Estimate $estimate,
+        ?int $userId = null
+    ) {
+        $this->snapshot = $estimate->toArray();
         parent::__construct();
-        $this->estimate = $estimate;
         if ($userId) {
             $this->triggeredBy = $userId;
         }
@@ -33,6 +35,7 @@ class EstimateSubmittedForApproval extends BaseEvent
             'currency' => $this->estimate->currency,
             'submitted_by' => $this->getTriggeredBy(),
             'submitted_at' => $this->getOccurredOn()->format('c'),
+            'snapshot' => $this->snapshot,
         ];
     }
 

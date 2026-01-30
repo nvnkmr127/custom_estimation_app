@@ -28,6 +28,8 @@ class EstimateApproved extends BaseEvent
             'estimate_id' => $this->estimate->id,
             'approver_id' => $this->approverId,
             'approval_type' => $this->approvalType,
+            'online_view_url' => $this->estimate->public_url,
+            'pdf_download_url' => route('estimates.pdf', $this->estimate->id),
             'snapshot' => $this->snapshot,
         ];
     }
