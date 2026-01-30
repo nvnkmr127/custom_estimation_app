@@ -167,7 +167,7 @@ class NotificationDecisionService
 
         // Webhooks are usually global in this app context
         $eventName = $event->getEventName();
-        if (in_array($eventName, ['estimate.submitted_for_approval', 'estimate.sent'])) {
+        if (in_array($eventName, ['estimate.submitted_for_approval', 'estimate.sent', 'estimate.created', 'estimate.approved'])) {
             $channels[] = 'webhook';
         }
 
