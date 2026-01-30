@@ -61,6 +61,7 @@ class StoreEstimateRequest extends FormRequest
             // Section Validation
             'sections' => 'nullable|array|required_if:type,room_based',
             'sections.*.name' => 'required_with:sections|string',
+            'sections.*.section_type' => 'nullable|string|in:room,package',
             'sections.*.is_package' => 'boolean',
             'sections.*.items' => 'nullable|array',
             'sections.*.items.*.name' => 'required_with:sections.*.items|string',

@@ -1026,6 +1026,7 @@
                     this.estimate.sections.forEach((s, sIdx) => {
                         app(`sections[${sIdx}][name]`, s.name);
                         if (s.id) app(`sections[${sIdx}][id]`, s.id); // Validating ID presence
+                        app(`sections[${sIdx}][section_type]`, s.section_type || 'room');
                         app(`sections[${sIdx}][is_package]`, s.is_package ? 1 : 0);
 
                         s.items.forEach((i, iIdx) => {
