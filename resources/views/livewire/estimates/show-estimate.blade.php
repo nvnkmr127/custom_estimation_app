@@ -40,11 +40,11 @@
                 @if($estimate->approval_status)
                     <span
                         class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                                                                                        @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
-                                                                                                                                        @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
-                                                                                                                                        @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
-                                                                                                                                        @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                                                                                                        @endif">
+                                                                                                                                            @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
+                                                                                                                                            @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
+                                                                                                                                            @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
+                                                                                                                                            @else bg-gray-50 text-gray-600 ring-gray-500/10
+                                                                                                                                            @endif">
                         {{ ucfirst($estimate->approval_status) }}
                     </span>
                 @endif
@@ -97,16 +97,16 @@
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->
                     <div x-data="{ 
-                                                                                                                                                                                                                                                                checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
-                                                                                                                                                                                                                                                                requiredCount: {{ $checklists->where('is_required', true)->count() }},
-                                                                                                                                                                                                                                                                requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
-                                                                                                                                                                                                                                                                 toggleChecklist(id, checked) {
-                                                                                                                                                                                                                                                                     if (checked) this.checks.push(parseInt(id));
-                                                                                                                                                                                                                                                                     else this.checks = this.checks.filter(c => c !== parseInt(id));
-                                                                                                                                                                                                                                                                     $wire.toggleChecklist(id, checked);
-                                                                                                                                                                                                                                                                 },
-                                                                                                                                                                                                                                                                 get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
-                                                                                                                                                                                                                                                             }"
+                                                                                                                                                                                                                                                                        checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
+                                                                                                                                                                                                                                                                        requiredCount: {{ $checklists->where('is_required', true)->count() }},
+                                                                                                                                                                                                                                                                        requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
+                                                                                                                                                                                                                                                                         toggleChecklist(id, checked) {
+                                                                                                                                                                                                                                                                             if (checked) this.checks.push(parseInt(id));
+                                                                                                                                                                                                                                                                             else this.checks = this.checks.filter(c => c !== parseInt(id));
+                                                                                                                                                                                                                                                                             $wire.toggleChecklist(id, checked);
+                                                                                                                                                                                                                                                                         },
+                                                                                                                                                                                                                                                                         get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
+                                                                                                                                                                                                                                                                     }"
                         class="flex gap-2 relative">
                         <!-- Approve Dropdown -->
                         <div x-data="{ open: false }" class="relative">
@@ -551,7 +551,7 @@
                                                 $c->formatted_date = $c->created_at->format('M j, g:i A');
                                                 return $c; })->values()) }})" type="button"
                                                                                     class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
                                                                                     <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                                                                                         stroke="currentColor">
                                                                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -730,7 +730,7 @@
                                     $c->formatted_date = $c->created_at->format('M j, g:i A');
                                     return $c; })->values()) }})" type="button"
                                                                     class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
                                                                     <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                                             d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -1076,24 +1076,24 @@
                                                                     <div class="flex items-center">
                                                                         <button
                                                                             @click="$wire.toggleCommentStatus({{ $comment->id }}, '{{ $comment->status }}')"
-                                                                                        type="button"
-                                                                                        class="text-[10px] underline hover:no-underline {{ $comment->isClientComment() ? 'text-slate-500 hover:text-indigo-600' : 'text-indigo-200 hover:text-white' }}">
-                                                                                        {{ $comment->status === 'pending' ? 'Mark Clarified' : 'Reopen' }}
-                                                                                    </button>
-                                                                                </div>
-                                                                @endif
+                                                                            type="button"
+                                                                            class="text-[10px] underline hover:no-underline {{ $comment->isClientComment() ? 'text-slate-500 hover:text-indigo-600' : 'text-indigo-200 hover:text-white' }}">
+                                                                            {{ $comment->status === 'pending' ? 'Mark Clarified' : 'Reopen' }}
+                                                                        </button>
                                                                     </div>
-
-                                                                    <!-- Context Info (Item Name) -->
-                                                                    @if($comment->commentable_type === 'App\Models\EstimateItem' && $comment->commentable)
-                                                                        <div
-                                                                            class="mt-1 text-[10px] italic opacity-60 {{ $comment->isClientComment() ? 'text-slate-500' : 'text-indigo-200' }}">
-                                                                            Re: {{ $comment->commentable->name }}
-                                                                        </div>
-                                                                    @endif
-                                                                </div>
+                                                                @endif
                                                             </div>
+
+                                                            <!-- Context Info (Item Name) -->
+                                                            @if($comment->commentable_type === 'App\Models\EstimateItem' && $comment->commentable)
+                                                                <div
+                                                                    class="mt-1 text-[10px] italic opacity-60 {{ $comment->isClientComment() ? 'text-slate-500' : 'text-indigo-200' }}">
+                                                                    Re: {{ $comment->commentable->name }}
+                                                                </div>
+                                                            @endif
                                                         </div>
+                                                    </div>
+                                                </div>
                                             @endforeach
                                         @endif
                                     </div>
@@ -1231,7 +1231,7 @@
                             <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Add
                                 Follower
                             </h3>
-                            <div x-data="{ userId: '' }">
+                            <div x-data="{ userId: '', permissions: ['view', 'edit'] }">
                                 <div class="mb-4">
                                     <label for="follower_user_id"
                                         class="block text-sm font-medium text-gray-700">User</label>
@@ -1243,9 +1243,26 @@
                                         @endforeach
                                     </select>
                                 </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+                                    <div class="flex items-center gap-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="checkbox" value="view" x-model="permissions"
+                                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                            <span class="ml-2 text-sm text-gray-600">View</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="checkbox" value="edit" x-model="permissions"
+                                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                            <span class="ml-2 text-sm text-gray-600">Edit</span>
+                                        </label>
+                                    </div>
+                                </div>
+
                                 <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                                     <button type="button"
-                                        @click="if(userId) { $wire.addFollower(userId); showFollowerModal = false; userId = ''; } else { alert('Please select a user'); }"
+                                        @click="if(userId) { $wire.addFollower(userId, permissions); showFollowerModal = false; userId = ''; permissions = ['view', 'edit']; } else { alert('Please select a user'); }"
                                         class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:col-start-2">Add</button>
                                     <button type="button" @click="showFollowerModal = false"
                                         class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0">Cancel</button>
@@ -1272,11 +1289,11 @@
                                 <!-- Status Dot -->
                                 <div
                                     class="absolute -left-[19px] top-1 h-3 w-3 rounded-full border-2 border-white
-                                                                                                                                                                                                                            @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
-                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
-                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
-                                                                                                                                                                                                                            @else bg-slate-200
-                                                                                                                                                                                                                            @endif">
+                                                                                                                                                                                                                                    @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
+                                                                                                                                                                                                                                    @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
+                                                                                                                                                                                                                                    @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
+                                                                                                                                                                                                                                    @else bg-slate-200
+                                                                                                                                                                                                                                    @endif">
                                 </div>
 
                                 <div class="text-sm font-medium text-slate-900 leading-none">
@@ -1928,7 +1945,7 @@
             totalTax: {{ $estimate->total_tax ?? 0 }},
             discount: {{ $estimate->discount_total ?? 0 }},
             grandTotal: {{ $estimate->grand_total ?? 0 }} 
-                                                                                                    };
+                                                                                                        };
 
         const defaults = {
             hasCustomItems: () => false,

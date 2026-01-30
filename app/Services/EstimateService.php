@@ -556,6 +556,14 @@ class EstimateService
                 $this->duplicateEstimateItems($estimate, $newEstimate);
             }
 
+            // 4. Replicate Manual Followers
+            foreach ($estimate->manualFollowers as $follower) {
+                $newEstimate->manualFollowers()->create([
+                    'user_id' => $follower->user_id,
+                    'permissions' => $follower->permissions, // Permissions casted to array in model, handled by Eloquent
+                ]);
+            }
+
             return $newEstimate;
         });
     }

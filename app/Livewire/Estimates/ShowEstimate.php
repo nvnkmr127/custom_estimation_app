@@ -364,13 +364,13 @@ class ShowEstimate extends Component
         }
     }
 
-    public function addFollower($userId)
+    public function addFollower($userId, $permissions = null)
     {
         try {
             app()->call([app(\App\Http\Controllers\EstimateController::class), 'addFollower'], [
                 'request' => request()->merge([
                     'user_id' => $userId,
-                    'permissions' => ['view', 'edit']
+                    'permissions' => $permissions ?? ['view', 'edit']
                 ]),
                 'estimate' => $this->estimate
             ]);
