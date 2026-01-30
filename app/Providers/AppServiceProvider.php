@@ -74,6 +74,11 @@ class AppServiceProvider extends ServiceProvider
 
                 $view->with(compact('unreadCount', 'pendingApprovals', 'pendingSuggestions'));
             });
+
+            // Define the gate for the Log Viewer accessible by admins
+            \Illuminate\Support\Facades\Gate::define('viewLogViewer', function ($user) {
+                return $user->isAdmin();
+            });
         } catch (\Exception $e) {
             //
         }
