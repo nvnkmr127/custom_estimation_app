@@ -33,8 +33,8 @@
         <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data"
             class="space-y-8" @submit="isSubmitting = true" x-data="{ 
                   isSubmitting: false,
-                  attributes: {{ $productAttributes }},
-                  options: {{ $productOptions }},
+                  attributes: @json($productAttributes),
+                  options: @json($productOptions),
                   tags: '{{ $productTags }}',
                   initQuill() {
                       var quill = new Quill('#editor', { theme: 'snow' });
