@@ -30,11 +30,13 @@ class NotificationDecisionService
         // 2. Actor vs Recipient (Self-triggered suppression)
         // Rule: If actor_id equals recipient_id -> suppress, EXCEPT critical system events
         if ($recipient && $actorId === $recipient->id && $urgency !== DomainEvent::PRIORITY_CRITICAL) {
+            \Illuminate\Support\Facades\Log::debug("Notification: Suppressed - Self-triggered", ['event' => $eventName, 'user' => $recipient->id]);
             return NotificationDecision::suppress('Self-triggered event (Non-critical)');
         }
 
         // 3. Deduplication check (Read-only check)
         if ($this->isDuplicate($event, $recipient)) {
+            \Illuminate\Support\Facades\Log::debug("Notification: Suppressed - Duplicate", ['event' => $eventName]);
             return NotificationDecision::suppress('Duplicate notification within cooldown period');
         }
 
@@ -46,13 +48,22 @@ class NotificationDecisionService
 
         // If no channels are active, suppress
         if (empty($channels)) {
+            \Illuminate\Support\Facades\Log::debug("Notification: Suppressed - No active channels", ['event' => $eventName]);
             return NotificationDecision::suppress('No channels active for this event');
         }
 
         // 6. Check if event should be notified at all (Preferences check)
         if ($recipient && !$this->shouldNotifyRecipient($recipient, $eventName)) {
+            \Illuminate\Support\Facades\Log::debug("Notification: Suppressed - User preferences muted", ['event' => $eventName, 'user' => $recipient->id]);
             return NotificationDecision::suppress('User preferences explicitly muted this event');
         }
+
+        \Illuminate\Support\Facades\Log::info("Notification: Decision approved", [
+            'event' => $eventName,
+            'channels' => $channels,
+            'urgency' => $urgency,
+            'delay' => $delay
+        ]);
 
         return new NotificationDecision(
             shouldNotify: true,

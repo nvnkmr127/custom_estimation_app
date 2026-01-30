@@ -61,6 +61,17 @@ class AutomationService
     }
 
     /**
+     * Track conversions for any experiments where this event is a goal.
+     */
+    public function trackConversion(DomainEvent $event): void
+    {
+        $this->experimentService->recordConversion(
+            $event->getEventName(),
+            (object) $event->getPayload()
+        );
+    }
+
+    /**
      * Check if the event matches the rule conditions.
      */
     protected function matchesRelationalConditions(DomainEvent $event, $conditions, string $logic = 'AND'): bool

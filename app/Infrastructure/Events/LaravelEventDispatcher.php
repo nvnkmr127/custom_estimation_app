@@ -55,6 +55,11 @@ class LaravelEventDispatcher implements EventDispatcherInterface
         // and can be replayed later.
         try {
             Event::dispatch($event);
+            \Illuminate\Support\Facades\Log::debug("EventDispatcher: Dispatched to Laravel", [
+                'event_id' => $event->getEventId(),
+                'event_class' => get_class($event),
+                'name' => $event->getEventName()
+            ]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::critical('Failed to dispatch/queue event: ' . $e->getMessage(), [
                 'event_id' => $event->getEventId(),

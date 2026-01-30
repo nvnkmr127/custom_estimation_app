@@ -23,6 +23,8 @@ class AutomationListener implements ShouldQueue
      */
     public function handle(DomainEvent $event): void
     {
+        \Illuminate\Support\Facades\Log::info("AutomationListener: Triggered for event " . $event->getEventName());
+
         // 1. Evaluate for standard automations and experiments
         $this->automationService->evaluate($event);
 
