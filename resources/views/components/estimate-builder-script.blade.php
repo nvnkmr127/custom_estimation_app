@@ -679,6 +679,7 @@
                             _showTypePicker: !!unitTypeIdString, // Show picker if unit type is set
                             options: [],
                             is_package: false,
+                            is_locked: true,
                             _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                         };
                     });

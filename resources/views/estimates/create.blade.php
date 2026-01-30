@@ -467,13 +467,13 @@
                                                 </td>
                                                 <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
-                                                        :readonly="!!item.product_id || item.is_package"
-                                                        :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
+                                                        :readonly="!!item.product_id || item.is_package || item.is_locked"
+                                                        :class="(!!item.product_id || item.is_package || item.is_locked) ? 'cursor-default text-slate-500' : ''"
                                                         class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                                     <input type="text" x-model="item.description"
                                                         placeholder="Description"
-                                                        :readonly="!!item.product_id || item.is_package"
-                                                        :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
+                                                        :readonly="!!item.product_id || item.is_package || item.is_locked"
+                                                        :class="(!!item.product_id || item.is_package || item.is_locked) ? 'cursor-default text-slate-500' : ''"
                                                         class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                                     <template x-if="item.options && item.options.length > 0">
                                                         <div class="flex flex-wrap gap-1.5 mt-2">
