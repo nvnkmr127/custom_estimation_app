@@ -8,7 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Services\Automation\AutomationService;
-use App\Models\AutomationRule;
+use App\Models\Automation;
 
 class HandleAutomationAction implements ShouldQueue
 {
@@ -94,6 +94,10 @@ class HandleAutomationAction implements ShouldQueue
             public function getSource(): string
             {
                 return $this->data['source'] ?? 'web';
+            }
+            public function getPriority(): string
+            {
+                return $this->data['priority'] ?? \App\Core\Events\DomainEvent::PRIORITY_NORMAL;
             }
         };
 

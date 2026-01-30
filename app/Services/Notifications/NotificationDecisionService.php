@@ -19,10 +19,10 @@ class NotificationDecisionService
     /**
      * Evaluate if a notification should be sent and via which channels.
      */
-    public function evaluate(DomainEvent $event, ?User $recipient = null): NotificationDecision
+    public function evaluate(DomainEvent $event, ?User $recipient = null, ?User $actor = null): NotificationDecision
     {
         $eventName = $event->getEventName();
-        $actorId = $event->getTriggeredBy();
+        $actorId = $actor ? $actor->id : $event->getTriggeredBy();
 
         // 1. Determine base urgency and priority
         $urgency = $this->determineUrgency($event);
@@ -33,7 +33,7 @@ class NotificationDecisionService
             return NotificationDecision::suppress('Self-triggered event (Non-critical)');
         }
 
-        // 3. Deduplication check
+        // 3. Deduplication check (Read-only check)
         if ($this->isDuplicate($event, $recipient)) {
             return NotificationDecision::suppress('Duplicate notification within cooldown period');
         }
@@ -191,15 +191,6 @@ class NotificationDecisionService
 
         $cacheKey = "notify_dedup:" . md5("{$eventName}:{$entityType}:{$entityId}:{$recipientId}");
 
-        if (Cache::has($cacheKey)) {
-            return true;
-        }
-
-        // Get configurable cooldown or default to 5 minutes
-        $cooldownMinutes = Setting::getCached("notification_cooldown_{$eventName}", 5);
-
-        Cache::put($cacheKey, true, now()->addMinutes($cooldownMinutes));
-
-        return false;
+        return Cache::has($cacheKey);
     }
 }

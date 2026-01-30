@@ -1,46 +1,83 @@
-# PRD: Automation, Nurturing & Event Workflows
+# Product Requirements Document (PRD): Automation & Workflow Engine
 
-## 1. Overview
-The **Automation System** allows the business to scale its client engagement without increasing headcount. By reacting to "Events" (e.g., an estimate being viewed) with "Actions" (e.g., sending a reminder email 2 days later), the app ensures no lead is forgotten.
+## 1. Document Overview
+*   **Module**: Automation & Event-Driven Workflows
+*   **Status**: Active / Core Implementation Complete
+*   **Version**: 1.1
 
-## 2. User Stories
-- **Lead Nurturing**: As a sales manager, I want to automatically email a client 48 hours after they open an estimate if they haven't accepted it yet.
-- **Internal Alerts**: As an estimator, I want a notification on my dashboard the moment a client "Accepts" a proposal so I can start the project.
-- **A/B Testing**: As a marketing user, I want to run two different follow-up email versions to see which leads to higher acceptance rates.
-- **Workflow Visualization**: As an admin, I want to see a flowchart of my automation logic to ensure there are no dead-ends.
+The Automation Engine is the "intelligence" layer of the Custom Estimation App. It enables business logic to be decoupled into configurable rules that react to system events, allowing for automated follow-ups, internal task creation, and dynamic status management without manual intervention.
 
-## 3. Functional Requirements
+---
 
-### 3.1 Components of an Automation
-- **Triggers**: The "When" (e.g., `Estimate Viewed`, `Status Changed`, `Client Request Call`).
-- **Conditions**: The "If" (e.g., `If Grand Total > $10,000` or `If Client Tag is "VIP"`).
-- **Steps**: The "What" (e.g., `Send Email`, `Create Task`, `Wait 2 Days`, `Update Status`).
-- **Schedules**: Define *when* the automation is allowed to run (e.g., "Only during business hours").
+## 2. Product Vision
+To empower users to build "Self-Driving" business processes. By automating the repetitive "If-This-Then-That" logic of sales and project management, the platform ensures consistent client engagement and reduces administrative overhead.
 
-### 3.2 Key Events Supported
-The system integrates with the `EventDispatcher` to listen for:
-- `EstimateCreated`
-- `EstimateSent` (Email fired)
-- `EstimateViewed` (Portal opened)
-- `EstimateAccepted` / `Declined`
+---
 
-### 3.3 Experimentation (A/B Testing)
-- **Experiments**: Define a "Control" and "Variant" group for different steps in an automation.
-- **Analytics**: Track conversion metrics per version to identify which workflow is more effective.
+## 3. The Core Logic Model: "Triggers, Conditions, Actions"
 
-### 3.4 Versioning
-- Automations support version control (`is_current_version`), allowing admins to iterate on workflows without breaking currently "In Flight" executions.
+### 3.1 Triggers (The Entry Points)
+Automations are initiated by `DomainEvents`. The engine listens across the entire application lifecycle.
+*   **Life-Cycle Events**: `EstimateCreated`, `EstimateSent`, `EstimateViewed`, `EstimateAccepted`.
+*   **User Interactions**: `CommentAdded`, `ReviewRequested`.
+*   **System Events**: `UserRegistered`, `ApplicationAccessGranted`.
 
-## 4. Technical Specifications
-- **Models**:
-    - `Automation` (The root definition)
-    - `AutomationTrigger` (The entry points)
-    - `AutomationStep` (The sequence of actions)
-    - `AutomationCondition` (The logic filters)
-    - `AutomationExecutionLog` (The audit trail)
-- **Processor**: `AutomationService` (Found in `App\Services`)
+### 3.2 Advanced Condition Engine
+The engine evaluates whether an automation should proceed based on deep-data inspection:
+*   **Payload Inspection**: Check data within the event itself (e.g., `If total_amount > 5000`).
+*   **Entity State**: Dynamically fetch and inspect the related model (e.g., `If Estimate Client has tag 'VIP'`).
+*   **Frequency Analysis**: Check historical counts (e.g., `If this is the 3rd time the client has viewed the estimate`).
+*   **Contextual Logic**: Support for `AND` / `OR` logic gates at both the Global (Workflow) and Step level.
+*   **Temporal Filters**: Restrict runs by Time-of-Day or Day-of-Week (e.g., "Only send emails during business hours").
 
-## 5. UI/UX Requirements
-- **Flowchart Builder**: A visual interface for dragging and dropping steps.
-- **Execution Timeline**: A view for each estimate showing exactly which automation steps were fired and when.
-- **Dashboard Metrics**: High-level stats on "Active Runs", "Completed Nurtures", and "Conversions attributed to Automation".
+### 3.3 Dynamic Step Execution
+Workflows consist of ordered `AutomationSteps` that can be executed:
+*   **Synchronously**: Immediate action.
+*   **Asynchronously (Delayed)**: Schedule actions for the future (e.g., "Wait 48 hours then send follow-up").
+*   **Failure Handling**: Configurable `on_failure` policies (e.g., `halt` the entire trace if a step fails).
+
+---
+
+## 4. Supported Action Types
+1.  **Email**: Send templated messages with dynamic data injection.
+2.  **Webhook**: Forward event data to external systems for deep integration.
+3.  **Internal Notification**: Create dashboard alerts and push notifications for team members.
+4.  **Status Update**: Automatically manipulate model states (e.g., "If declined, change status to 'Archived'").
+
+---
+
+## 5. Enterprise Features
+
+### 5.1 Experimentation (A/B Testing)
+Built-in support for A/B testing via `ExperimentService`.
+*   **Traffic Splitting**: Randomly assign events to different workflow variants.
+*   **Conversion Tracking**: Measure which automation variant performs better against a defined goal.
+
+### 5.2 Versioning & Concurrency
+*   **Immutability**: Once an automation is triggered (a "Trace"), it follows the version of the workflow that existed at the time of the event.
+*   **Current-Version Control**: Admins can iterate on logic in draft mode and "Publish" new versions without breaking "In-Flight" executions.
+
+### 5.3 Safety & Governance
+To prevent "Automation Meltdowns," the engine implements several safeguards:
+*   **Loop Detection**: Automatic kill-switch if a workflow triggers itself or cycles rapidly (>50 executions/min).
+*   **Rate Limiting**: Configurable quotas per workflow (e.g., "Max 500 emails per day").
+*   **Entity Protection**: Limit how many times a specific estimate or client can trigger a specific automation.
+*   **Payload Masking**: Automatically masks sensitive fields (`api_keys`, `tokens`) in execution logs for security.
+
+---
+
+## 6. Technical Stack
+*   **Service Layer**: `AutomationService` (Orchestrates evaluation and execution).
+*   **Job Architecture**: `HandleAutomationAction` (Handles delayed and async steps via Redis/Sqs).
+*   **Persistence**: 
+    *   `automation_execution_logs`: Full audit trail of every decision and action.
+    *   `automation_triggers`: Mapping events to workflows.
+    *   `automation_steps`: The sequence and delay definitions.
+
+---
+
+## 7. Future Roadmap
+1.  **Visual Flow Builder**: A React-Flow or Vue-Flow based canvas for visual workflow editing.
+2.  **External Triggers**: Ability to start an automation via an incoming webhook.
+3.  **Cross-App Workflows**: Automations that span multiple sub-applications (e.g., "When Estimate is Paid in App A, provision User in App B").
+4.  **AI Optimization**: Suggesting condition adjustments based on successful conversion patterns.

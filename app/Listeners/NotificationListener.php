@@ -5,6 +5,8 @@ namespace App\Listeners;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use App\Core\Events\DomainEvent;
+use Illuminate\Support\Facades\Cache;
+use App\Models\Setting;
 
 class NotificationListener implements ShouldQueue
 {
@@ -43,13 +45,20 @@ class NotificationListener implements ShouldQueue
         // For in-app notifications, we usually need a recipient.
         // We might need to determine the recipients based on the event type.
         $recipients = $this->determineRecipients($event);
+        $actorId = $event->getTriggeredBy();
+        $actor = $actorId ? \App\Models\User::find($actorId) : null;
 
         foreach ($recipients as $recipient) {
-            $decision = $this->decisionService->evaluate($event, $recipient);
+            $decision = $this->decisionService->evaluate($event, $recipient, $actor);
 
             if (!$decision->shouldNotify || !in_array('in-app', $decision->channels)) {
                 continue;
             }
+
+            // Record for deduplication
+            $cacheKey = "notify_dedup:" . md5($event->getEventName() . ":" . $event->getEntityType() . ":" . $event->getEntityId() . ":" . $recipient->id);
+            $cooldownMinutes = Setting::getCached("notification_cooldown_" . $event->getEventName(), 5);
+            Cache::put($cacheKey, true, now()->addMinutes($cooldownMinutes));
 
             // Persistence: Notifications stored in the database
             \Illuminate\Support\Facades\DB::table('notifications')->insert([

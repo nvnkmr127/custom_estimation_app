@@ -20,6 +20,21 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('reminders:send')->everyMinute();
         $schedule->command('notifications:send-digests daily_digest')->daily();
         $schedule->command('notifications:send-digests weekly_digest')->weekly();
+
+        // Automation Engine: Run every minute to check for due cron-based/scheduled automations
+        $schedule->command('automation:run-scheduled')->everyMinute();
+
+        // Automation Engine: Daily analytics aggregation (calculates stats for previous day)
+        $schedule->command('automation:analytics-calculate')->dailyAt('00:05');
+
+        // Estimate Nurturing: Process intelligent follow-ups daily
+        $schedule->command('estimates:nurture')->dailyAt('09:00');
+
+        // Approval Management: Check for expiring/timeout approvals hourly
+        $schedule->command('approval:check-timeouts')->hourly();
+
+        // CRM Sync: Ping the external Perfex CRM cron every 5 minutes
+        $schedule->command('perfex:cron-ping')->everyFiveMinutes();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {

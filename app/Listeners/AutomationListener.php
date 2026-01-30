@@ -23,6 +23,10 @@ class AutomationListener implements ShouldQueue
      */
     public function handle(DomainEvent $event): void
     {
+        // 1. Evaluate for standard automations and experiments
         $this->automationService->evaluate($event);
+
+        // 2. Track conversions for any experiments where this event is a goal
+        $this->automationService->trackConversion($event);
     }
 }

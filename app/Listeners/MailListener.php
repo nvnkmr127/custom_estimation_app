@@ -5,6 +5,8 @@ namespace App\Listeners;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use App\Core\Events\DomainEvent;
+use Illuminate\Support\Facades\Cache;
+use App\Models\Setting;
 
 class MailListener implements ShouldQueue
 {
@@ -194,9 +196,12 @@ class MailListener implements ShouldQueue
         ?string $eventId = null,
         ?DomainEvent $event = null
     ): void {
+        $actorId = $event ? $event->getTriggeredBy() : null;
+        $actor = $actorId ? \App\Models\User::find($actorId) : null;
+
         // Use NotificationDecisionService to evaluate
         if ($event) {
-            $decision = $this->decisionService->evaluate($event, $user);
+            $decision = $this->decisionService->evaluate($event, $user, $actor);
             if (!$decision->shouldNotify || !in_array('email', $decision->channels)) {
                 return;
             }
@@ -207,6 +212,11 @@ class MailListener implements ShouldQueue
                 // For this implementation, we'll just log it or let it pass if it's not a background job.
                 \Illuminate\Support\Facades\Log::info("Notification delayed by {$decision->delay}s for event {$eventType}");
             }
+
+            // Record for deduplication
+            $cacheKey = "notify_dedup:" . md5($event->getEventName() . ":" . $event->getEntityType() . ":" . $event->getEntityId() . ":" . $user->id);
+            $cooldownMinutes = Setting::getCached("notification_cooldown_" . $event->getEventName(), 5);
+            Cache::put($cacheKey, true, now()->addMinutes($cooldownMinutes));
 
             // Inject context for conversion tracking
             $data['event_type'] = $event->getEventName();

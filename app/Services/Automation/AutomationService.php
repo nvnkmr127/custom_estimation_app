@@ -82,7 +82,7 @@ class AutomationService
             $expected = $condition->value;
 
             if ($type === 'payload') {
-                $actual = $payload[$field] ?? null;
+                $actual = data_get($payload, $field);
             } elseif ($type === 'entity') {
                 $entity = $entity ?? $this->resolveEntity($event);
                 if (is_array($entity)) {
@@ -188,8 +188,24 @@ class AutomationService
                 return $actual != $expected;
             case 'contains':
                 return str_contains((string) $actual, (string) $expected);
+            case 'not_contains':
+                return !str_contains((string) $actual, (string) $expected);
+            case 'starts_with':
+                return \Illuminate\Support\Str::startsWith((string) $actual, (string) $expected);
+            case 'ends_with':
+                return \Illuminate\Support\Str::endsWith((string) $actual, (string) $expected);
+            case 'regex':
+                return preg_match($expected, (string) $actual);
             case 'in':
-                return is_array($expected) && in_array($actual, $expected);
+                $expectedArray = is_array($expected) ? $expected : explode(',', $expected);
+                return in_array($actual, $expectedArray);
+            case 'not_in':
+                $expectedArray = is_array($expected) ? $expected : explode(',', $expected);
+                return !in_array($actual, $expectedArray);
+            case 'is_empty':
+                return empty($actual);
+            case 'is_not_empty':
+                return !empty($actual);
             case '=':
             default:
                 return $actual == $expected;
@@ -301,8 +317,8 @@ class AutomationService
 
     protected function handleEmailAction(array $action, DomainEvent $event): void
     {
-        $to = $action['to'] ?? ($event->getPayload()['client_email'] ?? null);
-        $subject = $action['subject'] ?? 'Automation Alert';
+        $to = $this->parseVariables($action['to'] ?? ($event->getPayload()['client_email'] ?? null), $event);
+        $subject = $this->parseVariables($action['subject'] ?? 'Automation Alert', $event);
         $template = $action['template'] ?? 'emails.generic_automation';
 
         // Merge event payload with action data for template
@@ -315,11 +331,21 @@ class AutomationService
 
     protected function handleWebhookAction(array $action, DomainEvent $event): void
     {
-        $url = $action['url'] ?? null;
-        if (!$url)
+        $url = $this->parseVariables($action['url'] ?? null, $event);
+        if (!$url) {
+            Log::warning("Automation: Webhook URL is empty or could not be parsed", [
+                'event_id' => $event->getEventId(),
+                'action_config' => $action
+            ]);
             return;
+        }
 
-        Http::post($url, [
+        Log::info("Automation: Sending webhook to {$url}", [
+            'event' => $event->getEventName(),
+            'event_id' => $event->getEventId()
+        ]);
+
+        $response = Http::timeout(10)->post($url, [
             'event' => $event->getEventName(),
             'payload' => $event->getPayload(),
             'metadata' => [
@@ -327,24 +353,65 @@ class AutomationService
                 'occurred_at' => $event->getOccurredOn()->format('c'),
             ]
         ]);
+
+        if ($response->failed()) {
+            Log::error("Automation: Webhook failed", [
+                'url' => $url,
+                'status' => $response->status(),
+                'response' => $response->body(),
+                'event_id' => $event->getEventId()
+            ]);
+            throw new \Exception("Webhook failed with status {$response->status()}: " . $response->body());
+        }
+
+        Log::info("Automation: Webhook sent successfully", [
+            'url' => $url,
+            'status' => $response->status()
+        ]);
     }
 
     protected function handleInternalNotification(array $action, DomainEvent $event): void
     {
-        // Integration with existing Notification model/system
-        // Assuming a generic pattern for now
         $userId = $action['user_id'] ?? $event->getTriggeredBy();
         if (!$userId)
             return;
+
+        $message = $this->parseVariables($action['message'] ?? "Automation triggered by {$event->getEventName()}", $event);
 
         \App\Models\PendingNotification::create([
             'user_id' => $userId,
             'type' => 'automation',
             'data' => [
-                'message' => $action['message'] ?? "Automation triggered by {$event->getEventName()}",
+                'message' => $message,
                 'event_id' => $event->getEventId(),
             ]
         ]);
+    }
+
+    protected function parseVariables(?string $text, DomainEvent $event): ?string
+    {
+        if (!$text)
+            return null;
+
+        $payload = $event->getPayload();
+        $entity = $this->resolveEntity($event);
+
+        return preg_replace_callback('/\{\{\s*(.*?)\s*\}\}/', function ($matches) use ($payload, $entity) {
+            $path = trim($matches[1]);
+
+            // Try payload first
+            if (str_starts_with($path, 'event.')) {
+                return data_get($payload, substr($path, 6), $matches[0]);
+            }
+
+            // Try entity
+            if (str_starts_with($path, 'entity.')) {
+                return data_get($entity, substr($path, 7), $matches[0]);
+            }
+
+            // Fallback to searching both
+            return data_get($payload, $path) ?? data_get($entity, $path) ?? $matches[0];
+        }, $text);
     }
 
     /**
@@ -407,16 +474,20 @@ class AutomationService
 
     protected function detectLoop(Automation $automation, DomainEvent $event): bool
     {
-        static $depth = 0;
-        $depth++;
-        if ($depth > 10)
+        $key = "automation_loop_check_{$automation->id}_" . $event->getEntityId();
+
+        // Increment execution count for this entity in the last minute
+        $count = \Illuminate\Support\Facades\Cache::get($key, 0);
+        $count++;
+
+        \Illuminate\Support\Facades\Cache::put($key, $count, 60);
+
+        if ($count > 10) {
+            Log::alert("Automation: Potential loop detected for Automation #{$automation->id} on entity {$event->getEntityId()}. Execution count: {$count} in 60s");
             return true;
+        }
 
-        $recentExecutions = AutomationExecutionLog::where('automation_id', $automation->id)
-            ->where('executed_at', '>=', now()->subMinute())
-            ->count();
-
-        return $recentExecutions > 50;
+        return false;
     }
 
     protected function handleStatusUpdate(array $action, DomainEvent $event): void
