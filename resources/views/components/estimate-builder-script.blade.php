@@ -8,30 +8,7 @@
             categories: initialData.categories || @json($categories ?? []),
             defaults: initialData.defaults || @json($defaults ?? []),
 
-            estimate: {
-                status: 'draft',
-                currency: 'USD',
-                type: 'room_based', // Force room_based to support mixed layouts
 
-                client_id: '',
-                client_note: '',
-                admin_note: '',
-                terms: '',
-                pdf_theme: 'modern',
-                sections: [], // For room_based: [{ name: 'Room 1', items: [] }]
-                items: [],    // For standard: [{ ...item }]
-
-                // Spread initialData but exclude system arrays to keep estimate object clean
-                ...(({ products, templates, packages, defaults, ...rest }) => rest)(initialData),
-
-                // Override dates to ensure correct format (YYYY-MM-DD) for input[type="date"]
-                estimate_date: initialData.estimate_date ? initialData.estimate_date.split('T')[0] : new Date().toISOString().split('T')[0],
-                expiry_date: initialData.expiry_date ? initialData.expiry_date.split('T')[0] : '',
-                coupon_code_id: initialData.coupon_code_id || null,
-                transportation_charges: parseFloat(initialData.transportation_charges || 0),
-                tax_1: initialData.tax_1 !== undefined ? initialData.tax_1 : (parseFloat(@json($defaults['tax_1_rate'] ?? 0))),
-                tax_2: initialData.tax_2 !== undefined ? initialData.tax_2 : (parseFloat(@json($defaults['tax_2_rate'] ?? 0)))
-            },
             couponInput: '',
             appliedCouponCode: initialData.coupon_code ? initialData.coupon_code.code : '',
             couponValid: true,
@@ -46,6 +23,36 @@
             internalNoteModal: {
                 isOpen: false,
                 activeItem: null
+            },
+            estimate: {
+                // Defaults
+                client_id: '',
+                client_note: '',
+                admin_note: '',
+                terms: '',
+                pdf_theme: 'modern',
+                sections: [],
+                items: [],
+                status: 'draft', // Default
+
+                // Spread DB Data (overwrites above)
+                ...initialData,
+
+                // Explicit Type Casting & Fallbacks
+                transportation_charges: parseFloat(initialData.transportation_charges || 0),
+                tax_1: initialData.tax_1 !== undefined ? parseFloat(initialData.tax_1) : (parseFloat(@json($defaults['tax_1_rate'] ?? 0))),
+                tax_2: initialData.tax_2 !== undefined ? parseFloat(initialData.tax_2) : (parseFloat(@json($defaults['tax_2_rate'] ?? 0))),
+
+                // Date Handling
+                estimate_date: initialData.estimate_date ? initialData.estimate_date.split('T')[0] : new Date().toISOString().split('T')[0],
+                expiry_date: initialData.expiry_date ? initialData.expiry_date.split('T')[0] : '',
+
+                // Ensure Arrays exist
+                items: initialData.items || [],
+                sections: initialData.sections || [],
+
+                // Nullable Foreign Keys
+                coupon_code_id: initialData.coupon_code_id || null,
             },
             configModal: {
                 isOpen: false,
@@ -1084,7 +1091,7 @@
                 };
 
                 // Basic Fields
-                const fields = ['client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type', 'coupon_code_id', 'pdf_template_id', 'tax_1', 'tax_2'];
+                const fields = ['client_id', 'estimate_date', 'expiry_date', 'currency', 'status', 'discount_type', 'discount_value', 'client_note', 'admin_note', 'terms', 'pdf_theme', 'type', 'coupon_code_id', 'pdf_template_id', 'tax_1', 'tax_2', 'transportation_charges'];
                 fields.forEach(f => {
                     let val = this.estimate[f];
                     if (f === 'discount_value') {
