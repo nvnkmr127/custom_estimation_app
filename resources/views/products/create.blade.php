@@ -223,18 +223,42 @@
                     </div>
 
                     <div class="sm:col-span-2">
-                        <x-input-label for="unit_type" value="Unit Type" required />
-                        <select name="unit_type" id="unit_type"
+                        <x-input-label for="calculation_method" value="Calculation Method" />
+                        <select name="calculation_method" id="calculation_method"
                             class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                            @foreach(['nos', 'sqft', 'mtr', 'kg', 'set', 'hrs', 'days'] as $type)
-                                <option value="{{ $type }}" {{ old('unit_type') == $type ? 'selected' : '' }}>
-                                    {{ ucfirst($type) }}
-                                </option>
+                            <option value="standard" {{ old('calculation_method') == 'standard' ? 'selected' : '' }}>
+                                Standard (Manual Qty)</option>
+                            <option value="area" {{ old('calculation_method') == 'area' ? 'selected' : '' }}>Area (L x W)
+                            </option>
+                            <option value="volume" {{ old('calculation_method') == 'volume' ? 'selected' : '' }}>Volume (L
+                                x W x H)</option>
+                            <option value="formula" {{ old('calculation_method') == 'formula' ? 'selected' : '' }}>Custom
+                                Formula</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-4"
+                        x-show="document.getElementById('calculation_method').value === 'formula'" x-cloak>
+                        <x-input-label for="formula" value="Custom Formula Pattern" />
+                        <x-text-input type="text" name="formula" id="formula" value="{{ old('formula') }}"
+                            placeholder="e.g. (L + W) * 2 * H" class="mt-2" />
+                        <p class="mt-1 text-[10px] text-slate-500 italic">Use variables: L (Length), W (Width), H
+                            (Height)</p>
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <x-input-label for="unit_type_id" value="Unit Classification" />
+                        <select name="unit_type_id" id="unit_type_id"
+                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                            <option value="">-- No Classification --</option>
+                            @foreach($unitTypes as $ut)
+                                <option value="{{ $ut->id }}" {{ old('unit_type_id') == $ut->id ? 'selected' : '' }}>
+                                    {{ $ut->name }}</option>
                             @endforeach
                         </select>
                     </div>
 
-                    <div class="sm:col-span-2">
+                    <div class="sm:col-span-3">
                         <x-input-label for="tax_1" value="Tax 1 (%)" />
                         <x-text-input type="number" step="0.01" name="tax_1" id="tax_1" value="{{ old('tax_1', 0) }}" />
                     </div>

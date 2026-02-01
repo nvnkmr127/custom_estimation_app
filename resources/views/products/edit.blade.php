@@ -202,11 +202,22 @@
                         <x-input-label for="calculation_method" value="Calculation Method" />
                         <select name="calculation_method" id="calculation_method"
                             class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                            <option value="standard" {{ old('calculation_method', $product->calculation_method) == 'standard' ? 'selected' : '' }}>Standard (Qty
-                                Input)</option>
-                            <option value="formula" {{ old('calculation_method', $product->calculation_method) == 'formula' ? 'selected' : '' }}>Formula (L x W)
+                            <option value="standard" {{ old('calculation_method', $product->calculation_method) == 'standard' ? 'selected' : '' }}>Standard (Manual Qty)
                             </option>
+                            <option value="area" {{ old('calculation_method', $product->calculation_method) == 'area' ? 'selected' : '' }}>Area (L x W)</option>
+                            <option value="volume" {{ old('calculation_method', $product->calculation_method) == 'volume' ? 'selected' : '' }}>Volume (L x W x H)</option>
+                            <option value="formula" {{ old('calculation_method', $product->calculation_method) == 'formula' ? 'selected' : '' }}>Custom Formula</option>
                         </select>
+                    </div>
+
+                    <div class="sm:col-span-4"
+                        x-show="document.getElementById('calculation_method').value === 'formula'" x-cloak>
+                        <x-input-label for="formula" value="Custom Formula Pattern" />
+                        <x-text-input type="text" name="formula" id="formula"
+                            value="{{ old('formula', $product->formula) }}" placeholder="e.g. (L + W) * 2 * H"
+                            class="mt-2" />
+                        <p class="mt-1 text-[10px] text-slate-500 italic">Use variables: L (Length), W (Width), H
+                            (Height)</p>
                     </div>
 
                     <div class="sm:col-span-2">

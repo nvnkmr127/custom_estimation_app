@@ -170,7 +170,14 @@
                     item.quantity = parseFloat(item.quantity || 1);
                     item.tax_1 = parseFloat(item.tax_1 || 0);
                     item.tax_2 = 0; // Use one tax only (GST)
-                    item.unit_type_id = item.unit_type_id || null;
+                    // Fallback to product defaults for Unit Type if missing on the item
+                    if ((item.unit_type_id === null || item.unit_type_id === undefined) && item.product && item.product.unit_type_id) {
+                        item.unit_type_id = item.product.unit_type_id;
+                    }
+                    item.unit_type_id = item.unit_type_id ? String(item.unit_type_id) : null;
+
+                    item.tax_1 = parseFloat(item.tax_1 || 0);
+                    item.tax_2 = 0; // Use one tax only (GST)
                     item._showTypePicker = false;
                     item.size = item.size || '';
                     item.length = item.length || '';
@@ -429,7 +436,7 @@
                     quantity: 1,
                     size: sizeString,
                     unit_type: product.unit_type || 'nos',
-                    unit_type_id: product.unit_type_id || null,
+                    unit_type_id: product.unit_type_id ? String(product.unit_type_id) : null,
                     description: product.description || '',
                     tax_1: parseFloat(this.defaults.tax_1_rate || 0),
                     tax_2: parseFloat(this.defaults.tax_2_rate || 0),
@@ -516,7 +523,7 @@
                     quantity: 1,
                     size: sizeString,
                     unit_type: product.unit_type || 'nos',
-                    unit_type_id: product.unit_type_id || null,
+                    unit_type_id: product.unit_type_id ? String(product.unit_type_id) : null,
                     description: product.description || '',
                     tax_1: parseFloat(this.defaults.tax_1_rate || 0),
                     tax_2: parseFloat(this.defaults.tax_2_rate || 0),
@@ -700,7 +707,24 @@
                             tax_2: 0,
                             length: '', width: '', height: '', formula: '', showCalculator: false,
                             _showTypePicker: !!unitTypeIdString, // Show picker if unit type is set
-                            options: [],
+                            options: (() => {
+                                if (i.options && i.options.length > 0) return JSON.parse(JSON.stringify(i.options));
+                                // Fallback: If no options in template but product has them, use defaults (first value)
+                                if (i.product && i.product.options && i.product.options.length > 0) {
+                                    return i.product.options.map(opt => {
+                                        if (opt.values && opt.values.length > 0) {
+                                            const val = opt.values[0];
+                                            return {
+                                                name: opt.name,
+                                                value: val.value,
+                                                price_adjustment: val.price_adjustment
+                                            };
+                                        }
+                                        return null;
+                                    }).filter(Boolean); // Filter out nulls
+                                }
+                                return [];
+                            })(),
                             is_package: false,
                             is_locked: true,
                             _uid: 'item-' + Math.random().toString(36).substr(2, 9)
@@ -746,7 +770,17 @@
 
             // --- Calculations ---
             calculateItemTotal(item) {
-                const total = (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0);
+                const price = parseFloat(item.unit_price) || 0;
+                const qty = parseFloat(item.quantity) || 0;
+                let size = 1;
+
+                // If item has a specific calculation formula (area/volume/custom), we multiply by size.
+                if (item.formula && ['area', 'volume', 'area_lh', 'formula'].includes(item.formula)) {
+                    const s = parseFloat(item.size);
+                    if (!isNaN(s) && s > 0) size = s;
+                }
+
+                const total = price * qty * size;
                 return parseFloat(total.toFixed(2));
             },
 
@@ -799,7 +833,7 @@
                 item.showCalculator = !item.showCalculator;
             },
 
-            calculateQuantity(item) {
+            calculateSize(item) {
                 const l = parseFloat(item.length) || 0;
                 const w = parseFloat(item.width) || 0;
                 const h = parseFloat(item.height) || 0;
@@ -807,10 +841,12 @@
                 // Check if the item is linked to a product with a strict calculation method
                 let forcedMethod = null;
                 let customFormulaString = null;
+                let isProductLinked = false;
 
                 if (item.product_id) {
                     const product = this.products.find(p => p.id == item.product_id);
                     if (product) {
+                        isProductLinked = true;
                         if (product.calculation_method === 'formula') {
                             forcedMethod = 'formula';
                             customFormulaString = product.formula;
@@ -825,53 +861,57 @@
                     if (forcedMethod === 'formula' && customFormulaString) {
                         try {
                             // Replace variable placeholders (l, w, h) with values
-                            // Using word boundaries to avoid replacing parts of other words (though formula is likely simple)
                             let expression = customFormulaString.toLowerCase()
                                 .replace(/\bl\b/g, l)
                                 .replace(/\bw\b/g, w)
                                 .replace(/\bh\b/g, h);
 
-                            // Basic sanitization: only allow numbers, math operators, parenthesis, and spaces
                             if (/^[0-9+\-*/().\s]+$/.test(expression)) {
-                                // Safe(ish) evaluation
                                 const result = (new Function('return ' + expression))();
-                                item.quantity = isNaN(result) ? 0 : parseFloat(result).toFixed(2);
+                                item.size = isNaN(result) ? 0 : parseFloat(result).toFixed(2);
                             } else {
                                 console.warn('Invalid characters in custom formula:', expression);
-                                item.quantity = 0;
+                                item.size = 0;
                             }
                         } catch (e) {
                             console.error('Error evaluating custom formula:', e);
-                            item.quantity = 0;
+                            item.size = 0;
                         }
                     } else if (forcedMethod === 'volume') {
-                        item.quantity = (l * w * h).toFixed(2);
+                        item.size = (l * w * h).toFixed(2);
                     } else if (forcedMethod === 'area_lh') {
-                        item.quantity = (l * h).toFixed(2);
+                        item.size = (l * h).toFixed(2);
                     } else {
                         // area
-                        item.quantity = (l * w).toFixed(2);
+                        item.size = (l * w).toFixed(2);
                     }
-                    this.calculateTotals();
-                    return;
+                } else {
+                    // If it's a Product Item (isProductLinked is true) but has NO forced method,
+                    // we MUST stop here. We should not infer 'area'/'volume' just because dimensions exist.
+                    // This allows "Fixed" products to have descriptive dimensions without affecting Price/Quantity.
+                    if (isProductLinked) {
+                        return;
+                    }
+
+                    // Default Inference Logic (Only for Custom/Ad-hoc Items)
+                    if (l > 0 && w > 0) {
+                        if (h > 0) {
+                            item.size = (l * w * h).toFixed(2);
+                            item.formula = 'volume';
+                        } else {
+                            item.size = (l * w).toFixed(2);
+                            item.formula = 'area';
+                        }
+                    } else if (l > 0 && h > 0) {
+                        item.size = (l * h).toFixed(2);
+                        item.formula = 'area_lh';
+                    } else {
+                        // Insufficient dimensions
+                        item.size = 0;
+                    }
                 }
 
-                // Default Inference Logic
-                if (l > 0 && w > 0) {
-                    if (h > 0) {
-                        item.quantity = (l * w * h).toFixed(2);
-                        item.formula = 'volume';
-                    } else {
-                        item.quantity = (l * w).toFixed(2);
-                        item.formula = 'area';
-                    }
-                } else if (l > 0 && h > 0) {
-                    item.quantity = (l * h).toFixed(2);
-                    item.formula = 'area_lh';
-                } else {
-                    // Insufficient dimensions
-                    item.quantity = 0;
-                }
+                // Recalculate Totals (Quantity is essentially 'Count' now, so we don't auto-update it)
                 this.calculateTotals();
             },
 

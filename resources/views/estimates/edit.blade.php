@@ -403,8 +403,7 @@
                                                                         :class="hasItemError(item, sectionIndex) && (!item.unit_type_id || item.unit_type_id === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-slate-200 bg-slate-50/50'"
                                                                         class="block w-full rounded-lg py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white">
                                                                         <option value="">Manual</option>
-                                                                        <template
-                                                                            x-for="type in getFilteredUnitTypes(sectionIndex)"
+                                                                        <template x-for="type in unitTypes"
                                                                             :key="type.id">
                                                                             <option :value="String(type.id)"
                                                                                 x-text="type.name"
@@ -471,19 +470,15 @@
                                                 <!-- Size -->
                                                 <td class="px-3 py-4">
                                                     <div class="relative">
-                                                        <input type="text" x-model="item.size" placeholder="Enter Size"
-                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 px-3 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all placeholder:text-slate-400"
-                                                            x-show="!item.showCalculator">
-                                                        <div x-show="item.showCalculator"
-                                                            class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"
-                                                            style="display: none;">
+                                                        <div
+                                                            class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
                                                             <div class="flex flex-col gap-1.5">
                                                                 <div class="flex items-center gap-2">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.length" placeholder="0"
-                                                                        @input="calculateQuantity(item)"
+                                                                        @input="calculateSize(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -493,7 +488,7 @@
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.width" placeholder="0"
-                                                                        @input="calculateQuantity(item)"
+                                                                        @input="calculateSize(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -503,7 +498,7 @@
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.height" placeholder="0"
-                                                                        @input="calculateQuantity(item)"
+                                                                        @input="calculateSize(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -515,7 +510,7 @@
                                                                     x-text="item.formula === 'volume' ? 'VOLUME' : (item.formula === 'area_lh' ? 'AREA (LxH)' : (item.formula === 'formula' ? 'CUSTOM' : ((item.formula === 'area') ? 'AREA (LxW)' : 'AREA')))"></span>
                                                                 <span
                                                                     class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
-                                                                    x-text="item.quantity || '0.00'"></span>
+                                                                    x-text="item.size || '0.00'"></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -527,8 +522,8 @@
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
                                                             x-text="estimate.currency"></span>
                                                         <input type="number" step="0.01" x-model="item.unit_price"
-                                                            @input="calculateTotals"
-                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
+                                                            readonly
+                                                            class="block w-full rounded-lg border-slate-200 bg-slate-100 py-1.5 pl-8 pr-3 text-sm text-slate-500 text-right font-medium focus:ring-0 transition-all cursor-not-allowed">
                                                     </div>
                                                 </td>
                                                 <!-- Quantity -->
@@ -536,20 +531,7 @@
                                                     <div class="flex items-center justify-center gap-1.5">
                                                         <input type="number" step="0.01" x-model="item.quantity"
                                                             @input="calculateTotals"
-                                                            class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all"
-                                                            :readonly="item.showCalculator"
-                                                            :class="{'bg-slate-100 italic text-slate-400 border-dashed': item.showCalculator}">
-                                                        <button type="button" @click="toggleCalculator(item)"
-                                                            class="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100"
-                                                            :class="{'text-indigo-600 bg-indigo-50 border-indigo-100': item.showCalculator}"
-                                                            title="Toggle Area Calculator">
-                                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                                                stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                            </svg>
-                                                        </button>
+                                                            class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all">
                                                     </div>
                                                 </td>
                                                 <!-- Total -->
@@ -873,7 +855,8 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                                         <input type="number" step="0.01" x-model="item.length"
-                                                            placeholder="0" @input="calculateQuantity(item)"
+                                                            placeholder="0" @input="calculateSize(item)"
+                                                            @keydown.enter.prevent
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -882,7 +865,8 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                         <input type="number" step="0.01" x-model="item.width"
-                                                            placeholder="0" @input="calculateQuantity(item)"
+                                                            placeholder="0" @input="calculateSize(item)"
+                                                            @keydown.enter.prevent
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -891,7 +875,8 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                                         <input type="number" step="0.01" x-model="item.height"
-                                                            placeholder="0" @input="calculateQuantity(item)"
+                                                            placeholder="0" @input="calculateSize(item)"
+                                                            @keydown.enter.prevent
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -902,7 +887,7 @@
                                                         x-text="item.formula === 'volume' ? 'VOLUME' : (item.formula === 'area_lh' ? 'AREA (LxH)' : (item.formula === 'formula' ? 'CUSTOM' : ((item.formula === 'area') ? 'AREA (LxW)' : 'AREA')))"></span>
                                                     <span
                                                         class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
-                                                        x-text="item.quantity || '0.00'"></span>
+                                                        x-text="item.size || '0.00'"></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -912,29 +897,15 @@
                                             <span
                                                 class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
                                                 x-text="estimate.currency"></span>
-                                            <input type="number" step="0.01" x-model="item.unit_price"
-                                                @input="calculateTotals"
-                                                class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
+                                            <input type="number" step="0.01" x-model="item.unit_price" readonly
+                                                class="block w-full rounded-lg border-slate-200 bg-slate-100 py-1.5 pl-8 pr-3 text-sm text-slate-500 text-right font-medium focus:ring-0 transition-all cursor-not-allowed">
                                         </div>
                                     </td>
                                     <td class="px-3 py-4">
                                         <div class="flex items-center justify-center gap-1.5" x-show="!item.is_package">
                                             <input type="number" step="0.01" x-model="item.quantity"
                                                 @input="calculateTotals"
-                                                class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all"
-                                                :readonly="item.showCalculator"
-                                                :class="{'bg-slate-100 italic text-slate-400 border-dashed': item.showCalculator}">
-                                            <button type="button" @click="toggleCalculator(item)"
-                                                class="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100"
-                                                :class="{'text-indigo-600 bg-indigo-50 border-indigo-100': item.showCalculator}"
-                                                title="Toggle Area Calculator">
-                                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                                    stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                </svg>
-                                            </button>
+                                                class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all">
                                         </div>
                                     </td>
                                     <td class="px-3 py-4 text-right vertical-align-middle">
