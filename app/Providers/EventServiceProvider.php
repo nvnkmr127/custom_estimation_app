@@ -19,11 +19,7 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         DomainEvent::class => [
             AuditListener::class,
-                // Mail, Webhook, Notification listeners are placeholders.
-                // We register them here to ensure infrastructure is ready.
-                // They will receive all DomainEvents and filter internally or we can split maps later.
             MailListener::class,
-            WebhookListener::class,
             NotificationListener::class,
             \App\Listeners\AutomationListener::class,
             \App\Listeners\EstimateIntelligenceListener::class,
@@ -49,5 +45,14 @@ class EventServiceProvider extends ServiceProvider
     public function shouldDiscoverEvents(): bool
     {
         return false;
+    }
+
+    public function boot(): void
+    {
+        // Explicitly bind the interface to the listener to ensure polymorphic dispatch
+        \Illuminate\Support\Facades\Event::listen(
+            DomainEvent::class,
+            [\App\Listeners\WebhookDispatchListener::class, 'handle']
+        );
     }
 }

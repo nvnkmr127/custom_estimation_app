@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->string('webhook_url');
             $table->string('event_id')->nullable();
             $table->json('payload');
-            $table->integer('status_code')->nullable();
+            $table->integer('response_status')->nullable();
             $table->text('response_body')->nullable();
             $table->float('latency_ms')->nullable();
             $table->integer('attempt')->default(1);

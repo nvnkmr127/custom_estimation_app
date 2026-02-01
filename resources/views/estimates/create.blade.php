@@ -33,7 +33,9 @@
             terms: {!! json_encode($defaults['terms'] ?? '') !!},
             pdf_template_id: '',
             sections: [],
-            items: []
+            items: [],
+            tax_1: @json($defaults['tax_1_rate'] ?? 0),
+            tax_2: @json($defaults['tax_2_rate'] ?? 0)
         };
         // Pass defaults to JS for tax logic if needed, though simpler to handle via Alpine data
     </script>
@@ -1107,17 +1109,21 @@
                         </div>
 
                         <div class="flex justify-between items-center py-2 border-t border-slate-100 mt-2">
-                            <dt class="text-slate-600 font-semibold uppercase text-[10px] tracking-wider">Taxes</dt>
+                            <dt class="text-slate-600">Transportation</dt>
+                            <dd class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400" x-text="estimate.currency"></span>
+                                <input type="number" step="0.01" x-model="estimate.transportation_charges"
+                                    name="transportation_charges" @input="calculateTotals"
+                                    class="block w-20 rounded-md border-0 py-1 text-right text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm sm:leading-6">
+                            </dd>
+                        </div>
+
+                        <div class="flex justify-between items-center py-2 border-t border-slate-100 mt-2">
+                            <dt class="text-slate-600 font-semibold uppercase text-[10px] tracking-wider">GST</dt>
                             <dd class="flex items-center gap-4">
                                 <div class="flex flex-col items-end">
-                                    <label class="text-[10px] text-slate-400 mb-0.5">Tax 1 (%)</label>
+                                    <label class="text-[10px] text-slate-400 mb-0.5">Rate (%)</label>
                                     <input type="number" step="0.01" x-model="estimate.tax_1" name="tax_1"
-                                        @input="calculateTotals"
-                                        class="block w-20 rounded-md border-0 py-1 text-right text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm sm:leading-6">
-                                </div>
-                                <div class="flex flex-col items-end">
-                                    <label class="text-[10px] text-slate-400 mb-0.5">Tax 2 (%)</label>
-                                    <input type="number" step="0.01" x-model="estimate.tax_2" name="tax_2"
                                         @input="calculateTotals"
                                         class="block w-20 rounded-md border-0 py-1 text-right text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm sm:leading-6">
                                 </div>

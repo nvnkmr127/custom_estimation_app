@@ -437,8 +437,8 @@ class EstimateService
 
         // 4. Calculate Tax
         $tax1Amount = round($taxableAmount * ($estimate->tax_1 / 100), 2);
-        $tax2Amount = round($taxableAmount * ($estimate->tax_2 / 100), 2);
-        $totalTax = $tax1Amount + $tax2Amount;
+        // User requested one tax only (GST), effectively ignoring tax_2
+        $totalTax = $tax1Amount;
 
         // 5. Coupon
         $couponAmount = round($estimate->coupon_discount ?? 0, 2);

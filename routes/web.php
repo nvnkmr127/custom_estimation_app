@@ -234,12 +234,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('approval-chains/{approvalChain}/set-default', [App\Http\Controllers\ApprovalChainController::class, 'setDefault'])->name('approval-chains.set-default');
 
         Route::resource('approval-checklists', App\Http\Controllers\ApprovalChecklistController::class);
+        Route::resource('approval-checklists', App\Http\Controllers\ApprovalChecklistController::class);
+    });
+
+    // Webhook Management (Super Admin)
+    Route::middleware(['role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('webhooks', \App\Http\Controllers\Admin\WebhookEndpointController::class);
+
+        // Webhook Events Explorer
+        Route::get('webhook-events', function () {
+            return view('admin.webhooks.events.index');
+        })->name('webhooks.events.index');
+
+        Route::get('webhook-events/{event}', function (\App\Models\WebhookEvent $event) {
+            return view('admin.webhooks.events.show', compact('event'));
+        })->name('webhooks.events.show');
+
+        // Dead Letter Queue
+        Route::get('webhook-dlq', function () {
+            return view('admin.webhooks.dlq.index');
+        })->name('webhooks.dlq.index');
+
+        // Structured Logs
+        Route::get('webhook-logs', function () {
+            return view('admin.webhooks.logs.index');
+        })->name('webhooks.logs.index');
     });
 });
 
-// Webhook for Perfex (No CSRF check)
-Route::post('/webhooks/perfex', [App\Http\Controllers\PerfexWebhookController::class, 'handle'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+// Unified Webhook Ingress
+Route::post('/webhooks/{provider}', [App\Http\Controllers\WebhookController::class, 'handle'])->name('webhooks.handle');
+
+// Legacy Webhook for Perfex (Keep for compatibility or redirect later)
+Route::post('/webhooks/perfex-legacy', [App\Http\Controllers\PerfexWebhookController::class, 'handle']);
 
 require __DIR__ . '/auth.php';
 

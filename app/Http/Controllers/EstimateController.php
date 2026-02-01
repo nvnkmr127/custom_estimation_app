@@ -244,9 +244,9 @@ class EstimateController extends Controller
         $defaults = [
             'currency' => $settings['currency_code'] ?? 'USD',
             'tax_1_name' => $settings['tax_1_name'] ?? 'Tax 1',
-            'tax_1_rate' => $settings['tax_1_rate'] ?? 0,
+            'tax_1_rate' => (float) ($settings['tax_1_rate'] ?? 0),
             'tax_2_name' => $settings['tax_2_name'] ?? 'Tax 2',
-            'tax_2_rate' => $settings['tax_2_rate'] ?? 0,
+            'tax_2_rate' => (float) ($settings['tax_2_rate'] ?? 0),
             'terms' => $settings['estimate_terms'] ?? '',
             'client_note' => $settings['estimate_client_note'] ?? '',
         ];
@@ -379,9 +379,9 @@ class EstimateController extends Controller
         $defaults = [
             'currency' => $settings['currency_code'] ?? 'USD',
             'tax_1_name' => $settings['tax_1_name'] ?? 'Tax 1',
-            'tax_1_rate' => $settings['tax_1_rate'] ?? 0,
+            'tax_1_rate' => (float) ($settings['tax_1_rate'] ?? 0),
             'tax_2_name' => $settings['tax_2_name'] ?? 'Tax 2',
-            'tax_2_rate' => $settings['tax_2_rate'] ?? 0,
+            'tax_2_rate' => (float) ($settings['tax_2_rate'] ?? 0),
             'terms' => $settings['estimate_terms'] ?? '',
             'client_note' => $settings['estimate_client_note'] ?? '',
         ];

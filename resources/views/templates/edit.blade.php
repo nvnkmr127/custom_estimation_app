@@ -1,469 +1,371 @@
 <x-app-layout>
-    <div class="max-w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-10"
+    <div class="max-w-[1200px] mx-auto px-4 py-10"
         x-data='templateForm({{ $products->toJson() }}, {{ isset($template) && $template->items ? json_encode($template->items) : "[]" }}, {{ $unitTypes->toJson() }})'>
 
-        <!-- Header -->
-        <div
-            class="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6 pb-6 border-b border-slate-200">
-            <div class="space-y-2">
-                <nav class="flex mb-4" aria-label="Breadcrumb">
-                    <ol role="list" class="flex items-center space-x-2">
-                        <li>
-                            <a href="{{ route('templates.index') }}"
-                                class="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400 hover:text-slate-800 transition-colors">Templates</a>
-                        </li>
-                        <li class="flex items-center space-x-2">
-                            <svg class="h-3 w-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                stroke-width="3">
-                                <path d="M9 5l7 7-7 7" />
-                            </svg>
-                            <span
-                                class="text-[11px] font-black uppercase tracking-[0.1em] text-slate-950">{{ isset($template) ? 'Edit' : 'Create' }}</span>
-                        </li>
-                    </ol>
+        <!-- Header Section -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
+            <div>
+                <nav
+                    class="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-2">
+                    <a href="{{ route('templates.index') }}" class="hover:text-blue-600 transition-colors">Templates</a>
+                    <span class="text-slate-300">
+                        <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                            <path d="M9 5l7 7-7 7" />
+                        </svg>
+                    </span>
+                    <span class="text-slate-500">Edit Template</span>
                 </nav>
-                <h1 class="text-4xl font-black text-slate-950 tracking-tightest">
-                    {{ isset($template) ? 'Edit Template' : 'New Room Template' }}
-                </h1>
-                <p class="text-slate-600 text-lg font-bold max-w-2xl leading-relaxed">Customize your room
-                    configuration with preset products, default quantities, and specific unit types.</p>
+                <div class="flex items-center gap-4">
+                    <h1 class="text-3xl font-bold text-slate-900 tracking-tight">
+                        Edit Room Template
+                    </h1>
+                    <span
+                        class="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-full"
+                        x-text="items.length + ' SKUs'"></span>
+                </div>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-6">
                 <a href="{{ route('templates.index') }}"
-                    class="inline-flex items-center px-6 py-3 rounded-2xl bg-white text-slate-600 text-sm font-bold shadow-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
+                    class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors">
                     Cancel
                 </a>
                 <button type="submit" form="template-form"
-                    class="inline-flex items-center px-10 py-3 rounded-2xl bg-slate-950 text-white text-sm font-black shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 group">
-                    <svg class="mr-2 h-5 w-5 text-indigo-300 group-hover:rotate-6 transition-transform" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    class="inline-flex items-center px-8 py-3 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 group">
+                    <svg class="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
                     </svg>
-                    Save Template
+                    Save Changes
                 </button>
             </div>
         </div>
 
         <form id="template-form"
             action="{{ isset($template) ? route('templates.update', $template) : route('templates.store') }}"
-            method="POST" class="space-y-10">
+            method="POST" class="space-y-8">
             @csrf
             @if(isset($template))
                 @method('PUT')
             @endif
 
-            <!-- Top Configuration Bar (Horizontally Scrollable) -->
-            <div class="flex overflow-x-auto gap-8 pb-10 scrollbar-hide snap-x snap-mandatory">
-                <!-- General Information -->
-                <div
-                    class="min-w-[400px] snap-start bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200 overflow-hidden relative flex-shrink-0">
-                    <h2
-                        class="text-[11px] font-black text-slate-950 uppercase tracking-[0.2em] mb-6 pb-3 border-b border-slate-100 flex items-center">
-                        <span class="mr-3 h-2 w-2 rounded-full bg-slate-950"></span>
-                        Template Details
-                    </h2>
-                    <div class="space-y-6">
+            <!-- Template Configuration Card -->
+            <div class="bg-white rounded-[2rem] p-10 border border-slate-100 shadow-sm">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-12">
+                    <!-- Left Column: Basic Info -->
+                    <div class="md:col-span-7 space-y-8">
                         <div>
                             <label for="name"
-                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Room
+                                class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Room
                                 Name</label>
                             <input type="text" name="name" id="name" required
-                                value="{{ old('name', $template->name ?? '') }}" placeholder="e.g. Master Bedroom"
-                                class="block w-full rounded-2xl border-slate-200 bg-slate-50/50 py-3 px-4 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-sm font-semibold text-slate-800">
+                                value="{{ old('name', $template->name ?? '') }}" placeholder="e.g. Home Office Setup"
+                                class="block w-full rounded-xl border-slate-200 bg-white py-3.5 px-5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-300">
                         </div>
                         <div>
                             <label for="description"
-                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Notes</label>
-                            <textarea name="description" id="description" rows="2" placeholder="Brief notes..."
-                                class="block w-full rounded-2xl border-slate-200 bg-slate-50/50 py-3 px-4 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-sm font-medium text-slate-600">{{ old('description', $template->description ?? '') }}</textarea>
+                                class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Notes
+                                & Instructions</label>
+                            <textarea name="description" id="description" rows="5"
+                                placeholder="Modern productive workspace with ergonomic focus and integrated smart lighting."
+                                class="block w-full rounded-xl border-slate-200 bg-white py-3.5 px-5 text-sm font-medium text-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-300">{{ old('description', $template->description ?? '') }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Unit Types -->
+                    <div class="md:col-span-5 border-l border-slate-50 pl-12 flex flex-col">
+                        <label
+                            class="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Applicable
+                            Unit Types</label>
+                        <div class="flex-1 bg-slate-50/30 rounded-3xl border border-slate-100 p-8">
+                            <div class="space-y-4 max-h-[220px] overflow-y-auto custom-scrollbar pr-4">
+                                <template x-for="unitType in unitTypes" :key="unitType.id">
+                                    <label class="flex items-center gap-4 cursor-pointer group">
+                                        <div class="relative flex items-center">
+                                            <input type="checkbox" :value="String(unitType.id)"
+                                                x-model="allowedUnitTypes"
+                                                class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all">
+                                        </div>
+                                        <span
+                                            class="text-sm font-bold text-slate-700 group-hover:text-slate-950 transition-colors"
+                                            x-text="unitType.name"></span>
+                                    </label>
+                                </template>
+                            </div>
+                            <button type="button"
+                                class="mt-8 flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-blue-600 uppercase tracking-widest transition-colors group">
+                                <svg class="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                    <path d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add Unit Type
+                            </button>
                         </div>
                     </div>
                 </div>
-
-                <!-- Unit Configuration -->
-                <div
-                    class="min-w-[450px] snap-start bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200 flex-shrink-0">
-                    <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
-                        <h2 class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center">
-                            <span
-                                class="mr-3 h-2 w-2 rounded-full bg-emerald-500 shadow-lg shadow-emerald-200 animate-pulse"></span>
-                            Allowed Unit Types
-                        </h2>
-                        <template x-if="allowedUnitTypes.length > 0">
-                            <button type="button" @click="allowedUnitTypes = []"
-                                class="text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:text-rose-700 transition-colors">Clear</button>
-                        </template>
-                    </div>
-                    <div class="max-h-[220px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                        <template x-for="unitType in unitTypes" :key="unitType.id">
-                            <label
-                                class="flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer group"
-                                :class="allowedUnitTypes.includes(String(unitType.id)) ? 'bg-indigo-50/50 border-indigo-500/30 shadow-sm shadow-indigo-100/50' : 'bg-slate-50/30 border-slate-100 hover:bg-white hover:border-indigo-200'">
-
-                                <div class="flex items-center gap-3">
-                                    <div class="relative flex items-center justify-center h-5 w-5 rounded-lg border transition-all duration-200"
-                                        :class="allowedUnitTypes.includes(String(unitType.id)) ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-slate-300 group-hover:border-indigo-300'">
-                                        <svg x-show="allowedUnitTypes.includes(String(unitType.id))" x-transition.scale
-                                            class="h-3.5 w-3.5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <span
-                                        class="text-xs font-bold text-slate-700 uppercase tracking-tight group-hover:text-indigo-700 transition-colors"
-                                        x-text="unitType.name"></span>
-                                </div>
-
-                                <span
-                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-white px-2 py-0.5 rounded-lg border border-slate-100"
-                                    x-text="unitType.units[0]"></span>
-                                <input type="checkbox" :value="String(unitType.id)" x-model="allowedUnitTypes"
-                                    class="hidden">
-                            </label>
-                        </template>
-                    </div>
-                    <!-- Hidden inputs for form submission -->
-                    <template x-for="(typeId, index) in allowedUnitTypes" :key="'allowed-'+index">
-                        <input type="hidden" :name="`allowed_unit_types[${index}]`" :value="typeId">
-                    </template>
-                </div>
-
-                <!-- Editor Stats -->
-                <div
-                    class="min-w-[300px] snap-start bg-slate-950 rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 relative overflow-hidden text-white flex-shrink-0 group">
-                    <div
-                        class="absolute top-0 right-0 p-6 opacity-20 group-hover:scale-125 transition-transform duration-500">
-                        <svg class="h-20 w-20" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M11 15h2v2h-2zm0-8h2v6h-2zm1-5C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-                        </svg>
-                    </div>
-                    <div class="relative z-10">
-                        <div class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">Items
-                            Configured</div>
-                        <div class="text-6xl font-black tabular-nums tracking-tighter" x-text="items.length">0</div>
-                        <p class="text-slate-400 text-[11px] font-bold mt-4 leading-tight italic">"Ready to expedite
-                            your workflow."</p>
-                    </div>
-                </div>
+                <!-- Hidden inputs for unit types -->
+                <template x-for="(typeId, index) in allowedUnitTypes" :key="'allowed-'+index">
+                    <input type="hidden" :name="`allowed_unit_types[${index}]`" :value="typeId">
+                </template>
             </div>
 
-            <!-- Main Items Editor -->
-            <div class="space-y-10">
-                <div
-                    class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
-                    <div
-                        class="px-10 py-10 border-b border-slate-100 flex flex-wrap items-center justify-between gap-6 bg-slate-50/20 backdrop-blur-sm">
-                        <div class="flex items-center gap-5">
-                            <div
-                                class="h-14 w-14 rounded-2xl bg-slate-950 flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-                                <svg class="h-8 w-8 text-indigo-100" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-2xl font-black text-slate-950 tracking-tight">Room Items</h3>
-                                <p class="mt-0.5 text-sm text-slate-600 font-bold">Build your template selection
-                                    by adding items below.</p>
-                            </div>
-                        </div>
-                        <button type="button" @click="openProductPicker()"
-                            class="inline-flex items-center px-8 py-4 rounded-2xl bg-slate-950 text-white text-sm font-black shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 group">
-                            <svg class="mr-2 h-6 w-6 text-indigo-400 group-hover:rotate-90 transition-transform duration-300"
-                                viewBox="0 0 20 20" fill="currentColor">
-                                <path
-                                    d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                            </svg>
-                            Browse Library
-                        </button>
+            <!-- Items Editor Section -->
+            <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                <div class="p-10 border-b border-slate-50 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Room Items</h2>
+                        <p class="text-sm text-slate-400 font-medium mt-1">Manage products and configurations for this
+                            room</p>
                     </div>
+                    <button type="button" @click="openProductPicker()"
+                        class="inline-flex items-center px-8 py-3 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 group">
+                        <svg class="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                        </svg>
+                        Browse Library
+                    </button>
+                </div>
 
-                    <!-- Items Table -->
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-100">
-                            <thead>
-                                <tr class="bg-slate-900 border-b-4 border-white font-bold">
-                                    <th
-                                        class="px-10 py-6 text-left text-[11px] text-white/50 uppercase tracking-widest w-20">
-                                        Preview</th>
-                                    <th class="px-6 py-6 text-left text-[11px] text-white/50 uppercase tracking-widest">
-                                        Product Details</th>
-                                    <th
-                                        class="px-6 py-6 text-center text-[10px] font-bold text-white/50 uppercase tracking-[0.2em] w-24">
-                                        Quantity</th>
-                                    <th
-                                        class="px-6 py-6 text-center text-[10px] font-bold text-white/50 uppercase tracking-[0.2em] w-64">
-                                        Dimensions</th>
-                                    <th
-                                        class="px-6 py-6 text-center text-[10px] font-bold text-white/50 uppercase tracking-[0.2em] w-52">
-                                        Unit Type</th>
-                                    <th
-                                        class="px-6 py-6 text-right text-[10px] font-bold text-white/50 uppercase tracking-[0.2em] w-40">
-                                        Price Config</th>
-                                    <th
-                                        class="px-10 py-6 text-right text-[11px] text-white/50 uppercase tracking-widest w-16">
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 bg-white">
-                                <template x-for="(item, index) in isReady ? items : []" :key="'item-'+index">
-                                    <tr
-                                        class="group hover:bg-slate-50/80 transition-all border-b border-transparent hover:border-slate-100">
-                                        <!-- Preview -->
-                                        <td class="px-8 py-6">
+                <!-- Items Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th
+                                    class="px-10 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                    Product Information</th>
+                                <th
+                                    class="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-32">
+                                    Quantity</th>
+                                <th
+                                    class="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-48">
+                                    Dimensions (L×W×H)</th>
+                                <th
+                                    class="px-6 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-40">
+                                    Source</th>
+                                <th
+                                    class="px-6 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-40">
+                                    Unit Price</th>
+                                <th class="px-10 py-5 w-16"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            <template x-for="(item, index) in isReady ? items : []" :key="'item-'+index">
+                                <tr class="group hover:bg-slate-50/30 transition-all">
+                                    <!-- Product info -->
+                                    <td class="px-10 py-8">
+                                        <input type="hidden" :name="`items[${index}][product_id]`"
+                                            :value="item.product_id">
+                                        <input type="hidden" :name="`items[${index}][unit_type_id]`"
+                                            :value="item.unit_type_id">
+
+                                        <div class="flex items-center gap-6">
                                             <div
-                                                class="h-14 w-14 rounded-2xl bg-slate-100 ring-1 ring-slate-200/50 overflow-hidden flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                                                class="h-20 w-20 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
                                                 <template x-if="getProductImage(item.product_id)">
                                                     <img :src="getProductImage(item.product_id)"
                                                         class="h-full w-full object-cover">
                                                 </template>
                                                 <template x-if="!getProductImage(item.product_id)">
-                                                    <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
-                                                        stroke="currentColor" stroke-width="1.5">
+                                                    <svg class="h-8 w-8 text-slate-200" fill="none" viewBox="0 0 24 24"
+                                                        stroke="currentColor">
                                                         <path
                                                             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                     </svg>
                                                 </template>
                                             </div>
-                                        </td>
-
-                                        <td class="px-6 py-8">
-                                            <input type="hidden" :name="`items[${index}][product_id]`"
-                                                :value="item.product_id">
-                                            <input type="hidden" :name="`items[${index}][unit_type_id]`"
-                                                :value="item.unit_type_id">
-                                            <div class="flex flex-col space-y-2 relative group-item">
+                                            <div class="flex flex-col min-w-0">
                                                 <input type="text" :name="`items[${index}][item_name]`"
                                                     x-model="item.item_name" required
-                                                    class="block w-full border-0 p-0 text-lg font-black text-slate-950 placeholder:text-slate-300 focus:ring-0 bg-transparent hover:text-indigo-600 transition-colors tracking-tight"
-                                                    placeholder="Item Name">
+                                                    class="border-0 p-0 text-lg font-bold text-slate-900 bg-transparent focus:ring-0 placeholder:text-slate-300 tracking-tight"
+                                                    placeholder="Teak Wood Plank">
 
-                                                <div class="flex items-center gap-2">
+                                                <div class="flex items-center gap-2 mt-1">
                                                     <input type="text" :name="`items[${index}][description]`"
-                                                        x-model="item.description" :title="item.description"
-                                                        class="block flex-1 border-0 p-0 text-sm text-slate-600 font-bold placeholder:text-slate-200 focus:ring-0 bg-transparent leading-relaxed truncate"
-                                                        placeholder="Add specifications or notes...">
+                                                        x-model="item.description"
+                                                        class="border-0 p-0 text-sm text-slate-400 font-medium bg-transparent focus:ring-0 placeholder:text-slate-200 truncate max-w-xs"
+                                                        placeholder="Premium Grade, Natural Finish">
                                                     <button type="button" @click="viewDescription(item)"
-                                                        x-show="item.description"
-                                                        class="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+                                                        class="text-slate-300 hover:text-blue-500">
                                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                                             stroke="currentColor" stroke-width="2.5">
                                                             <path
-                                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                         </svg>
                                                     </button>
                                                 </div>
                                             </div>
-
-                                            <!-- Configuration Tags -->
-                                            <template x-if="item.options && item.options.length > 0">
-                                                <div class="flex flex-wrap gap-1.5 mt-4">
-                                                    <template x-for="(opt, optIndex) in item.options"
-                                                        :key="'opt-'+optIndex">
-                                                        <div
-                                                            class="inline-flex items-center px-2 py-0.5 rounded-lg bg-indigo-50 text-[9px] font-bold text-indigo-500 border border-indigo-100/50 uppercase tracking-tighter">
-                                                            <span x-text="opt.name + ': ' + opt.value"></span>
-                                                            <input type="hidden"
-                                                                :name="`items[${index}][options][${optIndex}][name]`"
-                                                                :value="opt.name">
-                                                            <input type="hidden"
-                                                                :name="`items[${index}][options][${optIndex}][value]`"
-                                                                :value="opt.value">
-                                                            <input type="hidden"
-                                                                :name="`items[${index}][options][${optIndex}][price_adjustment]`"
-                                                                :value="opt.price_adjustment">
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                        </td>
-
-                                        <!-- Qty -->
-                                        <td class="px-6 py-10">
-                                            <div class="flex flex-col items-center">
-                                                <div
-                                                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                                                    Quantity</div>
-                                                <input type="number" step="0.01" :name="`items[${index}][quantity]`"
-                                                    x-model="item.quantity"
-                                                    class="block w-20 rounded-2xl border-2 border-slate-100 bg-slate-50/50 py-3 text-center text-lg font-black text-slate-950 focus:ring-2 focus:ring-slate-950 focus:bg-white focus:border-slate-950 transition-all shadow-inner">
-                                            </div>
-                                        </td>
-                                        <!-- Dimensions -->
-                                        <td class="px-6 py-10 leading-none">
-                                            <div
-                                                class="bg-slate-50/50 border-2 border-slate-100 rounded-[1.5rem] p-4 flex flex-col gap-4 group-hover:bg-white transition-colors shadow-inner">
-                                                <div class="flex items-center gap-3">
-                                                    <div class="flex-1">
-                                                        <div
-                                                            class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">
-                                                            L <span class="text-slate-300 font-normal">(ft)</span></div>
-                                                        <input type="number" step="0.01"
-                                                            :name="`items[${index}][length]`" x-model="item.length"
-                                                            class="block w-full rounded-xl border-slate-200 bg-white py-2 text-center text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm">
-                                                    </div>
-                                                    <span class="text-slate-300 text-xs mt-6 font-bold">×</span>
-                                                    <div class="flex-1">
-                                                        <div
-                                                            class="text-[9px] font-bold text-slate-500 uppercase mb-2 px-1">
-                                                            W <span class="text-slate-300">(ft)</span></div>
-                                                        <input type="number" step="0.01"
-                                                            :name="`items[${index}][width]`" x-model="item.width"
-                                                            class="block w-full rounded-xl border-slate-200 bg-white py-2 text-center text-sm font-black text-slate-950 focus:ring-2 focus:ring-slate-900 transition-all shadow-sm">
-                                                    </div>
-                                                </div>
-                                                <div class="flex items-center gap-3">
-                                                    <div class="flex-1">
-                                                        <div
-                                                            class="text-[9px] font-bold text-slate-500 uppercase mb-2 px-1">
-                                                            H <span class="text-slate-300">(ft)</span></div>
-                                                        <input type="number" step="0.01"
-                                                            :name="`items[${index}][height]`" x-model="item.height"
-                                                            class="block w-full rounded-xl border-slate-200 bg-white py-2 text-center text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm">
-                                                    </div>
-                                                    <div class="flex-1 flex items-center justify-center pt-5">
-                                                        <template x-if="item.length && item.width">
-                                                            <div
-                                                                class="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border-2 border-indigo-100 uppercase tracking-wider shadow-sm">
-                                                                <span
-                                                                    x-text="(item.length * item.width).toFixed(2)"></span>
-                                                                <span
-                                                                    class="text-[9px] opacity-60 font-medium">Sqft</span>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <!-- Unit Configuration -->
-                                        <td class="px-6 py-10">
-                                            <div class="flex flex-col gap-4">
-                                                <div class="relative group/sel">
-                                                    <div class="relative group/sel">
-                                                        <div
-                                                            class="text-[9px] font-black text-slate-400 uppercase mb-2 px-1">
-                                                            Source</div>
-                                                        <select x-model="item.unit_type_id"
-                                                            @change="onUnitTypeChange(item)"
-                                                            class="block w-full rounded-2xl border-2 border-slate-100 bg-slate-50/50 py-3 px-4 text-[10px] font-black text-slate-950 uppercase tracking-widest focus:ring-2 focus:ring-slate-950 focus:bg-white focus:border-slate-950 transition-all appearance-none cursor-pointer hover:shadow-sm">
-                                                            <option value="">MANUAL UNIT</option>
-                                                            <template x-for="ut in getFilteredUnitTypes()"
-                                                                :key="'ut-'+ut.id">
-                                                                <option :value="String(ut.id)" x-text="ut.name">
-                                                                </option>
-                                                            </template>
-                                                        </select>
-                                                        <div
-                                                            class="absolute bottom-4 right-4 flex items-center pointer-events-none text-slate-400">
-                                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                                                                stroke="currentColor" stroke-width="4">
-                                                                <path d="M19 9l-7 7-7-7" />
-                                                            </svg>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="relative">
-                                                        <div
-                                                            class="text-[9px] font-bold text-slate-400 uppercase mb-2 px-1">
-                                                            Unit</div>
-                                                        <template x-if="item.unit_type_id">
-                                                            <div class="relative">
-                                                                <select x-model="item.unit_type"
-                                                                    :name="`items[${index}][unit_type]`"
-                                                                    class="block w-full rounded-2xl border-2 border-indigo-100 bg-white py-3 px-4 text-[13px] font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer text-center shadow-md">
-                                                                    <template
-                                                                        x-for="u in getAvailableUnits(item.unit_type_id)"
-                                                                        :key="'u-'+u">
-                                                                        <option :value="u" x-text="u"></option>
-                                                                    </template>
-                                                                </select>
-                                                                <div
-                                                                    class="absolute bottom-4 right-4 flex items-center pointer-events-none text-indigo-300">
-                                                                    <svg class="h-2.5 w-2.5" fill="none"
-                                                                        viewBox="0 0 24 24" stroke="currentColor"
-                                                                        stroke-width="5">
-                                                                        <path d="M19 9l-7 7-7-7" />
-                                                                    </svg>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template x-if="!item.unit_type_id">
-                                                            <input type="text" x-model="item.unit_type"
-                                                                :name="`items[${index}][unit_type]`"
-                                                                placeholder="e.g. nos"
-                                                                class="block w-full rounded-2xl border-2 border-slate-100 bg-white py-3 px-4 text-[13px] font-semibold text-slate-700 text-center focus:ring-2 focus:ring-indigo-500 shadow-sm placeholder:text-slate-200">
-                                                        </template>
-                                                    </div>
-                                                </div>
-                                        </td>
-
-                                        <!-- Unit Price -->
-                                        <td class="px-6 py-10 text-right">
-                                            <div
-                                                class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                                                Unit Price
-                                            </div>
-                                            <div class="relative inline-block w-40">
-                                                <span
-                                                    class="absolute inset-y-0 left-5 flex items-center text-slate-600 font-bold text-lg">₹</span>
-                                                <input type="number" step="0.01" :name="`items[${index}][unit_price]`"
-                                                    x-model="item.unit_price"
-                                                    class="block w-full rounded-2xl border-2 border-emerald-100 bg-emerald-50/10 py-4 pl-10 pr-6 text-right text-xl font-black text-slate-950 focus:ring-2 focus:ring-emerald-500 transition-all shadow-lg shadow-emerald-50/50">
-                                            </div>
-                                        </td>
-
-                                        <!-- Remove Action -->
-                                        <td class="px-8 py-6 text-right">
-                                            <button type="button" @click="items.splice(index, 1)"
-                                                class="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all active:scale-95">
-                                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"
-                                                    stroke="currentColor" stroke-width="2.5">
-                                                    <path
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </template>
-
-                                <!-- Empty State -->
-                                <tr x-show="items.length === 0">
-                                    <td colspan="6" class="px-8 py-20 text-center">
-                                        <div class="max-w-xs mx-auto flex flex-col items-center">
-                                            <div
-                                                class="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-200 mb-6 border border-slate-100">
-                                                <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24"
-                                                    stroke="currentColor" stroke-width="1.5">
-                                                    <path
-                                                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                                </svg>
-                                            </div>
-                                            <h4 class="text-base font-black text-slate-950 mb-2">Build your template
-                                            </h4>
-                                            <p class="text-sm text-slate-500 font-medium mb-8">Start by adding
-                                                products that typically go together in this type of room.</p>
-                                            <button type="button" @click="openProductPicker()"
-                                                class="px-8 py-3 rounded-2xl bg-slate-900 text-white text-xs font-bold uppercase tracking-widest shadow-sm hover:bg-slate-800 transition-all active:scale-95">
-                                                Open Library
-                                            </button>
                                         </div>
                                     </td>
+
+                                    <!-- Quantity -->
+                                    <td class="px-6 py-8">
+                                        <div class="flex justify-center">
+                                            <input type="number" step="0.01" :name="`items[${index}][quantity]`"
+                                                x-model="item.quantity"
+                                                class="w-20 rounded-xl border-slate-200 py-3 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                                        </div>
+                                    </td>
+
+                                    <!-- Dimensions -->
+                                    <td class="px-6 py-8">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <div class="flex flex-col items-center">
+                                                <span
+                                                    class="text-[9px] font-bold text-slate-300 uppercase mb-1">L</span>
+                                                <input type="number" step="0.01" :name="`items[${index}][length]`"
+                                                    x-model="item.length" @input="calculateQuantity(item)"
+                                                    class="w-14 rounded-lg border-slate-200 py-1.5 px-1 text-center text-xs font-bold text-slate-700 bg-white focus:ring-2 focus:ring-blue-500">
+                                            </div>
+                                            <div class="flex flex-col items-center">
+                                                <span
+                                                    class="text-[9px] font-bold text-slate-300 uppercase mb-1">W</span>
+                                                <input type="number" step="0.01" :name="`items[${index}][width]`"
+                                                    x-model="item.width" @input="calculateQuantity(item)"
+                                                    class="w-14 rounded-lg border-slate-200 py-1.5 px-1 text-center text-xs font-bold text-slate-700 bg-white focus:ring-2 focus:ring-blue-500">
+                                            </div>
+                                            <div class="flex flex-col items-center">
+                                                <span
+                                                    class="text-[9px] font-bold text-slate-300 uppercase mb-1">H</span>
+                                                <input type="number" step="0.01" :name="`items[${index}][height]`"
+                                                    x-model="item.height" @input="calculateQuantity(item)"
+                                                    class="w-14 rounded-lg border-slate-200 py-1.5 px-1 text-center text-xs font-bold text-slate-700 bg-white focus:ring-2 focus:ring-blue-500">
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Source (Unit Type) -->
+                                    <td class="px-6 py-8">
+                                        <div class="flex flex-col items-center">
+                                            <div class="relative w-full">
+                                                <select x-model="item.unit_type_id" @change="onUnitTypeChange(item)"
+                                                    class="w-full rounded-xl border-slate-200 bg-slate-50/50 py-2.5 px-4 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer">
+                                                    <option value="">Manual</option>
+                                                    <template x-for="ut in getFilteredUnitTypes()" :key="'ut-'+ut.id">
+                                                        <option :value="String(ut.id)" x-text="ut.name"></option>
+                                                    </template>
+                                                </select>
+                                                <div
+                                                    class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                                        stroke="currentColor" stroke-width="4">
+                                                        <path d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2 relative w-full">
+                                                <template x-if="item.unit_type_id">
+                                                    <select x-model="item.unit_type"
+                                                        :name="`items[${index}][unit_type]`"
+                                                        class="w-full border-0 p-0 text-[10px] font-black text-slate-400 uppercase tracking-tighter bg-transparent focus:ring-0 text-center cursor-pointer">
+                                                        <template x-for="u in getAvailableUnits(item.unit_type_id)"
+                                                            :key="'u-'+u">
+                                                            <option :value="u" x-text="u"></option>
+                                                        </template>
+                                                    </select>
+                                                </template>
+                                                <template x-if="!item.unit_type_id">
+                                                    <input type="text" x-model="item.unit_type"
+                                                        :name="`items[${index}][unit_type]`"
+                                                        class="w-full border-0 p-0 text-[10px] font-black text-slate-400 uppercase tracking-tighter bg-transparent focus:ring-0 text-center"
+                                                        placeholder="NOS">
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Price -->
+                                    <td class="px-6 py-8 text-right">
+                                        <div class="flex flex-col items-end">
+                                            <div class="flex items-center text-lg font-bold text-slate-900">
+                                                <span>₹</span>
+                                                <input type="number" step="0.01" :name="`items[${index}][unit_price]`"
+                                                    x-model="item.unit_price"
+                                                    class="border-0 p-0 w-24 text-right bg-transparent focus:ring-0 font-bold">
+                                            </div>
+                                            <span
+                                                class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Base
+                                                Cost</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Delete -->
+                                    <td class="px-10 py-8 text-right">
+                                        <button type="button" @click="items.splice(index, 1)"
+                                            class="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                stroke-width="2.5">
+                                                <path
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </td>
                                 </tr>
-                            </tbody>
-                        </table>
+                            </template>
+
+                            <!-- Empty State -->
+                            <tr x-show="items.length === 0">
+                                <td colspan="6" class="px-10 py-32 text-center">
+                                    <div class="max-w-xs mx-auto flex flex-col items-center">
+                                        <div
+                                            class="h-24 w-24 rounded-full bg-slate-50 flex items-center justify-center text-slate-200 mb-8 border border-slate-100 italic">
+                                            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24"
+                                                stroke="currentColor">
+                                                <path
+                                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                            </svg>
+                                        </div>
+                                        <h4 class="text-xl font-bold text-slate-900 mb-2">Build your template</h4>
+                                        <p class="text-sm text-slate-400 font-medium mb-10 leading-relaxed">Add products
+                                            from your library to configure this room template.</p>
+                                        <button type="button" @click="openProductPicker()"
+                                            class="px-10 py-3 rounded-xl bg-blue-600 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                                            Open Library
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="px-8 py-6 bg-slate-50/30 border-t border-slate-50 text-center">
+                    <button type="button" @click="openProductPicker()"
+                        class="text-xs font-black text-slate-500 hover:text-slate-950 transition-colors uppercase tracking-widest">
+                        + Click to browse product library
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sticky Footer inside form -->
+            <div
+                class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)] z-40 px-10 py-6 transition-all">
+                <div class="max-w-[1200px] mx-auto flex items-center justify-between">
+                    <div class="flex items-center gap-16">
+                        <div>
+                            <span
+                                class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total
+                                SKUs</span>
+                            <div class="text-2xl font-black text-slate-900 tabular-nums">
+                                <span x-text="items.length < 10 ? '0' + items.length : items.length"></span>
+                                <span class="text-sm font-bold text-slate-400 ml-1">items</span>
+                            </div>
+                        </div>
+                        <div class="h-10 w-px bg-slate-100"></div>
+                        <div>
+                            <span
+                                class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Estimated
+                                Total</span>
+                            <div class="text-2xl font-black text-slate-900 tabular-nums">
+                                <span class="text-lg">₹</span><span x-text="number_format(totalAmount)">0.00</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="px-8 py-6 bg-slate-50/30 border-t border-slate-50 text-center">
-                        <button type="button" @click="openProductPicker()"
-                            class="text-xs font-black text-slate-500 hover:text-slate-950 transition-colors uppercase tracking-widest">
-                            + Click to browse product library
-                        </button>
-                    </div>
+                    <button type="submit"
+                        class="inline-flex items-center px-12 py-4 rounded-xl bg-blue-600 text-white text-sm font-black shadow-xl shadow-blue-200 hover:bg-blue-700 hover:shadow-blue-300 transition-all active:scale-95 group">
+                        Save Template
+                    </button>
                 </div>
             </div>
         </form>
@@ -668,7 +570,8 @@
 
                         <div class="p-8 pb-4 flex items-center justify-between border-b border-slate-50">
                             <h3 class="text-xl font-black text-slate-950 tracking-tight"
-                                x-text="descriptionModal.title"></h3>
+                                x-text="descriptionModal.title">
+                            </h3>
                             <button type="button" @click="descriptionModal.isOpen = false"
                                 class="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all">
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -733,8 +636,60 @@
                         } else {
                             item.unit_type_id = '';
                         }
+
+                        // Hydrate calculation logic
+                        if (item.product_id) {
+                            const p = this.products.find(x => x.id == item.product_id);
+                            if (p && p.calculation_method) {
+                                item.calculation_method = p.calculation_method;
+                                item.formula_string = p.formula;
+                            }
+                        }
                     });
                     this.isReady = true;
+                },
+
+                get totalAmount() {
+                    return this.items.reduce((sum, item) => sum + (parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0)), 0);
+                },
+
+                calculateQuantity(item) {
+                    const l = parseFloat(item.length) || 0;
+                    const w = parseFloat(item.width) || 0;
+                    const h = parseFloat(item.height) || 0;
+
+                    let method = item.calculation_method || 'nos';
+                    let formulaStr = item.formula_string || '';
+
+                    if (!item.calculation_method && item.product_id) {
+                        const p = this.products.find(x => x.id == item.product_id);
+                        if (p) {
+                            method = p.calculation_method || 'nos';
+                            formulaStr = p.formula || '';
+                        }
+                    }
+
+                    if (method === 'area') {
+                        item.quantity = (l * w).toFixed(2);
+                    } else if (method === 'volume') {
+                        item.quantity = (l * w * h).toFixed(2);
+                    } else if (method === 'area_lh') {
+                        item.quantity = (l * h).toFixed(2);
+                    } else if (method === 'formula' && formulaStr) {
+                        try {
+                            let expression = formulaStr.toLowerCase()
+                                .replace(/\bl\b/g, l)
+                                .replace(/\bw\b/g, w)
+                                .replace(/\bh\b/g, h);
+
+                            if (/^[0-9+\-*/().\s]+$/.test(expression)) {
+                                const result = (new Function('return ' + expression))();
+                                item.quantity = isNaN(result) ? 0 : parseFloat(result).toFixed(2);
+                            }
+                        } catch (e) {
+                            console.error('Formula evaluation error:', e);
+                        }
+                    }
                 },
 
                 number_format(val) {
@@ -789,6 +744,8 @@
                         length: product.dimensions?.length || '',
                         width: product.dimensions?.width || '',
                         height: product.dimensions?.height || '',
+                        calculation_method: product.calculation_method || 'nos',
+                        formula_string: product.formula || '',
                         options: options
                     };
                 },

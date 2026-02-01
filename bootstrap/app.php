@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            '/webhooks/*',
+        ]);
     })
     ->withSchedule(function ($schedule) {
         $schedule->command('estimates:check-expiry')->daily();

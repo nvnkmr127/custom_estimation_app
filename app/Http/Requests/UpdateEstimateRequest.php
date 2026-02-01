@@ -50,6 +50,7 @@ class UpdateEstimateRequest extends FormRequest
             'currency' => 'required|string|max:10',
             'discount_type' => 'required|in:percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
+            'transportation_charges' => 'nullable|numeric|min:0',
             'client_note' => 'nullable|string',
             'admin_note' => 'nullable|string',
             'terms' => 'nullable|string',

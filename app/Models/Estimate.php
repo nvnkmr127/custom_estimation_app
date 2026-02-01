@@ -82,6 +82,7 @@ class Estimate extends Model
         'last_engagement_at',
         'last_nurtured_at',
         'last_viewed_at',
+        'transportation_charges',
     ];
 
     /**

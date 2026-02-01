@@ -27,7 +27,10 @@
                 // Override dates to ensure correct format (YYYY-MM-DD) for input[type="date"]
                 estimate_date: initialData.estimate_date ? initialData.estimate_date.split('T')[0] : new Date().toISOString().split('T')[0],
                 expiry_date: initialData.expiry_date ? initialData.expiry_date.split('T')[0] : '',
-                coupon_code_id: initialData.coupon_code_id || null
+                coupon_code_id: initialData.coupon_code_id || null,
+                transportation_charges: parseFloat(initialData.transportation_charges || 0),
+                tax_1: initialData.tax_1 !== undefined ? initialData.tax_1 : (parseFloat(@json($defaults['tax_1_rate'] ?? 0))),
+                tax_2: initialData.tax_2 !== undefined ? initialData.tax_2 : (parseFloat(@json($defaults['tax_2_rate'] ?? 0)))
             },
             couponInput: '',
             appliedCouponCode: initialData.coupon_code ? initialData.coupon_code.code : '',
@@ -166,7 +169,7 @@
                     item.unit_price = parseFloat(item.unit_price || 0);
                     item.quantity = parseFloat(item.quantity || 1);
                     item.tax_1 = parseFloat(item.tax_1 || 0);
-                    item.tax_2 = parseFloat(item.tax_2 || 0);
+                    item.tax_2 = 0; // Use one tax only (GST)
                     item.unit_type_id = item.unit_type_id || null;
                     item._showTypePicker = false;
                     item.size = item.size || '';
@@ -597,8 +600,19 @@
                 }
 
                 if (this.roomModal.name.trim()) {
+                    const roomName = this.roomModal.name.trim();
+                    // Check for duplicate room name (including checking against existing templates/packages masquerading as sections)
+                    const isDuplicate = this.estimate.sections.some(section =>
+                        section.name.trim().toLowerCase() === roomName.toLowerCase()
+                    );
+
+                    if (isDuplicate) {
+                        alert('A room with this name already exists.');
+                        return;
+                    }
+
                     this.estimate.sections.push({
-                        name: this.roomModal.name.trim(),
+                        name: roomName,
                         items: []
                     });
                     this.roomModal.isOpen = false;
@@ -623,8 +637,17 @@
 
             // --- Importers ---
             applyTemplate(template) {
+                // Check if room with template name exists
+                const isDuplicate = this.estimate.sections.some(section =>
+                    section.name.trim().toLowerCase() === template.name.trim().toLowerCase()
+                );
+
+                if (isDuplicate) {
+                    alert('A room with this name already exists.');
+                    return;
+                }
+
                 const newSection = {
-                    name: template.name,
                     name: template.name,
                     items: [],
                     section_type: 'room',
@@ -749,7 +772,10 @@
                 }
 
                 const t1Rate = (parseFloat(this.estimate.tax_1) || 0) / 100;
-                const t2Rate = (parseFloat(this.estimate.tax_2) || 0) / 100;
+                // With single GST box, we mainly look at tax_1. tax_2 stays in model but isn't set via UI.
+                // Reset tax_2 to 0 logic if desired, or keep logic just in case backend has old data.
+                // Assuming "make one box" implies single tax logic now.
+                const t2Rate = 0; // Effectively ignore tax_2 from calculation if UI doesn't provide it
                 totalTax = subtotal * (t1Rate + t2Rate);
 
                 let discount = 0;
@@ -759,11 +785,13 @@
                         : parseFloat(this.estimate.discount_value);
                 }
 
+                const transportation = parseFloat(this.estimate.transportation_charges || 0);
+
                 this.totals = {
                     subtotal,
                     totalTax,
                     discount,
-                    grandTotal: subtotal + totalTax - discount
+                    grandTotal: subtotal + totalTax - discount + transportation
                 };
             },
 

@@ -212,7 +212,7 @@
 
                             <div class="sm:col-span-3">
                                 <label for="default_tax_rate"
-                                    class="block text-sm font-medium leading-6 text-slate-900">Default Tax Rate
+                                    class="block text-sm font-medium leading-6 text-slate-900">Global GST Rate
                                     (%)</label>
                                 <div class="mt-2">
                                     <input type="number" step="0.01" name="default_tax_rate" id="default_tax_rate"
@@ -276,34 +276,24 @@
                             </div>
 
                             <div class="sm:col-span-6 border-t border-gray-100 pt-4 mt-2">
-                                <h3 class="text-sm font-medium text-slate-900 mb-4">Default Tax Rates</h3>
+                                <h3 class="text-sm font-medium text-slate-900 mb-4">Default GST Settings</h3>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-xs font-medium text-slate-700">Tax 1 Name (e.g.
-                                            VAT)</label>
+                                        <label class="block text-xs font-medium text-slate-700">Tax Name (e.g.
+                                            GST)</label>
                                         <input type="text" name="tax_1_name"
-                                            value="{{ old('tax_1_name', $settings['tax_1_name'] ?? '') }}"
+                                            value="{{ old('tax_1_name', $settings['tax_1_name'] ?? 'GST') }}"
                                             class="mt-1 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm font-medium">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-medium text-slate-700">Tax 1 Rate (%)</label>
+                                        <label class="block text-xs font-medium text-slate-700">Tax Rate (%)</label>
                                         <input type="number" step="0.01" name="tax_1_rate"
                                             value="{{ old('tax_1_rate', $settings['tax_1_rate'] ?? '0') }}"
                                             class="mt-1 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm">
                                     </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-slate-700">Tax 2 Name (e.g. Service
-                                            Tax)</label>
-                                        <input type="text" name="tax_2_name"
-                                            value="{{ old('tax_2_name', $settings['tax_2_name'] ?? '') }}"
-                                            class="mt-1 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm font-medium">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-slate-700">Tax 2 Rate (%)</label>
-                                        <input type="number" step="0.01" name="tax_2_rate"
-                                            value="{{ old('tax_2_rate', $settings['tax_2_rate'] ?? '0') }}"
-                                            class="mt-1 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm">
-                                    </div>
+                                    {{-- Hidden fields to reset Tax 2 --}}
+                                    <input type="hidden" name="tax_2_name" value="">
+                                    <input type="hidden" name="tax_2_rate" value="0">
                                 </div>
                             </div>
 
