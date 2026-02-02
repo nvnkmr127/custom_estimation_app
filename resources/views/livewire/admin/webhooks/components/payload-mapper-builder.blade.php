@@ -23,14 +23,13 @@
                     <div class="grid grid-cols-1 gap-y-2 gap-x-4 sm:grid-cols-2">
                         <div>
                             <label class="block text-xs font-medium text-gray-500">Target Field (External)</label>
-                            <input type="text" wire:model.live.debounce.300ms="mapping.{{ $index }}.target"
+                            <input type="text" wire:model.live="mapping.{{ $index }}.target"
                                 placeholder="e.g. data.customer_id"
                                 class="mt-1 block w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-500">Source Field (Internal)</label>
-                            <input type="text" wire:model.live.debounce.300ms="mapping.{{ $index }}.source"
-                                placeholder="e.g. client.id"
+                            <input type="text" wire:model.live="mapping.{{ $index }}.source" placeholder="e.g. client.id"
                                 class="mt-1 block w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                     </div>
@@ -39,8 +38,7 @@
                     <div class="mt-2 grid grid-cols-1 gap-y-2 gap-x-4 sm:grid-cols-2">
                         <div>
                             <label class="block text-xs font-medium text-gray-500">Default Value</label>
-                            <input type="text" wire:model.live.debounce.300ms="mapping.{{ $index }}.default"
-                                placeholder="Optional"
+                            <input type="text" wire:model.live="mapping.{{ $index }}.default" placeholder="Optional"
                                 class="mt-1 block w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div>

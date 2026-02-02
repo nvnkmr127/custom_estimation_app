@@ -17,9 +17,38 @@ class PayloadMapperBuilder extends Component
 
     public function mount($mapping = [], $samplePayload = [])
     {
-        $this->mapping = $mapping;
+        // Transform incoming $mapping (config format) into UI rows
+        $this->mapping = $this->transformConfigToUi($mapping);
         $this->samplePayloadJson = json_encode($samplePayload, JSON_PRETTY_PRINT);
         $this->refreshPreview();
+    }
+
+    protected function transformConfigToUi($config)
+    {
+        if (empty($config))
+            return [];
+
+        $uiRows = [];
+        foreach ($config as $target => $rule) {
+            if (is_array($rule)) {
+                $uiRows[] = [
+                    'target' => $target,
+                    'source' => $rule['source'] ?? '',
+                    'default' => $rule['default'] ?? '',
+                    'transform' => $rule['transform'] ?? '',
+                    'is_advanced' => true
+                ];
+            } else {
+                $uiRows[] = [
+                    'target' => $target,
+                    'source' => $rule,
+                    'default' => '',
+                    'transform' => '',
+                    'is_advanced' => false
+                ];
+            }
+        }
+        return $uiRows;
     }
 
     public function updateSamplePayload($payload)
@@ -66,6 +95,7 @@ class PayloadMapperBuilder extends Component
 
     public function updated($property)
     {
+        // If any part of the mapping array is updated, refresh the preview and notify parent
         if ($property === 'samplePayloadJson' || str_starts_with($property, 'mapping')) {
             $this->refreshPreview();
         }
@@ -113,6 +143,12 @@ class PayloadMapperBuilder extends Component
             }
         }
         return $config;
+    }
+
+    public function dehydrate()
+    {
+        $config = $this->transformUiToConfig($this->mapping);
+        $this->dispatch('mapping-updated', $config);
     }
 
     public function render()

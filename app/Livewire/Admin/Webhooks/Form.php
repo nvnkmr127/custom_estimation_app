@@ -7,6 +7,7 @@ use App\Models\WebhookConfig;
 use Illuminate\Support\Str;
 use App\Webhooks\WebhookEventRegistry;
 use Illuminate\Support\Facades\Http;
+use Livewire\Attributes\On;
 
 class Form extends Component
 {
@@ -88,8 +89,10 @@ class Form extends Component
         // This is a placeholder if we need it, but the dispatch above handles it.
     }
 
+    #[On('mapping-updated')]
     public function updateMapping($mapping)
     {
+        \Illuminate\Support\Facades\Log::info("Webhook Form: updateMapping called", ['mapping' => $mapping]);
         $this->state['payload_mapping'] = $mapping;
     }
 
@@ -214,6 +217,11 @@ class Form extends Component
 
         $data = $this->state;
         $data['headers'] = $headers;
+
+        \Illuminate\Support\Facades\Log::info("Webhook Form: Saving data", [
+            'webhook_id' => $this->webhook->id,
+            'payload_mapping' => $data['payload_mapping'] ?? 'NOT SET'
+        ]);
 
         if ($this->webhook->exists) {
             $this->webhook->update($data);
