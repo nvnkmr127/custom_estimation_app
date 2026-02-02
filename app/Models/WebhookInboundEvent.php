@@ -14,6 +14,8 @@ class WebhookInboundEvent extends Model
         'status',
         'error',
         'processed_at',
+        'error_message',
+        'attempt_count',
     ];
 
     protected $casts = [
@@ -21,4 +23,18 @@ class WebhookInboundEvent extends Model
         'headers' => 'array',
         'processed_at' => 'datetime',
     ];
+
+    public function replay()
+    {
+        // Re-open this event for processing
+        $this->update([
+            'status' => 'pending',
+            'error_message' => null,
+            'result' => null, // Assuming result column exists or we clear error
+            'attempt_count' => $this->attempt_count + 1
+        ]);
+
+        // Logic to re-trigger processing would go here (e.g., dispatch job)
+        // \App\Jobs\ProcessInboundWebhook::dispatch($this);
+    }
 }

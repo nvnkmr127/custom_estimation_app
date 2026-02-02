@@ -101,26 +101,73 @@ class WebhookEventDispatcher
         if ($event instanceof DomainEvent) {
             return $event->getEventName();
         }
-        // Fallback or other interfaces
+
+        if (method_exists($event, 'getEventName')) {
+            return $event->getEventName();
+        }
+
         return null;
     }
 
     protected function resolvePayload(string $eventName, object $event): array
     {
-        // Try Registry
+        // 1. Try Registry Definition
         $def = $this->registry->get($eventName);
         if ($def) {
-            // Need the actual resource object. DomainEvent usually has it or ID.
-            // If DomainEvent doesn't expose the object, we can't use the builder easily unless we fetch it.
-            // For now, fallback to DomainEvent payload if available.
-            // Or try to see if $event ITSELF is the resource (unlikely for DomainEvent wrapper).
+            $resource = $this->findResourceInEvent($event, $def->resourceClass());
+            if ($resource) {
+                try {
+                    return $def->buildPayload($resource);
+                } catch (\Exception $e) {
+                    Log::error("WebhookEventDispatcher: Failed to build payload via definition for {$eventName}: " . $e->getMessage());
+                }
+            }
         }
 
+        // 2. Fallback to Event's native payload
         if ($event instanceof DomainEvent) {
             return $event->getPayload();
         }
 
+        if (method_exists($event, 'getPayload')) {
+            return $event->getPayload();
+        }
+
         return [];
+    }
+
+    protected function findResourceInEvent(object $event, string $resourceClass): ?object
+    {
+        // Try common property names
+        $props = ['resource', 'model', 'data', 'object'];
+
+        // Add resource name as property (e.g. 'estimate' for Estimate::class)
+        try {
+            $shortName = strtolower((new \ReflectionClass($resourceClass))->getShortName());
+            $props[] = $shortName;
+        } catch (\Exception $e) {
+        }
+
+        foreach ($props as $prop) {
+            if (isset($event->{$prop}) && $event->{$prop} instanceof $resourceClass) {
+                return $event->{$prop};
+            }
+        }
+
+        // Try method names
+        if (isset($shortName)) {
+            $methods = ['get' . ucfirst($shortName), 'getResource', 'getModel'];
+            foreach ($methods as $method) {
+                if (method_exists($event, $method)) {
+                    $val = $event->{$method}();
+                    if ($val instanceof $resourceClass) {
+                        return $val;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     protected function resolveIdempotencyKey(object $event): string

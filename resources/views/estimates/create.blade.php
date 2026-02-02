@@ -468,14 +468,13 @@
                                                 </td>
                                                 <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
-                                                        :readonly="!!item.product_id || item.is_package || item.is_locked"
-                                                        :class="(!!item.product_id || item.is_package || item.is_locked) ? 'cursor-default text-slate-500' : ''"
-                                                        class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
+                                                        :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                                        class="block w-full border-0 p-0 text-sm font-bold focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                                     <input type="text" x-model="item.description"
-                                                        placeholder="Description"
-                                                        :readonly="!!item.product_id || item.is_package || item.is_locked"
-                                                        :class="(!!item.product_id || item.is_package || item.is_locked) ? 'cursor-default text-slate-500' : ''"
-                                                        class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
+                                                        placeholder="Description" :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                                        class="block w-full border-0 p-0 text-xs focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                                     <template x-if="item.options && item.options.length > 0">
                                                         <div class="flex flex-wrap gap-1.5 mt-2">
                                                             <template x-for="opt in item.options">
@@ -542,8 +541,9 @@
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
                                                             x-text="estimate.currency"></span>
                                                         <input type="number" step="0.01" x-model="item.unit_price"
-                                                            readonly
-                                                            class="block w-full rounded-lg border-slate-200 bg-slate-100 py-1.5 pl-8 pr-3 text-sm text-slate-500 text-right font-medium focus:ring-0 transition-all cursor-not-allowed">
+                                                            :readonly="!!item.product_id" @input="calculateTotals"
+                                                            :class="!!item.product_id ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                                            class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                                                     </div>
                                                 </td>
                                                 <td class="px-3 py-4" x-show="!section.is_package">
@@ -631,23 +631,24 @@
                                                 <!-- Details (Simplified for package) -->
                                                 <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
-                                                        :readonly="item.is_package || !!item.product_id"
-                                                        :class="(item.is_package || !!item.product_id) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                                        :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
                                                         class="block w-full border-0 p-0 text-sm font-bold bg-transparent mb-1">
                                                     <input type="text" x-model="item.description"
-                                                        placeholder="Description"
-                                                        :readonly="item.is_package || !!item.product_id"
-                                                        :class="(item.is_package || !!item.product_id) ? 'cursor-default text-slate-500' : 'text-slate-500'"
+                                                        placeholder="Description" :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
                                                         class="block w-full border-0 p-0 text-xs bg-transparent">
                                                 </td>
                                                 <!-- Price -->
                                                 <td class="px-3 py-4">
-                                                    <div class="relative"><span
+                                                    <div class="relative">
+                                                        <span
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                            x-text="estimate.currency"></span><input type="number"
-                                                            step="0.01" x-model="item.unit_price"
-                                                            @input="calculateTotals"
-                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
+                                                            x-text="estimate.currency"></span>
+                                                        <input type="number" step="0.01" x-model="item.unit_price"
+                                                            :readonly="isItemLocked(item)" @input="calculateTotals"
+                                                            :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                                            class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                                                     </div>
                                                 </td>
                                                 <!-- Quantity -->
@@ -843,13 +844,13 @@
                                     </td>
                                     <td class="px-3 py-4">
                                         <input type="text" x-model="item.name" placeholder="Item Name"
-                                            :readonly="!!item.product_id || item.is_package"
-                                            :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
-                                            class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
+                                            :readonly="isItemLocked(item)"
+                                            :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                            class="block w-full border-0 p-0 text-sm font-bold focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                         <input type="text" x-model="item.description" placeholder="Description"
-                                            :readonly="!!item.product_id || item.is_package"
-                                            :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
-                                            class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
+                                            :readonly="isItemLocked(item)"
+                                            :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                            class="block w-full border-0 p-0 text-xs focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                         <template x-if="item.options && item.options.length > 0">
                                             <div class="flex flex-wrap gap-1.5 mt-2">
                                                 <template x-for="opt in item.options">
@@ -913,8 +914,10 @@
                                             <span
                                                 class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
                                                 x-text="estimate.currency"></span>
-                                            <input type="number" step="0.01" x-model="item.unit_price" readonly
-                                                class="block w-full rounded-lg border-slate-200 bg-slate-100 py-1.5 pl-8 pr-3 text-sm text-slate-500 text-right font-medium focus:ring-0 transition-all cursor-not-allowed">
+                                            <input type="number" step="0.01" x-model="item.unit_price"
+                                                :readonly="isItemLocked(item)" @input="calculateTotals"
+                                                :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                                class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                                         </div>
                                     </td>
                                     <td class="px-3 py-4">

@@ -13,10 +13,18 @@ class PayloadMapperBuilder extends Component
     public $preview = [];
     public $activeTab = 'builder'; // builder | json
 
+    protected $listeners = ['update-sample-payload' => 'updateSamplePayload'];
+
     public function mount($mapping = [], $samplePayload = [])
     {
         $this->mapping = $mapping;
         $this->samplePayloadJson = json_encode($samplePayload, JSON_PRETTY_PRINT);
+        $this->refreshPreview();
+    }
+
+    public function updateSamplePayload($payload)
+    {
+        $this->samplePayloadJson = json_encode($payload, JSON_PRETTY_PRINT);
         $this->refreshPreview();
     }
 

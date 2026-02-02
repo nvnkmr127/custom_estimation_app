@@ -8,7 +8,7 @@ class ApprovalRequested extends BaseEvent
 {
     public function __construct(
         public int $estimateId,
-        public int $approvalId,
+        public \App\Models\EstimateApproval $approval,
         public int $approverUserId
     ) {
         parent::__construct();
@@ -24,8 +24,9 @@ class ApprovalRequested extends BaseEvent
     {
         return [
             'estimate_id' => $this->estimateId,
-            'approval_id' => $this->approvalId,
-            'approver_user_id' => $this->approverUserId,
+            'approval_id' => $this->approval->id,
+            'approver_id' => $this->approverUserId,
+            'approver_name' => $this->approval->user ? $this->approval->user->name : 'N/A',
         ];
     }
     public function getEntityType(): string
@@ -35,6 +36,6 @@ class ApprovalRequested extends BaseEvent
 
     public function getEntityId(): int|string|null
     {
-        return $this->approvalId;
+        return $this->approval->id;
     }
 }

@@ -449,13 +449,13 @@
                                                 <!-- Details -->
                                                 <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
-                                                        :readonly="!!item.product_id"
-                                                        :class="!!item.product_id ? 'cursor-default text-slate-500' : ''"
-                                                        class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
+                                                        :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                                        class="block w-full border-0 p-0 text-sm font-bold focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                                     <input type="text" x-model="item.description"
-                                                        placeholder="Description" :readonly="!!item.product_id"
-                                                        :class="!!item.product_id ? 'cursor-default text-slate-500' : ''"
-                                                        class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
+                                                        placeholder="Description" :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                                        class="block w-full border-0 p-0 text-xs focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                                     <template x-if="item.options && item.options.length > 0">
                                                         <div class="flex flex-wrap gap-1.5 mt-2"><template
                                                                 x-for="opt in item.options"><span
@@ -477,7 +477,7 @@
                                                                 <div class="flex items-center gap-2"><span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span><input
                                                                         type="number" step="0.01" x-model="item.length"
-                                                                        @input="calculateQuantity(item)"
+                                                                        @input="calculateSize(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -485,7 +485,7 @@
                                                                 <div class="flex items-center gap-2"><span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span><input
                                                                         type="number" step="0.01" x-model="item.width"
-                                                                        @input="calculateQuantity(item)"
+                                                                        @input="calculateSize(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -493,7 +493,7 @@
                                                                 <div class="flex items-center gap-2"><span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span><input
                                                                         type="number" step="0.01" x-model="item.height"
-                                                                        @input="calculateQuantity(item)"
+                                                                        @input="calculateSize(item)"
                                                                         class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -504,19 +504,22 @@
                                                                     x-text="item.formula === 'volume' ? 'VOLUME' : (item.formula === 'area_lh' ? 'AREA (LxH)' : (item.formula === 'formula' ? 'CUSTOM' : ((item.formula === 'area') ? 'AREA (LxW)' : 'AREA')))"></span>
                                                                 <span
                                                                     class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
-                                                                    x-text="item.quantity || '0.00'"></span>
+                                                                    x-text="item.size || '0.00'"></span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <!-- Price -->
                                                 <td class="px-3 py-4">
-                                                    <div class="relative"><span
+                                                    <div class="relative">
+                                                        <span
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                            x-text="estimate.currency"></span><input type="number"
-                                                            step="0.01" x-model="item.unit_price"
+                                                            x-text="estimate.currency"></span>
+                                                        <input type="number" step="0.01" x-model="item.unit_price"
+                                                            :readonly="!!item.product_id || item.is_package"
                                                             @input="calculateTotals"
-                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
+                                                            :class="(!!item.product_id || item.is_package) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                                            class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                                                     </div>
                                                 </td>
                                                 <!-- Quantity -->
@@ -524,9 +527,7 @@
                                                     <div class="flex items-center justify-center gap-1.5"><input
                                                             type="number" step="0.01" x-model="item.quantity"
                                                             @input="calculateTotals"
-                                                            class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all"
-                                                            :readonly="item.showCalculator"
-                                                            :class="{'bg-slate-100 italic text-slate-400 border-dashed': item.showCalculator}"><button
+                                                            class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all"><button
                                                             type="button" @click="toggleCalculator(item)"
                                                             class="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100"
                                                             :class="{'text-indigo-600 bg-indigo-50 border-indigo-100': item.showCalculator}"
@@ -615,23 +616,24 @@
                                                 <!-- Details (Simplified for package) -->
                                                 <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
-                                                        :readonly="item.is_package || !!item.product_id"
-                                                        :class="(item.is_package || !!item.product_id) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                                        :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
                                                         class="block w-full border-0 p-0 text-sm font-bold bg-transparent mb-1">
                                                     <input type="text" x-model="item.description"
-                                                        placeholder="Description"
-                                                        :readonly="item.is_package || !!item.product_id"
-                                                        :class="(item.is_package || !!item.product_id) ? 'cursor-default text-slate-500' : 'text-slate-500'"
+                                                        placeholder="Description" :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
                                                         class="block w-full border-0 p-0 text-xs bg-transparent">
                                                 </td>
                                                 <!-- Price -->
                                                 <td class="px-3 py-4">
-                                                    <div class="relative"><span
+                                                    <div class="relative">
+                                                        <span
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                            x-text="estimate.currency"></span><input type="number"
-                                                            step="0.01" x-model="item.unit_price"
-                                                            @input="calculateTotals"
-                                                            class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
+                                                            x-text="estimate.currency"></span>
+                                                        <input type="number" step="0.01" x-model="item.unit_price"
+                                                            :readonly="isItemLocked(item)" @input="calculateTotals"
+                                                            :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                                            class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                                                     </div>
                                                 </td>
                                                 <!-- Quantity -->
@@ -812,13 +814,13 @@
                                     </td>
                                     <td class="px-3 py-4">
                                         <input type="text" x-model="item.name" placeholder="Item Name"
-                                            :readonly="!!item.product_id || item.is_package"
-                                            :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
-                                            class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
+                                            :readonly="isItemLocked(item)"
+                                            :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                            class="block w-full border-0 p-0 text-sm font-bold focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                         <input type="text" x-model="item.description" placeholder="Description"
-                                            :readonly="!!item.product_id || item.is_package"
-                                            :class="(!!item.product_id || item.is_package) ? 'cursor-default text-slate-500' : ''"
-                                            class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent">
+                                            :readonly="isItemLocked(item)"
+                                            :class="isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900'"
+                                            class="block w-full border-0 p-0 text-xs focus:ring-0 placeholder:text-slate-400 bg-transparent">
                                         <template x-if="item.options && item.options.length > 0">
                                             <div class="flex flex-wrap gap-1.5 mt-2">
                                                 <template x-for="opt in item.options">
@@ -844,7 +846,7 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                                         <input type="number" step="0.01" x-model="item.length"
-                                                            placeholder="0" @input="calculateQuantity(item)"
+                                                            placeholder="0" @input="calculateSize(item)"
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -853,7 +855,7 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                         <input type="number" step="0.01" x-model="item.width"
-                                                            placeholder="0" @input="calculateQuantity(item)"
+                                                            placeholder="0" @input="calculateSize(item)"
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -862,7 +864,7 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                                         <input type="number" step="0.01" x-model="item.height"
-                                                            placeholder="0" @input="calculateQuantity(item)"
+                                                            placeholder="0" @input="calculateSize(item)"
                                                             class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
@@ -873,7 +875,7 @@
                                                         x-text="item.formula === 'volume' ? 'VOLUME' : (item.formula === 'area_lh' ? 'AREA (LxH)' : (item.formula === 'formula' ? 'CUSTOM' : ((item.formula === 'area') ? 'AREA (LxW)' : 'AREA')))"></span>
                                                     <span
                                                         class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded"
-                                                        x-text="item.quantity || '0.00'"></span>
+                                                        x-text="item.size || '0.00'"></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -884,17 +886,16 @@
                                                 class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
                                                 x-text="estimate.currency"></span>
                                             <input type="number" step="0.01" x-model="item.unit_price"
-                                                @input="calculateTotals"
-                                                class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
+                                                :readonly="isItemLocked(item)" @input="calculateTotals"
+                                                :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                                class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                                         </div>
                                     </td>
                                     <td class="px-3 py-4">
                                         <div class="flex items-center justify-center gap-1.5" x-show="!item.is_package">
                                             <input type="number" step="0.01" x-model="item.quantity"
                                                 @input="calculateTotals"
-                                                class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all"
-                                                :readonly="item.showCalculator"
-                                                :class="{'bg-slate-100 italic text-slate-400 border-dashed': item.showCalculator}">
+                                                class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all">
                                             <button type="button" @click="toggleCalculator(item)"
                                                 class="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100"
                                                 :class="{'text-indigo-600 bg-indigo-50 border-indigo-100': item.showCalculator}"

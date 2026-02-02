@@ -52,7 +52,20 @@ class EventLogController extends Controller
 
         $events = $query->latest()->paginate(50)->withQueryString();
 
-        return view('events.index', compact('events'));
+        // Summary Stats for grouping
+        $summary = \App\Models\EventLog::where('created_at', '>=', now()->subDays(7))
+            ->select('event_name', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
+            ->groupBy('event_name')
+            ->orderByDesc('count')
+            ->take(10)
+            ->get();
+
+        $typeDistribution = \App\Models\EventLog::where('created_at', '>=', now()->subDays(7))
+            ->select('entity_type', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
+            ->groupBy('entity_type')
+            ->get();
+
+        return view('events.index', compact('events', 'summary', 'typeDistribution'));
     }
 
     /**

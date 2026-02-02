@@ -48,7 +48,7 @@ class PortalController extends Controller
         \App\Models\ActivityLog::log('proposal_viewed', $estimate, "Proposal for Estimate #{$estimate->estimate_number} was viewed by the client.");
 
         // Dispatch Event
-        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateViewed($estimate->id, null, $request->ip()));
+        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateViewed($estimate, null, $request->ip()));
 
         $estimate->increment('engagement_score'); // Boost score on every view
 
@@ -158,7 +158,7 @@ class PortalController extends Controller
         \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'declined'));
 
         // Dispatch Event
-        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate->id, 0, $request->client_notes));
+        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, 0, $request->client_notes));
 
         return redirect()->back()->with('success', 'You have declined the estimate. Thank you for your feedback.');
     }

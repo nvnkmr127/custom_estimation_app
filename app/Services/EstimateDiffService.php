@@ -71,31 +71,40 @@ class EstimateDiffService
 
     protected function compareItems(Estimate $old, Estimate $new, array &$changes)
     {
-        // Helper to generate a unique key for matching
-        $getKey = function (EstimateItem $item) {
-            // We use a simplified key: [Section Name] + Product ID + Name
-            // This is a heuristic. If there are duplicates, it might overlap, but it's the best without stable IDs across versions.
-            $sectionName = $item->section ? $item->section->name : 'General';
-            return "{$sectionName}|" . ($item->product_id ?? 'custom') . "|{$item->name}";
-        };
+        // Load relationships
+        $old->loadMissing('items.section');
+        $new->loadMissing('items.section');
 
-        // Load relationships if not loaded
-        $old->loadMissing('items.section', 'sections');
-        $new->loadMissing('items.section', 'sections');
+        // Identify Items Key
+        // Priority 1: original_item_id (Perfect Match)
+        // Priority 2: Fallback to [Section|ProductID|Name] for legacy items
+        $getKey = function (EstimateItem $item) {
+            if ($item->original_item_id) {
+                return 'ID:' . $item->original_item_id;
+            }
+            // Fallback key
+            $sectionName = $item->section ? $item->section->name : 'General';
+            return "LEGACY:{$sectionName}|" . ($item->product_id ?? 'custom') . "|{$item->name}";
+        };
 
         $oldItems = $old->items->keyBy($getKey);
         $newItems = $new->items->keyBy($getKey);
 
-        // Check for Added & Modified
+        // Track changes grouped by section
+        // Structure: $changes['items']['added']['Section Name'][] = Item
+
+        // 1. ADDED & MODIFIED
         foreach ($newItems as $key => $newItem) {
+            $section = $newItem->section ? $newItem->section->name : 'General';
+
             if (!$oldItems->has($key)) {
-                $changes['items']['added'][] = $newItem;
+                $changes['items']['added'][$section][] = $newItem;
             } else {
-                // Check if contents modified
+                // Check modifications
                 $oldItem = $oldItems->get($key);
                 $diffs = $this->getItemDiffs($oldItem, $newItem);
                 if (!empty($diffs)) {
-                    $changes['items']['modified'][] = [
+                    $changes['items']['modified'][$section][] = [
                         'item' => $newItem,
                         'changes' => $diffs,
                     ];
@@ -103,10 +112,11 @@ class EstimateDiffService
             }
         }
 
-        // Check for Removed
+        // 2. REMOVED
         foreach ($oldItems as $key => $oldItem) {
             if (!$newItems->has($key)) {
-                $changes['items']['removed'][] = $oldItem;
+                $section = $oldItem->section ? $oldItem->section->name : 'General';
+                $changes['items']['removed'][$section][] = $oldItem;
             }
         }
     }
@@ -118,7 +128,7 @@ class EstimateDiffService
             'quantity' => 'Quantity',
             'unit_price' => 'Unit Price',
             'total' => 'Total',
-            'internal_note' => 'Internal Note',
+            'internal_note' => 'Internal Note', // Admin only usually, but good to track
             'description' => 'Description'
         ];
 
@@ -126,7 +136,7 @@ class EstimateDiffService
             $oldVal = $old->$field;
             $newVal = $new->$field;
 
-            // Handle formatting strictly
+            // Handle numeric
             if (in_array($field, ['unit_price', 'total', 'quantity'])) {
                 if (abs((float) $oldVal - (float) $newVal) > 0.001) {
                     $diffs[] = [
@@ -135,7 +145,9 @@ class EstimateDiffService
                         'new' => (float) $newVal,
                     ];
                 }
-            } elseif (trim((string) $oldVal) !== trim((string) $newVal)) {
+            }
+            // Handle Strings
+            elseif (trim((string) $oldVal) !== trim((string) $newVal)) {
                 $diffs[] = [
                     'field' => $label,
                     'old' => $oldVal,

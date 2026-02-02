@@ -6,6 +6,36 @@
         </div>
     </div>
 
+    <!-- Quick Stats / Grouping -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Top Events (Last 7 Days)</h3>
+            <div class="space-y-3">
+                @foreach($summary as $item)
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">{{ $item->event_name }}</span>
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                            {{ $item->count }}
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Resource Distribution</h3>
+            <div class="flex flex-wrap gap-4">
+                @foreach($typeDistribution as $item)
+                    <div class="flex flex-col p-4 bg-gray-50 rounded-lg min-w-[120px]">
+                        <span class="text-xs text-gray-500 uppercase">{{ $item->entity_type ?? 'Generic' }}</span>
+                        <span class="text-2xl font-bold text-gray-900">{{ $item->count }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
         <form method="GET" action="{{ route('event-logs.index') }}">
@@ -84,7 +114,7 @@
                             <div class="flex items-center gap-2 mb-1">
                                 <span
                                     class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        {{ $event->status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                                                {{ $event->status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
                                     {{ $event->status }}
                                 </span>
                                 <a href="{{ route('event-logs.show', $event) }}"

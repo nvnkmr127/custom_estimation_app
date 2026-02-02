@@ -7,7 +7,7 @@ use App\Core\Events\BaseEvent;
 class EstimateRejected extends BaseEvent
 {
     public function __construct(
-        public int $estimateId,
+        public \App\Models\Estimate $estimate,
         public int $rejectorId,
         public ?string $reason = null
     ) {
@@ -22,9 +22,10 @@ class EstimateRejected extends BaseEvent
     public function getPayload(): array
     {
         return [
-            'estimate_id' => $this->estimateId,
+            'estimate_id' => $this->estimate->id,
             'rejector_id' => $this->rejectorId,
             'reason' => $this->reason,
+            'estimate_number' => $this->estimate->estimate_number,
         ];
     }
     public function getEntityType(): string
@@ -34,6 +35,6 @@ class EstimateRejected extends BaseEvent
 
     public function getEntityId(): int|string|null
     {
-        return $this->estimateId;
+        return $this->estimate->id;
     }
 }

@@ -48,13 +48,38 @@ class WebhookEventRegistry
     {
         $groups = [];
         foreach ($this->definitions as $def) {
-            $parts = explode('.', $def->name());
-            $resource = ucfirst($parts[0]);
+            $resource = $this->resolveGroupName($def);
             $groups[$resource][] = [
                 'name' => $def->name(),
                 'description' => $def->description(),
+                'samplePayload' => $def->samplePayload(),
             ];
         }
+
+        // Sort groups alphabetically
+        ksort($groups);
+
         return $groups;
+    }
+
+    protected function resolveGroupName(WebhookEventDefinitionInterface $def): string
+    {
+        $class = $def->resourceClass();
+        if (empty($class)) {
+            $parts = explode('.', $def->name());
+            return ucfirst($parts[0]);
+        }
+
+        $shortName = (new \ReflectionClass($class))->getShortName();
+
+        // Map common models to plural categories
+        return match ($shortName) {
+            'Estimate' => 'Estimates Management',
+            'Client' => 'Client Relations',
+            'User' => 'Identity & Access',
+            'EstimateComment' => 'Collaboration',
+            'EstimateApproval' => 'Approvals & Workflows',
+            default => $shortName . ' Events'
+        };
     }
 }

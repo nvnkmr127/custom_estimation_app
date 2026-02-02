@@ -26,12 +26,25 @@ class EstimateCreatedDefinition implements WebhookEventDefinitionInterface
         /** @var Estimate $resource */
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number, // Assuming column name
+            'reference' => $resource->reference_number,
             'client_id' => $resource->client_id,
             'total' => $resource->total,
             'status' => $resource->status,
-            'created_at' => $resource->created_at->toIso8601String(),
+            'created_at' => $resource->created_at ? $resource->created_at->toIso8601String() : now()->toIso8601String(),
             'url' => route('portal.show', $resource),
+        ];
+    }
+
+    public function samplePayload(): array
+    {
+        return [
+            'id' => 123,
+            'reference' => 'EST-2024-001',
+            'client_id' => 456,
+            'total' => 1500.00,
+            'status' => 'draft',
+            'created_at' => now()->toIso8601String(),
+            'url' => 'https://example.com/portal/estimates/123',
         ];
     }
 }

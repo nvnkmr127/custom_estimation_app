@@ -54,11 +54,11 @@
                         <div class="space-y-6">
                             @foreach($estimate->sections as $section)
                                 <div class="border border-slate-200 rounded-lg overflow-hidden">
-                                    <div
-                                        class="bg-slate-50 px-4 py-2 border-b border-slate-200 font-medium text-sm text-slate-700">
+                                    <div class="bg-slate-50 px-4 py-2 border-b border-slate-200 font-medium text-sm text-slate-700">
                                         {{ $section->name }}
                                     </div>
-                                    <table class="min-w-full divide-y divide-slate-200">
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-[800px] w-full divide-y divide-slate-200">
                                         <thead class="bg-slate-50/50">
                                             <tr>
                                                 @if(!$section->is_package)
@@ -201,6 +201,17 @@
                                                                         <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }} ft</span>
                                                                     </div>
                                                                 @endif
+
+                                                                @if($item->size > 0)
+                                                                    <div class="mt-2 pt-2 border-t border-slate-100">
+                                                                        <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
+                                                                            {{ ucfirst(str_replace('_', ' ', $item->formula ?: ( $item->height > 0 ? 'volume' : 'area' ))) }}
+                                                                        </div>
+                                                                        <div class="text-xs font-bold text-slate-900">
+                                                                            {{ number_format($item->size, 2) }} <span class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
                                                             </div>
                                                         @else
                                                             <span class="text-xs text-slate-400">-</span>
@@ -233,13 +244,15 @@
                                                 </td>
                                             </tr>
                                         </tfoot>
-                                    </table>
+                                        </table>
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
                     @else
                         <!-- Standard Items Table -->
-                        <table class="min-w-full divide-y divide-slate-200">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-[800px] w-full divide-y divide-slate-200">
                             <thead class="bg-slate-50/50">
                                 <tr>
                                     <th
@@ -347,29 +360,40 @@
                                                                                 </td>
                                                                                 <td class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
                                                                                     @if($item->length || $item->width || $item->height)
-                                                            <div class="flex flex-col gap-1.5">
-                                                                @if($item->length)
-                                                                    <div class="flex items-center gap-2">
-                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }} ft</span>
-                                                                    </div>
-                                                                @endif
-                                                                @if($item->width)
-                                                                    <div class="flex items-center gap-2">
-                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }} ft</span>
-                                                                    </div>
-                                                                @endif
-                                                                @if($item->height)
-                                                                    <div class="flex items-center gap-2">
-                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }} ft</span>
-                                                                    </div>
-                                                                @endif
-                                                            </div>
-                                                        @else
-                                                            <span class="text-xs text-slate-400">-</span>
-                                                        @endif
+                                                                                        <div class="flex flex-col gap-1.5">
+                                                                                            @if($item->length)
+                                                                                                <div class="flex items-center gap-2">
+                                                                                                    <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
+                                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }} ft</span>
+                                                                                                </div>
+                                                                                            @endif
+                                                                                            @if($item->width)
+                                                                                                <div class="flex items-center gap-2">
+                                                                                                    <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
+                                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }} ft</span>
+                                                                                                </div>
+                                                                                            @endif
+                                                                                            @if($item->height)
+                                                                                                <div class="flex items-center gap-2">
+                                                                                                    <span class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }} ft</span>
+                                                                                                </div>
+                                                                                            @endif
+
+                                                                                            @if($item->size > 0)
+                                                                                                <div class="mt-2 pt-2 border-t border-slate-100">
+                                                                                                    <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
+                                                                                                        {{ ucfirst(str_replace('_', ' ', $item->formula ?: ( $item->height > 0 ? 'volume' : 'area' ))) }}
+                                                                                                    </div>
+                                                                                                    <div class="text-xs font-bold text-slate-900">
+                                                                                                        {{ number_format($item->size, 2) }} <span class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            @endif
+                                                                                        </div>
+                                                                                    @else
+                                                                                        <span class="text-xs text-slate-400">-</span>
+                                                                                    @endif
                                                                                 </td>
                                                                                 <td
                                                                                     class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
@@ -387,6 +411,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </div>
                     @endif
 
                     <!-- Totals -->
@@ -411,6 +436,14 @@
                                     <dt>Discount</dt>
                                     <dd class="font-medium">- {{ $estimate->currency }}
                                         {{ number_format($estimate->discount_total, 2) }}
+                                    </dd>
+                                </div>
+                            @endif
+                            @if($estimate->transportation_charges > 0)
+                                <div class="flex justify-between text-slate-600">
+                                    <dt>Transportation</dt>
+                                    <dd class="font-medium">{{ $estimate->currency }}
+                                        {{ number_format($estimate->transportation_charges, 2) }}
                                     </dd>
                                 </div>
                             @endif
@@ -513,7 +546,7 @@
                     </div>
                 </div>
                 <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400">
-                    Estimate Date: {{ $estimate->estimate_date->format('M d, Y') }}
+                    Estimate Date: {{ $estimate->estimate_date ? \Carbon\Carbon::parse($estimate->estimate_date)->format('M d, Y') : 'N/A' }}
                 </div>
             </div>
 
@@ -735,10 +768,12 @@
                                 <a href="{{ route('estimates.show', $ver) }}"
                                     class="flex items-center justify-between p-2 rounded-md hover:bg-slate-50 {{ $ver->id === $estimate->id ? 'bg-indigo-50 ring-1 ring-indigo-200' : '' }}">
                                     <div class="text-sm">
-                                        <span class="font-medium text-slate-900">v{{ $ver->version }}</span>
-                                        <span
-                                            class="text-slate-500 text-xs ml-2">{{ $ver->estimate_date->format('M d') }}</span>
-                                    </div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-slate-900">v{{ $ver->version }}</span>
+                                <span class="text-xs text-slate-500">by {{ $ver->creator->name ?? 'System' }}</span>
+                            </div>
+                            <div class="text-slate-500 text-xs">{{ $ver->estimate_date ? \Carbon\Carbon::parse($ver->created_at)->format('M d, Y g:i A') : '' }}</div>
+                        </div>
                                     @if($ver->is_current_version) <span
                                         class="text-[10px] uppercase font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Current</span>
                                     @endif

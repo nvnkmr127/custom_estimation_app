@@ -66,7 +66,12 @@ class ShowEstimate extends Component
         // Calculate Diff if previous version exists
         $this->diff = null;
         if ($this->estimate->version > 1) {
-            $previousVersion = $this->allVersions->firstWhere('version', $this->estimate->version - 1);
+            // Find the closest previous version (ancestor with highest version < current)
+            $previousVersion = $this->allVersions
+                ->where('version', '<', $this->estimate->version)
+                ->sortByDesc('version')
+                ->first();
+
             if ($previousVersion) {
                 try {
                     $this->diff = (new \App\Services\EstimateDiffService)->calculateDiff($previousVersion, $this->estimate);

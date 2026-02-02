@@ -152,16 +152,6 @@
                     if (!item.product_id && item.product) {
                         item.product_id = item.product.id;
                     }
-                    // Fallback: Match by name if product_id is missing
-                    if (!item.product_id) {
-                        const nameToMatch = (item.name || '').trim().toLowerCase();
-                        if (nameToMatch && this.products) {
-                            const found = this.products.find(p => (p.name || '').trim().toLowerCase() === nameToMatch);
-                            if (found) {
-                                item.product_id = found.id;
-                            }
-                        }
-                    }
 
                     // 2. Check for forced formula from product
                     let forcedMethod = null;
@@ -247,6 +237,11 @@
                     this.initSortable();
                     this.initClientSearch();
                 });
+            },
+
+            isItemLocked(item) {
+                const hasProduct = item.product_id !== null && item.product_id !== undefined && item.product_id !== '' && item.product_id !== 0 && item.product_id !== '0';
+                return !!(hasProduct || item.is_package || item.is_locked);
             },
 
             initClientSearch() {
@@ -448,9 +443,9 @@
                     tax_1: parseFloat(this.defaults.tax_1_rate || 0),
                     tax_2: parseFloat(this.defaults.tax_2_rate || 0),
                     image_url: (product.images && product.images.length > 0) ? '/storage/' + product.images[0].image_path : null,
-                    length: '',
-                    width: '',
-                    height: '',
+                    length: product.dimensions?.length || '',
+                    width: product.dimensions?.width || '',
+                    height: product.dimensions?.height || '',
                     formula: initFormula,
                     showCalculator: showCalc,
                     _showTypePicker: false,
@@ -458,6 +453,9 @@
                     is_package: false,
                     _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                 };
+                if (showCalc) {
+                    this.calculateSize(newItem);
+                }
                 this.pushItem(newItem);
                 this.productPicker.isOpen = false;
                 this.calculateTotals();
@@ -535,9 +533,9 @@
                     tax_1: parseFloat(this.defaults.tax_1_rate || 0),
                     tax_2: parseFloat(this.defaults.tax_2_rate || 0),
                     image_url: (product.images && product.images.length > 0) ? '/storage/' + product.images[0].image_path : null,
-                    length: '',
-                    width: '',
-                    height: '',
+                    length: product.dimensions?.length || '',
+                    width: product.dimensions?.width || '',
+                    height: product.dimensions?.height || '',
                     formula: initFormula,
                     showCalculator: showCalc,
                     _showTypePicker: false,
@@ -546,6 +544,9 @@
                     _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                 };
 
+                if (showCalc) {
+                    this.calculateSize(newItem);
+                }
                 this.pushItem(newItem);
 
                 // Manually close config modal WITHOUT triggering the re-open of picker
@@ -566,6 +567,7 @@
                     name: '',
                     unit_price: 0,
                     quantity: 1,
+                    size: '',
                     unit_type: 'nos',
                     unit_type_id: null,
                     tax_1: 0,
@@ -576,7 +578,10 @@
                     formula: '',
                     showCalculator: false,
                     is_package: false,
-                    options: []
+                    options: [],
+                    product_id: null,
+                    is_locked: false,
+                    _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                 };
                 this.pushItem(newItem);
                 this.productPicker.isOpen = false;
@@ -848,12 +853,11 @@
                 // Check if the item is linked to a product with a strict calculation method
                 let forcedMethod = null;
                 let customFormulaString = null;
-                let isProductLinked = false;
+                const isProductLinked = item.product_id !== null && item.product_id !== undefined && item.product_id !== '' && item.product_id !== 0 && item.product_id !== '0';
 
-                if (item.product_id) {
+                if (isProductLinked) {
                     const product = this.products.find(p => p.id == item.product_id);
                     if (product) {
-                        isProductLinked = true;
                         if (product.calculation_method === 'formula') {
                             forcedMethod = 'formula';
                             customFormulaString = product.formula;

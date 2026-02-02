@@ -69,7 +69,7 @@ class ApprovalController extends Controller
             foreach ($createdApprovals as $approval) {
                 $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRequested(
                     $estimate->id,
-                    $approval->id,
+                    $approval,
                     $approval->user_id
                 ));
             }
@@ -126,7 +126,7 @@ class ApprovalController extends Controller
             // Dispatch Event
             $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalApproved(
                 $estimate->id,
-                $approval->id,
+                $approval,
                 $user->id
             ));
 
@@ -155,7 +155,7 @@ class ApprovalController extends Controller
                         foreach ($newApprovals as $newApproval) {
                             $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRequested(
                                 $estimate->id,
-                                $newApproval->id,
+                                $newApproval,
                                 $newApproval->user_id
                             ));
                         }
@@ -194,7 +194,7 @@ class ApprovalController extends Controller
             // Dispatch Event
             $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRejected(
                 $estimate->id,
-                $approval->id,
+                $approval,
                 $user->id,
                 $request->input('comments', 'Rejected')
             ));
@@ -203,7 +203,7 @@ class ApprovalController extends Controller
             $estimate->update(['approval_status' => 'rejected']);
 
             // Dispatch EstimateRejected (Internal)
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateRejected($estimate->id, $user->id, $request->input('comments')));
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateRejected($estimate, $user->id, $request->input('comments')));
 
             return redirect()->back()->with('success', 'Estimate rejected.');
         } catch (\Exception $e) {
@@ -248,7 +248,7 @@ class ApprovalController extends Controller
             // Dispatch Event
             $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalChangeRequested(
                 $estimate->id,
-                $approval->id,
+                $approval,
                 $user->id,
                 $validated['comments']
             ));

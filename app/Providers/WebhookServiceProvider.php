@@ -16,10 +16,26 @@ class WebhookServiceProvider extends ServiceProvider
             $registry = new WebhookEventRegistry();
 
             // Register Events
-            $registry->register(new EstimateCreatedDefinition());
-            $registry->register(new EstimateUpdatedDefinition());
-            $registry->register(new ClientCreatedDefinition());
-            // Add others (sent, accepted) similarly...
+            $registry->register(new \App\Webhooks\Definitions\EstimateCreatedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateUpdatedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateSentDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateApprovedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateRejectedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateDeclinedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateViewedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateSubmittedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateExpiredDefinition());
+
+            $registry->register(new \App\Webhooks\Definitions\ClientCreatedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\CommentAddedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\UserRegisteredDefinition());
+
+            $registry->register(new \App\Webhooks\Definitions\ApprovalRequestedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\ApprovalApprovedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\ApprovalRejectedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\ApprovalChangeRequestedDefinition());
+
+            $registry->register(new \App\Webhooks\Definitions\UserLoggedInDefinition());
 
             return $registry;
         });

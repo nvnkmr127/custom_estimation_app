@@ -16,10 +16,25 @@ class Index extends Component
     public $sortField = 'created_at';
     public $sortDirection = 'desc';
 
+    public $showEditModal = false;
+    public $selectedWebhookId = null;
+
     protected $queryString = [
         'search' => ['except' => ''],
         'status' => ['except' => ''],
     ];
+
+    public function edit($id)
+    {
+        $this->selectedWebhookId = $id;
+        $this->showEditModal = true;
+    }
+
+    public function closeModal()
+    {
+        $this->showEditModal = false;
+        $this->selectedWebhookId = null;
+    }
 
     public function sortBy($field)
     {

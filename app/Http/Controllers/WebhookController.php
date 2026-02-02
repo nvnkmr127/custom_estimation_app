@@ -37,6 +37,62 @@ class WebhookController extends Controller
         return response()->json(['message' => 'Accepted'], 202);
     }
 
+    /**
+     * Handle generic inbound webhooks via unique URL.
+     */
+    public function catch(Request $request, string $uuid)
+    {
+        $endpoint = \App\Models\WebhookInboundEndpoint::where('uuid', $uuid)->where('is_active', true)->firstOrFail();
+
+        // 1. IP Filtering
+        if ($endpoint->ip_whitelist) {
+            $allowed = array_map('trim', explode(',', $endpoint->ip_whitelist));
+            if (!in_array($request->ip(), $allowed)) {
+                Log::warning("Webhook: IP {$request->ip()} denied for endpoint {$endpoint->name}");
+                return response()->json(['error' => 'Forbidden'], 403);
+            }
+        }
+
+        // 2. Signature Verification
+        if ($endpoint->secret && $endpoint->signature_header) {
+            $signature = $request->header($endpoint->signature_header);
+            // Assuming simplified HMAC-SHA256 for now, can be made configurable later
+            $computed = hash_hmac('sha256', $request->getContent(), $endpoint->secret);
+
+            // Note: Some providers use "sha256=<hash>", so we might need simple string containment or normalization
+            // For now, let's try direct comparison or "sha256=" prefix check
+            if (!hash_equals($computed, $signature ?? '') && !hash_equals("sha256={$computed}", $signature ?? '')) {
+                Log::warning("Webhook: Invalid signature for endpoint {$endpoint->name}");
+
+                // We still log the attempt as failed
+                WebhookInboundEvent::create([
+                    'provider' => $uuid,
+                    'provider_event_id' => $request->header('X-Request-ID') ?? (string) \Illuminate\Support\Str::uuid(),
+                    'payload' => $request->all(),
+                    'headers' => $request->headers->all(),
+                    'status' => 'failed',
+                    'error_message' => 'Invalid Signature',
+                ]);
+
+                return response()->json(['error' => 'Invalid signature'], 401);
+            }
+        }
+
+        // 3. Log Valid Payload
+        $event = WebhookInboundEvent::create([
+            'provider' => $uuid, // Use UUID as provider identifier
+            'provider_event_id' => $request->header('X-Request-ID') ?? (string) \Illuminate\Support\Str::uuid(),
+            'payload' => $request->all(),
+            'headers' => $request->headers->all(),
+            'status' => 'pending',
+        ]);
+
+        // 4. Dispatch for Async Processing
+        ProcessInboundWebhook::dispatch($event);
+
+        return response()->json(['message' => 'Received'], 200);
+    }
+
     protected function extractEventId(Request $request, string $provider): ?string
     {
         return match ($provider) {

@@ -34,6 +34,7 @@ class EstimateItem extends Model
         'internal_note',
         'options',
         'is_package',
+        'original_item_id',
     ];
 
     protected $casts = [

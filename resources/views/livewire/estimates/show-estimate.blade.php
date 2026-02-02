@@ -40,11 +40,11 @@
                 @if($estimate->approval_status)
                     <span
                         class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                                                                                            @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
-                                                                                                                                            @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
-                                                                                                                                            @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
-                                                                                                                                            @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                                                                                                            @endif">
+                                                                                                                                                                                            @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
+                                                                                                                                                                                            @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
+                                                                                                                                                                                            @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
+                                                                                                                                                                                            @else bg-gray-50 text-gray-600 ring-gray-500/10
+                                                                                                                                                                                            @endif">
                         {{ ucfirst($estimate->approval_status) }}
                     </span>
                 @endif
@@ -54,7 +54,7 @@
 
         <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">
             <!-- Primary Actions -->
-            @if($estimate->status === 'draft' || $estimate->status === 'declined' || (auth()->user()->hasRole('super_admin')))
+            @if(($estimate->status === 'draft' || $estimate->status === 'declined' || (auth()->user()->hasRole('super_admin'))) && $estimate->is_current_version)
                 @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole('super_admin'))
                     <a href="{{ route('estimates.edit', $estimate) }}"
                         class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
@@ -97,16 +97,16 @@
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->
                     <div x-data="{ 
-                                                                                                                                                                                                                                                                        checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
-                                                                                                                                                                                                                                                                        requiredCount: {{ $checklists->where('is_required', true)->count() }},
-                                                                                                                                                                                                                                                                        requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
-                                                                                                                                                                                                                                                                         toggleChecklist(id, checked) {
-                                                                                                                                                                                                                                                                             if (checked) this.checks.push(parseInt(id));
-                                                                                                                                                                                                                                                                             else this.checks = this.checks.filter(c => c !== parseInt(id));
-                                                                                                                                                                                                                                                                             $wire.toggleChecklist(id, checked);
-                                                                                                                                                                                                                                                                         },
-                                                                                                                                                                                                                                                                         get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
-                                                                                                                                                                                                                                                                     }"
+                                                                                                                                                                                                                                                                                                                                                                        checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
+                                                                                                                                                                                                                                                                                                                                                                        requiredCount: {{ $checklists->where('is_required', true)->count() }},
+                                                                                                                                                                                                                                                                                                                                                                        requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
+                                                                                                                                                                                                                                                                                                                                                                         toggleChecklist(id, checked) {
+                                                                                                                                                                                                                                                                                                                                                                             if (checked) this.checks.push(parseInt(id));
+                                                                                                                                                                                                                                                                                                                                                                             else this.checks = this.checks.filter(c => c !== parseInt(id));
+                                                                                                                                                                                                                                                                                                                                                                             $wire.toggleChecklist(id, checked);
+                                                                                                                                                                                                                                                                                                                                                                         },
+                                                                                                                                                                                                                                                                                                                                                                         get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
+                                                                                                                                                                                                                                                                                                                                                                     }"
                         class="flex gap-2 relative">
                         <!-- Approve Dropdown -->
                         <div x-data="{ open: false }" class="relative">
@@ -443,352 +443,391 @@
                                         class="bg-slate-50 px-4 py-2 border-b border-slate-200 font-medium text-sm text-slate-700">
                                         {{ $section->name }}
                                     </div>
-                                    <table class="min-w-full divide-y divide-slate-200">
-                                        <thead class="bg-slate-50/50">
-                                            <tr>
-                                                @if(!$section->is_package)
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-[800px] w-full divide-y divide-slate-200">
+                                            <thead class="bg-slate-50/50">
+                                                <tr>
+                                                    @if(!$section->is_package)
+                                                        <th
+                                                            class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
+                                                            Image
+                                                        </th>
+                                                    @endif
+                                                    @if(!$section->is_package)
+                                                        <th
+                                                            class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
+                                                            Unit Configuration</th>
+                                                    @endif
                                                     <th
-                                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
-                                                        Image
-                                                    </th>
-                                                @endif
-                                                @if(!$section->is_package)
+                                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                        Item Details</th>
+                                                    @if(!$section->is_package)
+                                                        <th
+                                                            class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
+                                                            Size</th>
+                                                    @endif
                                                     <th
-                                                        class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
-                                                        Unit Configuration</th>
-                                                @endif
-                                                <th
-                                                    class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                    Item Details</th>
-                                                @if(!$section->is_package)
+                                                        class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
+                                                        Price</th>
+                                                    @if(!$section->is_package)
+                                                        <th
+                                                            class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
+                                                            Quantity</th>
+                                                    @endif
                                                     <th
-                                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
-                                                        Size</th>
-                                                @endif
-                                                <th
-                                                    class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
-                                                    Price</th>
-                                                @if(!$section->is_package)
-                                                    <th
-                                                        class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
-                                                        Quantity</th>
-                                                @endif
-                                                <th
-                                                    class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
-                                                    Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-200 bg-white">
-                                            @foreach($section->items as $item)
-                                                                    <tr class="group hover:bg-slate-50/30 transition-colors">
-                                                                        @if(!$section->is_package)
-                                                                            <td class="px-3 py-4 align-middle">
-                                                                                @if($item->product && $item->product->images->isNotEmpty())
-                                                                                    <div class="relative h-12 w-12 mx-auto">
-                                                                                        <img src="{{ $item->product->images->first()->image_path }}"
-                                                                                            class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
-                                                                                    </div>
-                                                                                @else
-                                                                                    <div
-                                                                                        class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
-                                                                                        <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
-                                                                                            stroke="currentColor">
-                                                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                                stroke-width="2"
-                                                                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                                        </svg>
-                                                                                    </div>
-                                                                                @endif
-                                                                            </td>
-                                                                        @endif
-                                                                        @if(!$section->is_package)
-                                                                            <td
-                                                                                class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                                <div class="font-bold text-slate-900">
-                                                                                    @if($item->unitType) {{ $item->unitType->name }} @endif
-                                                                                </div>
-                                                                                <div
-                                                                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                                                    {{ $item->unit_type }}
-                                                                                </div>
-                                                                            </td>
-                                                                        @endif
-                                                                        <td
-                                                                            class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                            <div class="min-w-0">
-                                                                                <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
-                                                                                @if($item->description)
-                                                                                    <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
-                                                                                        {{ $item->description }}
-                                                                                    </div>
-                                                                                @endif
-                                                                                @if(!empty($item->options) && is_array($item->options))
-                                                                                    <div class="flex flex-wrap gap-1.5">
-                                                                                        @foreach($item->options as $option)
-                                                                                            <span
-                                                                                                class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-                                                                                                {{ $option['name'] }}: {{ $option['value'] }}
-                                                                                            </span>
-                                                                                        @endforeach
-                                                                                    </div>
-                                                                                @endif
-                                                                                @if($item->internal_note)
-                                                                                    <div
-                                                                                        class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
-                                                                                        <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24"
-                                                                                            stroke="currentColor">
-                                                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                                stroke-width="2"
-                                                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                                        </svg>
-                                                                                        <span
-                                                                                            class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
-                                                                                            Note:</span> {{ $item->internal_note }}
-                                                                                    </div>
-                                                                                @endif
-                                                                                <!-- Item Comment Button -->
-                                                                                <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->map(function ($c) {
-                                                $c->formatted_date = $c->created_at->format('M j, g:i A');
-                                                return $c; })->values()) }})" type="button"
-                                                                                    class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
-                                                                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                                                                                        stroke="currentColor">
-                                                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                            stroke-width="2"
-                                                                                            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                                                                    </svg>
-                                                                                    @if($item->comments->isNotEmpty())
-                                                                                        {{ $item->comments->count() }}
-                                                                                        {{ Str::plural('Comment', $item->comments->count()) }}
-                                                                                    @else
-                                                                                        Comment
-                                                                                    @endif
-                                                                                </button>
-                                                                            </div>
-                                                                        </td>
-                                                                        @if(!$section->is_package)
-                                                                            <td
-                                                                                class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                                @if($item->length || $item->width || $item->height)
-                                                                                    <div class="flex flex-col gap-1.5">
-                                                                                        @if($item->length)
-                                                                                            <div class="flex items-center gap-2">
-                                                                                                <span
-                                                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                                                <span
-                                                                                                    class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
-                                                                                                    ft</span>
+                                                        class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
+                                                        Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-200 bg-white">
+                                                @foreach($section->items as $item)
+                                                                            <tr class="group hover:bg-slate-50/30 transition-colors">
+                                                                                @if(!$section->is_package)
+                                                                                    <td class="px-3 py-4 align-middle">
+                                                                                        @if($item->product && $item->product->images->isNotEmpty())
+                                                                                            <div class="relative h-12 w-12 mx-auto">
+                                                                                                <img src="{{ $item->product->images->first()->image_path }}"
+                                                                                                    class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
+                                                                                            </div>
+                                                                                        @else
+                                                                                            <div
+                                                                                                class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
+                                                                                                <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
+                                                                                                    stroke="currentColor">
+                                                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                                        stroke-width="2"
+                                                                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                                                </svg>
                                                                                             </div>
                                                                                         @endif
-                                                                                        @if($item->width)
-                                                                                            <div class="flex items-center gap-2">
-                                                                                                <span
-                                                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                                                <span
-                                                                                                    class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
-                                                                                                    ft</span>
-                                                                                            </div>
-                                                                                        @endif
-                                                                                        @if($item->height)
-                                                                                            <div class="flex items-center gap-2">
-                                                                                                <span
-                                                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                                                                <span
-                                                                                                    class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
-                                                                                                    ft</span>
-                                                                                            </div>
-                                                                                        @endif
-                                                                                    </div>
-                                                                                @else
-                                                                                    <span class="text-xs text-slate-400">-</span>
+                                                                                    </td>
                                                                                 @endif
-                                                                            </td>
-                                                                        @endif
-                                                                        <td
-                                                                            class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                                                                            {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
-                                                                        </td>
-                                                                        @if(!$section->is_package)
-                                                                            <td
-                                                                                class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                                <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
-                                                                            </td>
-                                                                        @endif
-                                                                        <td
-                                                                            class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                                                                            {{ $estimate->currency }} {{ number_format($item->total, 2) }}
-                                                                        </td>
-                                                                    </tr>
-                                            @endforeach
-                                        </tbody>
-                                        <tfoot class="bg-slate-50">
-                                            <tr>
-                                                <td colspan="{{ $section->is_package ? '2' : '6' }}"
-                                                    class="px-3 py-2 text-xs font-medium text-slate-500 text-right">
-                                                    Room Total</td>
-                                                <td class="px-3 py-2 text-xs font-bold text-slate-900 text-right">
-                                                    {{ number_format($section->items->sum('total'), 2) }}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                                                                @if(!$section->is_package)
+                                                                                    <td
+                                                                                        class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
+                                                                                        <div class="font-bold text-slate-900">
+                                                                                            @if($item->unitType) {{ $item->unitType->name }} @endif
+                                                                                        </div>
+                                                                                        <div
+                                                                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                                                                            {{ $item->unit_type }}
+                                                                                        </div>
+                                                                                    </td>
+                                                                                @endif
+                                                                                <td
+                                                                                    class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
+                                                                                    <div class="min-w-0">
+                                                                                        <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
+                                                                                        @if($item->description)
+                                                                                            <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
+                                                                                                {{ $item->description }}
+                                                                                            </div>
+                                                                                        @endif
+                                                                                        @if(!empty($item->options) && is_array($item->options))
+                                                                                            <div class="flex flex-wrap gap-1.5">
+                                                                                                @foreach($item->options as $option)
+                                                                                                    <span
+                                                                                                        class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
+                                                                                                        {{ $option['name'] }}: {{ $option['value'] }}
+                                                                                                    </span>
+                                                                                                @endforeach
+                                                                                            </div>
+                                                                                        @endif
+                                                                                        @if($item->internal_note)
+                                                                                            <div
+                                                                                                class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
+                                                                                                <svg class="h-3 w-3 text-amber-500" fill="none"
+                                                                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                                        stroke-width="2"
+                                                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                                                </svg>
+                                                                                                <span
+                                                                                                    class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
+                                                                                                    Note:</span> {{ $item->internal_note }}
+                                                                                            </div>
+                                                                                        @endif
+                                                                                        <!-- Item Comment Button -->
+                                                                                        <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->map(function ($c) {
+                                                    $c->formatted_date = $c->created_at->format('M j, g:i A');
+                                                    return $c; })->values()) }})" type="button"
+                                                                                            class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                                                                                stroke="currentColor">
+                                                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                                    stroke-width="2"
+                                                                                                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                                                                            </svg>
+                                                                                            @if($item->comments->isNotEmpty())
+                                                                                                {{ $item->comments->count() }}
+                                                                                                {{ Str::plural('Comment', $item->comments->count()) }}
+                                                                                            @else
+                                                                                                Comment
+                                                                                            @endif
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </td>
+                                                                                @if(!$section->is_package)
+                                                                                    <td
+                                                                                        class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
+                                                                                        @if($item->length || $item->width || $item->height)
+                                                                                            <div class="flex flex-col gap-1.5">
+                                                                                                @if($item->length)
+                                                                                                    <div class="flex items-center gap-2">
+                                                                                                        <span
+                                                                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
+                                                                                                        <span
+                                                                                                            class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
+                                                                                                            ft</span>
+                                                                                                    </div>
+                                                                                                @endif
+                                                                                                @if($item->width)
+                                                                                                    <div class="flex items-center gap-2">
+                                                                                                        <span
+                                                                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
+                                                                                                        <span
+                                                                                                            class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
+                                                                                                            ft</span>
+                                                                                                    </div>
+                                                                                                @endif
+                                                                                                @if($item->height)
+                                                                                                    <div class="flex items-center gap-2">
+                                                                                                        <span
+                                                                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                                                                        <span
+                                                                                                            class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
+                                                                                                            ft</span>
+                                                                                                    </div>
+                                                                                                @endif
+
+                                                                                                @if($item->size > 0)
+                                                                                                    <div class="mt-2 pt-2 border-t border-slate-100">
+                                                                                                        <div
+                                                                                                            class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
+                                                                                                            {{ ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area'))) }}
+                                                                                                        </div>
+                                                                                                        <div class="text-xs font-bold text-slate-900">
+                                                                                                            {{ number_format($item->size, 2) }} <span
+                                                                                                                class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                @endif
+                                                                                            </div>
+                                                                                        @else
+                                                                                            <span class="text-xs text-slate-400">-</span>
+                                                                                        @endif
+                                                                                    </td>
+                                                                                @endif
+                                                                                <td
+                                                                                    class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
+                                                                                    {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
+                                                                                </td>
+                                                                                @if(!$section->is_package)
+                                                                                    <td
+                                                                                        class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
+                                                                                        <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
+                                                                                    </td>
+                                                                                @endif
+                                                                                <td
+                                                                                    class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
+                                                                                    {{ $estimate->currency }} {{ number_format($item->total, 2) }}
+                                                                                </td>
+                                                                            </tr>
+                                                @endforeach
+                                            </tbody>
+                                            <tfoot class="bg-slate-50">
+                                                <tr>
+                                                    <td colspan="{{ $section->is_package ? '2' : '6' }}"
+                                                        class="px-3 py-2 text-xs font-medium text-slate-500 text-right">
+                                                        Room Total</td>
+                                                    <td class="px-3 py-2 text-xs font-bold text-slate-900 text-right">
+                                                        {{ number_format($section->items->sum('total'), 2) }}
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
                     @else
                         <!-- Standard Items Table -->
-                        <table class="min-w-full divide-y divide-slate-200">
-                            <thead class="bg-slate-50/50">
-                                <tr>
-                                    <th
-                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
-                                        Image
-                                    </th>
-                                    <th
-                                        class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
-                                        Unit Configuration</th>
-                                    <th
-                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                        Item Details</th>
-                                    <th
-                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
-                                        Size</th>
-                                    <th
-                                        class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
-                                        Price</th>
-                                    <th
-                                        class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
-                                        Quantity</th>
-                                    <th
-                                        class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
-                                        Total</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-200 bg-white">
-                                @foreach($estimate->items as $item)
-                                                    <tr class="group hover:bg-slate-50/30 transition-colors">
-                                                        <td class="px-3 py-4 align-middle">
-                                                            @if($item->product && $item->product->images->isNotEmpty())
-                                                                <div class="relative h-12 w-12 mx-auto">
-                                                                    <img src="{{ $item->product->images->first()->image_path }}"
-                                                                        class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
-                                                                </div>
-                                                            @else
-                                                                <div
-                                                                    class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
-                                                                    <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
-                                                                        stroke="currentColor">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                    </svg>
-                                                                </div>
-                                                            @endif
-                                                        </td>
-                                                        <td
-                                                            class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                            <div class="font-bold text-slate-900">
-                                                                @if($item->unitType) {{ $item->unitType->name }} @endif
-                                                            </div>
-                                                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                                {{ $item->unit_type }}
-                                                            </div>
-                                                        </td>
-                                                        <td class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                            <div class="min-w-0">
-                                                                <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
-                                                                @if($item->description)
-                                                                    <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
-                                                                        {{ $item->description }}
-                                                                    </div>
-                                                                @endif
-                                                                @if(!empty($item->options) && is_array($item->options))
-                                                                    <div class="flex flex-wrap gap-1.5">
-                                                                        @foreach($item->options as $option)
-                                                                            <span
-                                                                                class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-                                                                                {{ $option['name'] }}: {{ $option['value'] }}
-                                                                            </span>
-                                                                        @endforeach
-                                                                    </div>
-                                                                @endif
-                                                                @if($item->internal_note)
-                                                                    <div
-                                                                        class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
-                                                                        <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24"
-                                                                            stroke="currentColor">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                        </svg>
-                                                                        <span
-                                                                            class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
-                                                                            Note:</span> {{ $item->internal_note }}
-                                                                    </div>
-                                                                @endif
-                                                                <!-- Item Comment Button -->
-                                                                <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->map(function ($c) {
-                                    $c->formatted_date = $c->created_at->format('M j, g:i A');
-                                    return $c; })->values()) }})" type="button"
-                                                                    class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
-                                                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                                                    </svg>
-                                                                    @if($item->comments->isNotEmpty())
-                                                                        {{ $item->comments->count() }}
-                                                                        {{ Str::plural('Comment', $item->comments->count()) }}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-[800px] w-full divide-y divide-slate-200">
+                                <thead class="bg-slate-50/50">
+                                    <tr>
+                                        <th
+                                            class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
+                                            Image
+                                        </th>
+                                        <th
+                                            class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
+                                            Unit Configuration</th>
+                                        <th
+                                            class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            Item Details</th>
+                                        <th
+                                            class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
+                                            Size</th>
+                                        <th
+                                            class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
+                                            Price</th>
+                                        <th
+                                            class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
+                                            Quantity</th>
+                                        <th
+                                            class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
+                                            Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 bg-white">
+                                    @foreach($estimate->items as $item)
+                                                            <tr class="group hover:bg-slate-50/30 transition-colors">
+                                                                <td class="px-3 py-4 align-middle">
+                                                                    @if($item->product && $item->product->images->isNotEmpty())
+                                                                        <div class="relative h-12 w-12 mx-auto">
+                                                                            <img src="{{ $item->product->images->first()->image_path }}"
+                                                                                class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
+                                                                        </div>
                                                                     @else
-                                                                        Comment
-                                                                    @endif
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                        <td class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                            @if($item->length || $item->width || $item->height)
-                                                                <div class="flex flex-col gap-1.5">
-                                                                    @if($item->length)
-                                                                        <div class="flex items-center gap-2">
-                                                                            <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                            <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
-                                                                                ft</span>
+                                                                        <div
+                                                                            class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
+                                                                            <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
+                                                                                stroke="currentColor">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                            </svg>
                                                                         </div>
                                                                     @endif
-                                                                    @if($item->width)
-                                                                        <div class="flex items-center gap-2">
-                                                                            <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                            <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
-                                                                                ft</span>
+                                                                </td>
+                                                                <td
+                                                                    class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
+                                                                    <div class="font-bold text-slate-900">
+                                                                        @if($item->unitType) {{ $item->unitType->name }} @endif
+                                                                    </div>
+                                                                    <div
+                                                                        class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                                                        {{ $item->unit_type }}
+                                                                    </div>
+                                                                </td>
+                                                                <td
+                                                                    class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
+                                                                    <div class="min-w-0">
+                                                                        <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
+                                                                        @if($item->description)
+                                                                            <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
+                                                                                {{ $item->description }}
+                                                                            </div>
+                                                                        @endif
+                                                                        @if(!empty($item->options) && is_array($item->options))
+                                                                            <div class="flex flex-wrap gap-1.5">
+                                                                                @foreach($item->options as $option)
+                                                                                    <span
+                                                                                        class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
+                                                                                        {{ $option['name'] }}: {{ $option['value'] }}
+                                                                                    </span>
+                                                                                @endforeach
+                                                                            </div>
+                                                                        @endif
+                                                                        @if($item->internal_note)
+                                                                            <div
+                                                                                class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
+                                                                                <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24"
+                                                                                    stroke="currentColor">
+                                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                        stroke-width="2"
+                                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                                </svg>
+                                                                                <span
+                                                                                    class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
+                                                                                    Note:</span> {{ $item->internal_note }}
+                                                                            </div>
+                                                                        @endif
+                                                                        <!-- Item Comment Button -->
+                                                                        <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->map(function ($c) {
+                                        $c->formatted_date = $c->created_at->format('M j, g:i A');
+                                        return $c; })->values()) }})" type="button"
+                                                                            class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                                                                stroke="currentColor">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                    stroke-width="2"
+                                                                                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                                                            </svg>
+                                                                            @if($item->comments->isNotEmpty())
+                                                                                {{ $item->comments->count() }}
+                                                                                {{ Str::plural('Comment', $item->comments->count()) }}
+                                                                            @else
+                                                                                Comment
+                                                                            @endif
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                                <td
+                                                                    class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
+                                                                    @if($item->length || $item->width || $item->height)
+                                                                        <div class="flex flex-col gap-1.5">
+                                                                            @if($item->length)
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <span
+                                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
+                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
+                                                                                        ft</span>
+                                                                                </div>
+                                                                            @endif
+                                                                            @if($item->width)
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <span
+                                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
+                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
+                                                                                        ft</span>
+                                                                                </div>
+                                                                            @endif
+                                                                            @if($item->height)
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <span
+                                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
+                                                                                        ft</span>
+                                                                                </div>
+                                                                            @endif
+
+                                                                            @if($item->size > 0)
+                                                                                <div class="mt-2 pt-2 border-t border-slate-100">
+                                                                                    <div
+                                                                                        class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
+                                                                                        {{ ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area'))) }}
+                                                                                    </div>
+                                                                                    <div class="text-xs font-bold text-slate-900">
+                                                                                        {{ number_format($item->size, 2) }} <span
+                                                                                            class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            @endif
                                                                         </div>
+                                                                    @else
+                                                                        <span class="text-xs text-slate-400">-</span>
                                                                     @endif
-                                                                    @if($item->height)
-                                                                        <div class="flex items-center gap-2">
-                                                                            <span class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                                            <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
-                                                                                ft</span>
-                                                                        </div>
-                                                                    @endif
-                                                                </div>
-                                                            @else
-                                                                <span class="text-xs text-slate-400">-</span>
-                                                            @endif
-                                                        </td>
-                                                        <td
-                                                            class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                                                            {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
-                                                        </td>
-                                                        <td
-                                                            class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                            <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
-                                                        </td>
-                                                        <td
-                                                            class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                                                            {{ $estimate->currency }} {{ number_format($item->total, 2) }}
-                                                        </td>
-                                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                                                </td>
+                                                                <td
+                                                                    class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
+                                                                    {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
+                                                                </td>
+                                                                <td
+                                                                    class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
+                                                                    <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
+                                                                </td>
+                                                                <td
+                                                                    class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
+                                                                    {{ $estimate->currency }} {{ number_format($item->total, 2) }}
+                                                                </td>
+                                                            </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     @endif
 
                     <!-- Totals -->
@@ -813,6 +852,14 @@
                                     <dt>Discount</dt>
                                     <dd class="font-medium">- {{ $estimate->currency }}
                                         {{ number_format($estimate->discount_total, 2) }}
+                                    </dd>
+                                </div>
+                            @endif
+                            @if($estimate->transportation_charges > 0)
+                                <div class="flex justify-between text-slate-600">
+                                    <dt>Transportation</dt>
+                                    <dd class="font-medium">{{ $estimate->currency }}
+                                        {{ number_format($estimate->transportation_charges, 2) }}
                                     </dd>
                                 </div>
                             @endif
@@ -1289,11 +1336,11 @@
                                 <!-- Status Dot -->
                                 <div
                                     class="absolute -left-[19px] top-1 h-3 w-3 rounded-full border-2 border-white
-                                                                                                                                                                                                                                    @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
-                                                                                                                                                                                                                                    @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
-                                                                                                                                                                                                                                    @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
-                                                                                                                                                                                                                                    @else bg-slate-200
-                                                                                                                                                                                                                                    @endif">
+                                                                                                                                                                                                                                                                                            @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
+                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
+                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
+                                                                                                                                                                                                                                                                                            @else bg-slate-200
+                                                                                                                                                                                                                                                                                            @endif">
                                 </div>
 
                                 <div class="text-sm font-medium text-slate-900 leading-none">
@@ -1590,150 +1637,299 @@
                                             </button>
                                         </div>
 
-                                        <div class="sm:flex sm:items-start">
-                                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                                <h3 class="text-base font-semibold leading-6 text-gray-900"
-                                                    id="modal-title">Version Changes</h3>
-                                                <p class="text-sm text-gray-500 mb-4">Comparing Version
-                                                    {{ $estimate->version }} with Version {{ $estimate->version - 1 }}
-                                                </p>
-
-                                                <div class="space-y-6 text-sm max-h-[70vh] overflow-y-auto pr-2">
-                                                    <!-- Overview Changes -->
-                                                    @if(!empty($diff['overview']))
-                                                        <div>
-                                                            <h4 class="font-medium text-slate-900 mb-2 border-b pb-1">
-                                                                General
-                                                                Updates</h4>
-                                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                                @foreach($diff['overview'] as $change)
-                                                                    <div
-                                                                        class="bg-slate-50 rounded p-3 text-slate-900 text-xs shadow-sm ring-1 ring-slate-100">
-                                                                        <span
-                                                                            class="font-semibold block mb-1">{{ $change['label'] }}</span>
-                                                                        <div class="flex items-center gap-2 text-slate-500">
-                                                                            <span
-                                                                                class="line-through">{{ $change['is_currency'] ? number_format($change['old'], 2) : $change['old'] }}</span>
-                                                                            <svg class="h-3 w-3 text-slate-400" fill="none"
-                                                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                    stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                                                            </svg>
-                                                                            <span
-                                                                                class="font-bold text-slate-900">{{ $change['is_currency'] ? number_format($change['new'], 2) : $change['new'] }}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                @endforeach
-                                                            </div>
-                                                        </div>
-                                                    @endif
-
-                                                    <!-- Added Items -->
-                                                    @if(!empty($diff['items']['added']))
-                                                        <div>
-                                                            <h4
-                                                                class="font-medium text-green-700 mb-2 border-b border-green-200 pb-1">
-                                                                Added Items</h4>
-                                                            <ul class="space-y-2">
-                                                                @foreach($diff['items']['added'] as $item)
-                                                                    <li class="bg-green-50 rounded p-3 ring-1 ring-green-100">
-                                                                        <div class="flex justify-between items-start">
-                                                                            <div>
-                                                                                <div class="font-medium text-green-900">
-                                                                                    {{ $item->name }}
-                                                                                </div>
-                                                                                <div class="text-xs text-green-700">
-                                                                                    {{ $item->section->name ?? 'General' }}
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="text-right text-xs">
-                                                                                <div class="font-semibold text-green-900">
-                                                                                    {{ number_format($item->total, 2) }}
-                                                                                </div>
-                                                                                <div class="text-green-700">
-                                                                                    {{ $item->quantity }} x
-                                                                                    {{ number_format($item->unit_price, 2) }}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </li>
-                                                                @endforeach
-                                                            </ul>
-                                                        </div>
-                                                    @endif
-
-                                                    <!-- Modified Items -->
-                                                    @if(!empty($diff['items']['modified']))
-                                                        <div>
-                                                            <h4
-                                                                class="font-medium text-amber-700 mb-2 border-b border-amber-200 pb-1">
-                                                                Modified Items</h4>
-                                                            <ul class="space-y-2">
-                                                                @foreach($diff['items']['modified'] as $mod)
-                                                                    <li class="bg-amber-50 rounded p-3 ring-1 ring-amber-100">
-                                                                        <div class="font-medium text-amber-900 mb-2">
-                                                                            {{ $mod['item']->name }} <span
-                                                                                class="text-xs font-normal text-amber-700">({{ $mod['item']->section->name ?? 'General' }})</span>
-                                                                        </div>
-                                                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                                            @foreach($mod['changes'] as $change)
-                                                                                <div class="bg-white/50 rounded p-1.5 text-xs">
-                                                                                    <span
-                                                                                        class="text-amber-800 font-medium">{{ $change['field'] }}:</span>
-                                                                                    <div class="flex items-center gap-1 mt-0.5">
-                                                                                        <span
-                                                                                            class="line-through text-slate-500">{{ $change['old'] }}</span>
-                                                                                        <span>&rarr;</span>
-                                                                                        <span
-                                                                                            class="font-bold text-slate-900">{{ $change['new'] }}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            @endforeach
-                                                                        </div>
-                                                                    </li>
-                                                                @endforeach
-                                                            </ul>
-                                                        </div>
-                                                    @endif
-
-                                                    <!-- Removed Items -->
-                                                    @if(!empty($diff['items']['removed']))
-                                                        <div>
-                                                            <h4
-                                                                class="font-medium text-red-700 mb-2 border-b border-red-200 pb-1">
-                                                                Removed Items</h4>
-                                                            <ul class="space-y-2">
-                                                                @foreach($diff['items']['removed'] as $item)
-                                                                    <li
-                                                                        class="bg-red-50 rounded p-3 ring-1 ring-red-100 opacity-75">
-                                                                        <div class="flex justify-between items-start">
-                                                                            <div>
-                                                                                <div class="font-medium text-red-900 line-through">
-                                                                                    {{ $item->name }}
-                                                                                </div>
-                                                                                <div class="text-xs text-red-700">
-                                                                                    {{ $item->section->name ?? 'General' }}
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="text-right text-xs">
-                                                                                <div
-                                                                                    class="font-semibold text-red-900 line-through">
-                                                                                    {{ number_format($item->total, 2) }}
-                                                                                </div>
-                                                                                <div class="text-red-700">{{ $item->quantity }}
-                                                                                    x
-                                                                                    {{ number_format($item->unit_price, 2) }}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </li>
-                                                                @endforeach
-                                                            </ul>
-                                                        </div>
-                                                    @endif
+                                        <div class="sm:flex sm:items-start flex-col">
+                                            <!-- Sticky Header -->
+                                            <div
+                                                class="w-full border-b border-slate-200 pb-4 mb-4 sticky top-0 bg-white z-10 pt-2">
+                                                <div class="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 class="text-lg font-bold leading-6 text-slate-900"
+                                                            id="modal-title">
+                                                            Version Analysis
+                                                        </h3>
+                                                        <p class="text-sm text-slate-500 mt-1">
+                                                            Comparing
+                                                            <span
+                                                                class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">v{{ $estimate->version }}</span>
+                                                            &rarr;
+                                                            <span
+                                                                class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">v{{ $estimate->version - 1 }}</span>
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
+
+                                            <div class="w-full space-y-6 text-sm max-h-[70vh] overflow-y-auto pr-2 pb-6">
+
+                                                <!-- Net Financial Impact Card -->
+                                                @php
+                                                    $oldTotal = $diff['overview']['grand_total']['old'] ?? (isset($previousVersion) ? $previousVersion->grand_total : 0);
+                                                    $oldTotalVal = 0;
+                                                    foreach ($diff['overview'] as $o) {
+                                                        if ($o['label'] === 'Grand Total')
+                                                            $oldTotalVal = $o['old'];
+                                                    }
+                                                    if ($oldTotalVal == 0 && isset($previousVersion))
+                                                        $oldTotalVal = $previousVersion->grand_total;
+
+                                                    $newTotal = $estimate->grand_total;
+                                                    $netChange = $newTotal - $oldTotalVal;
+                                                    $percentChange = $oldTotalVal > 0 ? ($netChange / $oldTotalVal) * 100 : 0;
+                                                    $isPositive = $netChange > 0;
+                                                    $isNegative = $netChange < 0;
+                                                @endphp
+
+                                                <div
+                                                    class="relative overflow-hidden rounded-xl border {{ $isPositive ? 'border-red-200 bg-red-50' : ($isNegative ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-slate-50') }} p-4 shadow-sm">
+                                                    <div class="flex items-center justify-between">
+                                                        <div>
+                                                            <p
+                                                                class="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                                                                Net Financial Impact</p>
+                                                            <div class="mt-1 flex items-baseline gap-2">
+                                                                <span
+                                                                    class="text-3xl font-bold tracking-tight {{ $isPositive ? 'text-red-700' : ($isNegative ? 'text-green-700' : 'text-slate-900') }} font-mono">
+                                                                    {{ $netChange > 0 ? '+' : '' }}{{ number_format($netChange, 2) }}
+                                                                </span>
+                                                                <span
+                                                                    class="rounded-full px-2 py-0.5 text-sm font-semibold {{ $isPositive ? 'bg-red-100 text-red-800' : ($isNegative ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-800') }}">
+                                                                    {{ number_format(abs($percentChange), 1) }}%
+                                                                </span>
+                                                            </div>
+                                                            <p class="text-xs text-slate-500 mt-1">From
+                                                                {{ number_format($oldTotalVal, 2) }} to
+                                                                {{ number_format($newTotal, 2) }}</p>
+                                                        </div>
+                                                        <div
+                                                            class="rounded-full p-3 {{ $isPositive ? 'bg-red-100' : ($isNegative ? 'bg-green-100' : 'bg-slate-200') }}">
+                                                            @if($isPositive)
+                                                                <svg class="h-6 w-6 text-red-600" fill="none"
+                                                                    viewBox="0 0 24 24" stroke-width="1.5"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                                                                </svg>
+                                                            @elseif($isNegative)
+                                                                <svg class="h-6 w-6 text-green-600" fill="none"
+                                                                    viewBox="0 0 24 24" stroke-width="1.5"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 0111.818 8.818" />
+                                                                </svg>
+                                                            @else
+                                                                <svg class="h-6 w-6 text-slate-600" fill="none"
+                                                                    viewBox="0 0 24 24" stroke-width="1.5"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        d="M5 12h14" />
+                                                                </svg>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Overview Changes -->
+                                                @if(!empty($diff['overview']))
+                                                    <div>
+                                                        <div
+                                                            class="flex items-center gap-2 mb-3 pb-1 border-b border-slate-100">
+                                                            <svg class="h-5 w-5 text-slate-400"
+                                                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                                                                fill="currentColor">
+                                                                <path fill-rule="evenodd"
+                                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                                    clip-rule="evenodd" />
+                                                            </svg>
+                                                            <h4 class="font-semibold text-slate-900">General Updates</h4>
+                                                        </div>
+                                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            @foreach($diff['overview'] as $change)
+                                                                <div
+                                                                    class="flex flex-col justify-between bg-white rounded-lg p-3 border border-slate-200 shadow-sm hover:border-indigo-300 transition-colors">
+                                                                    <span
+                                                                        class="text-xs font-semibold text-slate-500 uppercase">{{ $change['label'] }}</span>
+                                                                    <div class="flex items-center gap-2 mt-2">
+                                                                        <span
+                                                                            class="text-slate-400 line-through text-xs">{{ $change['is_currency'] ? number_format($change['old'], 2) : $change['old'] }}</span>
+                                                                        <svg class="h-3 w-3 text-slate-300" fill="none"
+                                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                                                        </svg>
+                                                                        <span
+                                                                            class="font-bold text-slate-900 {{ $change['label'] === 'Grand Total' ? 'text-indigo-600' : '' }}">{{ $change['is_currency'] ? number_format($change['new'], 2) : $change['new'] }}</span>
+                                                                    </div>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
+
+                                                <!-- Added Items -->
+                                                @if(!empty($diff['items']['added']))
+                                                    <div>
+                                                        <div
+                                                            class="flex items-center gap-2 mb-3 pb-1 border-b border-green-100">
+                                                            <div
+                                                                class="flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
+                                                                <svg class="h-4 w-4 text-green-600" fill="none"
+                                                                    viewBox="0 0 24 24" stroke-width="2.5"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        d="M12 4.5v15m7.5-7.5h-15" />
+                                                                </svg>
+                                                            </div>
+                                                            <h4 class="font-semibold text-slate-900">Added Items</h4>
+                                                            <span
+                                                                class="ml-auto bg-green-100 text-green-700 py-0.5 px-2 rounded-full text-xs font-medium">{{ count($diff['items']['added'], COUNT_RECURSIVE) - count($diff['items']['added']) }}
+                                                                items</span>
+                                                        </div>
+                                                        @foreach($diff['items']['added'] as $section => $items)
+                                                            <div class="mb-4 last:mb-0">
+                                                                <h5
+                                                                    class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
+                                                                    {{ $section }}</h5>
+                                                                <div class="space-y-2">
+                                                                    @foreach($items as $item)
+                                                                        <div
+                                                                            class="group flex items-start justify-between rounded-lg border border-green-100 bg-green-50/50 p-3 transition hover:bg-green-50">
+                                                                            <div class="pr-4">
+                                                                                <p class="font-medium text-slate-900">{{ $item->name }}
+                                                                                </p>
+                                                                                <div class="mt-1 text-xs text-green-700">
+                                                                                    <span
+                                                                                        class="font-mono font-medium">{{ $item->quantity }}</span>
+                                                                                    &times; <span
+                                                                                        class="font-mono">{{ number_format($item->unit_price, 2) }}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="text-right">
+                                                                                <p class="font-bold text-green-700 font-mono">
+                                                                                    +{{ number_format($item->total, 2) }}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
+                                                <!-- Modified Items -->
+                                                @if(!empty($diff['items']['modified']))
+                                                    <div>
+                                                        <div
+                                                            class="flex items-center gap-2 mb-3 pb-1 border-b border-amber-100">
+                                                            <div
+                                                                class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100">
+                                                                <svg class="h-4 w-4 text-amber-600" fill="none"
+                                                                    viewBox="0 0 24 24" stroke-width="2.5"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                                                </svg>
+                                                            </div>
+                                                            <h4 class="font-semibold text-slate-900">Modified Items</h4>
+                                                            <span
+                                                                class="ml-auto bg-amber-100 text-amber-700 py-0.5 px-2 rounded-full text-xs font-medium">{{ count($diff['items']['modified'], COUNT_RECURSIVE) - count($diff['items']['modified']) }}
+                                                                items</span>
+                                                        </div>
+                                                        @foreach($diff['items']['modified'] as $section => $modItems)
+                                                            <div class="mb-4 last:mb-0">
+                                                                <h5
+                                                                    class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
+                                                                    {{ $section }}</h5>
+                                                                <div class="space-y-3">
+                                                                    @foreach($modItems as $mod)
+                                                                        <div
+                                                                            class="rounded-lg border border-amber-200 bg-white p-3 shadow-sm">
+                                                                            <div
+                                                                                class="font-medium text-slate-900 border-b border-slate-100 pb-2 mb-2 flex items-center justify-between">
+                                                                                {{ $mod['item']->name }}
+                                                                                <span
+                                                                                    class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">EDITED</span>
+                                                                            </div>
+                                                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                                @foreach($mod['changes'] as $change)
+                                                                                    <div
+                                                                                        class="rounded bg-slate-50 p-2 text-xs border border-slate-100">
+                                                                                        <span
+                                                                                            class="block text-slate-500 font-medium mb-1">{{ $change['field'] }}</span>
+                                                                                        <div class="flex items-center gap-1.5 font-mono">
+                                                                                            <span
+                                                                                                class="line-through text-slate-400 decoration-slate-400/50">{{ is_numeric($change['old']) ? number_format($change['old'], 2) : $change['old'] }}</span>
+                                                                                            <svg class="h-3 w-3 text-slate-300" fill="none"
+                                                                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                <path stroke-linecap="round"
+                                                                                                    stroke-linejoin="round" stroke-width="2"
+                                                                                                    d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                                                                            </svg>
+                                                                                            <span
+                                                                                                class="font-bold text-amber-700">{{ is_numeric($change['new']) ? number_format($change['new'], 2) : $change['new'] }}</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                @endforeach
+                                                                            </div>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
+                                                <!-- Removed Items -->
+                                                @if(!empty($diff['items']['removed']))
+                                                    <div>
+                                                        <div class="flex items-center gap-2 mb-3 pb-1 border-b border-red-100">
+                                                            <div
+                                                                class="flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
+                                                                <svg class="h-4 w-4 text-red-600" fill="none"
+                                                                    viewBox="0 0 24 24" stroke-width="2.5"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                                </svg>
+                                                            </div>
+                                                            <h4 class="font-semibold text-slate-900">Removed Items</h4>
+                                                            <span
+                                                                class="ml-auto bg-red-100 text-red-700 py-0.5 px-2 rounded-full text-xs font-medium">{{ count($diff['items']['removed'], COUNT_RECURSIVE) - count($diff['items']['removed']) }}
+                                                                items</span>
+                                                        </div>
+                                                        @foreach($diff['items']['removed'] as $section => $items)
+                                                            <div class="mb-4 last:mb-0">
+                                                                <h5
+                                                                    class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
+                                                                    {{ $section }}</h5>
+                                                                <div class="space-y-2">
+                                                                    @foreach($items as $item)
+                                                                        <div
+                                                                            class="flex items-center justify-between rounded-lg border border-red-100 bg-red-50/30 p-3 opacity-75 grayscale-[0.3]">
+                                                                            <div class="pr-4">
+                                                                                <p
+                                                                                    class="font-medium text-slate-900 line-through decoration-red-500/50">
+                                                                                    {{ $item->name }}</p>
+                                                                                <div class="mt-1 text-xs text-slate-500">
+                                                                                    {{ $item->quantity }} &times;
+                                                                                    {{ number_format($item->unit_price, 2) }}
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="text-right">
+                                                                                <p class="font-bold text-red-700 font-mono">
+                                                                                    -{{ number_format($item->total, 2) }}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
+                                            </div>
                                         </div>
+
+
 
                                         <div class="mt-5 sm:mt-6">
                                             <button type="button" @click="showDiffModal = false"
@@ -1756,8 +1952,12 @@
                             <a href="{{ route('estimates.show', $ver) }}"
                                 class="flex items-center justify-between p-2 rounded-md hover:bg-slate-50 {{ $ver->id === $estimate->id ? 'bg-indigo-50 ring-1 ring-indigo-200' : '' }}">
                                 <div class="text-sm">
-                                    <span class="font-medium text-slate-900">v{{ $ver->version }}</span>
-                                    <span class="text-slate-500 text-xs ml-2">{{ $ver->estimate_date->format('M d') }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-slate-900">v{{ $ver->version }}</span>
+                                        <span class="text-xs text-slate-500">by {{ $ver->creator->name ?? 'System' }}</span>
+                                    </div>
+                                    <span
+                                        class="text-slate-500 text-xs block">{{ $ver->created_at->format('M d, Y g:i A') }}</span>
                                 </div>
                                 @if($ver->is_current_version) <span
                                     class="text-[10px] uppercase font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Current</span>
@@ -1945,7 +2145,7 @@
             totalTax: {{ $estimate->total_tax ?? 0 }},
             discount: {{ $estimate->discount_total ?? 0 }},
             grandTotal: {{ $estimate->grand_total ?? 0 }} 
-                                                                                                        };
+                                                                                                                                    };
 
         const defaults = {
             hasCustomItems: () => false,

@@ -115,8 +115,19 @@
                                                     class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
                                             </div>
                                             <div class="ml-3 text-sm">
-                                                <label for="event_{{ $event['name'] }}"
-                                                    class="font-medium text-gray-700">{{ $event['name'] }}</label>
+                                                <div class="flex items-center gap-2">
+                                                    <label for="event_{{ $event['name'] }}"
+                                                        class="font-medium text-gray-700">{{ $event['name'] }}</label>
+                                                    @if(isset($eventStats[$event['name']]))
+                                                        <span
+                                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                                                            title="Occurred {{ $eventStats[$event['name']] }} times in last 24h">
+                                                            <span
+                                                                class="w-1 h-1 rounded-full bg-green-500 mr-1 animate-pulse"></span>
+                                                            {{ $eventStats[$event['name']] }}
+                                                        </span>
+                                                    @endif
+                                                </div>
                                                 <p class="text-gray-500">{{ $event['description'] }}</p>
                                             </div>
                                         </div>
@@ -183,8 +194,26 @@
                             <div class="border-t border-gray-200"></div>
                         </div>
                         <h4 class="text-md leading-6 font-medium text-gray-900 mb-4">Payload Transformation</h4>
-                        <p class="text-sm text-gray-500 mb-6">Map internal event data to the structure expected by the
+                        <p class="text-sm text-gray-500 mb-4">Map internal event data to the structure expected by the
                             external service.</p>
+
+                        <div class="mb-6 max-w-xs">
+                            <label for="sample_event" class="block text-sm font-medium text-gray-700">Sample Payload
+                                Basis</label>
+                            <select id="sample_event" wire:model.live="sampleEvent"
+                                class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option value="">-- Generic Sample --</option>
+                                @foreach($groupedEvents as $group => $events)
+                                    <optgroup label="{{ $group }}">
+                                        @foreach($events as $event)
+                                            <option value="{{ $event['name'] }}">{{ $event['name'] }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-gray-400 italic">Select an event to use its actual structure as
+                                your mapping reference.</p>
+                        </div>
 
                         @livewire('admin.webhooks.components.payload-mapper-builder', [
                             'mapping' => $state['payload_mapping'] ?? [],
@@ -193,16 +222,16 @@
                     </div>
                 </div>
 
-            </div>
-            <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 flex items-center justify-between">
-                <div class="flex items-center">
-                        <button type="button" wire:click="testConnection" wire:loading.attr="disabled"
-                            class="text-sm font-medium text-gray-600 hover:text-gray-900 mr-4">
-                            <span wire:loading.remove wire:target="testConnection">Test Connection</span>
-                    <span wire:loading wire:target="testConnection">Testing...</span>
+        </div>
+        <div class="px-4 py-3 bg-gray-50 text-right sm:px-6 flex items-center justify-between">
+            <div class="flex items-center">
+                            <button type="button" wire:click="testConnection" wire:loading.attr="disabled"
+                                class="text-sm font-medium text-gray-600 hover:text-gray-900 mr-4">
+                                <span wire:loading.remove wire:target="testConnection">Test Connection</span>
+                <span wire:loading wire:target="testConnection">Testing...</span>
                 </button>
                 @if($testStatus)
-                        <span class="text-sm {{ $testStatus === 'success' ? 'text-green-600' : 'text-red-600' }}">
+                            <span class="text-sm {{ $testStatus === 'success' ? 'text-green-600' : 'text-red-600' }}">
                         {{ $testMessage }}
                     </span>
                 @endif

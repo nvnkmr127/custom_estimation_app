@@ -23,4 +23,9 @@ interface WebhookEventDefinitionInterface
      * Build the normalized payload for this event.
      */
     public function buildPayload(object $resource): array;
+
+    /**
+     * Get a sample payload for documentation/UI.
+     */
+    public function samplePayload(): array;
 }

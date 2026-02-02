@@ -243,6 +243,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('webhooks', \App\Http\Controllers\Admin\WebhookEndpointController::class);
 
+        // Webhook Catchers (Inbound)
+        Route::get('webhook-catchers', \App\Livewire\Admin\Webhooks\InboundEndpoints::class)->name('webhooks.catchers.index');
+
         // Webhook Events Explorer
         Route::get('webhook-events', function () {
             return view('admin.webhooks.events.index');
@@ -265,6 +268,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Unified Webhook Ingress
+Route::any('/catch/{uuid}', [App\Http\Controllers\WebhookController::class, 'catch'])->name('webhooks.catch');
 Route::post('/webhooks/{provider}', [App\Http\Controllers\WebhookController::class, 'handle'])->name('webhooks.handle');
 
 // Legacy Webhook for Perfex (Keep for compatibility or redirect later)

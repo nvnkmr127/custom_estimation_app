@@ -71,8 +71,9 @@ class AppServiceProvider extends ServiceProvider
                 $unreadCount = auth()->check() ? auth()->user()->unreadNotifications->count() : 0;
                 $pendingApprovals = \App\Models\Estimate::where('status', 'waiting_approval')->count();
                 $pendingSuggestions = \App\Models\Product::pending()->count();
+                $dlqCount = \App\Models\WebhookDeadLetter::count();
 
-                $view->with(compact('unreadCount', 'pendingApprovals', 'pendingSuggestions'));
+                $view->with(compact('unreadCount', 'pendingApprovals', 'pendingSuggestions', 'dlqCount'));
             });
 
             // Define the gate for the Log Viewer accessible by admins

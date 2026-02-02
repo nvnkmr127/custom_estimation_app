@@ -120,6 +120,7 @@ class PdfRenderingService
             'subtotal' => number_format((float) $this->estimate->subtotal, 2),
             'discount_total' => number_format((float) $this->estimate->discount_total, 2),
             'tax_total' => number_format((float) $this->estimate->total_tax, 2),
+            'transportation_charges' => number_format((float) ($this->estimate->transportation_charges ?? 0), 2),
             'grand_total' => number_format((float) $this->estimate->grand_total, 2),
 
             // Client Info
@@ -403,6 +404,12 @@ class PdfRenderingService
             }
 
             $itemHtml = $block;
+            $sizeMultiplier = 1;
+            if (!empty($item->formula) && in_array($item->formula, ['area', 'volume', 'area_lh', 'formula'])) {
+                $s = (float) ($item->size ?? 1);
+                if ($s > 0)
+                    $sizeMultiplier = $s;
+            }
             $itemVars = [
                 '{item_name}' => $item->name,
                 '{item_description}' => $item->description ?? '',
@@ -411,7 +418,7 @@ class PdfRenderingService
                 '{item_unit}' => $item->unit_type,
                 '{item_unit_full}' => ($item->unitType ? $item->unitType->name . ': ' : '') . $item->unit_type,
                 '{item_price}' => number_format($item->unit_price, 2),
-                '{item_subtotal}' => number_format($item->unit_price * $item->quantity, 2),
+                '{item_subtotal}' => number_format($item->unit_price * $item->quantity * $sizeMultiplier, 2),
                 '{item_tax_1_percent}' => $item->tax_1 + 0,
                 '{item_tax_2_percent}' => 0,
                 '{item_tax_percent}' => $item->tax_1 + 0,

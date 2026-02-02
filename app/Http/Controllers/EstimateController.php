@@ -203,13 +203,13 @@ class EstimateController extends Controller
                         // Dispatch Event based on action
                         switch ($request->action) {
                             case 'mark_sent':
-                                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate->id, auth()->id(), 'bulk_action'));
+                                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate, auth()->id(), 'bulk_action'));
                                 break;
                             case 'mark_accepted':
                                 $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'manual_bulk'));
                                 break;
                             case 'mark_declined':
-                                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate->id, auth()->id(), 'manual_bulk'));
+                                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, auth()->id(), 'manual_bulk'));
                                 break;
                         }
 
@@ -473,16 +473,16 @@ class EstimateController extends Controller
         // Dispatch specific status events
         switch ($status) {
             case Estimate::STATUS_SENT:
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate->id, auth()->id(), 'manual_mark'));
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate, auth()->id(), 'manual_mark'));
                 break;
             case Estimate::STATUS_ACCEPTED:
                 $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'manual_mark'));
                 break;
             case Estimate::STATUS_DECLINED:
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate->id, auth()->id(), 'manual_mark'));
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, auth()->id(), 'manual_mark'));
                 break;
             case Estimate::STATUS_EXPIRED:
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateExpired($estimate->id));
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateExpired($estimate));
                 break;
         }
 

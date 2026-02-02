@@ -8,7 +8,7 @@ class ApprovalChangeRequested extends BaseEvent
 {
     public function __construct(
         public int $estimateId,
-        public int $approvalId,
+        public \App\Models\EstimateApproval $approval,
         public int $approverUserId,
         public string $comments
     ) {
@@ -24,7 +24,7 @@ class ApprovalChangeRequested extends BaseEvent
     {
         return [
             'estimate_id' => $this->estimateId,
-            'approval_id' => $this->approvalId,
+            'approval_id' => $this->approval->id,
             'approver_user_id' => $this->approverUserId,
             'comments' => $this->comments,
         ];
@@ -36,6 +36,6 @@ class ApprovalChangeRequested extends BaseEvent
 
     public function getEntityId(): int|string|null
     {
-        return $this->approvalId;
+        return $this->approval->id;
     }
 }

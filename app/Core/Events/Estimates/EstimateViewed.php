@@ -7,8 +7,8 @@ use App\Core\Events\BaseEvent;
 class EstimateViewed extends BaseEvent
 {
     public function __construct(
-        public int $estimateId,
-        public ?int $viewerId, // null if anonymous/public lin
+        public \App\Models\Estimate $estimate,
+        public ?int $viewerId, // null if anonymous/public link
         public ?string $ipAddress = null
     ) {
         parent::__construct();
@@ -22,9 +22,10 @@ class EstimateViewed extends BaseEvent
     public function getPayload(): array
     {
         return [
-            'estimate_id' => $this->estimateId,
+            'estimate_id' => $this->estimate->id,
             'viewer_id' => $this->viewerId,
             'ip_address' => $this->ipAddress,
+            'estimate_number' => $this->estimate->estimate_number,
         ];
     }
     public function getEntityType(): string
@@ -34,6 +35,6 @@ class EstimateViewed extends BaseEvent
 
     public function getEntityId(): int|string|null
     {
-        return $this->estimateId;
+        return $this->estimate->id;
     }
 }

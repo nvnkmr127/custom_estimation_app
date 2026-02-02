@@ -119,6 +119,11 @@ class EstimateService
     {
         DB::beginTransaction();
         try {
+            // 1. History Integrity Check: Prevent editing of archived versions
+            if (!$estimate->is_current_version) {
+                throw new \Exception("You cannot edit an archived version of an estimate. Create a new version instead.");
+            }
+
             $isBranched = false;
             $originalNumber = $estimate->estimate_number;
 
@@ -296,7 +301,14 @@ class EstimateService
             $unitPrice = 0;
         }
 
-        $itemSubtotal = round($unitPrice * $itemData['quantity'], 2);
+        $sizeMultiplier = 1;
+        if (!empty($itemData['formula']) && in_array($itemData['formula'], ['area', 'volume', 'area_lh', 'formula'])) {
+            $s = (float) ($itemData['size'] ?? 1);
+            if ($s > 0)
+                $sizeMultiplier = $s;
+        }
+
+        $itemSubtotal = round($unitPrice * $itemData['quantity'] * $sizeMultiplier, 2);
         $total = $itemSubtotal;
 
         return $estimate->items()->create([
@@ -307,6 +319,7 @@ class EstimateService
             'unit_price' => $unitPrice,
             'cost' => $cost,
             'quantity' => $itemData['quantity'],
+            'size' => $itemData['size'] ?? null,
             'unit_type' => $itemData['unit_type'] ?? 'nos',
             'tax_1' => $itemData['tax_1'] ?? 0,
             'tax_2' => $itemData['tax_2'] ?? 0,
@@ -340,7 +353,14 @@ class EstimateService
             $unitPrice = 0;
         }
 
-        $itemSubtotal = round($unitPrice * $itemData['quantity'], 2);
+        $sizeMultiplier = 1;
+        if (!empty($itemData['formula']) && in_array($itemData['formula'], ['area', 'volume', 'area_lh', 'formula'])) {
+            $s = (float) ($itemData['size'] ?? 1);
+            if ($s > 0)
+                $sizeMultiplier = $s;
+        }
+
+        $itemSubtotal = round($unitPrice * $itemData['quantity'] * $sizeMultiplier, 2);
         $total = $itemSubtotal;
 
         $item->update([
@@ -351,6 +371,7 @@ class EstimateService
             'unit_price' => $unitPrice,
             'cost' => $cost,
             'quantity' => $itemData['quantity'],
+            'size' => $itemData['size'] ?? null,
             'unit_type' => $itemData['unit_type'] ?? 'nos',
             'tax_1' => $itemData['tax_1'] ?? 0,
             'tax_2' => $itemData['tax_2'] ?? 0,
@@ -386,8 +407,15 @@ class EstimateService
         $sectionSubtotals = [];
 
         foreach ($estimate->items as $item) {
-            $lineTotal = round($item->unit_price * $item->quantity, 2);
-            $lineCost = round(($item->cost ?? 0) * $item->quantity, 2);
+            $sizeMultiplier = 1;
+            if (!empty($item->formula) && in_array($item->formula, ['area', 'volume', 'area_lh', 'formula'])) {
+                $s = (float) ($item->size ?? 1);
+                if ($s > 0)
+                    $sizeMultiplier = $s;
+            }
+
+            $lineTotal = round($item->unit_price * $item->quantity * $sizeMultiplier, 2);
+            $lineCost = round(($item->cost ?? 0) * $item->quantity * $sizeMultiplier, 2);
 
             $subtotal += $lineTotal;
             $totalCost += $lineCost;
@@ -443,7 +471,10 @@ class EstimateService
         // 5. Coupon
         $couponAmount = round($estimate->coupon_discount ?? 0, 2);
 
-        $grandTotal = round(($subtotal - $discountTotal) + $totalTax - $couponAmount, 2);
+        // 6. Transportation
+        $transportation = round($estimate->transportation_charges ?? 0, 2);
+
+        $grandTotal = round(($subtotal - $discountTotal) + $totalTax - $couponAmount + $transportation, 2);
 
         // Prevent negative total
         $grandTotal = max(0, $grandTotal);
@@ -549,6 +580,19 @@ class EstimateService
             $newEstimate->estimate_number = $baseNumber . '-v' . $newEstimate->version;
 
             $newEstimate->status = Estimate::STATUS_DRAFT; // Reset status
+            $newEstimate->approval_status = 'draft'; // Reset approval status
+            $newEstimate->created_by = auth()->id() ?? $estimate->created_by; // Set creator to current user
+
+            // Clear state fields for new version
+            $newEstimate->signature = null;
+            $newEstimate->signed_at = null;
+            $newEstimate->signer_ip = null;
+            $newEstimate->view_count = 0;
+            $newEstimate->last_viewed_at = null;
+            $newEstimate->converted_at = null;
+            $newEstimate->invoice_id = null;
+            $newEstimate->perfex_proposal_id = null; // Detach from previous Perfex proposal to create a new one
+
             $newEstimate->push();
 
             // 3. Replicate Sections and Items
@@ -618,6 +662,8 @@ class EstimateService
                 $newItem = $item->replicate();
                 $newItem->estimate_section_id = $newSection->id;
                 $newItem->estimate_id = $target->id;
+                // Track lineage: preserve original ID if exists, otherwise this is the original
+                $newItem->original_item_id = $item->original_item_id ?? $item->id;
                 $newItem->save();
             }
         }
@@ -627,6 +673,8 @@ class EstimateService
             if (!$item->estimate_section_id) {
                 $newItem = $item->replicate();
                 $newItem->estimate_id = $target->id;
+                // Track lineage
+                $newItem->original_item_id = $item->original_item_id ?? $item->id;
                 $newItem->save();
             }
         }
