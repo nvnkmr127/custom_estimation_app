@@ -154,7 +154,7 @@ class MailListener implements ShouldQueue
 
     protected function handleEstimateViewed($event)
     {
-        $estimate = \App\Models\Estimate::find($event->estimateId);
+        $estimate = $event->estimate;
 
         if (!$estimate) {
             return;

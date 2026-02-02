@@ -83,6 +83,17 @@ class PerfexApiService
         return $this->request('get', "leads/$id");
     }
 
+    /**
+     * Create a task in Perfex CRM
+     * 
+     * @param array $data
+     * @return array
+     */
+    public function createTask(array $data)
+    {
+        return $this->request('post', 'tasks', $data);
+    }
+
     // ... (keep other methods as is, or update if needed, but getLeads is what we test with) ...
 
     /**
@@ -307,6 +318,11 @@ class PerfexApiService
 
         if (strpos($endpoint, 'leads') !== false && $method === 'post') {
             return ['status' => true, 'id' => 995, 'message' => 'Mock Lead Created'];
+        }
+
+        // Mock Task Create
+        if (strpos($endpoint, 'tasks') !== false && $method === 'post') {
+            return ['status' => true, 'id' => 777, 'message' => 'Mock Task Created'];
         }
 
         return ['status' => false, 'message' => 'Mock Endpoint Not Found: ' . $endpoint];

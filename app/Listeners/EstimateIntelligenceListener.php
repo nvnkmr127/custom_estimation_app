@@ -25,11 +25,18 @@ class EstimateIntelligenceListener implements ShouldQueue
     {
     }
 
-    public function handle(EstimateViewed $event): void
+    public function handle(\App\Core\Events\DomainEvent $event): void
     {
-        $estimate = Estimate::find($event->estimateId);
-        if (!$estimate)
+        if ($event->getEventName() !== 'estimate.viewed') {
             return;
+        }
+
+        // We expect EstimateViewed event
+        if (!$event instanceof \App\Core\Events\Estimates\EstimateViewed) {
+            return;
+        }
+
+        $estimate = $event->estimate;
 
         // Skip internal views
         if ($event->viewerId && $estimate->created_by === $event->viewerId) {
