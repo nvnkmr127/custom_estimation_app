@@ -40,6 +40,16 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // CRM Sync: Ping the external Perfex CRM cron every 5 minutes
         $schedule->command('perfex:cron-ping')->everyFiveMinutes();
+
+        // Queue Processing: Process pending jobs every minute (for environments without a dedicated worker)
+        // We include 'default' and 'webhooks' queues.
+        $schedule->command('queue:work --queue=default,webhooks --stop-when-empty --tries=3')
+            ->everyMinute()
+            ->withoutOverlapping();
+
+        // Queue Maintenance: Cleanup old failed jobs and batches
+        $schedule->command('queue:prune-failed --hours=24')->daily();
+        $schedule->command('queue:prune-batches --hours=24')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
