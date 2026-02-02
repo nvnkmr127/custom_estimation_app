@@ -44,20 +44,60 @@
                         </div>
 
                         <div>
+                            <label for="secondary_email" class="block text-sm font-medium text-gray-900">Alternative
+                                Email</label>
+                            <input type="email" name="secondary_email" id="secondary_email"
+                                value="{{ old('secondary_email') }}"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                        </div>
+
+                        <div>
                             <label for="phone" class="block text-sm font-medium text-gray-900">Phone</label>
                             <input type="text" name="phone" id="phone" value="{{ old('phone') }}"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                        </div>
+
+                        <div>
+                            <label for="secondary_phone" class="block text-sm font-medium text-gray-900">Alternative
+                                Phone</label>
+                            <input type="text" name="secondary_phone" id="secondary_phone"
+                                value="{{ old('secondary_phone') }}"
                                 class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl p-6">
-                    <h3 class="text-base font-semibold text-gray-900 mb-4">Address</h3>
+                    <h3 class="text-base font-semibold text-gray-900 mb-4">Property Details & Address</h3>
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+                        <div>
+                            <label for="property_name" class="block text-sm font-medium text-gray-900">Property
+                                Name</label>
+                            <input type="text" name="property_name" id="property_name"
+                                value="{{ old('property_name') }}"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                        </div>
+
+                        <div>
+                            <label for="property_type" class="block text-sm font-medium text-gray-900">Property
+                                Type</label>
+                            <input type="text" name="property_type" id="property_type"
+                                value="{{ old('property_type') }}" placeholder="e.g. 2BHK, Villa"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                        </div>
+
                         <div class="sm:col-span-2">
                             <label for="address" class="block text-sm font-medium text-gray-900">Street Address</label>
                             <textarea name="address" id="address" rows="2"
                                 class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{{ old('address') }}</textarea>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label for="property_address" class="block text-sm font-medium text-gray-900">Property
+                                Address (if different from above)</label>
+                            <textarea name="property_address" id="property_address" rows="2"
+                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{{ old('property_address') }}</textarea>
                         </div>
 
                         <div>
@@ -65,35 +105,10 @@
                             <input type="text" name="city" id="city" value="{{ old('city') }}"
                                 class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
                         </div>
-
-                        <div>
-                            <label for="state" class="block text-sm font-medium text-gray-900">State/Province</label>
-                            <input type="text" name="state" id="state" value="{{ old('state') }}"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                        </div>
-
-                        <div>
-                            <label for="zip" class="block text-sm font-medium text-gray-900">ZIP/Postal Code</label>
-                            <input type="text" name="zip" id="zip" value="{{ old('zip') }}"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                        </div>
-
-                        <div>
-                            <label for="country" class="block text-sm font-medium text-gray-900">Country</label>
-                            <input type="text" name="country" id="country" value="{{ old('country') }}"
-                                class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl p-6">
-                    <h3 class="text-base font-semibold text-gray-900 mb-4">Additional Information</h3>
-                    <div>
-                        <label for="notes" class="block text-sm font-medium text-gray-900">Notes</label>
-                        <textarea name="notes" id="notes" rows="4"
-                            class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{{ old('notes') }}</textarea>
-                    </div>
-                </div>
+                <!-- Notes Section Removed as requested -->
 
                 <div class="flex items-center justify-end gap-x-6">
                     <a href="{{ route('clients.index') }}" class="text-sm font-semibold text-gray-900">Cancel</a>

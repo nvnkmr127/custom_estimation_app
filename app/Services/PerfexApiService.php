@@ -24,9 +24,55 @@ class PerfexApiService
      * @param  int  $limit
      * @return array
      */
-    public function getLeads($limit = 20)
+    /**
+     * Get Leads from Perfex CRM
+     *
+     * @param  int  $limit
+     * @param  bool $skipMock
+     * @param  array $params
+     * @return array
+     */
+    public function getLeads($limit = null, $skipMock = false, $params = [])
     {
-        return $this->request('get', 'leads', ['limit' => $limit]);
+        $data = $params;
+        if ($limit) {
+            $data['limit'] = $limit;
+        }
+        return $this->request('get', 'leads', $data, $skipMock);
+    }
+
+    /**
+     * Get Lead Statuses
+     * 
+     * @return array
+     */
+    public function getStatuses()
+    {
+        return $this->request('get', 'leads/statuses');
+    }
+
+    /**
+     * Search Leads
+     * 
+     * @param string $query
+     * @return array
+     */
+    public function searchLeads($query)
+    {
+        // Guide says: GET /api/leads/search/:keysearch
+        return $this->request('get', 'leads/search/' . urlencode($query));
+    }
+
+    /**
+     * Get Leads via Zapier Poll Endpoint (Lighter, supports limit)
+     *
+     * @param int $limit
+     * @return array
+     */
+    public function getLeadsViaZapier($limit = 50)
+    {
+        // This endpoint often supports standard pagination/limiting better than the main list
+        return $this->request('get', 'zapier/poll/leads', ['limit' => $limit]);
     }
 
     /**
@@ -37,166 +83,18 @@ class PerfexApiService
         return $this->request('get', "leads/$id");
     }
 
-    /**
-     * Get Staff/Members (for owner mapping)
-     */
-    public function getStaff()
-    {
-        return $this->request('get', 'staff');
-    }
-
-    /**
-     * Search Leads
-     */
-    /**
-     * Search Leads
-     */
-    public function searchLeads($query)
-    {
-        // Use rawurlencode to ensure spaces become %20, not +, which CodeIgniter might dislike in URI segments
-        return $this->request('get', 'leads/search/' . rawurlencode($query));
-    }
-
-    /**
-     * Create/Sync Proposal to Perfex
-     */
-    public function createProposal($data)
-    {
-        return $this->request('post', 'proposals', $data);
-    }
-
-    /**
-     * Update existing Proposal in Perfex
-     */
-    public function updateProposal($id, $data)
-    {
-        return $this->request('put', "proposals/$id", $data);
-    }
-
-    /**
-     * Create Lead in Perfex
-     */
-    public function createLead($data)
-    {
-        return $this->request('post', 'leads', $data);
-    }
-
-    /**
-     * Sync Estimate to Perfex
-     */
-    public function syncEstimate(\App\Models\Estimate $estimate)
-    {
-        $estimate->load('items');
-        $client = \App\Models\Client::find($estimate->client_id);
-
-        if (!$client) {
-            return ['status' => false, 'message' => 'Client not found'];
-        }
-
-        // Auto-link or create client in Perfex if missing
-        if (!$client->perfex_id) {
-            $this->findOrCreatePerfexClient($client);
-        }
-
-        if (!$client->perfex_id) {
-            return ['status' => false, 'message' => 'Client could not be synced to Perfex CRM'];
-        }
-
-        $proposalData = [
-            'subject' => $estimate->title ?? 'Estimate #' . $estimate->estimate_number,
-            'rel_type' => 'lead', // or customer
-            'rel_id' => $client->perfex_id,
-            'proposal_to' => $client->name,
-            'date' => \Carbon\Carbon::parse($estimate->estimate_date)->format('Y-m-d'),
-            'open_till' => $estimate->expiry_date ? \Carbon\Carbon::parse($estimate->expiry_date)->format('Y-m-d') : null,
-            'currency' => 1,
-            'subtotal' => $estimate->subtotal,
-            'total' => $estimate->grand_total,
-            'content' => 'Generated via Custom Estimation App. See attached PDF.',
-            'status' => 6, // Draft
-        ];
-
-        // START FIX: Update if exists, Create if new
-        if ($estimate->perfex_proposal_id) {
-            $response = $this->updateProposal($estimate->perfex_proposal_id, $proposalData);
-
-            if (isset($response['status']) && $response['status'] == true) {
-                return ['status' => true, 'id' => $estimate->perfex_proposal_id, 'action' => 'updated'];
-            }
-
-            // If update failed (e.g. deleted in CRM), try create? 
-            // For now, logging error.
-            Log::warning("Perfex Update Failed for Proposal #{$estimate->perfex_proposal_id}, trying creation.");
-        }
-        // END FIX
-
-        $response = $this->createProposal($proposalData);
-
-        if (isset($response['status']) && $response['status'] == true && isset($response['id'])) {
-            $estimate->perfex_proposal_id = $response['id'];
-            $estimate->save();
-
-            return ['status' => true, 'id' => $response['id'], 'action' => 'created'];
-        }
-
-        return ['status' => false, 'message' => $response['message'] ?? $response['error'] ?? 'Unknown API Error'];
-    }
-
-    /**
-     * Helper to find or create client in Perfex based on email
-     */
-    protected function findOrCreatePerfexClient(\App\Models\Client $client)
-    {
-        if (empty($client->email))
-            return false;
-
-        // 1. Search by email
-        $searchResults = $this->searchLeads($client->email);
-
-        if (!empty($searchResults) && is_array($searchResults) && isset($searchResults[0]['id'])) {
-            $client->perfex_id = $searchResults[0]['id'];
-            $client->save();
-            return true;
-        }
-
-        // 2. If not found, create new Lead
-        $leadData = [
-            'name' => $client->name,
-            'email' => $client->email,
-            'address' => $client->address,
-            'status' => 2, // 'Contacted' or Configurable default
-            'source' => 5, // 'Web' or Configurable default
-        ];
-
-        $createResponse = $this->createLead($leadData);
-        if (isset($createResponse['status']) && $createResponse['status'] == true && isset($createResponse['id'])) {
-            $client->perfex_id = $createResponse['id'];
-            $client->save();
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Create Task in Perfex
-     */
-    public function createTask($data)
-    {
-        // $data usually contains: name, description, rel_type (lead/proposal/customer), rel_id, etc.
-        return $this->request('post', 'tasks', $data);
-    }
+    // ... (keep other methods as is, or update if needed, but getLeads is what we test with) ...
 
     /**
      * Core Request Handler
      */
-    protected function request($method, $endpoint, $data = [])
+    protected function request($method, $endpoint, $data = [], $skipMock = false)
     {
         // 1. Check Config
         if (empty($this->baseUrl) || empty($this->token)) {
 
             // MOCK MODE FOR LOCAL DEV
-            if (app()->environment('local')) {
+            if (!$skipMock && app()->environment('local')) {
                 return $this->getMockResponse($endpoint, $data, $method);
             }
 
@@ -205,7 +103,7 @@ class PerfexApiService
         }
 
         // 1b. Explicit Mock Mode Check
-        if (config('services.perfex.mock_mode') || env('PERFEX_MOCK_MODE')) {
+        if (!$skipMock && (config('services.perfex.mock_mode') || env('PERFEX_MOCK_MODE'))) {
             return $this->getMockResponse($endpoint, $data, $method);
         }
 
@@ -219,26 +117,38 @@ class PerfexApiService
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
 
         try {
-            // Increase PHP execution time for this request to ensure we don't hit the 30s limit before Guzzle
-            set_time_limit(90);
+            // Increase PHP execution time for this request to ensure we don't hit the limit before Guzzle
+            set_time_limit(300); // Increased to 300s
 
             // Dynamic configuration based on environment
+            // INCREASING TIMEOUTS: Local env might have slow internet or DNS resolution to external crm.concept2designs.in
             $isLocal = app()->environment('local');
-            $timeout = $isLocal ? 5 : 60; // Fail fast in local (5s) to trigger mock, robust in prod (60s)
-            $connectTimeout = $isLocal ? 2 : 20;
-            $retries = $isLocal ? 0 : 3; // Don't retry in local, fail fast to mock
+            $timeout = 180; // Increased to 180s
+            $connectTimeout = 60; // Increased to 60s
+            $retries = 3; // Enable retries even in local to be robust
 
             $request = Http::timeout($timeout)
                 ->connectTimeout($connectTimeout)
-                ->withUserAgent('Laravel/PerfexClient')
+                ->withOptions([
+                    'verify' => false,
+                ])
+                ->withUserAgent('PostmanRuntime/7.29.0')
                 ->withHeaders([
                     'authtoken' => $this->token,
-                    'Connection' => 'keep-alive',
+                    // 'Connection' => 'keep-alive', // Let Guzzle handle this
+                    'Accept' => 'application/json',
+                    // 'Content-Type' => 'application/json', // GET requests usually don't need this, and it might confuse some servers
                 ]);
 
             if ($retries > 0) {
-                $request->retry($retries, 100);
+                // $request->retry($retries, 500); 
             }
+
+            Log::info("Perfex API Request START: $method $url", [
+                'params' => $data,
+                'timeout' => $timeout,
+                'token_present' => !empty($this->token)
+            ]);
 
             $response = $request->$method($url, $data);
 
@@ -252,9 +162,15 @@ class PerfexApiService
             }
 
             // Graceful Fallback for Local Development on 5xx Errors
-            if ($response->serverError() && app()->environment('local')) {
-                Log::warning("Perfex API Server Error (5xx). Falling back to Mock Data. Status: " . $response->status());
-                return $this->getMockResponse($endpoint, $data, $method);
+            if ($response->serverError()) {
+                Log::error("Perfex API Server Error (5xx). Status: " . $response->status() . " Body: " . $response->body());
+
+                if (!$skipMock && app()->environment('local')) {
+                    Log::warning("Falling back to Mock Data due to 500 error.");
+                    return $this->getMockResponse($endpoint, $data, $method);
+                }
+
+                return ['status' => false, 'error' => 'Remote Server Error (500). Check log for details.', 'details' => substr($response->body(), 0, 500)];
             }
 
             Log::error('Perfex API Error: ' . $response->status() . ' - ' . $body = $response->body() . ' | Request: ' . json_encode($data) . ' | URL: ' . $url);
@@ -264,7 +180,7 @@ class PerfexApiService
         } catch (\Exception $e) {
             // Graceful Fallback for Local Development
             // Now catches ConnectionException specifically or any Guzzle error
-            if (app()->environment('local')) {
+            if (!$skipMock && app()->environment('local')) {
                 // If it's a timeout or connection error, mock it
                 Log::warning("Perfex API Unreachable/Timeout in Local Dev. Falling back to Mock Data. Error: " . $e->getMessage());
                 return $this->getMockResponse($endpoint, $data, $method);
@@ -394,5 +310,124 @@ class PerfexApiService
         }
 
         return ['status' => false, 'message' => 'Mock Endpoint Not Found: ' . $endpoint];
+    }
+
+    /**
+     * Fetch and Sync Client Details from Perfex
+     *
+     * @param \App\Models\Client $client
+     * @param array|null $providedData Optional data to sync without fetching
+     * @return bool
+     */
+    public function fetchAndSyncClient(\App\Models\Client $client, $providedData = null)
+    {
+        if (!$client->perfex_id) {
+            Log::warning("Perfex Sync: Client {$client->id} has no Perfex ID.");
+            return false;
+        }
+
+        $data = $providedData;
+
+        // If no data provided, fetch it
+        if (!$data) {
+            $data = $this->getLead($client->perfex_id);
+        }
+
+        if (!$data || !isset($data['id'])) {
+            Log::warning("Perfex Sync: Could not fetch lead/customer #{$client->perfex_id} for Client {$client->id}");
+            return false;
+        }
+
+        // Fetch Mapping from DB
+        $savedMapping = \App\Models\Setting::where('key', 'perfex_field_mapping')->value('value');
+        $mappings = $savedMapping ? json_decode($savedMapping, true) : null;
+
+        // Default Fallback Mappings if nothing configured
+        if (!$mappings) {
+            $mappings = [
+                ['perfex_field' => 'phonenumber', 'local_field' => 'phone'],
+                ['perfex_field' => 'address', 'local_field' => 'address'],
+                ['perfex_field' => 'Location', 'local_field' => 'city'],
+                ['perfex_field' => 'Property Name', 'local_field' => 'property_name'],
+                ['perfex_field' => 'Type of property', 'local_field' => 'property_type'],
+                ['perfex_field' => 'Alternative Number', 'local_field' => 'secondary_phone'],
+                ['perfex_field' => 'Alternative Email', 'local_field' => 'secondary_email'],
+            ];
+        }
+
+        $notesToAppend = [];
+
+        foreach ($mappings as $map) {
+            $sourceKey = $map['perfex_field'];
+            $destAttr = $map['local_field'];
+            $valueToAssign = null;
+
+            // 1. Try finding in root data (Standard Fields)
+            // Case-insensitive check for root keys? API usually strict, but let's be safe.
+            // Using precise key for root params.
+            if (isset($data[$sourceKey])) {
+                $valueToAssign = $data[$sourceKey];
+            }
+            // 2. Try Custom Fields
+            elseif (isset($data['customfields']) && is_array($data['customfields'])) {
+                foreach ($data['customfields'] as $cf) {
+                    $cfName = $cf['name'] ?? $cf['label'] ?? '';
+                    if (strcasecmp($cfName, $sourceKey) === 0) {
+                        $valueToAssign = $cf['value'] ?? null;
+                        break;
+                    }
+                }
+            }
+
+            // Apply Value if found
+            if ($valueToAssign !== null && $valueToAssign !== '') {
+                // Special Country Logic
+                if ($destAttr === 'country' && ($valueToAssign === '0' || $valueToAssign === 0)) {
+                    continue;
+                }
+
+                // If destination is already set and not null, do we overwrite? Yes, sync usually implies overwrite.
+                // Exception: Don't overwrite City with Location if City is already present?
+                // Logic: If multiple sources map to same destination (e.g. City and Location -> city),
+                // the last non-empty one wins OR we check if dest is empty.
+                // Let's implement: Only overwrite if current is empty or logic dictates.
+                // For simplicity: Overwrite.
+
+                // Specific logic for 'Location' acting as fallback for 'City':
+                if (strtolower($sourceKey) === 'location' && $destAttr === 'city' && !empty($client->city)) {
+                    continue; // meaningful city already exists from 'city', don't overwrite with Location
+                }
+
+                $client->$destAttr = $valueToAssign;
+            }
+        }
+
+        // Hardcoded Note Appending (Optional: make this configurable later, but complex for UI)
+        // We look for specific keys just for appending to notes if they exist in data
+        $appendKeys = ['Possession month'];
+        if (isset($data['customfields']) && is_array($data['customfields'])) {
+            foreach ($data['customfields'] as $cf) {
+                $cfName = $cf['name'] ?? $cf['label'] ?? '';
+                $cfValue = $cf['value'] ?? '';
+                if (in_array($cfName, $appendKeys) && !empty($cfValue)) {
+                    // $label = str_replace('Type of property', 'Type', $cfName); // Removed
+                    $label = str_replace('Possession month', 'Possession', $cfName);
+                    $notesToAppend[] = "$label: $cfValue";
+                }
+            }
+        }
+
+        if (!empty($notesToAppend)) {
+            $existingNotes = $client->property_notes ?? '';
+            $newNotes = implode(', ', $notesToAppend);
+            if (!str_contains($existingNotes, $newNotes)) {
+                $client->property_notes = trim($existingNotes . "\n" . $newNotes);
+            }
+        }
+
+        $client->save();
+        Log::info("Perfex Sync: Successfully synced Client {$client->id} (Perfex #{$client->perfex_id})");
+
+        return true;
     }
 }

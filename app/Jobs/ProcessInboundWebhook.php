@@ -26,14 +26,14 @@ class ProcessInboundWebhook implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(\App\Services\PerfexApiService $perfexService): void
     {
         if ($this->event->status !== 'pending') {
             return;
         }
 
         try {
-            $this->processByProvider();
+            $this->processByProvider($perfexService);
 
             $this->event->update([
                 'status' => 'processed',
@@ -51,15 +51,15 @@ class ProcessInboundWebhook implements ShouldQueue
         }
     }
 
-    protected function processByProvider(): void
+    protected function processByProvider(\App\Services\PerfexApiService $perfexService): void
     {
         match ($this->event->provider) {
-            'perfex' => $this->handlePerfexEvent(),
+            'perfex' => $this->handlePerfexEvent($perfexService),
             default => Log::info("Webhook: No specific handler for provider {$this->event->provider}"),
         };
     }
 
-    protected function handlePerfexEvent(): void
+    protected function handlePerfexEvent(\App\Services\PerfexApiService $perfexService): void
     {
         $payload = $this->event->payload;
         $type = $payload['event_type'] ?? $payload['action'] ?? null;
@@ -69,7 +69,15 @@ class ProcessInboundWebhook implements ShouldQueue
             return;
 
         if ($type === 'proposal_accepted') {
-            Estimate::where('perfex_proposal_id', $id)->update(['status' => 'accepted']);
+            $estimate = Estimate::where('perfex_proposal_id', $id)->first();
+            if ($estimate) {
+                $estimate->update(['status' => 'accepted']);
+
+                // Pull contact details from CRM and map to our system
+                if ($estimate->client) {
+                    $perfexService->fetchAndSyncClient($estimate->client);
+                }
+            }
         } elseif ($type === 'proposal_declined') {
             Estimate::where('perfex_proposal_id', $id)->update(['status' => 'declined']);
         }

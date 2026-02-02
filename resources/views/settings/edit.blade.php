@@ -569,6 +569,15 @@
                                         </p>
                                     </div>
 
+                                    <div class="mt-4">
+                                        <a href="{{ route('settings.perfex.mapping') }}"
+                                            class="text-sm font-semibold text-indigo-600 hover:text-indigo-900">
+                                            Configure Field Mapping &rarr;
+                                        </a>
+                                        <p class="text-xs text-slate-500 mt-1">Map Perfex CRM fields and custom fields
+                                            to your system columns.</p>
+                                    </div>
+
                                     <div class="border-t border-gray-100 pt-6 mt-6">
                                         <h3 class="text-sm font-medium text-slate-900 mb-4">Webhooks</h3>
                                         <div class="grid grid-cols-1 gap-y-6">

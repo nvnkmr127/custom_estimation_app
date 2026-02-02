@@ -133,6 +133,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'edit'])->name('settings.edit');
         Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
         Route::get('/settings/perfex/test', [App\Http\Controllers\SettingsController::class, 'testPerfex'])->name('settings.perfex.test');
+        Route::get('/settings/perfex/mapping', [App\Http\Controllers\SettingsController::class, 'editPerfexMapping'])->name('settings.perfex.mapping');
+        Route::post('/settings/perfex/mapping', [App\Http\Controllers\SettingsController::class, 'updatePerfexMapping'])->name('settings.perfex.mapping.update');
 
         // Nurture Settings
         Route::get('/settings/nurture', [App\Http\Controllers\Admin\NurtureSettingsController::class, 'index'])->name('settings.nurture');

@@ -23,6 +23,9 @@ class Client extends Model
         'property_name',
         'property_address',
         'property_notes',
+        'property_type',
+        'secondary_email',
+        'secondary_phone',
     ];
 
     public function estimates()
