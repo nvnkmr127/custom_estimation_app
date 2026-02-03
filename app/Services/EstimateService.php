@@ -393,147 +393,39 @@ class EstimateService
     /**
      * Recalculate and update the totals for an estimate.
      */
+    /**
+     * Recalculate and update the totals for an estimate.
+     */
     public function recalculateTotals(Estimate $estimate): void
     {
-        $estimate->load('items');
+        $calculator = new \App\Services\Calculations\PriceCalculator();
+        $results = $calculator->calculate($estimate);
 
-        // Fetch Tax Calculation Method
-        // Options: 'subtotal_minus_discount' (Default), 'subtotal_only' (Gross)
-        $taxMethod = \App\Models\Setting::getCached('tax_calculation_method', 'subtotal_minus_discount');
-
-        // 1. Calculate Line Item Totals with Rounding
-        $subtotal = 0;
-        $totalCost = 0;
-        $sectionSubtotals = [];
-
+        // 1. Persist Item Updates (if changed)
+        // We iterate through currently loaded items to update them in memory and DB if needed
         foreach ($estimate->items as $item) {
-            $sizeMultiplier = 1;
-            if (!empty($item->formula) && in_array($item->formula, ['area', 'volume', 'area_lh', 'formula'])) {
-                $s = (float) ($item->size ?? 1);
-                if ($s > 0)
-                    $sizeMultiplier = $s;
-            }
-
-            $lineTotal = round($item->unit_price * $item->quantity * $sizeMultiplier, 2);
-            $lineCost = round(($item->cost ?? 0) * $item->quantity * $sizeMultiplier, 2);
-
-            $subtotal += $lineTotal;
-            $totalCost += $lineCost;
-
-            // Track for sections if applicable
-            if ($item->estimate_section_id) {
-                if (!isset($sectionSubtotals[$item->estimate_section_id])) {
-                    $sectionSubtotals[$item->estimate_section_id] = 0;
+            if (isset($results['item_updates'][$item->id])) {
+                $newTotal = $results['item_updates'][$item->id];
+                if (abs($item->total - $newTotal) > 0.001) {
+                    $item->total = $newTotal;
+                    $item->saveQuietly();
                 }
-                $sectionSubtotals[$item->estimate_section_id] += $lineTotal;
-            }
-
-            // Ensure item's cached total is correct
-            if (abs($item->total - $lineTotal) > 0.001) {
-                $item->total = $lineTotal;
-                $item->saveQuietly();
             }
         }
-        $subtotal = round($subtotal, 2);
 
-        // Update Section totals in the DB
-        foreach ($sectionSubtotals as $sectionId => $amount) {
+        // 2. Persist Section Updates
+        foreach ($results['section_updates'] as $sectionId => $amount) {
             \App\Models\EstimateSection::where('id', $sectionId)->update(['subtotal' => round($amount, 2)]);
         }
 
-        // 2. Calculate Discount
-        $discountTotal = 0;
-        if ($estimate->discount_value > 0) {
-            if ($estimate->discount_type === 'percentage') {
-                $discountTotal = round($subtotal * ($estimate->discount_value / 100), 2);
-            } else {
-                $discountTotal = round($estimate->discount_value, 2);
-            }
-        }
+        // 3. Persist Estimate Totals
+        $updateData = $results['estimate_updates'];
 
-        // Ensure discount doesn't exceed subtotal
-        $discountTotal = min($discountTotal, $subtotal);
-
-        // 3. Calculate Tax Base
-        if ($taxMethod === 'subtotal_only') {
-            // Tax calculated on Gross Subtotal
-            $taxableAmount = $subtotal;
-        } else {
-            // Default: Tax calculated on Net (Subtotal - Discount)
-            $taxableAmount = $subtotal - $discountTotal;
-        }
-
-        // 4. Calculate Tax
-        $tax1Amount = round($taxableAmount * ($estimate->tax_1 / 100), 2);
-        // User requested one tax only (GST), effectively ignoring tax_2
-        $totalTax = $tax1Amount;
-
-        // 5. Coupon
-        $couponAmount = round($estimate->coupon_discount ?? 0, 2);
-
-        // 6. Transportation
-        $transportation = round($estimate->transportation_charges ?? 0, 2);
-
-        $grandTotal = round(($subtotal - $discountTotal) + $totalTax - $couponAmount + $transportation, 2);
-
-        // Prevent negative total
-        $grandTotal = max(0, $grandTotal);
-
-        // 6. Calculate Margin/Profit
-        // Margin = (Revenue - Cost) / Revenue * 100
-        // Revenue here effectively is Net Subtotal (Subtotal - Discount - Coupon?)
-        // Let's use simplified: (Subtotal - Discount) - Cost
-        $netRevenue = $subtotal - $discountTotal;
-        $grossProfit = $netRevenue - $totalCost;
-
-        // --- Approval Chain Logic ---
-        $chainToAssign = null;
-        // Discount % logic: Based on gross subtotal
-        $discountPercentage = ($subtotal > 0) ? (($discountTotal + $couponAmount) / $subtotal) * 100 : 0;
-        $discountPercentage = round($discountPercentage, 2);
-
-        // 1. Check for Discount-based Approval (Highest Priority)
-        $discountChain = ApprovalChain::where('is_active', true)
-            ->whereNotNull('min_discount_percentage')
-            ->where('min_discount_percentage', '<=', $discountPercentage)
-            ->orderBy('min_discount_percentage', 'desc')
-            ->first();
-
-        if ($discountChain) {
-            $chainToAssign = $discountChain;
-        } else {
-            // 2. Check for Amount-based Approval
-            $chainToAssign = ApprovalChain::where('is_active', true)
-                ->where(function ($q) use ($grandTotal) {
-                    $q->whereNull('min_amount')->orWhere('min_amount', '<=', $grandTotal);
-                })
-                ->where(function ($q) use ($grandTotal) {
-                    $q->whereNull('max_amount')->orWhere('max_amount', '>=', $grandTotal);
-                })
-                ->orderBy('min_amount', 'desc') // Pick highest tier if multiple overlap
-                ->first();
-        }
-
-        $updateData = [
-            'subtotal' => $subtotal,
-            'total_tax' => $totalTax,
-            'discount_total' => $discountTotal,
-            'grand_total' => $grandTotal,
-            'total_cost' => $totalCost,
-            'gross_profit' => $grossProfit,
-            'approval_chain_id' => $chainToAssign ? $chainToAssign->id : null,
-        ];
-
-        // LOGIC GAP FIX: If there is no approval chain assigned (below threshold), 
-        // we can flag it as potentially auto-approved if the user attempts to submit it.
-        // Or we just update the status if it was waiting.
-        if (!$chainToAssign && $estimate->status === Estimate::STATUS_WAITING_APPROVAL) {
+        // Logic Check: Auto-approve if no chain assigned?
+        if (!$updateData['approval_chain_id'] && $estimate->status === Estimate::STATUS_WAITING_APPROVAL) {
             $updateData['status'] = Estimate::STATUS_APPROVED;
             $updateData['approval_status'] = 'approved';
         }
-
-        // If we had columns for cost/margin, we would save them here.
-        // For now, we just calculated them.
 
         $estimate->update($updateData);
     }
@@ -556,7 +448,14 @@ class EstimateService
 
             // 1. Handle is_current_version
             // Always mark the old version as not current to ensure the new draft is visible (The "Active" version)
-            $estimate->update(['is_current_version' => false]);
+            $updateData = ['is_current_version' => false];
+
+            // If the old version was SENT, expire it so the client cannot accept it while we are working on a V2.
+            if ($estimate->status === Estimate::STATUS_SENT) {
+                $updateData['status'] = Estimate::STATUS_EXPIRED;
+            }
+
+            $estimate->update($updateData);
 
             // 2. Replicate Estimate
             $newEstimate = $estimate->replicate();
@@ -582,6 +481,10 @@ class EstimateService
             $newEstimate->status = Estimate::STATUS_DRAFT; // Reset status
             $newEstimate->approval_status = 'draft'; // Reset approval status
             $newEstimate->created_by = auth()->id() ?? $estimate->created_by; // Set creator to current user
+
+            // Fix: Reset dates for new version to avoid legacy expiry issues
+            $newEstimate->estimate_date = now();
+            $newEstimate->expiry_date = null;
 
             // Clear state fields for new version
             $newEstimate->signature = null;

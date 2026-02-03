@@ -43,8 +43,8 @@
                 tax_1: initialData.tax_1 !== undefined ? parseFloat(initialData.tax_1) : (parseFloat(@json($defaults['tax_1_rate'] ?? 0))),
                 tax_2: initialData.tax_2 !== undefined ? parseFloat(initialData.tax_2) : (parseFloat(@json($defaults['tax_2_rate'] ?? 0))),
 
-                // Date Handling
-                estimate_date: initialData.estimate_date ? initialData.estimate_date.split('T')[0] : new Date().toISOString().split('T')[0],
+                // Date Handling - Use Local Timezone
+                estimate_date: initialData.estimate_date ? initialData.estimate_date.split('T')[0] : new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
                 expiry_date: initialData.expiry_date ? initialData.expiry_date.split('T')[0] : '',
 
                 // Ensure Arrays exist

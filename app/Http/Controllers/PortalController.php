@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Estimate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PortalController extends Controller
 {
@@ -80,10 +81,6 @@ class PortalController extends Controller
             'signature' => 'required|string',
         ]);
 
-        if ($estimate->status === 'accepted') {
-            return redirect()->back()->with('info', 'This estimate has already been accepted.');
-        }
-
         // Capture Location (Simple Lookup)
         $location = null;
         try {
@@ -104,35 +101,38 @@ class PortalController extends Controller
             // Ignore location errors
         }
 
-        $estimate->update([
-            'status' => 'accepted',
-            'signature' => $request->signature,
-            'signed_at' => now(),
-            'signer_ip' => $request->ip(),
-            'signer_agent' => $request->userAgent(),
-            'signer_location' => $location,
-        ]);
+        return DB::transaction(function () use ($request, $estimate, $location) {
+            // Lock for concurrency
+            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
-        // Auto-Sync to Perfex (Queue to avoid blocking client)
-        \App\Jobs\SyncEstimateToPerfex::dispatch($estimate);
+            if (!$estimate->canTransitionTo(Estimate::STATUS_ACCEPTED)) {
+                if ($estimate->status === Estimate::STATUS_ACCEPTED) {
+                    return redirect()->back()->with('info', 'This estimate has already been accepted.');
+                }
+                return redirect()->back()->with('error', "This estimate cannot be accepted in its current state ({$estimate->status}).");
+            }
 
-        // Notify Admins
-        $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
-        \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'accepted'));
+            $estimate->update([
+                'status' => 'accepted',
+                'signature' => $request->signature,
+                'signed_at' => now(),
+                'signer_ip' => $request->ip(),
+                'signer_agent' => $request->userAgent(),
+                'signer_location' => $location,
+            ]);
 
-        // Dispatch Event
-        // We use 'client' as approver_id? But approver_id expects int. 
-        // For client, we might need a special ID or update the event to allow null?
-        // Proposal says `approverId` is `int`.
-        // If it's a client, they are not a user.
-        // I should probably use 0 or a negative number for client? Or update the event to nullable.
-        // Let's check EstimateApproved definition.
-        // public int $approverId.
-        // I will use 0 for now to indicate "External/Client". Alternatively, if the client has a user account (some systems do), use that.
-        // Here, it seems clients don't log in to portal (signed url).
-        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, 0, 'client'));
+            // Auto-Sync to Perfex (Queue to avoid blocking client)
+            \App\Jobs\SyncEstimateToPerfex::dispatch($estimate);
 
-        return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. It has also been synced to our CRM.');
+            // Notify Admins
+            $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
+            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'accepted'));
+
+            // Dispatch Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, 0, 'client'));
+
+            return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. It has also been synced to our CRM.');
+        });
     }
 
     /**
@@ -148,19 +148,31 @@ class PortalController extends Controller
             'client_notes' => 'required|string|max:1000',
         ]);
 
-        $estimate->update([
-            'status' => 'declined',
-            'client_notes' => $request->client_notes,
-        ]);
+        return DB::transaction(function () use ($request, $estimate) {
+            // Lock
+            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
-        // Notify Admins
-        $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
-        \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'declined'));
+            if (!$estimate->canTransitionTo(Estimate::STATUS_DECLINED)) {
+                if ($estimate->status === Estimate::STATUS_DECLINED) {
+                    return redirect()->back()->with('info', 'This estimate has already been declined.');
+                }
+                return redirect()->back()->with('error', "This estimate cannot be declined in its current state ({$estimate->status}).");
+            }
 
-        // Dispatch Event
-        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, 0, $request->client_notes));
+            $estimate->update([
+                'status' => 'declined',
+                'client_notes' => $request->client_notes,
+            ]);
 
-        return redirect()->back()->with('success', 'You have declined the estimate. Thank you for your feedback.');
+            // Notify Admins
+            $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
+            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'declined'));
+
+            // Dispatch Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, 0, $request->client_notes));
+
+            return redirect()->back()->with('success', 'You have declined the estimate. Thank you for your feedback.');
+        });
     }
     /**
      * Store a comment from the client.

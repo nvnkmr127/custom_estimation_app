@@ -23,7 +23,7 @@
             client_id: '',
             status: 'draft',
             title: '',
-            estimate_date: new Date().toISOString().split('T')[0],
+            estimate_date: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
             expiry_date: '',
             currency: '{{ $defaults['currency'] ?? 'USD' }}',
             type: 'room_based',

@@ -461,32 +461,44 @@ class EstimateController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        if (!$estimate->canTransitionTo($status)) {
-            return back()->with('error', "Cannot transition from {$estimate->status} to {$status}.");
-        }
+        return DB::transaction(function () use ($estimate, $status) {
+            // Lock the record
+            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
-        $oldStatus = $estimate->status;
-        $estimate->update(['status' => $status]);
+            if (!$estimate->canTransitionTo($status)) {
+                return back()->with('error', "Cannot transition from {$estimate->status} to {$status}.");
+            }
 
-        ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} status manually changed from {$oldStatus} to {$status}.");
+            // GUARD: Enforce Approval Chain for SENT status
+            if ($status === Estimate::STATUS_SENT && !auth()->user()->hasRole(['super_admin', 'admin'])) {
+                if ($estimate->approvalChain && !$estimate->isFullyApproved()) {
+                    return back()->with('error', "Cannot mark as SENT: This estimate has not completed its approval chain.");
+                }
+            }
 
-        // Dispatch specific status events
-        switch ($status) {
-            case Estimate::STATUS_SENT:
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate, auth()->id(), 'manual_mark'));
-                break;
-            case Estimate::STATUS_ACCEPTED:
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'manual_mark'));
-                break;
-            case Estimate::STATUS_DECLINED:
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, auth()->id(), 'manual_mark'));
-                break;
-            case Estimate::STATUS_EXPIRED:
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateExpired($estimate));
-                break;
-        }
+            $oldStatus = $estimate->status;
+            $estimate->update(['status' => $status]);
 
-        return back()->with('success', 'Estimate marked as ' . ucfirst($status) . '.');
+            ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} status manually changed from {$oldStatus} to {$status}.");
+
+            // Dispatch specific status events
+            switch ($status) {
+                case Estimate::STATUS_SENT:
+                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate, auth()->id(), 'manual_mark'));
+                    break;
+                case Estimate::STATUS_ACCEPTED:
+                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'manual_mark'));
+                    break;
+                case Estimate::STATUS_DECLINED:
+                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, auth()->id(), 'manual_mark'));
+                    break;
+                case Estimate::STATUS_EXPIRED:
+                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateExpired($estimate));
+                    break;
+            }
+
+            return back()->with('success', 'Estimate marked as ' . ucfirst($status) . '.');
+        });
     }
 
     /**
@@ -496,11 +508,15 @@ class EstimateController extends Controller
     {
         $this->authorize('revertToDraft', $estimate);
 
-        $estimate->update(['status' => Estimate::STATUS_DRAFT]);
+        return DB::transaction(function () use ($estimate) {
+            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
-        ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} reverted to draft.");
+            $estimate->update(['status' => Estimate::STATUS_DRAFT]);
 
-        return back()->with('success', 'Estimate reverted to draft.');
+            ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} reverted to draft.");
+
+            return back()->with('success', 'Estimate reverted to draft.');
+        });
     }
 
     /**
@@ -509,6 +525,13 @@ class EstimateController extends Controller
     public function sendToClient(Estimate $estimate)
     {
         $this->authorize('update', $estimate);
+
+        // GUARD: Enforce Approval Chain before Sending
+        if (!auth()->user()->hasRole(['super_admin', 'admin'])) {
+            if ($estimate->approvalChain && !$estimate->isFullyApproved()) {
+                return back()->with('error', 'Cannot send to client: Estimate approval chain is incomplete.');
+            }
+        }
 
         try {
             $this->estimateService->sendToClient($estimate);
@@ -699,24 +722,32 @@ class EstimateController extends Controller
             abort(403, 'Only the creator or an admin can approve changes.');
         }
 
-        // 1. Mark this version as current
-        $estimate->update(['is_current_version' => true]);
+        return DB::transaction(function () use ($estimate) {
+            // Find the root parent
+            $parentId = $estimate->parent_id ?? $estimate->id;
 
-        // 2. Find the root parent
-        $parentId = $estimate->parent_id ?? $estimate->id;
+            // Lock the entire family family to ensure version consistency
+            Estimate::where('id', $parentId)->orWhere('parent_id', $parentId)->lockForUpdate()->get();
 
-        // 3. Mark ALL others in this family as NOT current
-        // (This includes the root parent and all sibling versions)
-        Estimate::where(function ($q) use ($parentId) {
-            $q->where('id', $parentId)
-                ->orWhere('parent_id', $parentId);
-        })
-            ->where('id', '!=', $estimate->id)
-            ->update(['is_current_version' => false]);
+            // Refetch current estimate within lock
+            $estimate = Estimate::find($estimate->id);
 
-        ActivityLog::log('version_approved', $estimate, "Version #{$estimate->version} approved by " . auth()->user()->name);
+            // 1. Mark this version as current
+            $estimate->update(['is_current_version' => true]);
 
-        return back()->with('success', 'Version approved and set as live.');
+            // 3. Mark ALL others in this family as NOT current
+            // (This includes the root parent and all sibling versions)
+            Estimate::where(function ($q) use ($parentId) {
+                $q->where('id', $parentId)
+                    ->orWhere('parent_id', $parentId);
+            })
+                ->where('id', '!=', $estimate->id)
+                ->update(['is_current_version' => false]);
+
+            ActivityLog::log('version_approved', $estimate, "Version #{$estimate->version} approved by " . auth()->user()->name);
+
+            return back()->with('success', 'Version approved and set as live.');
+        });
     }
 
     public function addFollower(Request $request, Estimate $estimate)

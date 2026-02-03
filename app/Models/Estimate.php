@@ -436,7 +436,7 @@ class Estimate extends Model
     {
         switch ($this->status) {
             case self::STATUS_DRAFT:
-                return [self::STATUS_WAITING_APPROVAL, self::STATUS_SENT, self::STATUS_DRAFT];
+                return [self::STATUS_WAITING_APPROVAL, self::STATUS_DRAFT];
             case self::STATUS_WAITING_APPROVAL:
                 return [self::STATUS_APPROVED, self::STATUS_DECLINED, self::STATUS_DRAFT];
             case self::STATUS_APPROVED:
