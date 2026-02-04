@@ -17,6 +17,15 @@ class EstimateSection extends Model
         'section_type',
     ];
 
+    /**
+     * Get the total value of the section (sum of items).
+     * Note: 'subtotal' column might be used for caching, but dynamic calc is safer for consistency.
+     */
+    public function getTotalAttribute()
+    {
+        return $this->items->sum('total');
+    }
+
     public function estimate()
     {
         return $this->belongsTo(Estimate::class);

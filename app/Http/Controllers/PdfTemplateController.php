@@ -21,14 +21,45 @@ class PdfTemplateController extends Controller
         // Load a default starter template
         $systemTemplates = PdfTemplate::where('type', 'system')->get();
         $variables = \App\Services\PdfRenderingService::getAvailableVariables();
-        return view('pdf_templates.create', compact('systemTemplates', 'variables'));
+        $pdfTemplate = new PdfTemplate();
+        return view('pdf_templates.create', compact('systemTemplates', 'variables', 'pdfTemplate'));
     }
 
     public function store(Request $request)
     {
+        // Sanitize PDF content to prevent XSS/Injection
+        // We mask all {tags} using base64. For tags likely to be inside tables (logic tags), 
+        // we wrap them in a <tr> to prevent Purifier from moving them out of <tbody>/<table>.
+        $html = $request->input('html_content');
+        $html = preg_replace_callback('/\{[^{}]+\}/', function ($matches) {
+            $tag = $matches[0];
+            $isLogic = preg_match('/LOOP|IF_|ENDIF/i', $tag);
+            $base64 = base64_encode($tag);
+            if ($isLogic) {
+                return '<tr class="tpl-mask" style="display:none"><td>TPLMASK_' . $base64 . '_END</td></tr>';
+            }
+            return 'TPLMASK_' . $base64 . '_END';
+        }, $html);
+
+        $html = clean($html, 'pdf_template');
+
+        // Restore: Look for our TR-wrapped masks first, then any naked ones
+        // We match optional wrapping table/tbody that Purifier adds if the TR was "loose"
+        $html = preg_replace_callback('/(?:<table>\s*<tbody>\s*)?<tr[^>]*class="tpl-mask"[^>]*><td>TPLMASK_([A-Za-z0-9+\/=]+)_END<\/td><\/tr>(?:\s*<\/tbody>\s*<\/table>)?/si', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+
+        $html = preg_replace_callback('/TPLMASK_([A-Za-z0-9+\/=]+)_END/s', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+
+        $request->merge([
+            'html_content' => $html
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'html_content' => 'required|string',
+            'html_content' => ['required', 'string', new \App\Rules\ValidPdfContent],
             'css_content' => 'nullable|string',
             'paper_size' => 'required|in:a4,letter',
             'orientation' => 'required|in:portrait,landscape',
@@ -81,9 +112,35 @@ class PdfTemplateController extends Controller
     {
         $this->authorize('update', $pdfTemplate);
 
+        // Sanitize PDF content to prevent XSS/Injection
+        $html = $request->input('html_content');
+        $html = preg_replace_callback('/\{[^{}]+\}/', function ($matches) {
+            $tag = $matches[0];
+            $isLogic = preg_match('/LOOP|IF_|ENDIF/i', $tag);
+            $base64 = base64_encode($tag);
+            if ($isLogic) {
+                return '<tr class="tpl-mask" style="display:none"><td>TPLMASK_' . $base64 . '_END</td></tr>';
+            }
+            return 'TPLMASK_' . base64_encode($matches[0]) . '_END';
+        }, $html);
+
+        $html = clean($html, 'pdf_template');
+
+        $html = preg_replace_callback('/(?:<table>\s*<tbody>\s*)?<tr[^>]*class="tpl-mask"[^>]*><td>TPLMASK_([A-Za-z0-9+\/=]+)_END<\/td><\/tr>(?:\s*<\/tbody>\s*<\/table>)?/si', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+
+        $html = preg_replace_callback('/TPLMASK_([A-Za-z0-9+\/=]+)_END/s', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+
+        $request->merge([
+            'html_content' => $html
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'html_content' => 'required|string',
+            'html_content' => ['required', 'string', new \App\Rules\ValidPdfContent],
             'css_content' => 'nullable|string',
             'paper_size' => 'required|in:a4,letter',
             'orientation' => 'required|in:portrait,landscape',
@@ -154,6 +211,28 @@ class PdfTemplateController extends Controller
     public function preview(Request $request)
     {
         $html = $request->input('html_content');
+
+        // Sanitize for preview too
+        $html = preg_replace_callback('/\{[^{}]+\}/', function ($matches) {
+            $tag = $matches[0];
+            $isLogic = preg_match('/LOOP|IF_|ENDIF/i', $tag);
+            $base64 = base64_encode($tag);
+            if ($isLogic) {
+                return '<tr class="tpl-mask" style="display:none"><td>TPLMASK_' . $base64 . '_END</td></tr>';
+            }
+            return 'TPLMASK_' . base64_encode($matches[0]) . '_END';
+        }, $html);
+
+        $html = clean($html, 'pdf_template');
+
+        $html = preg_replace_callback('/(?:<table>\s*<tbody>\s*)?<tr[^>]*class="tpl-mask"[^>]*><td>TPLMASK_([A-Za-z0-9+\/=]+)_END<\/td><\/tr>(?:\s*<\/tbody>\s*<\/table>)?/si', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+
+        $html = preg_replace_callback('/TPLMASK_([A-Za-z0-9+\/=]+)_END/s', function ($matches) {
+            return base64_decode($matches[1]);
+        }, $html);
+
         $css = $request->input('css_content');
 
         // Create a dummy estimate for preview
@@ -180,8 +259,19 @@ class PdfTemplateController extends Controller
             'font_family' => $request->input('font_family', 'Helvetica'),
         ]);
 
-        // Set estimate type to room_based to show sections in preview
-        $estimate->type = 'room_based';
+        // Parse Preview State
+        $state = $request->input('preview_state', []);
+        $isRoomBased = $state['roomBased'] ?? true;
+        $hasTax = $state['hasTax'] ?? true;
+        $hasDiscount = $state['hasDiscount'] ?? true;
+
+        // Set Estimate Values based on state
+        $estimate->type = $isRoomBased ? 'room_based' : 'standard';
+        $estimate->total_tax = $hasTax ? 100 : 0;
+        $estimate->discount_total = $hasDiscount ? 50 : 0;
+        $estimate->grand_total = 1000 + $estimate->total_tax - $estimate->discount_total;
+        $estimate->has_tax = $hasTax;
+        $estimate->has_discount = $hasDiscount;
 
         // Create Dummy Sections
         $section1 = new \App\Models\EstimateSection(['name' => 'Primary Bedroom', 'subtotal' => 1250.00]);
@@ -226,7 +316,7 @@ class PdfTemplateController extends Controller
 
         $service = new PdfRenderingService;
 
-        $renderedInfo = $service->render($tempTemplate, $estimate);
+        $renderedInfo = $service->render($tempTemplate, $estimate, true);
 
         return response($renderedInfo);
     }

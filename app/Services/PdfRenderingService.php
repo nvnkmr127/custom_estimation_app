@@ -12,6 +12,7 @@ class PdfRenderingService
     protected $settings;
 
     protected $variables = [];
+    protected $context;
     protected $isWeb = false;
 
     public function render(PdfTemplate $template, Estimate $estimate, $isWeb = false)
@@ -21,10 +22,11 @@ class PdfRenderingService
         // Ensure comments are loaded for PDF generation to avoid N+1
         $this->estimate->loadMissing(['items.comments.user', 'sections.items.comments.user']);
 
-        $this->settings = \App\Models\Setting::pluck('value', 'key');
+        $this->settings = \App\Models\Setting::pluck('value', 'key')->toArray();
 
-        // Prepare variables once (pass HTML content for lazy loading logic)
-        $this->variables = $this->prepareVariables($template->html_content);
+        // Initialize Context
+        $variables = $this->prepareVariables($template->html_content);
+        $this->context = new \App\Services\Pdf\TemplateContext($variables);
 
         $html = $template->html_content;
 
@@ -40,12 +42,43 @@ class PdfRenderingService
         $html = $this->processImages($html, $isWeb);
 
         // 4. Inject CSS
-        $cssVars = ":root { --primary-color: {$template->primary_color}; --secondary-color: {$template->secondary_color}; --font-body: {$template->font_family}; } body { font-family: var(--font-body) !important; } .page-break-before { page-break-before: always; } .page-break-after { page-break-after: always; } .avoid-break { page-break-inside: avoid; }";
+        // Attempt to load local font first, fallback to Google Fonts
+        $localFont = $this->getLocalFontPath($template->font_family);
+        $fontCss = "";
 
-        // Add default styles for comments (formerly inline)
-        $cssVars .= " .item-comments { margin-top: 5px; font-size: 0.9em; color: #555; } .comment-row { margin-bottom: 2px; } .clarified-status { color: green; font-weight: bold; } .item-image { max-width: 50px; max-height: 50px; object-fit: contain; }";
+        if ($localFont && !$isWeb) {
+            $fontCss = "@font-face { font-family: '{$template->font_family}'; src: url('file://{$localFont}'); font-weight: normal; font-style: normal; }";
+        } else {
+            $fontCss = "@import url('https://fonts.googleapis.com/css2?family=" . urlencode($template->font_family) . ":wght@400;700&display=swap');";
+        }
+
+        $cssVars = $fontCss . " :root { --primary-color: {$template->primary_color}; --secondary-color: {$template->secondary_color}; --font-body: {$template->font_family}; } body { font-family: '{$template->font_family}', sans-serif !important; width: 100%; overflow-x: hidden; } table { width: 100%; border-collapse: collapse; } tr { page-break-inside: avoid; } .page-break-before { page-break-before: always; } .page-break-after { page-break-after: always; } .avoid-break { page-break-inside: avoid; }";
+
+        // Add default styles for comments (aligned with Web View Slate-500 #64748b and Green-500 #22c55e)
+        $cssVars .= " .item-comments { margin-top: 5px; font-size: 0.9em; color: #64748b; } .comment-row { margin-bottom: 2px; } .clarified-status { color: #22c55e; font-weight: bold; } .item-image { max-width: 50px; max-height: 50px; object-fit: contain; }";
+
+        if ($this->isWeb) {
+            $cssVars .= " 
+                @media (max-width: 768px) {
+                    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+                    .watermark-text { font-size: 4rem !important; }
+                }
+                body { background-color: transparent !important; }
+            ";
+        }
 
         $finalCss = $cssVars . ($template->css_content ?? '');
+
+        // Pre-process CSS variables for DOMPDF (which has buggy var() support)
+        $finalCss = str_replace([
+            'var(--primary-color)',
+            'var(--secondary-color)',
+            'var(--font-body)'
+        ], [
+            $template->primary_color,
+            $template->secondary_color,
+            "'" . $template->font_family . "'"
+        ], $finalCss);
 
         if ($finalCss) {
             // If HTML has <head>, inject there. Otherwise prepend.
@@ -59,16 +92,38 @@ class PdfRenderingService
         // 5. Inject Watermark
         if (!empty($template->watermark_text)) {
             $opacity = $template->watermark_opacity ?? 0.1;
-            $text = htmlspecialchars($template->watermark_text);
+            $watermarkCss = "
+            .watermark-container {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-45deg);
+                z-index: -1000;
+                pointer-events: none;
+                width: 100%;
+                text-align: center;
+            }
+            .watermark-text {
+                font-size: 80pt;
+                font-weight: bold;
+                color: #000;
+                opacity: {$opacity};
+                text-transform: uppercase;
+                white-space: nowrap;
+            }";
 
-            $watermarkCss = "position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 80px; font-weight: bold; color: {$template->primary_color}; opacity: {$opacity}; pointer-events: none; z-index: 9999; white-space: nowrap;";
-            $watermarkHtml = "<div style=\"{$watermarkCss}\">{$text}</div>";
+            // Append CSS
+            $html = str_replace('</style>', $watermarkCss . '</style>', $html);
 
-            // Inject after body start
+            // Append HTML Body
+            $watermarkHtml = '<div class="watermark-container"><div class="watermark-text">' . htmlspecialchars($template->watermark_text) . '</div></div>';
+
             if (strpos($html, '<body') !== false) {
-                $html = preg_replace('/<body[^>]*>/', '$0' . $watermarkHtml, $html, 1);
+                // Insert after body tag
+                $html = preg_replace('/(<body[^>]*>)/i', '$1' . $watermarkHtml, $html);
             } else {
-                $html .= $watermarkHtml;
+                // Prepend if no body tag
+                $html = $watermarkHtml . $html;
             }
         }
 
@@ -101,65 +156,25 @@ class PdfRenderingService
         }, $html);
     }
 
+    protected function getLocalFontPath($fontName)
+    {
+        $formatted = strtolower(str_replace(' ', '_', $fontName));
+        $path = public_path("fonts/{$formatted}.ttf");
+        return file_exists($path) ? $path : null;
+    }
+
     protected function prepareVariables($htmlContent = '')
     {
-        $vars = [
-            // Estimate Details
-            'estimate_number' => $this->estimate->estimate_number,
-            'estimate_title' => $this->estimate->title ?? 'Estimate',
-            'estimate_date' => \Carbon\Carbon::parse($this->estimate->estimate_date)->format('M d, Y'),
-            'expiry_date' => $this->estimate->expiry_date ? \Carbon\Carbon::parse($this->estimate->expiry_date)->format('M d, Y') : 'N/A',
-            'status' => ucfirst($this->estimate->status),
-            'currency' => $this->estimate->currency,
+        // Initialize View Model
+        $viewModel = new \App\Services\Pdf\EstimateViewModel($this->estimate, $this->settings);
+        $vars = $viewModel->toArray();
 
-            // Creator Info
-            'estimator_name' => $this->estimate->creator->name ?? 'N/A',
-            'estimator_email' => $this->estimate->creator->email ?? 'N/A',
+        // Add Dynamic Totals View
+        $vars['dynamic_totals'] = view('partials.estimates.pdf-totals', ['estimate' => $this->estimate])->render();
 
-            // Values
-            'subtotal' => number_format((float) $this->estimate->subtotal, 2),
-            'discount_total' => number_format((float) $this->estimate->discount_total, 2),
-            'tax_total' => number_format((float) $this->estimate->total_tax, 2),
-            'transportation_charges' => number_format((float) ($this->estimate->transportation_charges ?? 0), 2),
-            'grand_total' => number_format((float) $this->estimate->grand_total, 2),
-
-            // Client Info
-            'client_id' => $this->estimate->client_id,
-            'client_name' => $this->estimate->client ? $this->estimate->client->name : 'N/A',
-            'client_email' => $this->estimate->client ? $this->estimate->client->email : '',
-            'client_address' => $this->estimate->client ? $this->estimate->client->address : '',
-
-            // Company Info
-            'company_name' => $this->settings['company_legal_name'] ?? config('app.name'),
-            'company_email' => $this->settings['company_email'] ?? '',
-            'company_phone' => $this->settings['company_phone'] ?? '',
-            'company_address' => $this->settings['company_address_street'] ?? '',
-            'company_city' => $this->settings['company_address_city'] ?? '',
-            'company_logo' => $this->settings['company_logo'] ?? '',
-
-            // Notes
-            'client_note' => nl2br($this->estimate->client_note ?? ''),
-            'terms' => nl2br($this->estimate->terms ?? ''),
-            'admin_note' => nl2br($this->estimate->admin_note ?? ''),
-
-            // Raw numeric and Flags
-            '_raw_subtotal' => $this->estimate->subtotal,
-            '_raw_discount_total' => $this->estimate->discount_total,
-            '_raw_tax_total' => $this->estimate->total_tax,
-            '_raw_grand_total' => $this->estimate->grand_total,
-            'room_based' => $this->estimate->type === 'room_based' ? 1 : 0,
-            '_raw_room_based' => $this->estimate->type === 'room_based' ? 1 : 0,
-        ];
-
-        // Process Company Logo
-        if (!empty($vars['company_logo'])) {
-            $path = public_path($vars['company_logo']);
-            if (file_exists($path)) {
-                $vars['company_logo'] = '<img src="file://' . $path . '" class="company-logo" style="max-height: 80px;" />';
-            } else {
-                $vars['company_logo'] = '';
-            }
-        }
+        // Add Raw Flags for compatibility w/ existing regex logic (though ViewModel provides them too)
+        $vars['room_based'] = $this->estimate->type === 'room_based' ? 1 : 0;
+        $vars['_raw_room_based'] = $this->estimate->type === 'room_based' ? 1 : 0; // Legacy support for internal check
 
         // Lazy Load Charts only if requested in template
         if (strpos($htmlContent, '{CHART_ROOMS}') !== false) {
@@ -169,19 +184,20 @@ class PdfRenderingService
         }
 
         // New Dynamic Charts
-        if (strpos($htmlContent, '{CHART_SECTIONS_PIE}') !== false)
-            $vars['CHART_SECTIONS_PIE'] = $this->generateQuickChart('pie', 'sections');
-        if (strpos($htmlContent, '{CHART_SECTIONS_DOUGHNUT}') !== false)
-            $vars['CHART_SECTIONS_DOUGHNUT'] = $this->generateQuickChart('doughnut', 'sections');
-        if (strpos($htmlContent, '{CHART_SECTIONS_BAR}') !== false)
-            $vars['CHART_SECTIONS_BAR'] = $this->generateQuickChart('bar', 'sections');
+        $charts = [
+            '{CHART_SECTIONS_PIE}' => ['pie', 'sections'],
+            '{CHART_SECTIONS_DOUGHNUT}' => ['doughnut', 'sections'],
+            '{CHART_SECTIONS_BAR}' => ['bar', 'sections'],
+            '{CHART_ITEMS_PIE}' => ['pie', 'items'],
+            '{CHART_ITEMS_DOUGHNUT}' => ['doughnut', 'items'],
+            '{CHART_ITEMS_BAR}' => ['bar', 'items'],
+        ];
 
-        if (strpos($htmlContent, '{CHART_ITEMS_PIE}') !== false)
-            $vars['CHART_ITEMS_PIE'] = $this->generateQuickChart('pie', 'items');
-        if (strpos($htmlContent, '{CHART_ITEMS_DOUGHNUT}') !== false)
-            $vars['CHART_ITEMS_DOUGHNUT'] = $this->generateQuickChart('doughnut', 'items');
-        if (strpos($htmlContent, '{CHART_ITEMS_BAR}') !== false)
-            $vars['CHART_ITEMS_BAR'] = $this->generateQuickChart('bar', 'items');
+        foreach ($charts as $tag => $config) {
+            if (strpos($htmlContent, $tag) !== false) {
+                $vars[str_replace(['{', '}'], '', $tag)] = $this->generateQuickChart($config[0], $config[1]);
+            }
+        }
 
         return $vars;
     }
@@ -251,13 +267,19 @@ class PdfRenderingService
 
     protected function replaceVariables($html)
     {
-        foreach ($this->variables as $key => $value) {
+        $vars = $this->context ? $this->context->all() : $this->variables;
+
+        foreach ($vars as $key => $value) {
             // Logic keys starting with _raw are internal, don't expose them unless requested specifically
             if (strpos($key, '_raw_') === 0) {
                 continue;
             }
 
-            $html = str_replace('{' . $key . '}', (string) $value, $html);
+            // Convert null to empty string, and handle numeric/string values
+            $displayValue = (string) ($value ?? '');
+
+            // Support both {key}, { key }, and encoded %7Bkey%7D (common in attributes after sanitizer)
+            $html = str_replace(['{' . $key . '}', '{ ' . $key . ' }', '%7B' . $key . '%7D', '%7B%20' . $key . '%20%7D'], $displayValue, $html);
         }
 
         return $html;
@@ -266,42 +288,51 @@ class PdfRenderingService
     protected function parseConditionals($html, $extraVars = [])
     {
         // Merge extra vars for local scope (e.g. section variables)
-        $scopeVars = array_merge($this->variables, $extraVars);
+        // If context exists, use it, otherwise fall back to array merge for backward compat or limited scope
+        $scopeVars = $this->context ? $this->context->merge($extraVars)->all() : array_merge($this->variables, $extraVars);
 
         // 1. Specific IF_NOT logic matches first
-        // {IF_NOT_variable}...{END_IF}
-        $html = preg_replace_callback('/\{IF_NOT_([a-zA-Z0-9_]+)\}(.*?)\{END_IF\}/s', function ($matches) use ($scopeVars) {
+        // {IF_NOT_variable}...{ENDIF}
+        $html = preg_replace_callback('/\{(?:IF_NOT_|%7BIF_NOT_)([a-zA-Z0-9_]+)(?:\s*\}|%7D)(.*?)\{(?:\s*ENDIF\s*|\s*END_IF\s*|%7BENDIF%7D|%7BEND_IF%7D)\}/si', function ($matches) use ($scopeVars) {
             $key = $matches[1];
             $content = $matches[2];
 
             $checkKey = '_raw_' . $key;
             $val = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
 
+            $isTrue = !empty($val) && $val != 0;
             if (isset($scopeVars['_raw_' . $key])) {
                 $val = $scopeVars['_raw_' . $key];
                 $isTrue = $val > 0;
-            } else {
-                $isTrue = !empty($val) && $val != 0;
             }
 
             return !$isTrue ? $content : '';
         }, $html);
 
-        // 2. Generic IF logic: {IF_variable}...{END_IF}
-        $html = preg_replace_callback('/\{IF_([a-zA-Z0-9_]+)\}(.*?)\{END_IF\}/s', function ($matches) use ($scopeVars) {
+        // 2. Generic IF logic with comparison support: {IF_variable}...{ENDIF} or {IF_variable == 0}...{ENDIF}
+        $html = preg_replace_callback('/\{(?:IF_|%7BIF_)([a-zA-Z0-9_]+)(?:\s*(==|!=|>=|<=|>|<)\s*([a-zA-Z0-9_]+))?(?:\s*\}|%7D)(.*?)\{(?:\s*ENDIF\s*|\s*END_IF\s*|%7BENDIF%7D|%7BEND_IF%7D)\}/si', function ($matches) use ($scopeVars) {
             $key = $matches[1];
-            $content = $matches[2];
+            $operator = $matches[2] ?? null;
+            $compareValue = $matches[3] ?? null;
+            $content = $matches[4];
 
-            // For convenience, map common keys to their raw counterparts if valid
             $checkKey = '_raw_' . $key;
-            $val = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
+            $actualValue = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
 
-            // Determine truthiness
-            $isTrue = !empty($val) && $val != 0;
-
-            if (isset($scopeVars['_raw_' . $key])) {
-                $val = $scopeVars['_raw_' . $key];
-                $isTrue = $val > 0;
+            if (!$operator) {
+                $isTrue = !empty($actualValue) && $actualValue != 0;
+                if (isset($scopeVars['_raw_' . $key])) {
+                    $isTrue = (float) $scopeVars['_raw_' . $key] > 0;
+                }
+            } else {
+                // Handle equality comparison specifically for "== 0"
+                if ($operator === '==') {
+                    $isTrue = (string) $actualValue == (string) $compareValue;
+                } elseif ($operator === '!=') {
+                    $isTrue = (string) $actualValue != (string) $compareValue;
+                } else {
+                    $isTrue = false; // Fallback for complex ops
+                }
             }
 
             return $isTrue ? $content : '';
@@ -312,11 +343,14 @@ class PdfRenderingService
 
     protected function parseSections($html)
     {
+        // Support encoded LOOP_SECTIONS tag and whitespace
+        $pattern = '/\{(?:\s*LOOP_SECTIONS\s*|%7BLOOP_SECTIONS%7D)\}(.*?)\{(?:\s*END_LOOP_SECTIONS\s*|\s*END_LOOP\s*|%7BEND_LOOP_SECTIONS%7D|%7BEND_LOOP%7D)\}/si';
+
         if ($this->estimate->type !== 'room_based') {
-            return preg_replace('/\{LOOP_SECTIONS\}.*?\{END_LOOP_SECTIONS\}/s', '', $html);
+            return preg_replace($pattern, '', $html);
         }
 
-        return preg_replace_callback('/\{LOOP_SECTIONS\}(.*?)\{END_LOOP_SECTIONS\}/s', function ($matches) {
+        return preg_replace_callback($pattern, function ($matches) {
             $sectionBlock = $matches[1];
             $renderedSections = '';
 
@@ -332,10 +366,13 @@ class PdfRenderingService
                 // Process Section Conditionals (before replacements)
                 $sectionHtml = $this->parseConditionals($sectionHtml, $sectionVars);
 
-                $sectionHtml = str_replace('{section_name}', $section->name, $sectionHtml);
-                $sectionHtml = str_replace('{section_subtotal}', number_format($section->subtotal ?? 0, 2), $sectionHtml);
+                $sectionHtml = str_replace(['{section_name}', '{ section_name }'], $section->name, $sectionHtml);
+                // Use standardized Model accessor for consistency
+                $formattedTotal = number_format($section->total, 2);
+                $sectionHtml = str_replace(['{section_subtotal}', '{ section_subtotal }'], $formattedTotal, $sectionHtml);
+                $sectionHtml = str_replace(['{section_total}', '{ section_total }'], $formattedTotal, $sectionHtml);
 
-                $sectionHtml = preg_replace_callback('/\{LOOP_ITEMS\}(.*?)\{END_LOOP\}/s', function ($itemMatches) use ($section) {
+                $sectionHtml = preg_replace_callback('/\{(?:\s*LOOP_ITEMS\s*|%7BLOOP_ITEMS%7D)\}(.*?)\{(?:\s*END_LOOP\s*|%7BEND_LOOP%7D)\}/si', function ($itemMatches) use ($section) {
                     $itemBlock = $itemMatches[1];
 
                     return $this->renderItems($itemBlock, $section->items);
@@ -350,7 +387,7 @@ class PdfRenderingService
 
     protected function parseLoops($html)
     {
-        return preg_replace_callback('/\{LOOP_ITEMS\}(.*?)\{END_LOOP\}/s', function ($matches) {
+        return preg_replace_callback('/\{(?:\s*LOOP_ITEMS\s*|%7BLOOP_ITEMS%7D)\}(.*?)\{(?:\s*END_LOOP\s*|%7BEND_LOOP%7D)\}/si', function ($matches) {
             $block = $matches[1];
             $items = $this->estimate->type === 'room_based'
                 ? $this->estimate->sections->flatMap->items
@@ -404,68 +441,50 @@ class PdfRenderingService
             }
 
             $itemHtml = $block;
-            $sizeMultiplier = 1;
-            if (!empty($item->formula) && in_array($item->formula, ['area', 'volume', 'area_lh', 'formula'])) {
-                $s = (float) ($item->size ?? 1);
-                if ($s > 0)
-                    $sizeMultiplier = $s;
+
+            $optionsHtml = '';
+            if (!empty($item->options) && is_array($item->options)) {
+                $parts = [];
+                foreach ($item->options as $option) {
+                    $parts[] = ($option['name'] ?? '') . ': ' . ($option['value'] ?? '');
+                }
+                if (!empty($parts)) {
+                    $optionsHtml = '<div style="font-size: 0.85em; color: #475569; margin-top: 2px;">' . implode(' | ', $parts) . '</div>';
+                }
             }
+
             $itemVars = [
                 '{item_name}' => $item->name,
-                '{item_description}' => $item->description ?? '',
+                '{item_description}' => ($item->description ?? '') . $optionsHtml,
+                '{item_options}' => $optionsHtml,
                 '{item_image}' => $itemImageHtml,
                 '{item_quantity}' => $item->quantity + 0,
                 '{item_unit}' => $item->unit_type,
                 '{item_unit_full}' => ($item->unitType ? $item->unitType->name . ': ' : '') . $item->unit_type,
                 '{item_price}' => number_format($item->unit_price, 2),
-                '{item_subtotal}' => number_format($item->unit_price * $item->quantity * $sizeMultiplier, 2),
+                '{item_subtotal}' => number_format($item->calculated_subtotal, 2),
                 '{item_tax_1_percent}' => $item->tax_1 + 0,
-                '{item_tax_2_percent}' => 0,
-                '{item_tax_percent}' => $item->tax_1 + 0,
+                '{item_tax_2_percent}' => $item->tax_2 + 0,
+                '{item_tax_percent}' => ($item->tax_1 + 0) + ($item->tax_2 + 0),
                 '{item_total}' => number_format($item->total, 2),
                 '{item_comments}' => $commentsHtml,
                 '{item_size}' => $item->size ?? '',
-                '{item_unit_configuration}' => $this->formatUnitConfiguration($item),
+                '{item_unit_configuration}' => $item->unit_configuration,
             ];
 
             foreach ($itemVars as $key => $value) {
-                $itemHtml = str_replace($key, $value, $itemHtml);
+                // Support both {key}, { key }, and encoded %7Bkey%7D
+                $strippedKey = trim($key, '{} ');
+                $itemHtml = str_replace([
+                    '{' . $strippedKey . '}',
+                    '{ ' . $strippedKey . ' }',
+                    '%7B' . $strippedKey . '%7D'
+                ], $value, $itemHtml);
             }
             $renderedItems .= $itemHtml;
         }
 
         return $renderedItems;
-    }
-
-    protected function formatUnitConfiguration($item)
-    {
-        $parts = [];
-        if (!empty($item->length))
-            $parts[] = 'L: ' . ($item->length + 0);
-        if (!empty($item->width))
-            $parts[] = 'W: ' . ($item->width + 0);
-        if (!empty($item->height))
-            $parts[] = 'H: ' . ($item->height + 0);
-
-        if (empty($parts)) {
-            return '';
-        }
-
-        // Auto-detect label if formula is missing or generic
-        $formula = $item->formula;
-        if (empty($formula) || $formula === 'fixed') {
-            $formula = (count($parts) === 3) ? 'volume' : 'area';
-        }
-
-        $label = ucfirst($formula);
-        $config = $label . ' (' . implode(' x ', $parts) . ')';
-
-        // Add the unit (e.g. Sqft, Cum) if present to complete the "unit configuration"
-        if (!empty($item->unit_type)) {
-            $config .= ' ' . $item->unit_type;
-        }
-
-        return $config;
     }
 
     /**
@@ -510,78 +529,16 @@ class PdfRenderingService
 
     public static function getAvailableVariables()
     {
-        return [
-            'Estimate Details' => [
-                'estimate_number' => 'The unique estimate number (e.g. EST-001)',
-                'estimate_title' => 'Title or project name of the estimate',
-                'estimate_date' => 'Date the estimate was created',
-                'expiry_date' => 'Expiration date of the estimate',
-                'status' => 'Current status (Draft, Sent, Accepted, etc)',
-                'currency' => 'Currency symbol/code (e.g. $)',
-            ],
-            'Financials' => [
-                'subtotal' => 'Estimate subtotal (formatted)',
-                'discount_total' => 'Total discount amount (formatted)',
-                'tax_total' => 'Total tax amount (formatted)',
-                'grand_total' => 'Final total amount (formatted)',
-            ],
-            'Client Info' => [
-                'client_name' => 'Name of the client',
-                'client_email' => 'Client email address',
-                'client_address' => 'Client physical address',
-                'client_id' => 'System ID for the client',
-            ],
-            'Company Info' => [
-                'company_name' => 'Your company legal name',
-                'company_email' => 'Your company email',
-                'company_phone' => 'Your company phone',
-                'company_address' => 'Your company street address',
-                'company_city' => 'Your company city',
-                'company_logo' => 'Company logo image tag',
-                'estimator_name' => 'Name of the person who created the estimate',
-                'estimator_email' => 'Email of the estimator',
-            ],
-            'Notes & Terms' => [
-                'client_note' => 'Notes visible to client',
-                'terms' => 'Terms and conditions text',
-                'admin_note' => 'Internal admin notes (careful exposing this)',
-            ],
-            'Items Loop' => [
-                'LOOP_ITEMS' => 'Start of items loop block',
-                'END_LOOP' => 'End of items loop block',
-                'item_name' => 'Name of the line item',
-                'item_description' => 'Description of the item',
-                'item_image' => 'Image of the item (if available)',
-                'item_size' => 'Size of the item',
-                'item_unit_configuration' => 'Formula and dimensions (e.g. Area (L: 10 x W: 5))',
-                'item_quantity' => 'Quantity',
-                'item_unit' => 'Unit type (e.g., hrs, pcs)',
-                'item_unit_full' => 'Full unit name if available',
-                'item_price' => 'Unit price',
-                'item_subtotal' => 'Price * Quantity',
-                'item_tax_1_percent' => 'Tax 1 Rate',
-                'item_tax_2_percent' => 'Tax 2 Rate',
-                'item_tax_percent' => 'Total tax rate for item',
-                'item_total' => 'Total line cost including tax',
-                'item_comments' => 'Formatted HTML block of item comments',
-            ],
-            'Sections (Room Based)' => [
-                'LOOP_SECTIONS' => 'Start of section loop (for room-based estimates)',
-                'END_LOOP_SECTIONS' => 'End of section loop (Required for nesting)',
-                'section_name' => 'Name of the section/room',
-                'section_subtotal' => 'Subtotal for the section',
-            ],
-            'Logic Blocks' => [
-                'IF_variable' => 'Show block if variable is true/present',
-                'IF_NOT_variable' => 'Show block if variable is false/empty',
-                'END_IF' => 'End of IF block',
-                'CHART_ROOMS' => 'Image URL for room distribution chart (Room-based only)',
-                'CHART_SECTIONS_PIE' => 'Pie chart of section subtotals',
-                'CHART_SECTIONS_BAR' => 'Bar chart of section subtotals',
-                'CHART_ITEMS_PIE' => 'Pie chart of top items by cost',
-                'CHART_ITEMS_BAR' => 'Bar chart of top items by cost',
-            ],
-        ];
+        $registry = \App\Services\Pdf\VariableRegistry::all();
+        $grouped = [];
+
+        foreach ($registry as $key => $def) {
+            $category = $def['category'] ?? 'General';
+            // Format: variable_name => Description
+            $grouped[$category][$key] = $def['description'];
+        }
+
+        return $grouped;
     }
 
     protected function resolveCacheKey(Estimate $estimate, PdfTemplate $template)

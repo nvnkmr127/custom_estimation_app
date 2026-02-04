@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Master Professional Estimate</title>
+    <style>
+        /* 
+         * DESIGN SYSTEM & BASE STYLES
+         * Optimized for DOMPDF compatibility
+         */
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #1f2937;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+            background-color: #ffffff;
+        }
+
+        /* Layout Utilities */
+        .container {
+            padding: 20pt;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        .uppercase {
+            text-transform: uppercase;
+        }
+
+        /* Page Break Controls */
+        .avoid-break {
+            page-break-inside: avoid;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        /* Colors & Branding */
+        .text-primary {
+            color: var(--primary-color);
+        }
+
+        .text-secondary {
+            color: var(--secondary-color);
+        }
+
+        .bg-gray-soft {
+            background-color: #f8fafc;
+        }
+
+        .border-gray-light {
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Card System */
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 15pt;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background-color: #f8fafc;
+            padding: 10pt 15pt;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .card-body {
+            padding: 12pt 15pt;
+        }
+
+        /* Status Badge */
+        .badge {
+            display: inline-block;
+            padding: 3pt 8pt;
+            border-radius: 12pt;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Items Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .items-table th {
+            text-align: left;
+            padding: 8pt 10pt;
+            background-color: #f1f5f9;
+            color: #475569;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .items-table td {
+            padding: 10pt;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+
+        /* Signature Area */
+        .signature-line {
+            border-bottom: 1px solid #94a3b8;
+            margin-top: 40pt;
+            margin-bottom: 5pt;
+        }
+
+        /* Chart Placeholder styling */
+        .chart-container {
+            text-align: center;
+            padding: 15pt;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 15pt;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <!-- 1. HEADER SECTION -->
+        <table class="w-full" style="margin-bottom: 25pt;">
+            <tr>
+                <td style="width: 50%; vertical-align: top;">
+                    <div style="margin-bottom: 10pt;">
+                        {company_logo}
+                    </div>
+                    <h1 style="font-size: 24pt; margin: 0; color: var(--primary-color); line-height: 1;">
+                        {estimate_title}</h1>
+                    <p style="font-size: 14pt; color: #64748b; margin: 5pt 0 0 0;">#{estimate_number}</p>
+                </td>
+                <td style="width: 50%; text-align: right; vertical-align: top;">
+                    <div style="margin-bottom: 15pt;">
+                        <span class="badge">{status}</span>
+                    </div>
+                    <div style="font-size: 10pt; color: #475569;">
+                        <strong>Date:</strong> {estimate_date}<br>
+                        <strong>Expires:</strong> {expiry_date}
+                    </div>
+                    <div style="margin-top: 15pt;">
+                        <p style="margin:0; font-size: 10pt; color: #64748b; text-transform: uppercase;">Total
+                            Investment</p>
+                        <p style="margin:0; font-size: 28pt; font-weight: bold; color: var(--primary-color);">
+                            {grand_total}</p>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 2. CLIENT & COMPANY INFO -->
+        <table class="w-full" style="margin-bottom: 20pt;">
+            <tr>
+                <!-- Client Info Card -->
+                <td style="width: 48%; vertical-align: top;">
+                    <div class="card">
+                        <div class="card-header">
+                            <span
+                                style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold;">Client
+                                Information</span>
+                        </div>
+                        <div class="card-body">
+                            <p style="font-size: 14px; font-weight: bold; margin: 0 0 5pt 0;">{client_name}</p>
+                            <table class="w-full">
+                                <tr>
+                                    <td style="width: 20px; vertical-align: top; padding-bottom: 4pt;"><span
+                                            style="color: #94a3b8;">📧</span></td>
+                                    <td style="padding-bottom: 4pt; color: #475569;">{client_email}</td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 20px; vertical-align: top; padding-bottom: 4pt;"><span
+                                            style="color: #94a3b8;">📞</span></td>
+                                    <td style="padding-bottom: 4pt; color: #475569;">{client_phone}</td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 20px; vertical-align: top;"><span
+                                            style="color: #94a3b8;">📍</span></td>
+                                    <td style="color: #475569;">{client_address}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </td>
+                <td style="width: 4%;"></td> <!-- Spacer -->
+                <!-- Company Info Card -->
+                <td style="width: 48%; vertical-align: top;">
+                    <div class="card">
+                        <div class="card-header">
+                            <span
+                                style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold;">From</span>
+                        </div>
+                        <div class="card-body">
+                            <p style="font-size: 14px; font-weight: bold; margin: 0 0 5pt 0;">{company_name}</p>
+                            <p style="color: #475569; margin:0;">
+                                {company_address}<br>
+                                {company_email} | {company_phone}
+                            </p>
+                            <p style="margin-top: 10pt; font-size: 11px; color: #64748b;">
+                                <strong>Estimator:</strong> {estimator_name}
+                            </p>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 3. PROJECT SUMMARY & CHARTS -->
+        {IF_room_based}
+        <div class="avoid-break">
+            <h2
+                style="font-size: 14pt; margin-bottom: 10pt; border-left: 4pt solid var(--secondary-color); padding-left: 10pt;">
+                Investment Distribution</h2>
+            <table class="w-full">
+                <tr>
+                    <td style="width: 50%; vertical-align: top;">
+                        <div class="chart-container">
+                            <img src="{CHART_SECTIONS_PIE}" style="max-width: 100%; height: auto; width: 300px;">
+                            <p style="font-size: 9px; color: #94a3b8; margin-top: 5pt;">Cost distribution by project
+                                area</p>
+                        </div>
+                    </td>
+                    <td style="width: 50%; vertical-align: top;">
+                        <div class="chart-container">
+                            <img src="{CHART_ITEMS_BAR}" style="max-width: 100%; height: auto; width: 300px;">
+                            <p style="font-size: 9px; color: #94a3b8; margin-top: 5pt;">Key investment items</p>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        {ENDIF}
+
+        <!-- 4. ROOM / SECTION LOOP -->
+        {IF_room_based}
+        {LOOP_SECTIONS}
+        <div class="avoid-break" style="margin-bottom: 25pt;">
+            <table class="w-full" style="background-color: var(--primary-color); border-radius: 6pt 6pt 0 0;">
+                <tr>
+                    <td style="padding: 10pt 15pt; color: #ffffff;">
+                        <span style="font-size: 16pt; font-weight: bold;">{section_name}</span>
+                    </td>
+                    <td style="padding: 10pt 15pt; text-align: right; color: #ffffff;">
+                        <span style="font-size: 10pt; opacity: 0.8; text-transform: uppercase;">Area Total:</span>
+                        <span style="font-size: 14pt; font-weight: bold; margin-left: 5pt;">{section_total}</span>
+                    </td>
+                </tr>
+            </table>
+
+            <table class="items-table w-full border-gray-light" style="border-top: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 60pt;">Image</th>
+                        <th>Item Details</th>
+                        <th class="text-center" style="width: 80pt;">Qty/Units</th>
+                        <th class="text-right" style="width: 80pt;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {LOOP_ITEMS}
+                    <tr>
+                        <td class="text-center">
+                            {item_image}
+                        </td>
+                        <td>
+                            <div style="font-size: 12px; font-weight: bold; color: #1e293b;">{item_name}</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 2pt;">{item_description}</div>
+                            <div
+                                style="font-size: 9px; color: var(--secondary-color); margin-top: 4pt; font-style: italic;">
+                                {item_unit_configuration}
+                            </div>
+                            {item_comments}
+                        </td>
+                        <td class="text-center">
+                            <span style="font-weight: bold;">{item_quantity}</span><br>
+                            <span style="font-size: 10px; color: #94a3b8;">{item_unit}</span>
+                        </td>
+                        <td class="text-right">
+                            <div style="font-size: 13px; font-weight: bold; color: #1e293b;">{item_total}</div>
+                            <div style="font-size: 10px; color: #94a3b8;">{item_price} / {item_unit}</div>
+                        </td>
+                    </tr>
+                    {END_LOOP}
+                </tbody>
+            </table>
+        </div>
+        {END_LOOP_SECTIONS}
+        {ENDIF}
+
+        <!-- 5. FLAT ITEMS LIST (If not room-based) -->
+        {IF_room_based == 0}
+        <div class="card avoid-break">
+            <div class="card-header bg-primary" style="background-color: var(--primary-color); border: none;">
+                <span style="color: #ffffff; font-size: 12px; text-transform: uppercase; font-weight: bold;">Scope of
+                    Work Items</span>
+            </div>
+            <table class="items-table w-full">
+                <thead>
+                    <tr>
+                        <th style="width: 50pt;">Image</th>
+                        <th>Item Details</th>
+                        <th class="text-center" style="width: 60pt;">Qty</th>
+                        <th class="text-right" style="width: 80pt;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {LOOP_ITEMS}
+                    <tr>
+                        <td class="text-center">{item_image}</td>
+                        <td>
+                            <div style="font-size: 12px; font-weight: bold;">{item_name}</div>
+                            <div style="font-size: 11px; color: #64748b;">{item_description}</div>
+                            <div style="font-size: 9px; color: #94a3b8; font-style: italic;">{item_unit_configuration}
+                            </div>
+                            {item_comments}
+                        </td>
+                        <td class="text-center">{item_quantity}</td>
+                        <td class="text-right font-bold">{item_total}</td>
+                    </tr>
+                    {END_LOOP}
+                </tbody>
+            </table>
+        </div>
+        {ENDIF}
+
+        <!-- 6. TOTALS & SUMMARY -->
+        <table class="w-full avoid-break" style="margin-top: 20pt;">
+            <tr>
+                <!-- Notes Column -->
+                <td style="width: 55%; vertical-align: top; padding-right: 25pt;">
+                    {IF_has_client_note}
+                    <div style="margin-bottom: 20pt;">
+                        <h3
+                            style="font-size: 11pt; color: #475569; border-bottom: 1px solid #e2e8f0; padding-bottom: 5pt; margin-bottom: 8pt;">
+                            Client Notes</h3>
+                        <div style="color: #64748b; font-size: 11px;">{client_note}</div>
+                    </div>
+                    {ENDIF}
+
+                    {IF_has_terms}
+                    <div>
+                        <h3
+                            style="font-size: 11pt; color: #475569; border-bottom: 1px solid #e2e8f0; padding-bottom: 5pt; margin-bottom: 8pt;">
+                            Terms & Conditions</h3>
+                        <div style="color: #94a3b8; font-size: 10px; line-height: 1.6;">{terms}</div>
+                    </div>
+                    {ENDIF}
+                </td>
+
+                <!-- Totals Column -->
+                <td style="width: 45%; vertical-align: top;">
+                    <div class="card" style="border-width: 2px; border-color: var(--primary-color);">
+                        <div class="card-body" style="padding: 0;">
+                            {dynamic_totals}
+                        </div>
+                    </div>
+
+                    <!-- Signatures -->
+                    <div style="margin-top: 30pt;">
+                        <table class="w-full">
+                            <tr>
+                                <td style="width: 45%;">
+                                    <div class="signature-line"></div>
+                                    <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">Client
+                                        Approval</span>
+                                </td>
+                                <td style="width: 10%;"></td>
+                                <td style="width: 45%;">
+                                    <div class="signature-line"></div>
+                                    <span style="font-size: 9px; color: #94a3b8; text-transform: uppercase;">Company
+                                        Representative</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+    </div>
+
+</body>
+
+</html>

@@ -62,7 +62,7 @@ class PortalController extends Controller
         $htmlContent = '';
         if ($template) {
             $service = new \App\Services\PdfRenderingService;
-            $htmlContent = $service->render($template, $estimate);
+            $htmlContent = $service->render($template, $estimate, true);
         }
 
         return view('portal.estimates.show', compact('estimate', 'htmlContent'));
@@ -238,6 +238,18 @@ class PortalController extends Controller
     {
         if (!$request->hasValidSignature()) {
             abort(403, 'Invalid or expired link.');
+        }
+
+        // Restrict access based on status (Consistency with show method)
+        $allowedStatuses = [
+            Estimate::STATUS_SENT,
+            Estimate::STATUS_ACCEPTED,
+            Estimate::STATUS_DECLINED,
+            Estimate::STATUS_EXPIRED
+        ];
+
+        if (!in_array($estimate->status, $allowedStatuses)) {
+            abort(403, 'This estimate is not available for download.');
         }
 
         // Reuse PDF Service

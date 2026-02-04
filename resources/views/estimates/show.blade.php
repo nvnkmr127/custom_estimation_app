@@ -57,361 +57,24 @@
                                     <div class="bg-slate-50 px-4 py-2 border-b border-slate-200 font-medium text-sm text-slate-700">
                                         {{ $section->name }}
                                     </div>
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-[800px] w-full divide-y divide-slate-200">
-                                        <thead class="bg-slate-50/50">
-                                            <tr>
-                                                @if(!$section->is_package)
-                                                <th
-                                                    class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
-                                                    Image
-                                                </th>
-                                                <th
-                                                    class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
-                                                    Unit Configuration</th>
-                                                @endif
-                                                <th
-                                                    class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                    Item Details</th>
-                                                @if(!$section->is_package)
-                                                <th
-                                                    class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
-                                                    Size</th>
-                                                @endif
-                                                <th
-                                                    class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
-                                                    Price</th>
-                                                @if(!$section->is_package)
-                                                <th
-                                                    class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
-                                                    Quantity</th>
-                                                @endif
-                                                <th
-                                                    class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
-                                                    Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-200 bg-white">
-                                            @foreach($section->items as $item)
-                                                <tr class="group hover:bg-slate-50/30 transition-colors">
-                                                    @if(!$section->is_package)
-                                                    <td class="px-3 py-4 align-middle">
-                                                        @if($item->product && $item->product->images->isNotEmpty())
-                                                            <div class="relative h-12 w-12 mx-auto">
-                                                                <img src="{{ $item->product->images->first()->image_path }}"
-                                                                    class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
-                                                            </div>
-                                                        @else
-                                                            <div
-                                                                class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
-                                                                <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
-                                                                    stroke="currentColor">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2"
-                                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                </svg>
-                                                            </div>
-                                                        @endif
-                                                    </td>
-                                                    <td
-                                                        class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                        <div class="font-bold text-slate-900">
-                                                            @if($item->unitType) {{ $item->unitType->name }} @endif
-                                                        </div>
-                                                        <div
-                                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                            {{ $item->unit_type }}
-                                                        </div>
-                                                    </td>
-                                                    @endif
-                                                    <td
-                                                        class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                        <div class="min-w-0">
-                                                            <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
-                                                            @if($item->description)
-                                                                <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
-                                                                    {{ $item->description }}
-                                                                </div>
-                                                            @endif
-                                                            @if(!empty($item->options) && is_array($item->options))
-                                                                <div class="flex flex-wrap gap-1.5">
-                                                                    @foreach($item->options as $option)
-                                                                        <span
-                                                                            class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-                                                                            {{ $option['name'] }}: {{ $option['value'] }}
-                                                                        </span>
-                                                                    @endforeach
-                                                                </div>
-                                                            @endif
-                                                            @if($item->internal_note)
-                                                                <div
-                                                                    class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
-                                                                    <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24"
-                                                                        stroke="currentColor">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                                            stroke-width="2"
-                                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                    </svg>
-                                                                    <span
-                                                                        class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
-                                                                        Note:</span> {{ $item->internal_note }}
-                                                                </div>
-                                                            @endif
-                                                            <!-- Item Comment Button -->
-                                                            <button
-                                                                @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->values()) }})"
-                                                                type="button"
-                                                                class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
-                                                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                                                                    stroke="currentColor">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2"
-                                                                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                                                </svg>
-                                                                @if($item->comments->isNotEmpty())
-                                                                    {{ $item->comments->count() }}
-                                                                    {{ Str::plural('Comment', $item->comments->count()) }}
-                                                                @else
-                                                                    Comment
-                                                                @endif
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                    @if(!$section->is_package)
-                                                    <td
-                                                        class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                        @if($item->length || $item->width || $item->height)
-                                                            <div class="flex flex-col gap-1.5">
-                                                                @if($item->length)
-                                                                    <div class="flex items-center gap-2">
-                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }} ft</span>
-                                                                    </div>
-                                                                @endif
-                                                                @if($item->width)
-                                                                    <div class="flex items-center gap-2">
-                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }} ft</span>
-                                                                    </div>
-                                                                @endif
-                                                                @if($item->height)
-                                                                    <div class="flex items-center gap-2">
-                                                                        <span class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                                        <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }} ft</span>
-                                                                    </div>
-                                                                @endif
-
-                                                                @if($item->size > 0)
-                                                                    <div class="mt-2 pt-2 border-t border-slate-100">
-                                                                        <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
-                                                                            {{ ucfirst(str_replace('_', ' ', $item->formula ?: ( $item->height > 0 ? 'volume' : 'area' ))) }}
-                                                                        </div>
-                                                                        <div class="text-xs font-bold text-slate-900">
-                                                                            {{ number_format($item->size, 2) }} <span class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                @endif
-                                                            </div>
-                                                        @else
-                                                            <span class="text-xs text-slate-400">-</span>
-                                                        @endif
-                                                    </td>
-                                                    @endif
-                                                    <td
-                                                        class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                                                        {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
-                                                    </td>
-                                                    @if(!$section->is_package)
-                                                    <td
-                                                        class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                        <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
-                                                    </td>
-                                                    @endif
-                                                    <td
-                                                        class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                                                        {{ $estimate->currency }} {{ number_format($item->total, 2) }}
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                        <tfoot class="bg-slate-50">
-                                            <tr>
-                                                <td colspan="{{ $section->is_package ? '1' : '3' }}" class="px-3 py-2 text-xs font-medium text-slate-500 text-right">
-                                                    Room Total</td>
-                                                <td class="px-3 py-2 text-xs font-bold text-slate-900 text-right">
-                                                    {{ number_format($section->items->sum('total'), 2) }}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                        </table>
-                                    </div>
+                                    <x-estimates.items-table 
+                                        :estimate="$estimate" 
+                                        :items="$section->items" 
+                                        :is-package="$section->is_package" 
+                                        :show-room-total="true" 
+                                        :section-total="$section->total" 
+                                    />
                                 </div>
                             @endforeach
                         </div>
                     @else
                         <!-- Standard Items Table -->
-                        <div class="overflow-x-auto">
-                            <table class="min-w-[800px] w-full divide-y divide-slate-200">
-                            <thead class="bg-slate-50/50">
-                                <tr>
-                                    <th
-                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
-                                        Image
-                                    </th>
-                                    <th
-                                        class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
-                                        Unit Configuration</th>
-                                    <th
-                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                        Item Details</th>
-                                    <th
-                                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
-                                        Size</th>
-                                    <th
-                                        class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
-                                        Price</th>
-                                    <th
-                                        class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
-                                        Quantity</th>
-                                    <th
-                                        class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
-                                        Total</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-200 bg-white">
-                                @foreach($estimate->items as $item)
-                                                                            <tr class="group hover:bg-slate-50/30 transition-colors">
-                                                                                <td class="px-3 py-4 align-middle">
-                                                                                    @if($item->product && $item->product->images->isNotEmpty())
-                                                                                        <div class="relative h-12 w-12 mx-auto">
-                                                                                            <img src="{{ $item->product->images->first()->image_path }}"
-                                                                                                class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
-                                                                                        </div>
-                                                                                    @else
-                                                                                        <div
-                                                                                            class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
-                                                                                            <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
-                                                                                                stroke="currentColor">
-                                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                                            </svg>
-                                                                                        </div>
-                                                                                    @endif
-                                                                                </td>
-                                                                                <td
-                                                                                    class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                                    <div class="font-bold text-slate-900">
-                                                                                        @if($item->unitType) {{ $item->unitType->name }} @endif
-                                                                                    </div>
-                                                                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                                                        {{ $item->unit_type }}
-                                                                                    </div>
-                                                                                </td>
-                                                                                <td class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                                    <div class="min-w-0">
-                                                                                        <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
-                                                                                        @if($item->description)
-                                                                                            <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
-                                                                                                {{ $item->description }}
-                                                                                            </div>
-                                                                                        @endif
-                                                                                        @if(!empty($item->options) && is_array($item->options))
-                                                                                            <div class="flex flex-wrap gap-1.5">
-                                                                                                @foreach($item->options as $option)
-                                                                                                    <span
-                                                                                                        class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-                                                                                                        {{ $option['name'] }}: {{ $option['value'] }}
-                                                                                                    </span>
-                                                                                                @endforeach
-                                                                                            </div>
-                                                                                        @endif
-                                                                                        @if($item->internal_note)
-                                                                                            <div
-                                                                                                class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
-                                                                                                <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24"
-                                                                                                    stroke="currentColor">
-                                                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                                                </svg>
-                                                                                                <span
-                                                                                                    class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
-                                                                                                    Note:</span> {{ $item->internal_note }}
-                                                                                            </div>
-                                                                                        @endif
-                                                                                        <!-- Item Comment Button -->
-                                                                                        <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->map(function ($c) {
-                                    $c->formatted_date = $c->created_at->format('M j, g:i A');
-                                    return $c; })->values()) }})" type="button"
-                                                                                            class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
-                                                                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                                                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                                                                            </svg>
-                                                                                            @if($item->comments->isNotEmpty())
-                                                                                                {{ $item->comments->count() }}
-                                                                                                {{ Str::plural('Comment', $item->comments->count()) }}
-                                                                                            @else
-                                                                                                Comment
-                                                                                            @endif
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </td>
-                                                                                <td class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                                    @if($item->length || $item->width || $item->height)
-                                                                                        <div class="flex flex-col gap-1.5">
-                                                                                            @if($item->length)
-                                                                                                <div class="flex items-center gap-2">
-                                                                                                    <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }} ft</span>
-                                                                                                </div>
-                                                                                            @endif
-                                                                                            @if($item->width)
-                                                                                                <div class="flex items-center gap-2">
-                                                                                                    <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }} ft</span>
-                                                                                                </div>
-                                                                                            @endif
-                                                                                            @if($item->height)
-                                                                                                <div class="flex items-center gap-2">
-                                                                                                    <span class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }} ft</span>
-                                                                                                </div>
-                                                                                            @endif
-
-                                                                                            @if($item->size > 0)
-                                                                                                <div class="mt-2 pt-2 border-t border-slate-100">
-                                                                                                    <div class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
-                                                                                                        {{ ucfirst(str_replace('_', ' ', $item->formula ?: ( $item->height > 0 ? 'volume' : 'area' ))) }}
-                                                                                                    </div>
-                                                                                                    <div class="text-xs font-bold text-slate-900">
-                                                                                                        {{ number_format($item->size, 2) }} <span class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            @endif
-                                                                                        </div>
-                                                                                    @else
-                                                                                        <span class="text-xs text-slate-400">-</span>
-                                                                                    @endif
-                                                                                </td>
-                                                                                <td
-                                                                                    class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                                                                                    {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
-                                                                                </td>
-                                                                                <td
-                                                                                    class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                                    <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
-                                                                                </td>
-                                                                                <td
-                                                                                    class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                                                                                    {{ $estimate->currency }} {{ number_format($item->total, 2) }}
-                                                                                </td>
-                                                                            </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                        </div>
+                        <!-- Standard Items Table -->
+                        <x-estimates.items-table 
+                            :estimate="$estimate" 
+                            :items="$estimate->items" 
+                            :is-package="false" 
+                        />
                     @endif
 
                     <!-- Totals -->
@@ -423,7 +86,7 @@
                                     {{ number_format($estimate->subtotal, 2) }}
                                 </dd>
                             </div>
-                            @if($estimate->total_tax > 0)
+                            @if($estimate->has_tax)
                                 <div class="flex justify-between text-slate-600">
                                     <dt>Tax</dt>
                                     <dd class="font-medium">{{ $estimate->currency }}
@@ -431,7 +94,7 @@
                                     </dd>
                                 </div>
                             @endif
-                            @if($estimate->discount_total > 0)
+                            @if($estimate->has_discount)
                                 <div class="flex justify-between text-red-600">
                                     <dt>Discount</dt>
                                     <dd class="font-medium">- {{ $estimate->currency }}
@@ -439,7 +102,7 @@
                                     </dd>
                                 </div>
                             @endif
-                            @if($estimate->transportation_charges > 0)
+                            @if($estimate->has_transportation)
                                 <div class="flex justify-between text-slate-600">
                                     <dt>Transportation</dt>
                                     <dd class="font-medium">{{ $estimate->currency }}
@@ -458,17 +121,17 @@
             </div>
 
             <!-- Notes -->
-            @if($estimate->client_note || $estimate->terms)
+            @if($estimate->has_client_note || $estimate->has_terms)
                 <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 sm:p-6">
                     <h3 class="text-base font-semibold text-slate-900 mb-4">Terms & Notes</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        @if($estimate->client_note)
+                        @if($estimate->has_client_note)
                             <div>
                                 <h4 class="text-sm font-medium text-slate-700 mb-2">Client Note</h4>
                                 <p class="text-sm text-slate-500 leading-relaxed">{{ $estimate->client_note }}</p>
                             </div>
                         @endif
-                        @if($estimate->terms)
+                        @if($estimate->has_terms)
                             <div>
                                 <h4 class="text-sm font-medium text-slate-700 mb-2">Terms & Conditions</h4>
                                 <p class="text-sm text-slate-500 leading-relaxed whitespace-pre-wrap">{{ $estimate->terms }}</p>
@@ -543,6 +206,7 @@
                         <div class="font-medium text-slate-900">{{ $estimate->client->name ?? 'Unknown Client' }}</div>
                         <div class="text-sm text-slate-500">{{ $estimate->client->email ?? '' }}</div>
                         <div class="text-sm text-slate-500">{{ $estimate->client->phone ?? '' }}</div>
+                        <div class="text-xs text-slate-400 mt-1">{{ $estimate->client->address ?? '' }}</div>
                     </div>
                 </div>
                 <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400">

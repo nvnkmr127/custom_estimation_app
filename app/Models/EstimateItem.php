@@ -75,4 +75,76 @@ class EstimateItem extends Model
     {
         return $this->morphMany(EstimateComment::class, 'commentable');
     }
+
+    /**
+     * Get the formatted label for the formula (e.g., "Area", "Volume").
+     */
+    public function getFormulaLabelAttribute()
+    {
+        $formula = $this->formula;
+
+        if (empty($formula) || $formula === 'fixed') {
+            // Auto-detect based on dimensions if not explicitly set
+            // If height is present and > 0, assume Volume, otherwise Area (if L or W exist)
+            if ($this->height > 0) {
+                return 'Volume';
+            }
+            if ($this->length > 0 || $this->width > 0) {
+                return 'Area';
+            }
+            return ''; // No dimensions
+        }
+
+        return ucfirst(str_replace('_', ' ', $formula));
+    }
+
+    /**
+     * Get the full formatted configuration string.
+     * Example: "Area (L: 10 x W: 5) Sqft"
+     */
+    public function getUnitConfigurationAttribute()
+    {
+        $parts = [];
+        // Use +0 to remove trailing zeros from decimals (e.g. 10.00 -> 10)
+        if (!empty($this->length))
+            $parts[] = 'L: ' . ($this->length + 0);
+        if (!empty($this->width))
+            $parts[] = 'W: ' . ($this->width + 0);
+        if (!empty($this->height))
+            $parts[] = 'H: ' . ($this->height + 0);
+
+        if (empty($parts)) {
+            return '';
+        }
+
+        $label = $this->formula_label;
+        $dims = implode(' x ', $parts);
+
+        $config = "{$label} ({$dims})";
+
+        if (!empty($this->unit_type)) {
+            $config .= ' ' . $this->unit_type;
+        }
+
+        return $config;
+    }
+
+    /**
+     * Get the calculated subtotal (Base Price * Quantity * Size Multiplier) before tax.
+     */
+    public function getCalculatedSubtotalAttribute()
+    {
+        $sizeMultiplier = 1;
+
+        // If the item uses a formula (Area, Volume, etc.), the Size is a multiplier
+        // Otherwise (Fixed, etc.), Size acts as 1 (or is ignored)
+        if (!empty($this->formula) && in_array($this->formula, ['area', 'volume', 'area_lh', 'formula'])) {
+            $s = (float) ($this->size ?? 1);
+            if ($s > 0) {
+                $sizeMultiplier = $s;
+            }
+        }
+
+        return $this->unit_price * $this->quantity * $sizeMultiplier;
+    }
 }

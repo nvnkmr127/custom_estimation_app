@@ -91,9 +91,29 @@
                         const iframe = document.getElementById('portalPreviewIframe');
                         if (iframe) {
                             iframe.srcdoc = {!! json_encode($htmlContent) !!};
-                            // Auto-resize
-                            iframe.onload = function () {
-                                iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 'px';
+
+                            const resizeIframe = () => {
+                                try {
+                                    const body = iframe.contentWindow.document.body;
+                                    const html = iframe.contentWindow.document.documentElement;
+                                    const height = Math.max(
+                                        body.scrollHeight, body.offsetHeight,
+                                        html.clientHeight, html.scrollHeight, html.offsetHeight
+                                    );
+                                    iframe.style.height = (height + 50) + 'px';
+                                } catch (e) {
+                                    console.warn('Iframe resize failed', e);
+                                }
+                            };
+
+                            iframe.onload = () => {
+                                setTimeout(resizeIframe, 100);
+                                // Polling for any dynamic content/images that might load later
+                                let checks = 0;
+                                const interval = setInterval(() => {
+                                    resizeIframe();
+                                    if (++checks > 5) clearInterval(interval);
+                                }, 500);
                             };
                         }
                     });

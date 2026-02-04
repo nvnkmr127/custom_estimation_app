@@ -86,6 +86,39 @@ class Estimate extends Model
     ];
 
     /**
+     * Standardized Visibility Rules
+     */
+    public function getHasDiscountAttribute()
+    {
+        return $this->discount_total > 0;
+    }
+
+    public function getHasTaxAttribute()
+    {
+        return $this->total_tax > 0;
+    }
+
+    public function getHasTransportationAttribute()
+    {
+        return $this->transportation_charges > 0;
+    }
+
+    public function getHasClientNoteAttribute()
+    {
+        return !empty($this->client_note);
+    }
+
+    public function getHasAdminNoteAttribute()
+    {
+        return !empty($this->admin_note);
+    }
+
+    public function getHasTermsAttribute()
+    {
+        return !empty($this->terms);
+    }
+
+    /**
      * The attributes that should be hidden for arrays.
      *
      * @var array
@@ -135,6 +168,8 @@ class Estimate extends Model
         'last_viewed_at' => 'datetime',
     ];
 
+
+
     public function sections()
     {
         return $this->hasMany(EstimateSection::class)->orderBy('order_index');
@@ -142,7 +177,7 @@ class Estimate extends Model
 
     public function items()
     {
-        return $this->hasMany(EstimateItem::class);
+        return $this->hasMany(EstimateItem::class)->orderBy('order_index');
     }
 
     public function getPublicUrlAttribute()
