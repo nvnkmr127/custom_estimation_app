@@ -26,6 +26,17 @@ class EstimateSection extends Model
         return $this->items->sum('total');
     }
 
+    public function getIsPackageAttribute()
+    {
+        return $this->section_type === 'package' || $this->is_package_legacy;
+    }
+
+    public function getIsPackageLegacyAttribute()
+    {
+        // Fallback for any legacy check if needed, or just return false
+        return false;
+    }
+
     public function estimate()
     {
         return $this->belongsTo(Estimate::class);

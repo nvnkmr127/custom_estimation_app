@@ -30,10 +30,14 @@ class PdfRenderingService
 
         $html = $template->html_content;
 
-        // 1. Logic Blocks (Conditionals & Loops)
+        // 1. Handle Loops First
+        // This expands the content and evaluates loop-specific conditionals (item_is_package, has_width, etc.)
+        $html = $this->parseSections($html);
+        $html = $this->parseLoops($html);
+
+        // 2. Handle Conditionals Last
+        // This handles global flags that wrap loops (IF_room_based, has_discount, etc.)
         $html = $this->parseConditionals($html);
-        $html = $this->parseSections($html); // Handle Sections First
-        $html = $this->parseLoops($html);    // Handle remaining global loops
 
         // 2. Variable Replacement
         $html = $this->replaceVariables($html);
@@ -287,56 +291,69 @@ class PdfRenderingService
 
     protected function parseConditionals($html, $extraVars = [])
     {
-        // Merge extra vars for local scope (e.g. section variables)
-        // If context exists, use it, otherwise fall back to array merge for backward compat or limited scope
         $scopeVars = $this->context ? $this->context->merge($extraVars)->all() : array_merge($this->variables, $extraVars);
 
-        // 1. Specific IF_NOT logic matches first
-        // {IF_NOT_variable}...{ENDIF}
-        $html = preg_replace_callback('/\{(?:IF_NOT_|%7BIF_NOT_)([a-zA-Z0-9_]+)(?:\s*\}|%7D)(.*?)\{(?:\s*ENDIF\s*|\s*END_IF\s*|%7BENDIF%7D|%7BEND_IF%7D)\}/si', function ($matches) use ($scopeVars) {
-            $key = $matches[1];
-            $content = $matches[2];
+        // We use a loop to handle nested conditionals from the inside out
+        // However, regex-based nesting is tricky. A better approach for this simplified parser 
+        // is to repeatedly evaluate the "innermost" tags.
 
-            $checkKey = '_raw_' . $key;
-            $val = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
+        $iterations = 0;
+        $maxIterations = 5; // Support up to 5 levels of nesting
 
-            $isTrue = !empty($val) && $val != 0;
-            if (isset($scopeVars['_raw_' . $key])) {
-                $val = $scopeVars['_raw_' . $key];
-                $isTrue = $val > 0;
-            }
+        while ($iterations < $maxIterations) {
+            $originalHtml = $html;
 
-            return !$isTrue ? $content : '';
-        }, $html);
+            // 1. Specific IF_NOT logic (Innermost - looking for the nearest ENDIF)
+            $html = preg_replace_callback('/\{(?:IF_NOT_|%7BIF_NOT_)([a-zA-Z0-9_]+)(?:\s*\}|%7D)((?:(?!\{(?:IF|IF_NOT|ENDIF|END_IF)).)*?)\{(?:\s*ENDIF\s*|\s*END_IF\s*|%7BENDIF%7D|%7BEND_IF%7D)\}/si', function ($matches) use ($scopeVars) {
+                $key = $matches[1];
+                $content = $matches[2];
 
-        // 2. Generic IF logic with comparison support: {IF_variable}...{ENDIF} or {IF_variable == 0}...{ENDIF}
-        $html = preg_replace_callback('/\{(?:IF_|%7BIF_)([a-zA-Z0-9_]+)(?:\s*(==|!=|>=|<=|>|<)\s*([a-zA-Z0-9_]+))?(?:\s*\}|%7D)(.*?)\{(?:\s*ENDIF\s*|\s*END_IF\s*|%7BENDIF%7D|%7BEND_IF%7D)\}/si', function ($matches) use ($scopeVars) {
-            $key = $matches[1];
-            $operator = $matches[2] ?? null;
-            $compareValue = $matches[3] ?? null;
-            $content = $matches[4];
-
-            $checkKey = '_raw_' . $key;
-            $actualValue = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
-
-            if (!$operator) {
-                $isTrue = !empty($actualValue) && $actualValue != 0;
-                if (isset($scopeVars['_raw_' . $key])) {
-                    $isTrue = (float) $scopeVars['_raw_' . $key] > 0;
+                if (!array_key_exists($key, $scopeVars) && !array_key_exists('_raw_' . $key, $scopeVars)) {
+                    return $matches[0]; // Unknown key in this scope, skip
                 }
-            } else {
-                // Handle equality comparison specifically for "== 0"
-                if ($operator === '==') {
-                    $isTrue = (string) $actualValue == (string) $compareValue;
-                } elseif ($operator === '!=') {
-                    $isTrue = (string) $actualValue != (string) $compareValue;
+
+                $checkKey = '_raw_' . $key;
+                $val = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
+                $isTrue = !empty($val) && $val != 0;
+
+                return !$isTrue ? $content : '';
+            }, $html);
+
+            // 2. Generic IF logic (Innermost)
+            $html = preg_replace_callback('/\{(?:IF_|%7BIF_)([a-zA-Z0-9_]+)(?:\s*(==|!=|>=|<=|>|<)\s*([a-zA-Z0-9_]+))?(?:\s*\}|%7D)((?:(?!\{(?:IF|IF_NOT|ENDIF|END_IF)).)*?)\{(?:\s*ENDIF\s*|\s*END_IF\s*|%7BENDIF%7D|%7BEND_IF%7D)\}/si', function ($matches) use ($scopeVars) {
+                $key = $matches[1];
+                $operator = $matches[2] ?? null;
+                $compareValue = $matches[3] ?? null;
+                $content = $matches[4];
+
+                if (!array_key_exists($key, $scopeVars) && !array_key_exists('_raw_' . $key, $scopeVars)) {
+                    return $matches[0];
+                }
+
+                $checkKey = '_raw_' . $key;
+                $actualValue = isset($scopeVars[$checkKey]) ? $scopeVars[$checkKey] : ($scopeVars[$key] ?? null);
+
+                if (!$operator) {
+                    $isTrue = !empty($actualValue) && $actualValue != 0;
+                    if (isset($scopeVars['_raw_' . $key])) {
+                        $isTrue = (float) $scopeVars['_raw_' . $key] > 0;
+                    }
                 } else {
-                    $isTrue = false; // Fallback for complex ops
+                    if ($operator === '==')
+                        $isTrue = (string) $actualValue == (string) $compareValue;
+                    elseif ($operator === '!=')
+                        $isTrue = (string) $actualValue != (string) $compareValue;
+                    else
+                        $isTrue = false;
                 }
-            }
 
-            return $isTrue ? $content : '';
-        }, $html);
+                return $isTrue ? $content : '';
+            }, $html);
+
+            if ($html === $originalHtml)
+                break;
+            $iterations++;
+        }
 
         return $html;
     }
@@ -344,7 +361,7 @@ class PdfRenderingService
     protected function parseSections($html)
     {
         // Support encoded LOOP_SECTIONS tag and whitespace
-        $pattern = '/\{(?:\s*LOOP_SECTIONS\s*|%7BLOOP_SECTIONS%7D)\}(.*?)\{(?:\s*END_LOOP_SECTIONS\s*|\s*END_LOOP\s*|%7BEND_LOOP_SECTIONS%7D|%7BEND_LOOP%7D)\}/si';
+        $pattern = '/\{(?:\s*LOOP_SECTIONS\s*|%7BLOOP_SECTIONS%7D)\}(.*?)\{(?:\s*END_LOOP_SECTIONS\s*|%7BEND_LOOP_SECTIONS%7D)\}/si';
 
         if ($this->estimate->type !== 'room_based') {
             return preg_replace($pattern, '', $html);
@@ -375,7 +392,7 @@ class PdfRenderingService
                 $sectionHtml = preg_replace_callback('/\{(?:\s*LOOP_ITEMS\s*|%7BLOOP_ITEMS%7D)\}(.*?)\{(?:\s*END_LOOP\s*|%7BEND_LOOP%7D)\}/si', function ($itemMatches) use ($section) {
                     $itemBlock = $itemMatches[1];
 
-                    return $this->renderItems($itemBlock, $section->items);
+                    return $this->renderItems($itemBlock, $section->items, $section);
                 }, $sectionHtml);
 
                 $renderedSections .= $sectionHtml;
@@ -384,20 +401,23 @@ class PdfRenderingService
             return $renderedSections;
         }, $html);
     }
-
     protected function parseLoops($html)
     {
         return preg_replace_callback('/\{(?:\s*LOOP_ITEMS\s*|%7BLOOP_ITEMS%7D)\}(.*?)\{(?:\s*END_LOOP\s*|%7BEND_LOOP%7D)\}/si', function ($matches) {
             $block = $matches[1];
-            $items = $this->estimate->type === 'room_based'
-                ? $this->estimate->sections->flatMap->items
-                : $this->estimate->items;
 
+            // If we are room-based, this global loop should probably be empty or only show loose items
+            // However, the Elite template uses it for the non-room-based fallback.
+            if ($this->estimate->type === 'room_based') {
+                return ''; // Let parseSections handle it
+            }
+
+            $items = $this->estimate->items;
             return $this->renderItems($block, $items);
         }, $html);
     }
 
-    protected function renderItems($block, $items)
+    protected function renderItems($block, $items, $parentSection = null)
     {
         $renderedItems = '';
         foreach ($items as $item) {
@@ -470,7 +490,27 @@ class PdfRenderingService
                 '{item_comments}' => $commentsHtml,
                 '{item_size}' => $item->size ?? '',
                 '{item_unit_configuration}' => $item->unit_configuration,
+                '{item_length}' => $item->length + 0,
+                '{item_width}' => $item->width + 0,
+                '{item_height}' => $item->height + 0,
+                '{item_formula_label}' => $item->formula_label,
+                '{item_unit_category}' => $item->unitType->name ?? '',
+                '{item_unit_type}' => $item->unit_type ?? '',
+                'item_is_package' => ($itemIsPackage = ($item->is_package || ($item->section && $item->section->is_package) || ($parentSection && $parentSection->is_package))) ? 1 : 0,
+                '_raw_item_is_package' => $itemIsPackage ? 1 : 0,
+                'section_is_package' => ($parentSection && $parentSection->is_package) ? 1 : 0,
+                '_raw_section_is_package' => ($parentSection && $parentSection->is_package) ? 1 : 0,
+                'has_length' => (!$itemIsPackage && $item->length > 0) ? 1 : 0,
+                'has_width' => (!$itemIsPackage && $item->width > 0) ? 1 : 0,
+                'has_height' => (!$itemIsPackage && $item->height > 0) ? 1 : 0,
+                'has_size' => (!$itemIsPackage && $item->size > 0) ? 1 : 0,
+                'has_dimensions' => (!$itemIsPackage && ($item->length > 0 || $item->width > 0 || $item->height > 0)) ? 1 : 0,
+                'has_any_dimensions' => (!$itemIsPackage && ($item->length > 0 || $item->width > 0 || $item->height > 0 || $item->size > 0)) ? 1 : 0,
+                'has_image' => ($item->product && $item->product->images->isNotEmpty()) ? 1 : 0,
             ];
+
+            // Process Item Conditionals
+            $itemHtml = $this->parseConditionals($itemHtml, $itemVars);
 
             foreach ($itemVars as $key => $value) {
                 // Support both {key}, { key }, and encoded %7Bkey%7D

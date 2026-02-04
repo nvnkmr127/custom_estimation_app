@@ -1,47 +1,11 @@
 <x-portal-layout>
-    <div class="sm:mx-auto sm:w-full sm:max-w-[50rem]" x-data="{
-        showCommentModal: false,
-        showDeclineModal: false,
-        showAcceptModal: false,
-        signaturePad: null,
-
-        init() {
-            this.$watch('showAcceptModal', value => {
-                if (value) {
-                    this.$nextTick(() => {
-                        var canvas = document.getElementById('signature-pad');
-                        if (canvas && typeof SignaturePad !== 'undefined') {
-                            this.signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
-                            window.addEventListener('resize', () => this.resizeCanvas(canvas));
-                            this.resizeCanvas(canvas);
-                        }
-                    });
-                }
-            });
-        },
-
-        resizeCanvas(canvas) {
-             if (!this.signaturePad) return;
-             var ratio =  Math.max(window.devicePixelRatio || 1, 1);
-             canvas.width = canvas.offsetWidth * ratio;
-             canvas.height = canvas.offsetHeight * ratio;
-             canvas.getContext('2d').scale(ratio, ratio);
-             this.signaturePad.clear();
-        },
-
-        openCommentModal() {
-            this.showCommentModal = true;
-            this.$nextTick(() => {
-                const container = this.$refs.commentsContainer;
-                if (container) container.scrollTop = container.scrollHeight;
-            });
-        }
-    }">
+    <div class="max-w-4xl mx-auto" x-data="portalShow()">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
         <!-- Alerts -->
         @if(session('success'))
-            <div class="mb-6 rounded-md bg-green-50 p-4 border border-green-200">
+            <div class="mb-6 rounded-lg bg-green-50 p-4 border border-green-200 animate-fade-in-down">
                 <div class="flex">
                     <div class="shrink-0">
                         <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -57,377 +21,419 @@
             </div>
         @endif
 
-        @if($errors->any())
-            <div class="mb-6 rounded-md bg-red-50 p-4 border border-red-200">
-                <div class="ml-3">
-                    <h3 class="text-sm font-medium text-red-800">There were errors with your submission</h3>
-                    <div class="mt-2 text-sm text-red-700">
-                        <ul role="list" class="list-disc pl-5 space-y-1">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        @endif
-
         @if($estimate->status === 'accepted')
-            <div class="mb-6 rounded-md bg-emerald-50 p-4 border border-emerald-200 text-center">
-                <p class="text-lg font-semibold text-emerald-800">✓ This estimate has been accepted.</p>
-            </div>
-        @elseif($estimate->status === 'declined')
-            <div class="mb-6 rounded-md bg-rose-50 p-4 border border-rose-200 text-center">
-                <p class="text-lg font-semibold text-rose-800">✗ This estimate has been declined.</p>
+            <div class="mb-6 rounded-lg bg-emerald-50 p-6 border border-emerald-100 text-center shadow-sm">
+                <p class="text-xl font-bold text-emerald-800 mb-1">🎉 Estimate Accepted</p>
+                <p class="text-emerald-600 text-sm">Thank you for your business. We are excited to get started!</p>
             </div>
         @endif
 
+        <!-- Main Invoice/Estimate Container -->
+        <div
+            class="bg-white shadow-xl rounded-2xl overflow-hidden mb-8 border border-slate-100 transition-all duration-300 hover:shadow-2xl">
 
-        <div class="w-full bg-slate-50 relative">
-            @if(isset($htmlContent) && $htmlContent)
-                <iframe id="portalPreviewIframe" class="w-full h-[800px] border-0"></iframe>
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const iframe = document.getElementById('portalPreviewIframe');
-                        if (iframe) {
-                            iframe.srcdoc = {!! json_encode($htmlContent) !!};
-
-                            const resizeIframe = () => {
-                                try {
-                                    const body = iframe.contentWindow.document.body;
-                                    const html = iframe.contentWindow.document.documentElement;
-                                    const height = Math.max(
-                                        body.scrollHeight, body.offsetHeight,
-                                        html.clientHeight, html.scrollHeight, html.offsetHeight
-                                    );
-                                    iframe.style.height = (height + 50) + 'px';
-                                } catch (e) {
-                                    console.warn('Iframe resize failed', e);
-                                }
-                            };
-
-                            iframe.onload = () => {
-                                setTimeout(resizeIframe, 100);
-                                // Polling for any dynamic content/images that might load later
-                                let checks = 0;
-                                const interval = setInterval(() => {
-                                    resizeIframe();
-                                    if (++checks > 5) clearInterval(interval);
-                                }, 500);
-                            };
-                        }
-                    });
-                </script>
-            @else
-                <div class="p-12 text-center text-slate-500">
-                    <p>Preview not available.</p>
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 sm:p-10 relative overflow-hidden">
+                <!-- Decorative Circle -->
+                <div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl">
                 </div>
-            @endif
-        </div>
 
-        <!-- Actions Footer -->
-        @if(!in_array($estimate->status, ['accepted', 'declined']))
-            <div
-                class="bg-slate-50 px-4 py-4 sm:px-6 flex flex-col sm:flex-row justify-end gap-3 border-t border-slate-200">
-
-                <!-- Download PDF -->
-                <a href="{{ URL::signedRoute('portal.download', $estimate) }}"
-                    class="w-full justify-center inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto">
-                    <svg class="h-4 w-4 mr-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Download PDF
-                </a>
-
-                <!-- Add Review / Questions -->
-                <button type="button" @click="openCommentModal()"
-                    class="w-full justify-center inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:w-auto">
-                    <svg class="h-4 w-4 mr-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
-                    Add Review / Question
-                </button>
-
-                <!-- Trigger Decline -->
-                <button type="button" @click="showDeclineModal = true"
-                    class="w-full justify-center inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-red-50 sm:w-auto">
-                    Decline
-                </button>
-
-                <!-- Trigger Accept -->
-                <button type="button" @click="showAcceptModal = true"
-                    class="w-full justify-center inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-auto">
-                    Accept Estimate
-                </button>
-
-                <!-- Decline Modal -->
-                <div x-show="showDeclineModal" class="relative z-10" aria-labelledby="modal-title" role="dialog"
-                    aria-modal="true" style="display: none;">
-                    <div x-show="showDeclineModal" x-transition:enter="ease-out duration-300"
-                        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                        x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
-                        x-transition:leave-end="opacity-0"
-                        class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"></div>
-
-                    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                            <div x-show="showDeclineModal" x-transition:enter="ease-out duration-300"
-                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                                x-transition:leave="ease-in duration-200"
-                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                                <form action="{{ URL::signedRoute('portal.decline', $estimate) }}" method="POST">
-                                    @csrf
-                                    <div>
-                                        <div
-                                            class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                                            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24"
-                                                stroke-width="1.5" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                                            </svg>
-                                        </div>
-                                        <div class="mt-3 text-center sm:mt-5">
-                                            <h3 class="text-base font-semibold leading-6 text-slate-900" id="modal-title">
-                                                Decline Estimate</h3>
-                                            <div class="mt-2">
-                                                <p class="text-sm text-slate-500">Please provide a reason for declining
-                                                    so we can better serve you.</p>
-                                                <textarea name="client_notes" rows="3"
-                                                    class="mt-3 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                                    placeholder="Reason for declining..." required></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                                        <button type="submit"
-                                            class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 sm:col-start-2">Decline</button>
-                                        <button type="button" @click="showDeclineModal = false"
-                                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:col-start-1 sm:mt-0">Cancel</button>
-                                    </div>
-                                </form>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center relative z-10 gap-6">
+                    <div>
+                        <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Estimate
+                            #{{ $estimate->estimate_number }}</div>
+                        <h1 class="text-3xl sm:text-4xl font-black tracking-tight">{{ config('app.name') }}</h1>
+                        <div class="mt-4 text-sm text-slate-300 leading-relaxed">
+                            <p>Prepared for <span
+                                    class="text-white font-bold">{{ $estimate->client->name ?? 'Valued Client' }}</span>
+                            </p>
+                            <p class="opacity-70">{{ $estimate->estimate_date->format('M d, Y') }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                            <div class="text-xs text-slate-300 uppercase tracking-wider font-bold mb-1">Grand Total
                             </div>
+                            <div class="text-2xl sm:text-3xl font-black">{{ $estimate->currency ?? 'INR' }}
+                                {{ number_format($estimate->grand_total, 2) }}</div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Accept Modal -->
-                <div x-show="showAcceptModal" class="relative z-10" aria-labelledby="modal-title" role="dialog"
-                    aria-modal="true" style="display: none;">
-                    <div x-show="showAcceptModal" x-transition:enter="ease-out duration-300"
-                        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                        x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
-                        x-transition:leave-end="opacity-0"
-                        class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"></div>
-
-                    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                            <div x-show="showAcceptModal" x-transition:enter="ease-out duration-300"
-                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                                x-transition:leave="ease-in duration-200"
-                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                                <form action="{{ URL::signedRoute('portal.accept', $estimate) }}" method="POST"
-                                    @submit.prevent="if(signaturePad.isEmpty()){ alert('Please provide a signature.'); return false; } document.getElementById('signature_input').value = signaturePad.toDataURL(); $el.submit();">
-                                    @csrf
-                                    <input type="hidden" name="signature" id="signature_input">
-                                    <div>
-                                        <div
-                                            class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
-                                            <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24"
-                                                stroke-width="1.5" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                            </svg>
-                                        </div>
-                                        <div class="mt-3 text-center sm:mt-5">
-                                            <h3 class="text-base font-semibold leading-6 text-slate-900" id="modal-title">
-                                                Accept Estimate</h3>
-                                            <div class="mt-2">
-                                                <p class="text-sm text-slate-500 mb-4">Please sign below to accept this
-                                                    estimate.</p>
-                                                <div class="border border-slate-300 rounded-md bg-slate-50 touch-none">
-                                                    <canvas id="signature-pad"
-                                                        class="w-full h-40 rounded-md cursor-crosshair"></canvas>
-                                                </div>
-                                                <button type="button" @click="signaturePad.clear()"
-                                                    class="text-xs text-red-600 mt-2 hover:underline">Clear
-                                                    Signature</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                                        <button type="submit"
-                                            class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:col-start-2">Sign
-                                            & Accept</button>
-                                        <button type="button" @click="showAcceptModal = false"
-                                            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:col-start-1 sm:mt-0">Cancel</button>
-                                    </div>
-                                </form>
-                            </div>
+            <!-- Dashboard / Graphs -->
+            <div class="p-6 sm:p-8 bg-slate-50 border-b border-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">Cost Breakdown</h3>
+                        <div class="h-48 relative">
+                            <canvas id="costBreakdownChart"></canvas>
                         </div>
                     </div>
-                </div>
-
-                <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-                @if(session('success') && \Illuminate\Support\Str::contains(session('success'), 'accepted'))
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            var duration = 3 * 1000;
-                            var animationEnd = Date.now() + duration;
-                            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-                            function randomInRange(min, max) {
-                                return Math.random() * (max - min) + min;
-                            }
-
-                            var interval = setInterval(function () {
-                                var timeLeft = animationEnd - Date.now();
-
-                                if (timeLeft <= 0) {
-                                    return clearInterval(interval);
-                                }
-
-                                var particleCount = 50 * (timeLeft / duration);
-                                // since particles fall down, start a bit higher than random
-                                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-                                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-                            }, 250);
-                        });
-                    </script>
-                @endif
-
-            </div>
-        @endif
-
-
-        <!-- Comment Modal -->
-        <div x-show="showCommentModal" class="relative z-50" style="display: none;">
-            <div x-show="showCommentModal" x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-                x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
-                x-transition:leave-end="opacity-0" class="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity">
-            </div>
-
-            <div class="fixed inset-0 z-50 w-screen overflow-y-auto">
-                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                    <div x-show="showCommentModal" x-transition:enter="ease-out duration-300"
-                        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                        x-transition:leave="ease-in duration-200"
-                        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                        class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-
-                        <div>
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-slate-900">
-                                    Comments on Estimate #{{ $estimate->estimate_number }}
-                                </h3>
-                                <button @click="showCommentModal = false" class="text-slate-400 hover:text-slate-500">
-                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="space-y-4">
+                        <div
+                            class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
+                            <div>
+                                <div class="text-xs text-slate-500 font-bold uppercase">Subtotal</div>
+                                <div class="text-lg font-bold text-slate-900">
+                                    {{ number_format($estimate->subtotal, 2) }}</div>
+                            </div>
+                            <div class="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                            </div>
+                        </div>
+                        @if($estimate->total_tax > 0)
+                            <div
+                                class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
+                                <div>
+                                    <div class="text-xs text-slate-500 font-bold uppercase">Total Tax</div>
+                                    <div class="text-lg font-bold text-slate-900">
+                                        {{ number_format($estimate->total_tax, 2) }}</div>
+                                </div>
+                                <div
+                                    class="h-8 w-8 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M6 18L18 6M6 6l12 12" />
+                                            d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                                     </svg>
-                                </button>
+                                </div>
                             </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
 
-                            <!-- Existing Comments -->
-                            <div x-ref="commentsContainer" class="max-h-64 overflow-y-auto mb-4 space-y-3">
-                                @if($estimate->comments->where('type', 'client')->isEmpty())
-                                    <div class="text-center py-4 text-slate-500">No comments yet. Be the first to comment!
-                                    </div>
-                                @else
-                                    @foreach($estimate->comments->where('type', 'client') as $comment)
-                                        <div class="bg-slate-50 rounded-lg p-3">
-                                            <div class="flex items-start justify-between">
-                                                <div class="flex-1">
-                                                    <p class="text-sm font-semibold text-slate-900">
-                                                        {{ $comment->client_name ?: ($comment->user ? $comment->user->name : 'Anonymous') }}
-                                                    </p>
-                                                    <p class="text-sm text-slate-700 mt-1">{{ $comment->comment }}</p>
-                                                    <p class="text-xs text-slate-500 mt-1">
-                                                        {{ $comment->created_at->format('M j, Y g:i A') }}
-                                                    </p>
+            <!-- Interactive Sections -->
+            <div class="p-6 sm:p-8 space-y-4">
+                <h2 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                        </path>
+                    </svg>
+                    Scope of Work
+                </h2>
+
+                @foreach($estimate->sections as $section)
+                    <div class="border border-slate-200 rounded-xl overflow-hidden transition-all duration-300"
+                        :class="activeSection === {{ $section->id }} ? 'ring-2 ring-indigo-500/20 shadow-lg' : 'hover:shadow-md'">
+
+                        <!-- Section Header -->
+                        <button @click="toggleSection({{ $section->id }})"
+                            class="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors cursor-pointer text-left">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 transition-transform duration-300"
+                                    :class="activeSection === {{ $section->id }} ? 'rotate-90' : ''">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-900">{{ $section->name }}</h3>
+                                    <p class="text-xs text-slate-500">{{ $section->items->count() }} Items</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-slate-900">{{ number_format($section->total, 2) }}</div>
+                            </div>
+                        </button>
+
+                        <!-- Section Content (Items) -->
+                        <div x-show="activeSection === {{ $section->id }}" x-collapse
+                            class="bg-slate-50/50 border-t border-slate-100">
+                            <div class="p-4 space-y-4">
+                                @foreach($section->items as $item)
+                                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-row items-start gap-4 transition-all hover:shadow-md group/item">
+                                        
+                                        <!-- Image Column (Fixed Width) -->
+                                        @php
+                                            $imageUrl = $item->product ? $item->product->primary_image_url : null;
+                                        @endphp
+                                        @if(!$section->is_package && $imageUrl)
+                                        <div class="w-16 h-16 sm:w-24 sm:h-24 bg-slate-50 rounded-lg shrink-0 overflow-hidden border border-slate-200 shadow-sm relative group-hover/item:shadow-md transition-all">
+                                                <img src="{{ $imageUrl }}" class="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110">
+                                        </div>
+                                        @endif
+
+                                        <!-- Content Grid -->
+                                        <div class="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-y-3 sm:gap-4 min-w-0">
+                                            
+                                            <!-- Main Details (Name, Desc) -->
+                                            <div class="sm:col-span-5">
+                                                <h4 class="font-bold text-slate-900 text-sm mb-1 group-hover/item:text-indigo-600 transition-colors">{{ $item->name }}</h4>
+                                                <div class="text-xs text-slate-500 leading-relaxed prose prose-sm max-w-none prose-p:my-0 prose-p:leading-relaxed">
+                                                    {!! $item->description !!}
                                                 </div>
-                                                @if($comment->type === 'internal')
-                                                    <span
-                                                        class="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                                                        Team Reply
-                                                    </span>
+                                                
+                                                <!-- Unit Type Badge if exists -->
+                                                 @if(!$section->is_package && $item->unit_type)
+                                                    <span class="inline-flex mt-2 px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-500 rounded uppercase tracking-wide">{{ $item->unit_type }}</span>
                                                 @endif
                                             </div>
 
-                                            <!-- Replies would go here if implemented in view -->
+                                            <!-- Configuration / Variants / Dims (Middle Col) -->
+                                            <div class="sm:col-span-4 flex flex-col sm:justify-center space-y-2">
+                                                <!-- Variants -->
+                                                @if($item->options && is_array($item->options) && count($item->options) > 0)
+                                                    <div class="flex flex-col gap-1.5 pl-0 sm:pl-3 sm:border-l-2 sm:border-slate-100">
+                                                        @foreach($item->options as $key => $option)
+                                                            @php
+                                                                $label = $key;
+                                                                $val = $option;
+                                                                
+                                                                // Handle structured options (e.g. [{"name": "Color", "value": "Blue"}])
+                                                                if (is_array($option) || is_object($option)) {
+                                                                    $opt = (array)$option;
+                                                                    if (isset($opt['name']) && isset($opt['value'])) {
+                                                                        $label = $opt['name'];
+                                                                        $val = $opt['value'];
+                                                                    } else {
+                                                                        // Fallback if structure is unknown
+                                                                        $val = json_encode($option);
+                                                                    }
+                                                                }
+                                                            @endphp
+                                                            <div class="flex flex-col leading-none">
+                                                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{{ str_replace('_', ' ', $label) }}</span>
+                                                                <span class="text-xs font-semibold text-slate-700">{{ $val }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
+                                                <!-- Dimensions -->
+                                                @if(!$section->is_package && ($item->length || $item->width || $item->height))
+                                                    <div class="flex flex-wrap gap-1.5 pl-0 sm:pl-3 sm:border-l-2 sm:border-slate-100 {{ ($item->options && count($item->options) > 0) ? '-mt-1' : '' }}">
+                                                        @if($item->length)<div class="px-1.5 py-0.5 border border-slate-200 rounded text-[10px] text-slate-500 bg-slate-50"><span class="font-bold text-slate-700">L:</span> {{ $item->length + 0 }}</div>@endif
+                                                        @if($item->width)<div class="px-1.5 py-0.5 border border-slate-200 rounded text-[10px] text-slate-500 bg-slate-50"><span class="font-bold text-slate-700">W:</span> {{ $item->width + 0 }}</div>@endif
+                                                        @if($item->height)<div class="px-1.5 py-0.5 border border-slate-200 rounded text-[10px] text-slate-500 bg-slate-50"><span class="font-bold text-slate-700">H:</span> {{ $item->height + 0 }}</div>@endif
+                                                    </div>
+                                                @endif
+                                            </div>
+
+                                            <!-- Price (Right Col) -->
+                                            <div class="sm:col-span-3 flex flex-row sm:flex-col justify-between sm:justify-center sm:items-end items-center mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-slate-50">
+                                                <!-- Mobile Label -->
+                                                <div class="sm:hidden text-xs text-slate-400 font-bold uppercase">Total</div>
+                                                
+                                                <div class="text-right">
+                                                    <div class="text-sm font-black text-slate-900">{{ number_format($item->total, 2) }}</div>
+                                                    <div class="text-xs text-slate-400 font-medium mt-0.5">{{ $item->quantity }} x {{ number_format($item->unit_price, 2) }}</div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    @endforeach
-                                @endif
-                            </div>
-
-                            <!-- New Comment Form -->
-                            <div class="border-t border-slate-200 pt-4">
-                                <form action="{{ URL::signedRoute('portal.comment', $estimate) }}" method="POST">
-                                    @csrf
-                                    <label class="block text-sm font-medium text-slate-900 mb-2">Add Your
-                                        Comment</label>
-                                    <textarea name="comment" rows="3" placeholder="Share your thoughts or questions..."
-                                        required
-                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{{ old('comment') }}</textarea>
-
-                                    <div class="grid grid-cols-2 gap-3 mt-3">
-                                        <input name="client_name" type="text" placeholder="Your name (Optional)"
-                                            value="{{ old('client_name') }}"
-                                            class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                        <input name="client_email" type="email" placeholder="Your email (Optional)"
-                                            value="{{ old('client_email') }}"
-                                            class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
                                     </div>
-
-                                    <div class="mt-4 flex justify-end gap-3">
-                                        <button @click="showCommentModal = false" type="button"
-                                            class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
-                                            Cancel
-                                        </button>
-                                        <button type="submit"
-                                            class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                                            Post Comment
-                                        </button>
-                                    </div>
-                                </form>
+                                @endforeach
                             </div>
                         </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Terms -->
+            @if($estimate->terms)
+                <div class="p-6 sm:p-8 border-t border-slate-100 bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Terms & Conditions</h3>
+                    <div class="prose prose-sm prose-slate max-w-none text-slate-600">
+                        {!! nl2br(e($estimate->terms)) !!}
+                    </div>
+                </div>
+            @endif
+
+        </div>
+
+        <!-- Sticky Mobile Actions -->
+        @if(!in_array($estimate->status, ['accepted', 'declined']))
+            <div
+                class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-3 z-30 sm:hidden">
+                <button @click="showDeclineModal = true"
+                    class="flex-1 py-3 text-red-600 font-bold text-sm bg-red-50 rounded-xl">Decline</button>
+                <button @click="showAcceptModal = true"
+                    class="flex-[2] py-3 bg-slate-900 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-500/30">Accept
+                    Estimate</button>
+            </div>
+        @endif
+
+        <!-- Desktop Actions -->
+        @if(!in_array($estimate->status, ['accepted', 'declined']))
+            <div class="hidden sm:flex justify-end gap-3 mb-10">
+                <a href="{{ URL::signedRoute('portal.download', $estimate) }}"
+                    class="px-4 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg font-semibold hover:bg-slate-50 transition-colors">Download
+                    PDF</a>
+                <button @click="showDeclineModal = true"
+                    class="px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-semibold transition-colors">Decline</button>
+                <button @click="showAcceptModal = true"
+                    class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-lg transition-all transform hover:-translate-y-0.5">Accept
+                    Estimate</button>
+            </div>
+        @endif
+
+        <!-- Modals -->
+        <!-- Decline Modal -->
+        <div x-show="showDeclineModal" class="relative z-50" style="display: none;">
+            <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" x-transition.opacity></div>
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div class="relative transform overflow-hidden rounded-2xl bg-white p-6 text-left shadow-xl transition-all sm:w-full sm:max-w-lg"
+                        @click.away="showDeclineModal = false">
+                        <form action="{{ URL::signedRoute('portal.decline', $estimate) }}" method="POST">
+                            @csrf
+                            <h3 class="text-lg font-bold text-slate-900">Decline Estimate</h3>
+                            <p class="text-sm text-slate-500 mt-2 mb-4">Please tell us why you are declining so we can
+                                improve.</p>
+                            <textarea name="client_notes" rows="3"
+                                class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500"
+                                required></textarea>
+                            <div class="mt-6 flex gap-3">
+                                <button type="button" @click="showDeclineModal = false"
+                                    class="flex-1 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-lg">Cancel</button>
+                                <button type="submit"
+                                    class="flex-1 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">Decline</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="mt-6 text-center text-xs text-slate-400">
-            &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
+        <!-- Accept Modal -->
+        <div x-show="showAcceptModal" class="relative z-50" style="display: none;">
+            <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" x-transition.opacity></div>
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div class="relative transform overflow-hidden rounded-2xl bg-white p-6 text-left shadow-xl transition-all sm:w-full sm:max-w-lg"
+                        @click.away="showAcceptModal = false">
+                        <form action="{{ URL::signedRoute('portal.accept', $estimate) }}" method="POST"
+                            @submit.prevent="if(signaturePad.isEmpty()){ alert('Please provide a signature.'); return false; } document.getElementById('signature_input').value = signaturePad.toDataURL(); $el.submit();">
+                            @csrf
+                            <input type="hidden" name="signature" id="signature_input">
+                            <h3 class="text-lg font-bold text-slate-900">Accept Estimate</h3>
+                            <p class="text-sm text-slate-500 mt-2 mb-4">Sign below to confirm your acceptance.</p>
+
+                            <div
+                                class="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 touch-none overflow-hidden relative">
+                                <canvas id="signature-pad" class="w-full h-48 cursor-crosshair"></canvas>
+                                <div class="absolute bottom-2 right-2 text-[10px] text-slate-400 pointer-events-none">
+                                    Sign Here</div>
+                            </div>
+                            <div class="flex justify-end mt-2">
+                                <button type="button" @click="signaturePad.clear()"
+                                    class="text-xs text-red-500 font-medium hover:underline">Clear Signature</button>
+                            </div>
+
+                            <div class="mt-6 flex gap-3">
+                                <button type="button" @click="showAcceptModal = false"
+                                    class="flex-1 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-lg">Cancel</button>
+                                <button type="submit"
+                                    class="flex-1 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 shadow-lg">Confirm
+                                    & Sign</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    <!-- Request Call FAB -->
-    @if(!in_array($estimate->status, ['accepted', 'declined']))
-        <div class="fixed bottom-6 right-6 z-40 animate-bounce-in">
+
+        <!-- Request Call FAB (Mobile Only) -->
+        <div class="fixed bottom-24 right-4 z-40 sm:hidden">
             <form action="{{ URL::signedRoute('portal.request-call', $estimate) }}" method="POST"
-                onsubmit="return confirm('Would you like us to call you about this estimate?');">
+                onsubmit="return confirm('Request a call?');">
                 @csrf
-                <button type="submit"
-                    class="flex items-center gap-2 bg-indigo-600 text-white rounded-full px-5 py-3 shadow-lg hover:bg-indigo-700 transition-all transform hover:scale-105 font-medium ring-4 ring-white">
-                    <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button type="submit" class="bg-indigo-600 text-white p-4 rounded-full shadow-xl shadow-indigo-500/40">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z">
                         </path>
                     </svg>
-                    <span>Request a Call</span>
                 </button>
             </form>
         </div>
-    @endif
+
+        <!-- Signature Pad Lib -->
+        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('portalShow', () => ({
+                    showCommentModal: false,
+                    showDeclineModal: false,
+                    showAcceptModal: false,
+                    signaturePad: null,
+                    activeSection: null, // For accordion
+                    labels: @json($estimate->sections->pluck('name')),
+                    totals: @json($estimate->sections->pluck('total')),
+
+                    init() {
+                        // Initialize Signature Pad
+                        this.$watch('showAcceptModal', value => {
+                            if (value) {
+                                this.$nextTick(() => {
+                                    var canvas = document.getElementById('signature-pad');
+                                    if (canvas && typeof SignaturePad !== 'undefined') {
+                                        this.signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
+                                        window.addEventListener('resize', () => this.resizeCanvas(canvas));
+                                        this.resizeCanvas(canvas);
+                                    }
+                                });
+                            }
+                        });
+
+                        // Initialize Charts
+                        this.initCharts();
+                    },
+
+                    resizeCanvas(canvas) {
+                        if (!this.signaturePad) return;
+                        var ratio = Math.max(window.devicePixelRatio || 1, 1);
+                        canvas.width = canvas.offsetWidth * ratio;
+                        canvas.height = canvas.offsetHeight * ratio;
+                        canvas.getContext('2d').scale(ratio, ratio);
+                        this.signaturePad.clear();
+                    },
+
+                    initCharts() {
+                        const ctx = document.getElementById('costBreakdownChart');
+                        if (ctx) {
+                            new Chart(ctx, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: this.labels,
+                                    datasets: [{
+                                        data: this.totals,
+                                        backgroundColor: [
+                                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'
+                                        ],
+                                        borderWidth: 0
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            position: 'right',
+                                            labels: {
+                                                usePointStyle: true,
+                                                font: { family: 'Inter', size: 11 }
+                                            }
+                                        }
+                                    },
+                                    cutout: '70%',
+                                }
+                            });
+                        }
+                    },
+
+                    toggleSection(id) {
+                        this.activeSection = this.activeSection === id ? null : id;
+                    }
+                }));
+            });
+        </script>
+    </div>
 </x-portal-layout>
