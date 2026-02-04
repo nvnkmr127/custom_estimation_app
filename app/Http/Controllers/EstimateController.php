@@ -277,7 +277,13 @@ class EstimateController extends Controller
             return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate created successfully.');
 
         } catch (\Exception $e) {
-            return back()->withInput()->withErrors(['error' => 'Failed to create estimate: ' . $e->getMessage()]);
+            \Illuminate\Support\Facades\Log::error('Estimate Creation Failed', [
+                'user_id' => auth()->id(),
+                'input' => \Illuminate\Support\Arr::except($validated, ['sections', 'items']), // Log non-heavy input
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withInput()->withErrors(['error' => 'Failed to create estimate. System error logged.']);
         }
     }
 
@@ -427,7 +433,13 @@ class EstimateController extends Controller
             return redirect()->route('estimates.show', $updatedEstimate)->with('success', $msg);
 
         } catch (\Exception $e) {
-            return back()->withInput()->withErrors(['error' => 'Failed to update estimate: ' . $e->getMessage()]);
+            \Illuminate\Support\Facades\Log::error('Estimate Update Failed', [
+                'estimate_id' => $estimate->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withInput()->withErrors(['error' => 'Failed to update estimate. System error logged.']);
         }
     }
 

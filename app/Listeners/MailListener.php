@@ -93,18 +93,25 @@ class MailListener implements ShouldQueue
         $estimate = $event->estimate;
         if ($estimate && $estimate->client && $estimate->client->email) {
             // Clients don't have accounts, so we always send instant emails for now.
-            $this->emailDispatcher->dispatch(
-                $estimate->client->email,
-                'New Estimate from ' . config('app.name') . ': #' . $estimate->estimate_number,
-                'emails.estimates.sent',
-                [
-                    'notifiable_name' => $estimate->client->name,
-                    'estimate_number' => $estimate->estimate_number,
-                    'total_amount' => number_format($estimate->grand_total, 2) . ' ' . $estimate->currency,
-                    'view_url' => $estimate->public_url,
-                    'pixel_url' => route('tracking.pixel', $estimate->id),
-                ]
-            );
+            $recipients = [$estimate->client->email];
+            if (!empty($estimate->client->secondary_email)) {
+                $recipients[] = $estimate->client->secondary_email;
+            }
+
+            foreach ($recipients as $recipient) {
+                $this->emailDispatcher->dispatch(
+                    $recipient,
+                    'New Estimate from ' . config('app.name') . ': #' . $estimate->estimate_number,
+                    'emails.estimates.sent',
+                    [
+                        'notifiable_name' => $estimate->client->name,
+                        'estimate_number' => $estimate->estimate_number,
+                        'total_amount' => number_format($estimate->grand_total, 2) . ' ' . $estimate->currency,
+                        'view_url' => $estimate->public_url,
+                        'pixel_url' => route('tracking.pixel', $estimate->id),
+                    ]
+                );
+            }
         }
     }
 

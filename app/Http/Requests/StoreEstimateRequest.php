@@ -42,6 +42,7 @@ class StoreEstimateRequest extends FormRequest
             'terms' => 'nullable|string',
             'pdf_theme' => 'nullable|string',
             'pdf_template_id' => 'nullable|exists:pdf_templates,id',
+            'layout_type' => 'nullable|string|in:modern,classic,simple',
             'coupon_code_id' => 'nullable|exists:coupon_codes,id',
             'type' => 'required|in:standard,room_based',
 

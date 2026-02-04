@@ -156,6 +156,12 @@
                                         Details</span>
                                     <p class="text-sm font-semibold text-slate-900" x-text="selectedClient?.name"></p>
                                     <p class="text-xs text-slate-600" x-text="selectedClient?.email"></p>
+                                    <div class="mt-1"
+                                        x-show="selectedClient?.secondary_email || selectedClient?.secondary_phone">
+                                        <p class="text-[10px] text-slate-400 font-medium">Secondary Contact:</p>
+                                        <p class="text-xs text-slate-600" x-text="selectedClient?.secondary_email"></p>
+                                        <p class="text-xs text-slate-600" x-text="selectedClient?.secondary_phone"></p>
+                                    </div>
                                 </div>
                                 <div x-show="selectedClient?.property_name || selectedClient?.property_address">
                                     <span
@@ -199,6 +205,16 @@
                     <div class="sm:col-span-2">
                         <x-input-label value="Estimate Date" required />
                         <x-text-input type="date" x-model="estimate.estimate_date" name="estimate_date" required />
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <x-input-label value="Layout Type" />
+                        <select name="layout_type" x-model="estimate.layout_type"
+                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                            <option value="modern">Modern</option>
+                            <option value="classic">Classic</option>
+                            <option value="simple">Simple</option>
+                        </select>
                     </div>
 
                     <div class="sm:col-span-2">

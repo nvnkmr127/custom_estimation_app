@@ -20,7 +20,8 @@ class ClientPolicy
      */
     public function view(User $user, Client $client): bool
     {
-        return $user->hasPermission('view_estimates');
+        // Allow if user can view estimates OR create them (needed for selecting client in form)
+        return $user->hasPermission('view_estimates') || $user->hasPermission('create_estimates');
     }
 
     /**

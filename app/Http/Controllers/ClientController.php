@@ -9,7 +9,7 @@ class ClientController extends Controller
 {
     public function __construct()
     {
-        $this->authorizeResource(Client::class, 'client');
+        // Manual authorization used instead of authorizeResource to support custom lookup logic
     }
 
     /**
@@ -17,6 +17,8 @@ class ClientController extends Controller
      */
     public function index()
     {
+        $this->authorize('viewAny', Client::class);
+
         $clients = Client::withCount('estimates')
             ->orderBy('name')
             ->paginate(20);
@@ -29,6 +31,8 @@ class ClientController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Client::class);
+
         return view('clients.create');
     }
 
@@ -37,6 +41,8 @@ class ClientController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Client::class);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
@@ -71,6 +77,8 @@ class ClientController extends Controller
             abort(404);
         }
 
+        $this->authorize('view', $client);
+
         if (request()->wantsJson()) {
             return response()->json($client);
         }
@@ -89,6 +97,8 @@ class ClientController extends Controller
      */
     public function edit(Client $client)
     {
+        $this->authorize('update', $client);
+
         return view('clients.edit', compact('client'));
     }
 
@@ -97,6 +107,8 @@ class ClientController extends Controller
      */
     public function update(Request $request, Client $client)
     {
+        $this->authorize('update', $client);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
@@ -124,6 +136,8 @@ class ClientController extends Controller
      */
     public function destroy(Client $client)
     {
+        $this->authorize('delete', $client);
+
         // Check if client has estimates
         if ($client->estimates()->count() > 0) {
             return redirect()->route('clients.index')
