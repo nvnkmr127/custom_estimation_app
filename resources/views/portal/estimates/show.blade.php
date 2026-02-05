@@ -577,7 +577,7 @@
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                         @if($isYoutube)
-                            <iframe class="w-full h-full" src="{{ $videoUrl }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            <iframe id="youtube-player" class="w-full h-full" src="{{ $videoUrl }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         @else
                             <video x-ref="companyVideo" class="w-full h-full" controls>
                                 <source src="{{ Str::startsWith($videoUrl, 'http') ? $videoUrl : asset($videoUrl) }}" type="video/mp4">
@@ -715,12 +715,29 @@
 
                         // Watch for video modal open/close to play/pause video
                         this.$watch('showVideoModal', value => {
-                            if (value && this.$refs.companyVideo) {
-                                this.$nextTick(() => {
-                                    this.$refs.companyVideo.play();
-                                });
-                            } else if (!value && this.$refs.companyVideo) {
-                                this.$refs.companyVideo.pause();
+                            if (value) {
+                                // Playing logic
+                                if (this.$refs.companyVideo) {
+                                    this.$nextTick(() => { this.$refs.companyVideo.play(); });
+                                }
+                                // For YouTube, we might need to reset the src to start playing if it was cleared
+                                const yt = document.getElementById('youtube-player');
+                                if (yt && !yt.src) {
+                                    yt.src = '{{ $videoUrl }}';
+                                }
+                            } else {
+                                // Pause local video
+                                if (this.$refs.companyVideo) {
+                                    this.$refs.companyVideo.pause();
+                                }
+                                // Stop YouTube video by clearing/resetting src
+                                const yt = document.getElementById('youtube-player');
+                                if (yt) {
+                                    const currentSrc = yt.src;
+                                    yt.src = ''; // Clear src to stop video
+                                    // Special case: if we want it to stay loaded but paused, we'd need YT API, 
+                                    // but clearing src is the most reliable 'hard stop'.
+                                }
                             }
                         });
 
