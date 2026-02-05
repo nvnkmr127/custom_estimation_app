@@ -502,7 +502,7 @@
 
                                                     <!-- Delete Button -->
                                                     <button type="button"
-                                                        @click="deleteImage(index, '{{ route('settings.gallery.destroy', '') }}/' + index)"
+                                                        @click="deleteImage(index, '{{ route('settings.gallery.destroy', ['index' => ':index']) }}'.replace(':index', index))"
                                                         class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white rounded-full p-1 hover:bg-red-700 shadow-sm z-10">
                                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                                             stroke="currentColor">
