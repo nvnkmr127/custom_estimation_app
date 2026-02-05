@@ -145,7 +145,11 @@
                         <div class="prose prose-sm prose-slate text-slate-600 text-justify">
                             @php
                                 $companyIntro = \App\Models\Setting::getCached('portal_company_intro');
-                                $videoUrl = \App\Models\Setting::getCached('portal_company_video_url', 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4');
+                                
+                                // Prioritize uploaded video file over URL
+                                $uploadedVideo = \App\Models\Setting::getCached('portal_company_video');
+                                $videoUrl = $uploadedVideo ?: \App\Models\Setting::getCached('portal_company_video_url', 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4');
+                                
                                 $videoThumbnail = \App\Models\Setting::getCached('portal_company_video_thumbnail', 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=1200');
                                 $showcaseImages = json_decode(\App\Models\Setting::getCached('portal_company_showcase_images', '[]'), true) ?: [
                                     'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=1200',

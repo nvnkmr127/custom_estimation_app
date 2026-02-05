@@ -38,9 +38,9 @@
                 <tr class="group hover:bg-slate-50/30 transition-colors">
                     @if(!$isPackage)
                         <td class="px-3 py-4 align-middle">
-                            @if($item->product && $item->product->images->isNotEmpty())
+                            @if($item->product && $item->product->primary_image_url)
                                 <div class="relative h-12 w-12 mx-auto">
-                                    <img src="{{ $item->product->images->first()->image_path }}"
+                                    <img src="{{ $item->product->primary_image_url }}"
                                         class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
                                 </div>
                             @else

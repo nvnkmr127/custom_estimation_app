@@ -57,7 +57,8 @@
                                     class="block text-sm font-medium leading-6 text-slate-900">Organization Logo</label>
                                 <div class="mt-2 flex items-center gap-x-3">
                                     @if(isset($settings['app_logo']))
-                                        <img src="{{ asset($settings['app_logo']) }}" alt="Current Logo"
+                                        <img src="{{ \Illuminate\Support\Str::startsWith($settings['app_logo'], ['http://', 'https://']) ? $settings['app_logo'] : asset($settings['app_logo']) }}"
+                                            alt="Current Logo"
                                             class="h-12 w-12 rounded-full object-cover bg-slate-50 ring-1 ring-slate-900/10">
                                     @else
                                         <div
@@ -383,8 +384,31 @@
                                         placeholder="https://example.com/video.mp4"
                                         class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                                 </div>
-                                <p class="mt-2 text-sm text-slate-500">Provide a direct link to an MP4 video of your
-                                    company/work.</p>
+                                <p class="mt-2 text-sm text-slate-500">Provide a direct link to an MP4 video or upload a
+                                    file below.</p>
+                            </div>
+
+                            <!-- Video Upload -->
+                            <div class="col-span-full">
+                                <label for="portal_company_video"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Upload Promo
+                                    Video</label>
+                                <div class="mt-2 flex flex-col gap-y-3">
+                                    @if(isset($settings['portal_company_video']))
+                                        <div class="flex items-center gap-x-3">
+                                            <video class="h-20 w-32 rounded-lg object-cover bg-slate-900" muted>
+                                                <source
+                                                    src="{{ \Illuminate\Support\Str::startsWith($settings['portal_company_video'], ['http://', 'https://']) ? $settings['portal_company_video'] : asset($settings['portal_company_video']) }}"
+                                                    type="video/mp4">
+                                            </video>
+                                            <span class="text-xs text-slate-500">Currently uploaded video</span>
+                                        </div>
+                                    @endif
+                                    <input type="file" name="portal_company_video" id="portal_company_video"
+                                        class="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">MP4, MOV, or QT format. Recommended size <
+                                        20MB.</p>
                             </div>
 
                             <!-- Video Cover -->
@@ -393,7 +417,7 @@
                                     class="block text-sm font-medium leading-6 text-slate-900">Video Cover Image</label>
                                 <div class="mt-2 flex items-center gap-x-3">
                                     @if(isset($settings['portal_company_video_thumbnail']))
-                                        <img src="{{ asset($settings['portal_company_video_thumbnail']) }}"
+                                        <img src="{{ \Illuminate\Support\Str::startsWith($settings['portal_company_video_thumbnail'], ['http://', 'https://']) ? $settings['portal_company_video_thumbnail'] : asset($settings['portal_company_video_thumbnail']) }}"
                                             alt="Video Cover"
                                             class="h-20 w-32 rounded-lg object-cover bg-slate-50 ring-1 ring-slate-900/10">
                                     @endif
@@ -437,7 +461,8 @@
                                             @foreach($savedImages as $img)
                                                 <div
                                                     class="relative aspect-square rounded-lg overflow-hidden border border-slate-200">
-                                                    <img src="{{ asset($img) }}" class="w-full h-full object-cover">
+                                                    <img src="{{ \Illuminate\Support\Str::startsWith($img, ['http://', 'https://']) ? $img : asset($img) }}"
+                                                        class="w-full h-full object-cover">
                                                 </div>
                                             @endforeach
                                         </div>

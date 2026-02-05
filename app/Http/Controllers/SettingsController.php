@@ -73,6 +73,7 @@ class SettingsController extends Controller
             'portal_company_title' => 'nullable|string|max:255',
             'portal_company_intro' => 'nullable|string',
             'portal_company_video_url' => 'nullable|url|max:255',
+            'portal_company_video' => 'nullable|file|mimes:mp4,mov,ogg,qt|max:20480',
             'portal_company_video_thumbnail' => 'nullable|image|max:4096',
             'portal_company_gallery_title' => 'nullable|string|max:255',
             'portal_company_showcase_images.*' => 'nullable|image|max:4096',
@@ -133,8 +134,8 @@ class SettingsController extends Controller
 
         // Handle Logo Upload
         if ($request->hasFile('app_logo')) {
-            $path = $request->file('app_logo')->store('public/settings');
-            $publicPath = Storage::url($path);
+            $path = $request->file('app_logo')->store('settings', 'public');
+            $publicPath = Storage::disk('public')->url($path);
 
             Setting::updateOrCreate(
                 ['key' => 'app_logo'],
@@ -142,10 +143,21 @@ class SettingsController extends Controller
             );
         }
 
+        // Handle Video Upload
+        if ($request->hasFile('portal_company_video')) {
+            $path = $request->file('portal_company_video')->store('showcase', 'public');
+            $publicPath = Storage::disk('public')->url($path);
+
+            Setting::updateOrCreate(
+                ['key' => 'portal_company_video'],
+                ['value' => $publicPath]
+            );
+        }
+
         // Handle Video Thumbnail
         if ($request->hasFile('portal_company_video_thumbnail')) {
-            $path = $request->file('portal_company_video_thumbnail')->store('public/showcase');
-            $publicPath = Storage::url($path);
+            $path = $request->file('portal_company_video_thumbnail')->store('showcase', 'public');
+            $publicPath = Storage::disk('public')->url($path);
 
             Setting::updateOrCreate(
                 ['key' => 'portal_company_video_thumbnail'],
@@ -157,8 +169,8 @@ class SettingsController extends Controller
         if ($request->hasFile('portal_company_showcase_images')) {
             $images = [];
             foreach ($request->file('portal_company_showcase_images') as $file) {
-                $path = $file->store('public/showcase');
-                $images[] = Storage::url($path);
+                $path = $file->store('showcase', 'public');
+                $images[] = Storage::disk('public')->url($path);
             }
             Setting::updateOrCreate(
                 ['key' => 'portal_company_showcase_images'],

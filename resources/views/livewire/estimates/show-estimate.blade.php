@@ -40,11 +40,11 @@
                 @if($estimate->approval_status)
                     <span
                         class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                                                                                                                                            @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
-                                                                                                                                                                                            @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
-                                                                                                                                                                                            @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
-                                                                                                                                                                                            @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                                                                                                                                                            @endif">
+                                                                                                                                                                                                    @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
+                                                                                                                                                                                                    @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
+                                                                                                                                                                                                    @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
+                                                                                                                                                                                                    @else bg-gray-50 text-gray-600 ring-gray-500/10
+                                                                                                                                                                                                    @endif">
                         {{ ucfirst($estimate->approval_status) }}
                     </span>
                 @endif
@@ -97,16 +97,16 @@
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->
                     <div x-data="{ 
-                                                                                                                                                                                                                                                                                                                                                                        checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
-                                                                                                                                                                                                                                                                                                                                                                        requiredCount: {{ $checklists->where('is_required', true)->count() }},
-                                                                                                                                                                                                                                                                                                                                                                        requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
-                                                                                                                                                                                                                                                                                                                                                                         toggleChecklist(id, checked) {
-                                                                                                                                                                                                                                                                                                                                                                             if (checked) this.checks.push(parseInt(id));
-                                                                                                                                                                                                                                                                                                                                                                             else this.checks = this.checks.filter(c => c !== parseInt(id));
-                                                                                                                                                                                                                                                                                                                                                                             $wire.toggleChecklist(id, checked);
-                                                                                                                                                                                                                                                                                                                                                                         },
-                                                                                                                                                                                                                                                                                                                                                                         get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
-                                                                                                                                                                                                                                                                                                                                                                     }"
+                                                                                                                                                                                                                                                                                                                                                                                        checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
+                                                                                                                                                                                                                                                                                                                                                                                        requiredCount: {{ $checklists->where('is_required', true)->count() }},
+                                                                                                                                                                                                                                                                                                                                                                                        requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
+                                                                                                                                                                                                                                                                                                                                                                                         toggleChecklist(id, checked) {
+                                                                                                                                                                                                                                                                                                                                                                                             if (checked) this.checks.push(parseInt(id));
+                                                                                                                                                                                                                                                                                                                                                                                             else this.checks = this.checks.filter(c => c !== parseInt(id));
+                                                                                                                                                                                                                                                                                                                                                                                             $wire.toggleChecklist(id, checked);
+                                                                                                                                                                                                                                                                                                                                                                                         },
+                                                                                                                                                                                                                                                                                                                                                                                         get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
+                                                                                                                                                                                                                                                                                                                                                                                     }"
                         class="flex gap-2 relative">
                         <!-- Approve Dropdown -->
                         <div x-data="{ open: false }" class="relative">
@@ -484,9 +484,9 @@
                                                                             <tr class="group hover:bg-slate-50/30 transition-colors">
                                                                                 @if(!$section->is_package)
                                                                                     <td class="px-3 py-4 align-middle">
-                                                                                        @if($item->product && $item->product->images->isNotEmpty())
+                                                                                        @if($item->product && $item->product->primary_image_url)
                                                                                             <div class="relative h-12 w-12 mx-auto">
-                                                                                                <img src="{{ $item->product->images->first()->image_path }}"
+                                                                                                <img src="{{ $item->product->primary_image_url }}"
                                                                                                     class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
                                                                                             </div>
                                                                                         @else
@@ -552,7 +552,7 @@
                                                     $c->formatted_date = $c->created_at->format('M j, g:i A');
                                                     return $c; })->values()) }})" type="button"
                                                                                             class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
                                                                                             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                                                                                                 stroke="currentColor">
                                                                                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -685,9 +685,9 @@
                                     @foreach($estimate->items as $item)
                                                             <tr class="group hover:bg-slate-50/30 transition-colors">
                                                                 <td class="px-3 py-4 align-middle">
-                                                                    @if($item->product && $item->product->images->isNotEmpty())
+                                                                    @if($item->product && $item->product->primary_image_url)
                                                                         <div class="relative h-12 w-12 mx-auto">
-                                                                            <img src="{{ $item->product->images->first()->image_path }}"
+                                                                            <img src="{{ $item->product->primary_image_url }}"
                                                                                 class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
                                                                         </div>
                                                                     @else
@@ -749,7 +749,7 @@
                                         $c->formatted_date = $c->created_at->format('M j, g:i A');
                                         return $c; })->values()) }})" type="button"
                                                                             class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
                                                                             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                                                                                 stroke="currentColor">
                                                                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -1336,11 +1336,11 @@
                                 <!-- Status Dot -->
                                 <div
                                     class="absolute -left-[19px] top-1 h-3 w-3 rounded-full border-2 border-white
-                                                                                                                                                                                                                                                                                            @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
-                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
-                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
-                                                                                                                                                                                                                                                                                            @else bg-slate-200
-                                                                                                                                                                                                                                                                                            @endif">
+                                                                                                                                                                                                                                                                                                            @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
+                                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
+                                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
+                                                                                                                                                                                                                                                                                                            @else bg-slate-200
+                                                                                                                                                                                                                                                                                                            @endif">
                                 </div>
 
                                 <div class="text-sm font-medium text-slate-900 leading-none">
@@ -1698,7 +1698,8 @@
                                                             </div>
                                                             <p class="text-xs text-slate-500 mt-1">From
                                                                 {{ number_format($oldTotalVal, 2) }} to
-                                                                {{ number_format($newTotal, 2) }}</p>
+                                                                {{ number_format($newTotal, 2) }}
+                                                            </p>
                                                         </div>
                                                         <div
                                                             class="rounded-full p-3 {{ $isPositive ? 'bg-red-100' : ($isNegative ? 'bg-green-100' : 'bg-slate-200') }}">
@@ -1788,7 +1789,8 @@
                                                             <div class="mb-4 last:mb-0">
                                                                 <h5
                                                                     class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
-                                                                    {{ $section }}</h5>
+                                                                    {{ $section }}
+                                                                </h5>
                                                                 <div class="space-y-2">
                                                                     @foreach($items as $item)
                                                                         <div
@@ -1838,7 +1840,8 @@
                                                             <div class="mb-4 last:mb-0">
                                                                 <h5
                                                                     class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
-                                                                    {{ $section }}</h5>
+                                                                    {{ $section }}
+                                                                </h5>
                                                                 <div class="space-y-3">
                                                                     @foreach($modItems as $mod)
                                                                         <div
@@ -1900,7 +1903,8 @@
                                                             <div class="mb-4 last:mb-0">
                                                                 <h5
                                                                     class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
-                                                                    {{ $section }}</h5>
+                                                                    {{ $section }}
+                                                                </h5>
                                                                 <div class="space-y-2">
                                                                     @foreach($items as $item)
                                                                         <div
@@ -1908,7 +1912,8 @@
                                                                             <div class="pr-4">
                                                                                 <p
                                                                                     class="font-medium text-slate-900 line-through decoration-red-500/50">
-                                                                                    {{ $item->name }}</p>
+                                                                                    {{ $item->name }}
+                                                                                </p>
                                                                                 <div class="mt-1 text-xs text-slate-500">
                                                                                     {{ $item->quantity }} &times;
                                                                                     {{ number_format($item->unit_price, 2) }}
@@ -2145,7 +2150,7 @@
             totalTax: {{ $estimate->total_tax ?? 0 }},
             discount: {{ $estimate->discount_total ?? 0 }},
             grandTotal: {{ $estimate->grand_total ?? 0 }} 
-                                                                                                                                    };
+                                                                                                                                            };
 
         const defaults = {
             hasCustomItems: () => false,
