@@ -411,6 +411,20 @@
                                         20MB.</p>
                             </div>
 
+                            <!-- YouTube URL -->
+                            <div class="col-span-full">
+                                <label for="portal_company_youtube_url"
+                                    class="block text-sm font-medium leading-6 text-slate-900">YouTube Video URL</label>
+                                <div class="mt-2 text-password-container">
+                                    <input type="url" name="portal_company_youtube_url" id="portal_company_youtube_url"
+                                        value="{{ old('portal_company_youtube_url', $settings['portal_company_youtube_url'] ?? '') }}"
+                                        placeholder="https://www.youtube.com/watch?v=..."
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">Embed a YouTube video in the showcase section.
+                                </p>
+                            </div>
+
                             <!-- Video Cover -->
                             <div class="col-span-full">
                                 <label for="portal_company_video_thumbnail"
@@ -458,11 +472,24 @@
                                     @php $savedImages = json_decode($settings['portal_company_showcase_images'], true); @endphp
                                     @if($savedImages && count($savedImages) > 0)
                                         <div class="mt-4 grid grid-cols-4 gap-4">
-                                            @foreach($savedImages as $img)
+                                            @foreach($savedImages as $index => $img)
                                                 <div
-                                                    class="relative aspect-square rounded-lg overflow-hidden border border-slate-200">
+                                                    class="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
                                                     <img src="{{ \Illuminate\Support\Str::startsWith($img, ['http://', 'https://']) ? $img : asset($img) }}"
                                                         class="w-full h-full object-cover">
+                                                    
+                                                    <!-- Delete Button -->
+                                                    <form action="{{ route('settings.gallery.destroy', $index) }}" method="POST" 
+                                                          class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                          onsubmit="return confirm('Remove this image from showcase?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="bg-red-600 text-white rounded-full p-1 hover:bg-red-700 shadow-sm">
+                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             @endforeach
                                         </div>

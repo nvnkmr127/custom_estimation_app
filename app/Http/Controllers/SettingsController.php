@@ -73,6 +73,7 @@ class SettingsController extends Controller
             'portal_company_title' => 'nullable|string|max:255',
             'portal_company_intro' => 'nullable|string',
             'portal_company_video_url' => 'nullable|url|max:255',
+            'portal_company_youtube_url' => 'nullable|url|max:255',
             'portal_company_video' => 'nullable|file|mimes:mp4,mov,ogg,qt|max:20480',
             'portal_company_video_thumbnail' => 'nullable|image|max:4096',
             'portal_company_gallery_title' => 'nullable|string|max:255',
@@ -120,6 +121,7 @@ class SettingsController extends Controller
             'portal_company_title',
             'portal_company_intro',
             'portal_company_video_url',
+            'portal_company_youtube_url',
             'portal_company_gallery_title',
         ];
 
@@ -308,5 +310,40 @@ class SettingsController extends Controller
         );
 
         return redirect()->route('settings.perfex.mapping')->with('success', 'Perfex mapping updated successfully.');
+    }
+
+    public function deleteGalleryImage($index)
+    {
+        $rawSetting = Setting::where('key', 'portal_company_showcase_images')->first();
+        if (!$rawSetting) {
+            return back()->with('error', 'No images found.');
+        }
+
+        $images = json_decode($rawSetting->value, true);
+        if (!isset($images[$index])) {
+            return back()->with('error', 'Image not found.');
+        }
+
+        $imagePath = $images[$index];
+
+        // Remove from array
+        unset($images[$index]);
+        $images = array_values($images); // Re-index
+
+        // Update DB
+        if (empty($images)) {
+            $rawSetting->delete();
+        } else {
+            $rawSetting->update(['value' => json_encode($images)]);
+        }
+
+        // Optionally delete from storage if it's a local file
+        if (str_contains($imagePath, '/storage/')) {
+            $storageUrl = Storage::disk('public')->url('');
+            $storagePath = str_replace($storageUrl, '', $imagePath);
+            Storage::disk('public')->delete($storagePath);
+        }
+
+        return back()->with('success', 'Image deleted successfully.');
     }
 }

@@ -146,9 +146,30 @@
                             @php
                                 $companyIntro = \App\Models\Setting::getCached('portal_company_intro');
                                 
-                                // Prioritize uploaded video file over URL
+                                // Video Logic
                                 $uploadedVideo = \App\Models\Setting::getCached('portal_company_video');
-                                $videoUrl = $uploadedVideo ?: \App\Models\Setting::getCached('portal_company_video_url', 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4');
+                                $directVideoUrl = \App\Models\Setting::getCached('portal_company_video_url');
+                                $youtubeUrl = \App\Models\Setting::getCached('portal_company_youtube_url');
+                                
+                                $isYoutube = false;
+                                $videoUrl = null;
+                                
+                                if ($uploadedVideo) {
+                                    $videoUrl = $uploadedVideo;
+                                } elseif ($directVideoUrl) {
+                                    $videoUrl = $directVideoUrl;
+                                } elseif ($youtubeUrl) {
+                                    $isYoutube = true;
+                                    // Extract YouTube ID
+                                    preg_match('%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i', $youtubeUrl, $match);
+                                    $youtubeId = $match[1] ?? null;
+                                    $videoUrl = $youtubeId ? "https://www.youtube.com/embed/{$youtubeId}?autoplay=1" : null;
+                                }
+                                
+                                // Default if nothing is set
+                                if (!$videoUrl) {
+                                    $videoUrl = 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4';
+                                }
                                 
                                 $videoThumbnail = \App\Models\Setting::getCached('portal_company_video_thumbnail', 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=1200');
                                 $showcaseImages = json_decode(\App\Models\Setting::getCached('portal_company_showcase_images', '[]'), true) ?: [
@@ -544,10 +565,14 @@
                         <button @click="showVideoModal = false" class="absolute top-6 right-6 z-20 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/20 hover:scale-110">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
-                        <video x-ref="companyVideo" class="w-full h-full" controls>
-                            <source src="{{ $videoUrl }}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
+                        @if($isYoutube)
+                            <iframe class="w-full h-full" src="{{ $videoUrl }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        @else
+                            <video x-ref="companyVideo" class="w-full h-full" controls>
+                                <source src="{{ Str::startsWith($videoUrl, 'http') ? $videoUrl : asset($videoUrl) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        @endif
                     </div>
                 </div>
             </div>
