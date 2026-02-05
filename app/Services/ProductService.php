@@ -101,17 +101,18 @@ class ProductService
                 $unitType = strtolower(trim($row[4]));
                 $tags = trim($row[5] ?? '');
                 $description = trim($row[6] ?? '');
+                $imageUrl = trim($row[7] ?? '');
 
                 if (empty($name) || empty($categoryName)) {
                     continue;
                 }
 
-                DB::transaction(function () use ($name, $sku, $categoryName, $price, $unitType, $tags, $description, &$imported) {
+                DB::transaction(function () use ($name, $sku, $categoryName, $price, $unitType, $tags, $description, $imageUrl, &$imported) {
                     // Find or Create Category
                     $category = ProductCategory::firstOrCreate(['name' => $categoryName]);
 
                     // Create Product
-                    Product::create([
+                    $product = Product::create([
                         'name' => $name,
                         'sku' => $sku ?: null,
                         'category_id' => $category->id,
@@ -122,6 +123,12 @@ class ProductService
                         'description' => $description,
                         'status' => 'active',
                     ]);
+
+                    if ($imageUrl) {
+                        $product->images()->create([
+                            'image_path' => $imageUrl,
+                        ]);
+                    }
 
                     $imported++;
                 });

@@ -193,9 +193,13 @@ class ProductIndex extends Component
 
             // Populate existing images
             foreach ($this->editingProduct->images as $img) {
+                $url = $img->image_path;
+                if (!\Illuminate\Support\Str::startsWith($url, ['http://', 'https://'])) {
+                    $url = \Illuminate\Support\Facades\Storage::disk('public')->url($url);
+                }
                 $this->existingImages[] = [
                     'id' => $img->id,
-                    'url' => \Illuminate\Support\Facades\Storage::disk('public')->url($img->image_path),
+                    'url' => $url,
                 ];
             }
         } else {

@@ -46,14 +46,20 @@
             <div class="bg-white rounded-xl shadow-sm ring-1 ring-gray-900/5 p-6 h-fit">
                 @if($product->images->count() > 0)
                     <div class="aspect-w-4 aspect-h-3 overflow-hidden rounded-lg bg-gray-100 mb-4 border border-gray-200">
-                        <img src="{{ asset('storage/' . $product->images->first()->image_path) }}"
+                        <img src="{{ $product->primary_image_url }}"
                             alt="{{ $product->name }}" class="object-cover object-center w-full h-full">
                     </div>
                     @if($product->images->count() > 1)
                         <div class="grid grid-cols-4 gap-4">
                             @foreach($product->images as $image)
+                                @php
+                                    $url = $image->image_path;
+                                    if (!\Illuminate\Support\Str::startsWith($url, ['http://', 'https://'])) {
+                                        $url = asset('storage/' . $url);
+                                    }
+                                @endphp
                                 <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                    <img src="{{ asset('storage/' . $image->image_path) }}"
+                                    <img src="{{ $url }}"
                                         class="object-cover w-full h-full cursor-pointer hover:opacity-75">
                                 </div>
                             @endforeach

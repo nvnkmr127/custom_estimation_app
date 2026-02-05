@@ -108,7 +108,7 @@ class Product extends Model
 
     public function images()
     {
-        return $this->hasMany(ProductImage::class)->orderBy('display_order');
+        return $this->hasMany(ProductImage::class)->orderBy('display_order')->latest('id');
     }
 
     public function options()
