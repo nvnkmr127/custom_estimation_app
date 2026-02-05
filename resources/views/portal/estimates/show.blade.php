@@ -88,6 +88,40 @@
                             </div>
                             <div class="text-2xl sm:text-3xl font-black">{{ $estimate->currency ?? 'INR' }}
                                 {{ number_format($estimate->grand_total, 2) }}</div>
+                            
+                            @if($estimate->expiry_date)
+                                <div class="mt-3 pt-3 border-t border-white/10">
+                                    <div class="flex flex-col items-end">
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold mb-1">Est. Expiry</div>
+                                        <div class="text-xs font-bold text-rose-400 mb-2">{{ $estimate->expiry_date->format('M d, Y') }}</div>
+                                        
+                                        <div class="flex gap-1.5" x-show="!countdown.expired">
+                                            <div class="flex flex-col items-center">
+                                                <div class="bg-white/10 rounded px-1 min-w-[20px] text-center"><span class="text-[10px] font-bold" x-text="countdown.days">0</span></div>
+                                                <span class="text-[8px] uppercase tracking-tighter opacity-50 font-bold mt-0.5">Days</span>
+                                            </div>
+                                            <div class="text-[10px] font-bold opacity-30 mt-0.5">:</div>
+                                            <div class="flex flex-col items-center">
+                                                <div class="bg-white/10 rounded px-1 min-w-[20px] text-center"><span class="text-[10px] font-bold" x-text="countdown.hours">0</span></div>
+                                                <span class="text-[8px] uppercase tracking-tighter opacity-50 font-bold mt-0.5">Hrs</span>
+                                            </div>
+                                            <div class="text-[10px] font-bold opacity-30 mt-0.5">:</div>
+                                            <div class="flex flex-col items-center">
+                                                <div class="bg-white/10 rounded px-1 min-w-[20px] text-center"><span class="text-[10px] font-bold" x-text="countdown.minutes">0</span></div>
+                                                <span class="text-[8px] uppercase tracking-tighter opacity-50 font-bold mt-0.5">Min</span>
+                                            </div>
+                                            <div class="text-[10px] font-bold opacity-30 mt-0.5">:</div>
+                                            <div class="flex flex-col items-center">
+                                                <div class="bg-white/10 rounded px-1 min-w-[20px] text-center text-rose-400"><span class="text-[10px] font-bold" x-text="countdown.seconds">0</span></div>
+                                                <span class="text-[8px] uppercase tracking-tighter opacity-50 font-bold mt-0.5">Sec</span>
+                                            </div>
+                                        </div>
+                                        <div x-show="countdown.expired" class="text-[10px] font-bold text-rose-500 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded">
+                                            Expired
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -577,10 +611,9 @@
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                         @if($isYoutube)
-                            <iframe id="youtube-player" class="w-full h-full" src="{{ $videoUrl }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            <iframe id="youtube-player" class="w-full h-full" data-src="{{ $videoUrl }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         @else
-                            <video x-ref="companyVideo" class="w-full h-full" controls>
-                                <source src="{{ Str::startsWith($videoUrl, 'http') ? $videoUrl : asset($videoUrl) }}" type="video/mp4">
+                            <video x-ref="companyVideo" class="w-full h-full" data-src="{{ Str::startsWith($videoUrl, 'http') ? $videoUrl : asset($videoUrl) }}" controls>
                                 Your browser does not support the video tag.
                             </video>
                         @endif
@@ -697,6 +730,8 @@
                     activeSection: null, // For accordion
                     labels: @json($estimate->sections->pluck('name')),
                     totals: @json($estimate->sections->pluck('total')),
+                    expiryDate: '{{ $estimate->expiry_date ? $estimate->expiry_date->toIso8601String() : '' }}',
+                    countdown: { days: 0, hours: 0, minutes: 0, seconds: 0, expired: false },
 
                     init() {
                         // Initialize Signature Pad
@@ -718,25 +753,26 @@
                             if (value) {
                                 // Playing logic
                                 if (this.$refs.companyVideo) {
+                                    if (!this.$refs.companyVideo.src) {
+                                        this.$refs.companyVideo.src = this.$refs.companyVideo.dataset.src;
+                                    }
                                     this.$nextTick(() => { this.$refs.companyVideo.play(); });
                                 }
-                                // For YouTube, we might need to reset the src to start playing if it was cleared
+                                
+                                // For YouTube
                                 const yt = document.getElementById('youtube-player');
-                                if (yt && !yt.src) {
-                                    yt.src = '{{ $videoUrl }}';
+                                if (yt && (!yt.src || yt.src === 'about:blank' || yt.src === '')) {
+                                    yt.src = yt.dataset.src;
                                 }
                             } else {
                                 // Pause local video
                                 if (this.$refs.companyVideo) {
                                     this.$refs.companyVideo.pause();
                                 }
-                                // Stop YouTube video by clearing/resetting src
+                                // Stop YouTube video by clearing src
                                 const yt = document.getElementById('youtube-player');
                                 if (yt) {
-                                    const currentSrc = yt.src;
-                                    yt.src = ''; // Clear src to stop video
-                                    // Special case: if we want it to stay loaded but paused, we'd need YT API, 
-                                    // but clearing src is the most reliable 'hard stop'.
+                                    yt.src = ''; // Hard stop
                                 }
                             }
                         });
@@ -752,6 +788,33 @@
 
                         // Initialize Charts
                         this.initCharts();
+
+                        // Start countdown if expiry date is set
+                        if (this.expiryDate) {
+                            this.startCountdown();
+                        }
+                    },
+
+                    startCountdown() {
+                        const expiryTime = new Date(this.expiryDate).getTime();
+                        
+                        const update = () => {
+                            const now = new Date().getTime();
+                            const distance = expiryTime - now;
+
+                            if (distance < 0) {
+                                this.countdown.expired = true;
+                                return;
+                            }
+
+                            this.countdown.days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                            this.countdown.hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            this.countdown.minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                            this.countdown.seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                        };
+
+                        update();
+                        setInterval(update, 1000);
                     },
 
                     nextImage() {
