@@ -63,7 +63,18 @@
                     <div>
                         <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 relative z-10">Estimate
                             #{{ $estimate->estimate_number }}</div>
-                        <h1 class="text-3xl sm:text-4xl font-black tracking-tight relative z-10">{{ config('app.name') }}</h1>
+                        
+                        @php
+                            $logo = \App\Models\Setting::getCached('app_logo');
+                            $siteName = \App\Models\Setting::getCached('site_name', config('app.name'));
+                        @endphp
+
+                        @if($logo)
+                            <img src="{{ \Illuminate\Support\Str::startsWith($logo, ['http://', 'https://']) ? $logo : asset($logo) }}" alt="{{ $siteName }}" class="h-12 w-auto object-contain relative z-10">
+                        @else
+                            <h1 class="text-3xl sm:text-4xl font-black tracking-tight relative z-10">{{ $siteName }}</h1>
+                        @endif
+
                         <div class="mt-4 text-sm text-slate-300 leading-relaxed">
                             <p>Prepared for <span
                                     class="text-white font-bold">{{ $estimate->client->name ?? 'Valued Client' }}</span>

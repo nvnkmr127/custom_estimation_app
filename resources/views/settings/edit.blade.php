@@ -471,27 +471,47 @@
                                 @if(isset($settings['portal_company_showcase_images']))
                                     @php $savedImages = json_decode($settings['portal_company_showcase_images'], true); @endphp
                                     @if($savedImages && count($savedImages) > 0)
-                                        <div class="mt-4 grid grid-cols-4 gap-4">
-                                            @foreach($savedImages as $index => $img)
+                                        <div class="mt-4 grid grid-cols-4 gap-4" x-data="{
+                                                    images: {{ json_encode($savedImages) }},
+                                                    deleteImage(index, url) {
+                                                        if (!confirm('Remove this image from showcase?')) return;
+
+                                                        fetch(url, {
+                                                            method: 'DELETE',
+                                                            headers: {
+                                                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                                'X-Requested-With': 'XMLHttpRequest',
+                                                                'Accept': 'application/json'
+                                                            }
+                                                        })
+                                                        .then(response => response.json())
+                                                        .then(data => {
+                                                            if (data.success) {
+                                                                // Remove from local array to update UI
+                                                                this.images = this.images.filter((_, i) => i !== index);
+                                                            }
+                                                        })
+                                                        .catch(error => console.error('Error:', error));
+                                                    }
+                                                }">
+                                            <template x-for="(img, index) in images" :key="index">
                                                 <div
                                                     class="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
-                                                    <img src="{{ \Illuminate\Support\Str::startsWith($img, ['http://', 'https://']) ? $img : asset($img) }}"
+                                                    <img :src="img.startsWith('http') ? img : '{{ asset('') }}' + img.replace(/^\//, '')"
                                                         class="w-full h-full object-cover">
-                                                    
+
                                                     <!-- Delete Button -->
-                                                    <form action="{{ route('settings.gallery.destroy', $index) }}" method="POST" 
-                                                          class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                          onsubmit="return confirm('Remove this image from showcase?')">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="bg-red-600 text-white rounded-full p-1 hover:bg-red-700 shadow-sm">
-                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        </button>
-                                                    </form>
+                                                    <button type="button"
+                                                        @click="deleteImage(index, '{{ route('settings.gallery.destroy', '') }}/' + index)"
+                                                        class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white rounded-full p-1 hover:bg-red-700 shadow-sm z-10">
+                                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
-                                            @endforeach
+                                            </template>
                                         </div>
                                     @endif
                                 @endif

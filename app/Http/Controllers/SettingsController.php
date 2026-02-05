@@ -344,6 +344,10 @@ class SettingsController extends Controller
             Storage::disk('public')->delete($storagePath);
         }
 
+        if (request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Image deleted successfully.']);
+        }
+
         return back()->with('success', 'Image deleted successfully.');
     }
 }
