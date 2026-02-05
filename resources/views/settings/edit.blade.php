@@ -322,6 +322,133 @@
                 </div>
             </div>
 
+            <!-- Section 5: Client Portal Showcase -->
+            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
+                <div class="px-4 sm:px-0">
+                    <h2 class="text-base font-semibold leading-7 text-slate-900">Client Portal Showcase</h2>
+                    <p class="mt-1 text-sm leading-6 text-slate-600">Company branding and showcase content displayed to
+                        clients on the portal.</p>
+                </div>
+
+                <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl md:col-span-2">
+                    <div class="px-4 py-6 sm:p-8">
+                        <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                            <!-- Showcase Badge -->
+                            <div class="sm:col-span-3">
+                                <label for="portal_company_badge"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Showcase Badge
+                                    Text</label>
+                                <div class="mt-2">
+                                    <input type="text" name="portal_company_badge" id="portal_company_badge"
+                                        value="{{ old('portal_company_badge', $settings['portal_company_badge'] ?? 'Welcome') }}"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">e.g. Welcome, About Us, Feature</p>
+                            </div>
+
+                            <!-- Showcase Title -->
+                            <div class="col-span-full">
+                                <label for="portal_company_title"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Showcase Heading</label>
+                                <div class="mt-2">
+                                    <input type="text" name="portal_company_title" id="portal_company_title"
+                                        value="{{ old('portal_company_title', $settings['portal_company_title'] ?? 'Crafting Your Dream Space') }}"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">The main title displayed at the top of the
+                                    showcase section.</p>
+                            </div>
+
+                            <!-- Company Intro -->
+                            <div class="col-span-full">
+                                <label for="portal_company_intro"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Company Introduction
+                                    Text</label>
+                                <div class="mt-2">
+                                    <textarea id="portal_company_intro" name="portal_company_intro" rows="4"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">{{ old('portal_company_intro', $settings['portal_company_intro'] ?? '') }}</textarea>
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">A brief welcome message or company story
+                                    (Markdown supported).</p>
+                            </div>
+
+                            <!-- Video URL -->
+                            <div class="col-span-full">
+                                <label for="portal_company_video_url"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Promo Video URL (Direct
+                                    MP4)</label>
+                                <div class="mt-2 text-password-container">
+                                    <input type="url" name="portal_company_video_url" id="portal_company_video_url"
+                                        value="{{ old('portal_company_video_url', $settings['portal_company_video_url'] ?? '') }}"
+                                        placeholder="https://example.com/video.mp4"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">Provide a direct link to an MP4 video of your
+                                    company/work.</p>
+                            </div>
+
+                            <!-- Video Cover -->
+                            <div class="col-span-full">
+                                <label for="portal_company_video_thumbnail"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Video Cover Image</label>
+                                <div class="mt-2 flex items-center gap-x-3">
+                                    @if(isset($settings['portal_company_video_thumbnail']))
+                                        <img src="{{ asset($settings['portal_company_video_thumbnail']) }}"
+                                            alt="Video Cover"
+                                            class="h-20 w-32 rounded-lg object-cover bg-slate-50 ring-1 ring-slate-900/10">
+                                    @endif
+                                    <input type="file" name="portal_company_video_thumbnail"
+                                        id="portal_company_video_thumbnail"
+                                        class="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">Custom thumbnail for your promo video.</p>
+                            </div>
+
+                            <!-- Gallery Heading -->
+                            <div class="col-span-full">
+                                <label for="portal_company_gallery_title"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Gallery Heading</label>
+                                <div class="mt-2">
+                                    <input type="text" name="portal_company_gallery_title"
+                                        id="portal_company_gallery_title"
+                                        value="{{ old('portal_company_gallery_title', $settings['portal_company_gallery_title'] ?? 'Recent Projects') }}"
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">Label for the small image gallery on the right.
+                                </p>
+                            </div>
+
+                            <!-- Showcase Images -->
+                            <div class="col-span-full">
+                                <label for="portal_company_showcase_images"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Portfolio Images</label>
+                                <div class="mt-2">
+                                    <input type="file" name="portal_company_showcase_images[]"
+                                        id="portal_company_showcase_images" multiple
+                                        class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+                                <p class="mt-2 text-sm text-slate-500">Select multiple images to show in the portal
+                                    gallery.</p>
+
+                                @if(isset($settings['portal_company_showcase_images']))
+                                    @php $savedImages = json_decode($settings['portal_company_showcase_images'], true); @endphp
+                                    @if($savedImages && count($savedImages) > 0)
+                                        <div class="mt-4 grid grid-cols-4 gap-4">
+                                            @foreach($savedImages as $img)
+                                                <div
+                                                    class="relative aspect-square rounded-lg overflow-hidden border border-slate-200">
+                                                    <img src="{{ asset($img) }}" class="w-full h-full object-cover">
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Section 5: Email Configuration -->
             <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
                 <div class="px-4 sm:px-0">

@@ -162,6 +162,16 @@ class VariableRegistry
                 'description' => 'Internal admin notes.',
                 'example' => 'Internal use only.'
             ],
+            'approval_stamp' => [
+                'category' => 'Media & Seals',
+                'description' => 'Circular "APPROVED" ink stamp (Only visible if accepted).',
+                'example' => '(Circular SVG Stamp)'
+            ],
+            'signature_image' => [
+                'category' => 'Media & Seals',
+                'description' => 'Client digital signature preview with timestamp.',
+                'example' => '(Signature Image + Metadata)'
+            ],
 
             // --- Logic Flags (Booleans) ---
             'has_discount' => [

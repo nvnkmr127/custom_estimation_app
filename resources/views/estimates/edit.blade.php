@@ -998,11 +998,80 @@
                             class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                             placeholder="Message visible to client..."></textarea>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1">Terms &
-                            Conditions</label>
-                        <textarea x-model="estimate.terms" name="terms" rows="3"
-                            class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    <div x-data="{
+                        standardTerms: `<div class='space-y-8'>
+    <!-- Price Promise -->
+    <div class='bg-slate-50 p-5 rounded-lg border border-slate-100'>
+        <h3 class='text-sm font-bold text-slate-900 uppercase tracking-widest mb-2'>Price Promise</h3>
+        <p class='text-slate-600 leading-relaxed text-justify mb-0'>C2D-Concept2Designs will keep the price promise given in this proposal till the period of 60 days. The prices may vary if booked after the period. The price quotation given here is only for this project and subject to change with any modification with respect to actual measurement, brand, and model of hardware selected, finishes selected, and design selection as per the client's requirement.</p>
+    </div>
+
+    <!-- 1. Payment Terms -->
+    <div>
+        <h3 class='text-sm font-bold text-slate-900 uppercase tracking-widest mb-3 border-b border-slate-200 pb-2'>1. Payment Terms</h3>
+        <ul class='list-none space-y-2 pl-0 my-0'>
+            <li class='flex items-baseline gap-3 text-slate-600'>
+                <span class='font-black text-slate-900 w-12 shrink-0 text-right'>10%</span>
+                <span>Booking amount</span>
+            </li>
+            <li class='flex items-baseline gap-3 text-slate-600'>
+                <span class='font-black text-slate-900 w-12 shrink-0 text-right'>50%</span>
+                <span>To start 2D drawings and production phase.</span>
+            </li>
+            <li class='flex items-baseline gap-3 text-slate-600'>
+                <span class='font-black text-slate-900 w-12 shrink-0 text-right'>30%</span>
+                <span>2 days prior material dispatch to the site. 10% PDC to be issued on the date of material dispatch.</span>
+            </li>
+            <li class='flex items-baseline gap-3 text-slate-600'>
+                <span class='font-black text-slate-900 w-12 shrink-0 text-right'>10%</span>
+                <span>PDC will be realised from bank before Handover of the Project. Upon 100% realisation of payment, project shall be handed over.</span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- 2. Financial Services -->
+    <div>
+        <h3 class='text-sm font-bold text-slate-900 uppercase tracking-widest mb-2 border-b border-slate-200 pb-2'>2. Financial Services</h3>
+        <p class='text-slate-600 leading-relaxed text-justify'>C2D-Concept2Designs is proud to associate with third party service providers for extended financial services to their clients and will only provide the availability of financial ideas and services. The final approval, services, processing, structure, duration, terms, and conditions of the loan are at the sole discretion of the loan provider / financial institution / service provider.</p>
+    </div>
+
+    <!-- 3. Payment Delay -->
+    <div>
+        <h3 class='text-sm font-bold text-slate-900 uppercase tracking-widest mb-2 border-b border-slate-200 pb-2'>3. Payment Delay</h3>
+        <p class='text-slate-600 leading-relaxed mb-4 text-justify'>Any delay in the payment by over 7 days at any phase of the project will add simultaneous days to the timeline initially decided for the delivery.</p>
+        <p class='text-slate-600 font-medium mb-2'>The Delay of payment at the time when the goods are ready to dispatch from the factory may result in the following delays:</p>
+        <ul class='list-disc pl-5 space-y-2 text-slate-600 marker:text-slate-400'>
+            <li class='pl-1 text-justify'>The dispatch date will be recalculated after the release of the payment, and this calculation depends on the next available schedule of the dispatch. (The delay in dispatch is not equivalent to the number of days the payment was delayed and this may be more based on the next dispatch available from the production warehouse.) As dispatch date changes, new execution timelines are applied.</li>
+            <li class='pl-1 text-justify'>If the delay in the payment exceeds the limit of 7 days, then the rent of the load holding shall be applicable which is 1500/- per day. It will be added to the final payment.</li>
+        </ul>
+    </div>
+
+    <!-- Other Terms -->
+    <div>
+        <h3 class='text-sm font-bold text-slate-900 uppercase tracking-widest mb-2 border-b border-slate-200 pb-2'>Other Terms & Conditions</h3>
+        <div class='text-slate-600 space-y-3 leading-relaxed text-justify'>
+            <p>The client is liable to pay full at the revision immediately in case there is a revision in the estimated project cost and as per the previously agreed signed design documents.</p>
+            <p>The client is solely responsible for any damage that happens to the products during the load holding phase if:</p>
+            <ul class='list-disc pl-5 space-y-1 marker:text-slate-400'>
+                <li class='pl-1'>The client didn't take the handover of the products within the month from the date of readiness notification.</li>
+                <li class='pl-1'>The client was unable to pay the next payment slot.</li>
+                <li class='pl-1'>The client fails to pay the load holding charges in full.</li>
+            </ul>
+            <p class='font-bold text-slate-800 pt-2'>All payments made by the client at any stage are non refundable at any stage whatsoever.</p>
+        </div>
+    </div>
+</div>`
+                    }">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-medium uppercase tracking-wide text-slate-500">Terms &
+                                Conditions</label>
+                            <button type="button" @click="estimate.terms = standardTerms"
+                                class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer transition-colors bg-indigo-50 px-2.5 py-1 rounded-md">
+                                Load Standard Terms
+                            </button>
+                        </div>
+                        <textarea x-model="estimate.terms" name="terms" rows="12"
+                            class="block w-full rounded-md border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xs font-mono leading-relaxed"
                             placeholder="Payment terms, validity..."></textarea>
                     </div>
                     <div>

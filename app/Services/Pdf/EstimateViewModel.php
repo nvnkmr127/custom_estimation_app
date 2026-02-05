@@ -27,6 +27,7 @@ class EstimateViewModel
             $this->getCompanyInfo(),
             $this->getNotesAndTerms(),
             $this->getFlags(),
+            $this->getApprovalStamp(),
             $this->getArrays()
         );
     }
@@ -121,6 +122,50 @@ class EstimateViewModel
         // Ideally, we should expose 'items' as an array of ItemViewModels here, but the existing parser regex logic iterates over the model relationship.
         // For now, let's keep the flat scalar variables here.
         return [];
+    }
+
+    protected function getApprovalStamp(): array
+    {
+        if ($this->estimate->status !== 'accepted') {
+            return ['approval_stamp' => '', 'signature_image' => ''];
+        }
+
+        $date = $this->estimate->signed_at ? $this->estimate->signed_at->format('M d, Y') : '';
+        $id = str_pad($this->estimate->id, 6, '0', STR_PAD_LEFT);
+
+        // Circular SVG Stamp (Professional Ink Style)
+        $svg = '
+        <div class="approval-stamp-container" style="display:inline-block; position:relative; width:180px; height:180px;">
+            <svg viewBox="0 0 200 200" style="width:100%; height:100%; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));">
+                <circle cx="100" cy="100" r="92" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="4,4" />
+                <circle cx="100" cy="100" r="85" fill="none" stroke="#10b981" stroke-width="6" />
+                <circle cx="100" cy="100" r="75" fill="none" stroke="#10b981" stroke-width="2" />
+                <path id="pdfCurve" d="M 40,100 A 60,60 0 1,1 160,100" fill="none" />
+                <text font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#059669" letter-spacing="2">
+                    <textPath href="#pdfCurve" startOffset="50%" text-anchor="middle">OFFICIALLY APPROVED</textPath>
+                </text>
+                <rect x="20" y="85" width="160" height="30" rx="4" fill="#10b981" />
+                <text x="100" y="106" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#ffffff">APPROVED</text>
+                <path d="M 40,100 A 60,60 0 1,0 160,100" fill="none" id="pdfCurve2" />
+                <text font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#059669" letter-spacing="1">
+                    <textPath href="#pdfCurve2" startOffset="50%" text-anchor="middle" dominant-baseline="hanging">' . $date . '</textPath>
+                </text>
+            </svg>
+        </div>';
+
+        $signatureHtml = '';
+        if ($this->estimate->signature) {
+            $signatureHtml = '<div class="digital-signature-box" style="margin-top:10px; border-top:1px solid #e2e8f0; padding-top:10px;">
+                <p style="font-size: 10px; color:#64748b; margin:0; text-transform:uppercase;">Digitally Signed By Client</p>
+                <img src="' . $this->estimate->signature . '" style="max-height:60px; max-width:200px; display:block;" />
+                <p style="font-size: 8px; color:#94a3b8; margin-top:5px;">UID: ' . $id . ' | ' . $this->estimate->signed_at->format('H:i T') . '</p>
+            </div>';
+        }
+
+        return [
+            'approval_stamp' => $svg,
+            'signature_image' => $signatureHtml
+        ];
     }
 
     protected function processLogo($logoPath)

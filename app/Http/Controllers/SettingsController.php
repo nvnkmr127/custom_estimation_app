@@ -67,6 +67,15 @@ class SettingsController extends Controller
             'smtp_encryption' => 'nullable|in:tls,ssl,null',
             'smtp_from_address' => 'nullable|email|max:255',
             'smtp_from_name' => 'nullable|string|max:255',
+
+            // Portal Showcase
+            'portal_company_badge' => 'nullable|string|max:50',
+            'portal_company_title' => 'nullable|string|max:255',
+            'portal_company_intro' => 'nullable|string',
+            'portal_company_video_url' => 'nullable|url|max:255',
+            'portal_company_video_thumbnail' => 'nullable|image|max:4096',
+            'portal_company_gallery_title' => 'nullable|string|max:255',
+            'portal_company_showcase_images.*' => 'nullable|image|max:4096',
         ]);
 
         // Fields to save directly from input
@@ -106,7 +115,11 @@ class SettingsController extends Controller
             'smtp_encryption',
             'smtp_from_address',
             'smtp_from_name',
-
+            'portal_company_badge',
+            'portal_company_title',
+            'portal_company_intro',
+            'portal_company_video_url',
+            'portal_company_gallery_title',
         ];
 
         foreach ($keys as $key) {
@@ -126,6 +139,30 @@ class SettingsController extends Controller
             Setting::updateOrCreate(
                 ['key' => 'app_logo'],
                 ['value' => $publicPath]
+            );
+        }
+
+        // Handle Video Thumbnail
+        if ($request->hasFile('portal_company_video_thumbnail')) {
+            $path = $request->file('portal_company_video_thumbnail')->store('public/showcase');
+            $publicPath = Storage::url($path);
+
+            Setting::updateOrCreate(
+                ['key' => 'portal_company_video_thumbnail'],
+                ['value' => $publicPath]
+            );
+        }
+
+        // Handle Portal Showcase Images (Multiple)
+        if ($request->hasFile('portal_company_showcase_images')) {
+            $images = [];
+            foreach ($request->file('portal_company_showcase_images') as $file) {
+                $path = $file->store('public/showcase');
+                $images[] = Storage::url($path);
+            }
+            Setting::updateOrCreate(
+                ['key' => 'portal_company_showcase_images'],
+                ['value' => json_encode($images)]
             );
         }
 
