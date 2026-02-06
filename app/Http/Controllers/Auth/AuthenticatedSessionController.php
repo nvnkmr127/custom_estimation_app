@@ -55,6 +55,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
+        if (config('sso.enabled') && config('sso.centralized_logout') && !$request->has('local')) {
+            $logoutUrl = config('sso.auth_core_url') . config('sso.logout_path', '/logout') . '?redirect=' . urlencode(url('/'));
+            return redirect()->away($logoutUrl);
+        }
+
         return redirect('/');
     }
 }

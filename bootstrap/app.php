@@ -15,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
 
+        $middleware->redirectGuestsTo(
+            fn(\Illuminate\Http\Request $request) =>
+            config('sso.enabled')
+            ? config('sso.auth_core_url') . '/login?redirect=' . urlencode($request->fullUrl())
+            : route('login')
+        );
+
         $middleware->validateCsrfTokens(except: [
             '/webhooks/*',
             '/catch/*',

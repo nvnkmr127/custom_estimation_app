@@ -10,6 +10,15 @@ Route::get('/', \App\Http\Controllers\WelcomeController::class)->name('welcome')
 Route::get('/user-guide', [\App\Http\Controllers\DocumentationController::class, 'index'])->name('guide.index');
 Route::get('/user-guide/{page}', [\App\Http\Controllers\DocumentationController::class, 'show'])->name('guide.show');
 
+// SSO Authentication
+Route::get('/sso/login', [App\Http\Controllers\Auth\SsoController::class, 'login'])
+    ->name('sso.login')
+    ->middleware('guest');
+
+Route::get('/sso/callback', [App\Http\Controllers\Auth\SsoController::class, 'callback'])
+    ->name('sso.callback')
+    ->middleware(['guest', 'throttle:6,1']);
+
 // Portal (Signed Routes)
 Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::get('/estimates/{estimate}', [App\Http\Controllers\PortalController::class, 'show'])->name('show')->middleware('signed');

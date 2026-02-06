@@ -23,6 +23,9 @@ class User extends Authenticatable
         'password',
         'role',
         'max_discount_percentage',
+        'provider_name',
+        'provider_id',
+        'source',
     ];
 
     /**
