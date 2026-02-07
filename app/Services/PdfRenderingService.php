@@ -39,10 +39,13 @@ class PdfRenderingService
         // This handles global flags that wrap loops (IF_room_based, has_discount, etc.)
         $html = $this->parseConditionals($html);
 
-        // 2. Variable Replacement
+        // 4. Variable Replacement
         $html = $this->replaceVariables($html);
 
-        // 3. Process Images (Convert relative URLs to absolute paths for DOMPDF)
+        // 5. Final Cleanup (Remove any unrendered logic tags or empty tags to prevent them showing in PDF)
+        $html = preg_replace('/\{(IF_|IF_NOT_|ENDIF|END_IF|LOOP_|END_LOOP_|%7BIF|%7BEND|%7BLOOP|%7BEND_LOOP)[^}]*\}/i', '', $html);
+
+        // 6. Process Images
         $html = $this->processImages($html, $isWeb);
 
         // 4. Inject CSS
@@ -84,6 +87,57 @@ class PdfRenderingService
             "'" . $template->font_family . "'"
         ], $finalCss);
 
+        // --- Layout Refinements: Borders & Equal Spacing ---
+        if (!$isWeb) {
+            // Ensure <body> exists for reliable injection
+            if (stripos($html, '<body') === false) {
+                // If it looks like a full document but missing body (rare), or just a fragment
+                if (stripos($html, '<html') !== false) {
+                    $html = str_ireplace('</html>', '<body>' . substr($html, strpos($html, '</html>')), $html); // This is risky, better to wrap content
+                } else {
+                    $html = '<body>' . $html . '</body>';
+                }
+            }
+
+            $layoutCss = "
+            @page {
+                margin: 0.4in;
+            }
+            body { 
+                padding: 0; 
+                margin: 0;
+            }
+            .page-border {
+                position: fixed;
+                top: 5px;
+                left: 5px;
+                right: 5px;
+                bottom: 5px;
+                border: 0.5pt solid #cbd5e1; /* Thinner, lighter border */
+                pointer-events: none;
+                z-index: 9999;
+            }
+            .footer-logo-container {
+                position: fixed;
+                bottom: 0;
+                right: 0;
+                z-index: 10000;
+                text-align: right;
+            }
+            .footer-logo-container img {
+                height: 25px;
+                width: auto;
+                opacity: 0.6;
+            }";
+            $finalCss .= $layoutCss;
+
+            // Inject border and footer logo div into HTML
+            $footerLogoInner = str_replace('max-height: 80px;', 'height: 25px;', $variables['company_logo'] ?? '');
+            $footerLogoHtml = '<div class="footer-logo-container">' . $footerLogoInner . '</div>';
+
+            $html = preg_replace('/(<body[^>]*>)/i', '$1<div class="page-border"></div>' . $footerLogoHtml, $html);
+        }
+
         if ($finalCss) {
             // If HTML has <head>, inject there. Otherwise prepend.
             if (strpos($html, '</head>') !== false) {
@@ -94,8 +148,15 @@ class PdfRenderingService
         }
 
         // 5. Inject Watermark
-        if (!empty($template->watermark_text)) {
-            $opacity = $template->watermark_opacity ?? 0.1;
+        // Use "COPYRIGHT © {company_name} {year}" or template's watermark text
+        $watermarkText = "COPYRIGHT © " . ($variables['company_name'] ?? 'Smart Estimation') . " " . date('Y');
+        if (!empty($template->watermark_text) && $template->watermark_text !== 'PROPOSAL') {
+            $watermarkText = $template->watermark_text;
+        }
+
+        // Only show if text is set
+        if (!empty($watermarkText)) {
+            $opacity = $template->watermark_opacity ?? 0.05;
             $watermarkCss = "
             .watermark-container {
                 position: fixed;
@@ -108,26 +169,36 @@ class PdfRenderingService
                 text-align: center;
             }
             .watermark-text {
-                font-size: 80pt;
-                font-weight: bold;
-                color: #000;
+                font-size: 60pt; /* Slightly smaller for copyright text */
+                font-weight: 900;
+                color: #e2e8f0;
                 opacity: {$opacity};
                 text-transform: uppercase;
                 white-space: nowrap;
+                letter-spacing: 10px;
             }";
 
             // Append CSS
-            $html = str_replace('</style>', $watermarkCss . '</style>', $html);
-
-            // Append HTML Body
-            $watermarkHtml = '<div class="watermark-container"><div class="watermark-text">' . htmlspecialchars($template->watermark_text) . '</div></div>';
-
-            if (strpos($html, '<body') !== false) {
-                // Insert after body tag
-                $html = preg_replace('/(<body[^>]*>)/i', '$1' . $watermarkHtml, $html);
+            if (strpos($html, '</style>') !== false) {
+                $html = str_replace('</style>', $watermarkCss . '</style>', $html);
             } else {
-                // Prepend if no body tag
-                $html = $watermarkHtml . $html;
+                $html = str_replace('</head>', '<style>' . $watermarkCss . '</style></head>', $html);
+            }
+
+            // Append HTML Body (Robust Injection)
+            $watermarkHtml = '<div class="watermark-container"><div class="watermark-text">' . htmlspecialchars($watermarkText) . '</div></div>';
+
+            if (str_contains($html, 'page-border"></div>')) {
+                $html = str_replace('page-border"></div>', 'page-border"></div>' . $watermarkHtml, $html);
+            } else {
+                // Insert after start of body tag
+                $count = 0;
+                $html = preg_replace('/(<body[^>]*>)/i', '$1' . $watermarkHtml, $html, 1, $count);
+
+                // If body tag wasn't found/replaced, prepend to content as last resort
+                if ($count === 0) {
+                    $html = $watermarkHtml . $html;
+                }
             }
         }
 
@@ -358,6 +429,136 @@ class PdfRenderingService
         return $html;
     }
 
+    /**
+     * Process section-level conditionals that may contain nested item conditionals.
+     * Uses bracket counting to find matching ENDIF instead of regex negative lookahead.
+     */
+    protected function parseSectionConditionals($html, $sectionVars)
+    {
+        // Process IF_section_is_package first (removes if false, keeps content if true)
+        $html = $this->processSingleConditional($html, 'section_is_package', $sectionVars['section_is_package'] ?? 0);
+
+        // Process IF_NOT_section_is_package (removes if section IS package, keeps content if NOT package)
+        $html = $this->processNotConditional($html, 'section_is_package', $sectionVars['section_is_package'] ?? 0);
+
+        return $html;
+    }
+
+    /**
+     * Process a single IF_key conditional with nested content support.
+     */
+    protected function processSingleConditional($html, $key, $value)
+    {
+        $tag = '{IF_' . $key . '}';
+        $pos = strpos($html, $tag);
+
+        if ($pos === false) {
+            return $html;
+        }
+
+        // Find matching ENDIF by counting nested IF/ENDIF pairs
+        $start = $pos + strlen($tag);
+        $depth = 1;
+        $endifPos = null;
+        $i = $start;
+        $len = strlen($html);
+
+        while ($i < $len && $depth > 0) {
+            $nextIf = strpos($html, '{IF_', $i);
+            $nextIfNot = strpos($html, '{IF_NOT_', $i);
+            $nextEndif = strpos($html, '{ENDIF}', $i);
+
+            // Find the closest tag
+            $positions = array_filter([$nextIf, $nextIfNot, $nextEndif], fn($p) => $p !== false);
+            if (empty($positions))
+                break;
+
+            $closest = min($positions);
+
+            if ($closest === $nextEndif) {
+                $depth--;
+                if ($depth === 0) {
+                    $endifPos = $closest;
+                    break;
+                }
+                $i = $closest + 7; // strlen('{ENDIF}')
+            } else {
+                $depth++;
+                $i = $closest + 4; // Move past '{IF_' at minimum
+            }
+        }
+
+        if ($endifPos === null) {
+            return $html; // No matching ENDIF found
+        }
+
+        $content = substr($html, $start, $endifPos - $start);
+        $fullMatch = substr($html, $pos, $endifPos + 7 - $pos); // Include {ENDIF}
+
+        // If value is truthy, keep the content; otherwise remove entire block
+        $isTrue = !empty($value) && $value != 0;
+        $replacement = $isTrue ? $content : '';
+
+        return str_replace($fullMatch, $replacement, $html);
+    }
+
+    /**
+     * Process a single IF_NOT_key conditional with nested content support.
+     */
+    protected function processNotConditional($html, $key, $value)
+    {
+        $tag = '{IF_NOT_' . $key . '}';
+        $pos = strpos($html, $tag);
+
+        if ($pos === false) {
+            return $html;
+        }
+
+        // Find matching ENDIF by counting nested IF/ENDIF pairs
+        $start = $pos + strlen($tag);
+        $depth = 1;
+        $endifPos = null;
+        $i = $start;
+        $len = strlen($html);
+
+        while ($i < $len && $depth > 0) {
+            $nextIf = strpos($html, '{IF_', $i);
+            $nextIfNot = strpos($html, '{IF_NOT_', $i);
+            $nextEndif = strpos($html, '{ENDIF}', $i);
+
+            $positions = array_filter([$nextIf, $nextIfNot, $nextEndif], fn($p) => $p !== false);
+            if (empty($positions))
+                break;
+
+            $closest = min($positions);
+
+            if ($closest === $nextEndif) {
+                $depth--;
+                if ($depth === 0) {
+                    $endifPos = $closest;
+                    break;
+                }
+                $i = $closest + 7;
+            } else {
+                $depth++;
+                $i = $closest + 4;
+            }
+        }
+
+        if ($endifPos === null) {
+            return $html;
+        }
+
+        $content = substr($html, $start, $endifPos - $start);
+        $fullMatch = substr($html, $pos, $endifPos + 7 - $pos);
+
+        // IF_NOT logic: keep content if value is falsy
+        $isTrue = !empty($value) && $value != 0;
+        $replacement = !$isTrue ? $content : '';
+
+        return str_replace($fullMatch, $replacement, $html);
+    }
+
     protected function parseSections($html)
     {
         // Support encoded LOOP_SECTIONS tag and whitespace
@@ -380,19 +581,25 @@ class PdfRenderingService
 
                 $sectionHtml = $sectionBlock;
 
-                // Process Section Conditionals (before replacements)
-                $sectionHtml = $this->parseConditionals($sectionHtml, $sectionVars);
+                // 1. Process Section-level Conditionals FIRST using bracket-counting method
+                // This handles nested item conditionals correctly
+                $sectionHtml = $this->parseSectionConditionals($sectionHtml, $sectionVars);
 
-                $sectionHtml = str_replace(['{section_name}', '{ section_name }'], $section->name, $sectionHtml);
-                // Use standardized Model accessor for consistency
+                // 2. Variable Replacement for section specific tags
                 $formattedTotal = number_format($section->total, 2);
-                $sectionHtml = str_replace(['{section_subtotal}', '{ section_subtotal }'], $formattedTotal, $sectionHtml);
-                $sectionHtml = str_replace(['{section_total}', '{ section_total }'], $formattedTotal, $sectionHtml);
+                $replacements = [
+                    '{section_name}' => $section->name,
+                    '{ section_name }' => $section->name,
+                    '{section_subtotal}' => $formattedTotal,
+                    '{ section_subtotal }' => $formattedTotal,
+                    '{section_total}' => $formattedTotal,
+                    '{ section_total }' => $formattedTotal,
+                ];
+                $sectionHtml = strtr($sectionHtml, $replacements);
 
+                // 3. Process LOOP_ITEMS inside this specific section
                 $sectionHtml = preg_replace_callback('/\{(?:\s*LOOP_ITEMS\s*|%7BLOOP_ITEMS%7D)\}(.*?)\{(?:\s*END_LOOP\s*|%7BEND_LOOP%7D)\}/si', function ($itemMatches) use ($section) {
-                    $itemBlock = $itemMatches[1];
-
-                    return $this->renderItems($itemBlock, $section->items, $section);
+                    return $this->renderItems($itemMatches[1], $section->items, $section);
                 }, $sectionHtml);
 
                 $renderedSections .= $sectionHtml;
@@ -443,21 +650,8 @@ class PdfRenderingService
             // Process Item Image
             $itemImageHtml = '';
             $product = $item->product;
-            if ($product && $product->images && $product->images->count() > 0) {
-                $image = $product->images->first();
-                $imagePath = $image->path ?? $image->url ?? null;
-
-                if ($imagePath) {
-                    if (filter_var($imagePath, FILTER_VALIDATE_URL)) {
-                        $itemImageHtml = '<img src="' . $imagePath . '" class="item-image" />';
-                    } else {
-                        $absPath = public_path($imagePath);
-                        if (file_exists($absPath)) {
-                            $src = $this->isWeb ? $imagePath : 'file://' . $absPath;
-                            $itemImageHtml = '<img src="' . $src . '" class="item-image" />';
-                        }
-                    }
-                }
+            if ($product && $product->primary_image_url) {
+                $itemImageHtml = '<img src="' . $product->primary_image_url . '" class="item-image" />';
             }
 
             $itemHtml = $block;
@@ -466,7 +660,7 @@ class PdfRenderingService
             if (!empty($item->options) && is_array($item->options)) {
                 $parts = [];
                 foreach ($item->options as $option) {
-                    $parts[] = ($option['name'] ?? '') . ': ' . ($option['value'] ?? '');
+                    $parts[] = (is_array($option) && isset($option['name'])) ? ($option['name'] . ': ' . $option['value']) : (string) $option;
                 }
                 if (!empty($parts)) {
                     $optionsHtml = '<div style="font-size: 0.85em; color: #475569; margin-top: 2px;">' . implode(' | ', $parts) . '</div>';
@@ -475,7 +669,7 @@ class PdfRenderingService
 
             $itemVars = [
                 '{item_name}' => $item->name,
-                '{item_description}' => ($item->description ?? '') . $optionsHtml,
+                '{item_description}' => $item->description ?? '',
                 '{item_options}' => $optionsHtml,
                 '{item_image}' => $itemImageHtml,
                 '{item_quantity}' => $item->quantity + 0,
@@ -500,13 +694,17 @@ class PdfRenderingService
                 '_raw_item_is_package' => $itemIsPackage ? 1 : 0,
                 'section_is_package' => ($parentSection && $parentSection->is_package) ? 1 : 0,
                 '_raw_section_is_package' => ($parentSection && $parentSection->is_package) ? 1 : 0,
-                'has_length' => (!$itemIsPackage && $item->length > 0) ? 1 : 0,
-                'has_width' => (!$itemIsPackage && $item->width > 0) ? 1 : 0,
-                'has_height' => (!$itemIsPackage && $item->height > 0) ? 1 : 0,
-                'has_size' => (!$itemIsPackage && $item->size > 0) ? 1 : 0,
-                'has_dimensions' => (!$itemIsPackage && ($item->length > 0 || $item->width > 0 || $item->height > 0)) ? 1 : 0,
-                'has_any_dimensions' => (!$itemIsPackage && ($item->length > 0 || $item->width > 0 || $item->height > 0 || $item->size > 0)) ? 1 : 0,
-                'has_image' => ($item->product && $item->product->images->isNotEmpty()) ? 1 : 0,
+                'has_length' => (!$itemIsPackage && ($item->length + 0) > 0) ? 1 : 0,
+                'has_width' => (!$itemIsPackage && ($item->width + 0) > 0) ? 1 : 0,
+                'has_height' => (!$itemIsPackage && ($item->height + 0) > 0) ? 1 : 0,
+                'has_size' => (!$itemIsPackage && !empty($item->size)) ? 1 : 0,
+                'has_dimensions' => (!$itemIsPackage && (($item->length + 0) > 0 || ($item->width + 0) > 0 || ($item->height + 0) > 0)) ? 1 : 0,
+                'has_any_dimensions' => (!$itemIsPackage && (($item->length + 0) > 0 || ($item->width + 0) > 0 || ($item->height + 0) > 0 || !empty($item->size))) ? 1 : 0,
+                'has_image' => ($product && $product->primary_image_url) ? 1 : 0,
+                'has_internal_note' => $item->internal_note ? 1 : 0,
+                'item_internal_note' => $item->internal_note ?? '',
+                'item_options' => $optionsHtml ? 1 : 0,
+                'has_options' => $optionsHtml ? 1 : 0,
             ];
 
             // Process Item Conditionals
@@ -561,6 +759,13 @@ class PdfRenderingService
             return $cachePath;
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("PDF Generation Failed for Estimate #{$estimate->id}: " . $e->getMessage());
+
+            // Log a snippet of the HTML for debugging. 
+            // Strip <style> tags to get to the actual content faster in the log
+            $logContent = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '[STYLE STRIPPED]', $html);
+            $logContent = preg_replace('/<head\b[^>]*>(.*?)<\/head>/is', '[HEAD STRIPPED]', $logContent);
+
+            \Illuminate\Support\Facades\Log::error("Failed HTML Content (Body Truncated): " . substr($logContent, 0, 5000));
 
             // Fallback content in case of severe failure
             return null;

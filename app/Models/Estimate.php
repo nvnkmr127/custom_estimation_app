@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Setting;
 
 class Estimate extends Model
 {
@@ -27,9 +28,24 @@ class Estimate extends Model
     protected static function boot()
     {
         parent::boot();
+
         static::creating(function ($estimate) {
             if (!$estimate->created_by && auth()->check()) {
                 $estimate->created_by = auth()->id();
+            }
+        });
+
+        // Handle cascade deletion of child versions when parent is deleted
+        static::deleting(function ($estimate) {
+            // If this is a root estimate (no parent_id), delete all its child versions
+            if (!$estimate->parent_id) {
+                // Get all child versions
+                $childVersions = static::where('parent_id', $estimate->id)->get();
+
+                foreach ($childVersions as $child) {
+                    /** @var \App\Models\Estimate $child */
+                    $child->delete();
+                }
             }
         });
     }
@@ -116,6 +132,62 @@ class Estimate extends Model
     public function getHasTermsAttribute()
     {
         return !empty($this->terms);
+    }
+
+    /**
+     * Get the final merged terms (global fallback, append, or replace)
+     */
+    public function getFinalTermsAttribute()
+    {
+        $globalTerms = trim(Setting::getCached('estimate_terms') ?? '');
+        $localTerms = trim($this->terms ?? '');
+
+        if (empty($localTerms)) {
+            return $globalTerms;
+        }
+
+        // --- Smart Merge Logic ---
+
+        // 1. Force Append: If it starts with '+', append local to global
+        if (str_starts_with($localTerms, '+')) {
+            $cleanedLocal = trim(substr($localTerms, 1));
+            return ($globalTerms ? $globalTerms . "\n\n" : '') . $cleanedLocal;
+        }
+
+        // 2. Already Merged Check: If global terms are already part of local terms, just return local
+        if (!empty($globalTerms) && str_contains($localTerms, $globalTerms)) {
+            return $localTerms;
+        }
+
+        // 3. Default: Full Override (Replace)
+        return $localTerms;
+    }
+
+    /**
+     * Check if there are any final terms to display
+     */
+    public function getHasFinalTermsAttribute()
+    {
+        return !empty($this->final_terms);
+    }
+
+    /**
+     * Get terms formatted for HTML rendering
+     */
+    public function getFinalTermsHtmlAttribute()
+    {
+        $terms = $this->final_terms;
+        if (empty($terms)) {
+            return '';
+        }
+
+        // If it looks like it already contains HTML, return it raw
+        if ($terms !== strip_tags($terms)) {
+            return $terms;
+        }
+
+        // Otherwise escape and convert newlines to <br>
+        return nl2br(e($terms));
     }
 
     /**

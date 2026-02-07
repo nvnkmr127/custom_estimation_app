@@ -32,7 +32,7 @@ return [
         ],
         'pdf_template' => [
             'HTML.Doctype' => 'HTML 4.01 Transitional',
-            'HTML.Allowed' => 'div[style|class|id],b,strong,i,em,u,a[href|title|style|class],ul,ol,li[style|class],p[style|class],br,span[style|class],img[width|height|alt|src|style|class],table[style|class|width|border|cellspacing|cellpadding],thead[style|class],tbody[style|class],tfoot[style|class],tr[style|class],td[style|class|width|colspan|rowspan|align|valign],th[style|class|width|colspan|rowspan|align|valign],h1[style|class],h2[style|class],h3[style|class],h4[style|class],h5[style|class],h6[style|class],hr[style|class],blockquote[style|class],style',
+            'HTML.Allowed' => 'html,head,body,meta,div[style|class|id],b,strong,i,em,u,a[href|title|style|class],ul,ol,li[style|class],p[style|class],br,span[style|class],img[width|height|alt|src|style|class],table[style|class|width|border|cellspacing|cellpadding],thead[style|class],tbody[style|class],tfoot[style|class],tr[style|class],td[style|class|width|colspan|rowspan|align|valign],th[style|class|width|colspan|rowspan|align|valign],h1[style|class],h2[style|class],h3[style|class],h4[style|class],h5[style|class],h6[style|class],hr[style|class],blockquote[style|class],style',
             'CSS.AllowedProperties' => 'font,font-size,font-weight,font-style,font-family,text-decoration,padding,padding-top,padding-left,padding-right,padding-bottom,margin,margin-top,margin-left,margin-right,margin-bottom,border,border-top,border-left,border-right,border-bottom,border-collapse,border-spacing,width,height,color,background,background-color,background-image,text-align,vertical-align,line-height,list-style-type,display,position,top,bottom,left,right,z-index,page-break-after,page-break-before,page-break-inside,clear,float,opacity',
             'CSS.AllowTricky' => true,
             'HTML.SafeIframe' => false,
@@ -106,6 +106,13 @@ return [
                 // http://developers.whatwg.org/edits.html
                 ['ins', 'Block', 'Flow', 'Common', ['cite' => 'URI', 'datetime' => 'CDATA']],
                 ['del', 'Block', 'Flow', 'Common', ['cite' => 'URI', 'datetime' => 'CDATA']],
+
+                // PDF Template Structure Support
+                ['html', 'Block', 'Flow', 'Common'],
+                ['head', 'Block', 'Flow', 'Common'],
+                ['body', 'Block', 'Flow', 'Common'],
+                ['meta', 'Block', 'Empty', 'Common', ['charset' => 'Text', 'name' => 'Text', 'content' => 'Text']],
+                ['style', 'Block', 'Required: #PCDATA', 'Common', ['type' => 'Text']],
             ],
             'attributes' => [
                 ['iframe', 'allowfullscreen', 'Bool'],

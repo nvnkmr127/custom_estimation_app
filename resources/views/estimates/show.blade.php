@@ -131,10 +131,10 @@
                                 <p class="text-sm text-slate-500 leading-relaxed">{{ $estimate->client_note }}</p>
                             </div>
                         @endif
-                        @if($estimate->has_terms)
+                        @if($estimate->has_final_terms)
                             <div>
                                 <h4 class="text-sm font-medium text-slate-700 mb-2">Terms & Conditions</h4>
-                                <p class="text-sm text-slate-500 leading-relaxed whitespace-pre-wrap">{{ $estimate->terms }}</p>
+                                <div class="text-sm text-slate-500 leading-relaxed">{!! $estimate->final_terms_html !!}</div>
                             </div>
                         @endif
                     </div>

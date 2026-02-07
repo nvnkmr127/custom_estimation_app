@@ -28,30 +28,8 @@ class PdfTemplateController extends Controller
     public function store(Request $request)
     {
         // Sanitize PDF content to prevent XSS/Injection
-        // We mask all {tags} using base64. For tags likely to be inside tables (logic tags), 
-        // we wrap them in a <tr> to prevent Purifier from moving them out of <tbody>/<table>.
         $html = $request->input('html_content');
-        $html = preg_replace_callback('/\{[^{}]+\}/', function ($matches) {
-            $tag = $matches[0];
-            $isLogic = preg_match('/LOOP|IF_|ENDIF/i', $tag);
-            $base64 = base64_encode($tag);
-            if ($isLogic) {
-                return '<tr class="tpl-mask" style="display:none"><td>TPLMASK_' . $base64 . '_END</td></tr>';
-            }
-            return 'TPLMASK_' . $base64 . '_END';
-        }, $html);
-
-        $html = clean($html, 'pdf_template');
-
-        // Restore: Look for our TR-wrapped masks first, then any naked ones
-        // We match optional wrapping table/tbody that Purifier adds if the TR was "loose"
-        $html = preg_replace_callback('/(?:<table>\s*<tbody>\s*)?<tr[^>]*class="tpl-mask"[^>]*><td>TPLMASK_([A-Za-z0-9+\/=]+)_END<\/td><\/tr>(?:\s*<\/tbody>\s*<\/table>)?/si', function ($matches) {
-            return base64_decode($matches[1]);
-        }, $html);
-
-        $html = preg_replace_callback('/TPLMASK_([A-Za-z0-9+\/=]+)_END/s', function ($matches) {
-            return base64_decode($matches[1]);
-        }, $html);
+        $html = $this->sanitizePdfContent($html);
 
         $request->merge([
             'html_content' => $html
@@ -114,25 +92,7 @@ class PdfTemplateController extends Controller
 
         // Sanitize PDF content to prevent XSS/Injection
         $html = $request->input('html_content');
-        $html = preg_replace_callback('/\{[^{}]+\}/', function ($matches) {
-            $tag = $matches[0];
-            $isLogic = preg_match('/LOOP|IF_|ENDIF/i', $tag);
-            $base64 = base64_encode($tag);
-            if ($isLogic) {
-                return '<tr class="tpl-mask" style="display:none"><td>TPLMASK_' . $base64 . '_END</td></tr>';
-            }
-            return 'TPLMASK_' . base64_encode($matches[0]) . '_END';
-        }, $html);
-
-        $html = clean($html, 'pdf_template');
-
-        $html = preg_replace_callback('/(?:<table>\s*<tbody>\s*)?<tr[^>]*class="tpl-mask"[^>]*><td>TPLMASK_([A-Za-z0-9+\/=]+)_END<\/td><\/tr>(?:\s*<\/tbody>\s*<\/table>)?/si', function ($matches) {
-            return base64_decode($matches[1]);
-        }, $html);
-
-        $html = preg_replace_callback('/TPLMASK_([A-Za-z0-9+\/=]+)_END/s', function ($matches) {
-            return base64_decode($matches[1]);
-        }, $html);
+        $html = $this->sanitizePdfContent($html);
 
         $request->merge([
             'html_content' => $html
@@ -213,25 +173,7 @@ class PdfTemplateController extends Controller
         $html = $request->input('html_content');
 
         // Sanitize for preview too
-        $html = preg_replace_callback('/\{[^{}]+\}/', function ($matches) {
-            $tag = $matches[0];
-            $isLogic = preg_match('/LOOP|IF_|ENDIF/i', $tag);
-            $base64 = base64_encode($tag);
-            if ($isLogic) {
-                return '<tr class="tpl-mask" style="display:none"><td>TPLMASK_' . $base64 . '_END</td></tr>';
-            }
-            return 'TPLMASK_' . base64_encode($matches[0]) . '_END';
-        }, $html);
-
-        $html = clean($html, 'pdf_template');
-
-        $html = preg_replace_callback('/(?:<table>\s*<tbody>\s*)?<tr[^>]*class="tpl-mask"[^>]*><td>TPLMASK_([A-Za-z0-9+\/=]+)_END<\/td><\/tr>(?:\s*<\/tbody>\s*<\/table>)?/si', function ($matches) {
-            return base64_decode($matches[1]);
-        }, $html);
-
-        $html = preg_replace_callback('/TPLMASK_([A-Za-z0-9+\/=]+)_END/s', function ($matches) {
-            return base64_decode($matches[1]);
-        }, $html);
+        $html = $this->sanitizePdfContent($html);
 
         $css = $request->input('css_content');
 
@@ -293,7 +235,7 @@ class PdfTemplateController extends Controller
 
         $product1 = new \App\Models\Product();
         $product1->setRelation('images', collect([
-            (object) ['url' => 'https://images.unsplash.com/photo-1562184552-997c461abbe6?auto=format&fit=crop&w=100&q=80']
+            (object) ['image_path' => 'https://images.unsplash.com/photo-1562184552-997c461abbe6?auto=format&fit=crop&w=100&q=80']
         ]));
         $item1->setRelation('product', $product1);
 
@@ -319,5 +261,85 @@ class PdfTemplateController extends Controller
         $renderedInfo = $service->render($tempTemplate, $estimate, true);
 
         return response($renderedInfo);
+    }
+
+    private function sanitizePdfContent($html)
+    {
+        // Use a secure random prefix for this request to make guessing impossible
+        $tokenMap = [];
+
+        // 0. Pre-process: Unwrap Logic Tags from <p> and <div>
+        // WYSIWYG editors often wrap {LOOP...} or {IF...} in <p> tags.
+        // If these are inside a <table>, HTML Purifier will close the table early, breaking the layout.
+        // We must unwrap them so they become bare text nodes (which we then mask as comments).
+        $logicTags = [
+            '\{LOOP_[^}]+\}',
+            '\{END_LOOP[^}]*\}',
+            '\{IF_[^}]+\}',
+            '\{IF_NOT_[^}]+\}',
+            '\{ENDIF\}',
+            '\{END_IF\}',
+            '\{CHART_[^}]+\}', // Charts often get wrapped too
+        ];
+
+        foreach ($logicTags as $tagPattern) {
+            // Unwrap from <p>...</p> (handling attributes)
+            $html = preg_replace('/<p[^>]*>\s*(' . $tagPattern . ')\s*<\/p>/si', '$1', $html);
+            // We now handle <div> as well since some editors or users might use it.
+            $html = preg_replace('/<div[^>]*>\s*(' . $tagPattern . ')\s*<\/div>/si', '$1', $html);
+
+            // Handle &nbsp; or whitespace in div too
+            $html = preg_replace('/<div[^>]*>\s*(' . $tagPattern . ')(?:&nbsp;|\s)*<\/div>/si', '$1', $html);
+        }
+
+        // 0.5 Pre-process: Unwrap Table Structure Tags from <p> and <div>
+        // WYSIWYG editors can wrap <tr>, <td>, <th> in paragraphs or divs.
+        // This is invalid HTML and causes Purifier to eject the table content.
+        // We must remove BOTH the opening wrapper AND the closing wrapper.
+        // We run this in a loop to handle nested wrappers (e.g. <div><p><tr>...</p></div>).
+
+        $structuralTags = ['tr', 'td', 'th', 'tbody', 'thead', 'tfoot'];
+
+        do {
+            $originalHtml = $html;
+
+            foreach ($structuralTags as $tag) {
+                // 1. Remove opening wrapper (<p> or <div>) if it immediately precedes the start tag
+                // Regex: <(p|div)...> \s* <tag...>
+                $html = preg_replace('/<(?:p|div)[^>]*>\s*(<' . $tag . '[^>]*>)/si', '$1', $html);
+
+                // 2. Remove closing wrapper (</p> or </div>) if it immediately follows the end tag
+                // Regex: </tag> \s* </(p|div)>
+                // We also allow &nbsp; since editors often add it: </tr>&nbsp;</div>
+                $html = preg_replace('/(<\/' . $tag . '>)(?:\s|&nbsp;|&#160;)*<\/(?:p|div)>/si', '$1', $html);
+            }
+
+        } while ($html !== $originalHtml); // Repeat until no more changes are made
+
+        // 1. Mask Logic Tags & Structural Tags
+        $html = preg_replace_callback('/\{[^{}]+\}|<html[^>]*>|<\/html>|<head[^>]*>|<\/head>|<body[^>]*>|<\/body>|<style[^>]*>.*?<\/style>|<meta[^>]*>|<!DOCTYPE[^>]*>/si', function ($matches) use (&$tokenMap) {
+            $tag = $matches[0];
+            $token = 'TPLMASK_' . \Illuminate\Support\Str::random(40) . '_END';
+
+            // Store the mapping
+            $tokenMap[$token] = $tag;
+
+            // Use HTML comments for masking to allow tags in any context (table, div, etc.)
+            // HTML Purifier is configured to preserve comments in 'pdf_template' profile
+            return '<!-- ' . $token . ' -->';
+        }, $html);
+
+        // 2. Run HTML Purifier
+        $html = clean($html, 'pdf_template');
+
+        // 3. Unmasking
+        // Restore: Look for our masked tokens
+
+        $html = preg_replace_callback('/<!--\s*(TPLMASK_[a-zA-Z0-9]+_END)\s*-->/si', function ($matches) use ($tokenMap) {
+            $token = $matches[1];
+            return $tokenMap[$token] ?? ''; // Return original or empty if not found (security safety)
+        }, $html);
+
+        return $html;
     }
 }

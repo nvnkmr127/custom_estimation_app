@@ -247,7 +247,7 @@ class EstimateController extends Controller
             'tax_1_rate' => (float) ($settings['tax_1_rate'] ?? 0),
             'tax_2_name' => $settings['tax_2_name'] ?? 'Tax 2',
             'tax_2_rate' => (float) ($settings['tax_2_rate'] ?? 0),
-            'terms' => $settings['estimate_terms'] ?? '',
+            'terms' => '',
             'client_note' => $settings['estimate_client_note'] ?? '',
         ];
 
@@ -388,7 +388,7 @@ class EstimateController extends Controller
             'tax_1_rate' => (float) ($settings['tax_1_rate'] ?? 0),
             'tax_2_name' => $settings['tax_2_name'] ?? 'Tax 2',
             'tax_2_rate' => (float) ($settings['tax_2_rate'] ?? 0),
-            'terms' => $settings['estimate_terms'] ?? '',
+            'terms' => '',
             'client_note' => $settings['estimate_client_note'] ?? '',
         ];
 
@@ -718,12 +718,31 @@ class EstimateController extends Controller
     {
         $this->authorize('delete', $estimate);
 
-        $estimateNumber = $estimate->estimate_number;
-        $estimate->delete();
+        return DB::transaction(function () use ($estimate) {
+            $estimateNumber = $estimate->estimate_number;
+            $isCurrentVersion = $estimate->is_current_version;
+            $parentId = $estimate->parent_id;
 
-        ActivityLog::log('estimate_deleted', $estimate, "Estimate #{$estimateNumber} deleted by " . auth()->user()->name);
+            // Soft delete the estimate (cascade only applies to hard deletes, so parent is safe)
+            $estimate->delete();
 
-        return redirect()->route('estimates.index')->with('success', 'Estimate deleted successfully.');
+            // If we deleted the current version and it has a parent, restore the previous version as current
+            if ($isCurrentVersion && $parentId) {
+                $previousVersion = Estimate::where('id', $parentId)
+                    ->orWhere('parent_id', $parentId)
+                    ->where('id', '!=', $estimate->id)
+                    ->orderBy('version', 'desc')
+                    ->first();
+
+                if ($previousVersion) {
+                    $previousVersion->update(['is_current_version' => true]);
+                }
+            }
+
+            ActivityLog::log('estimate_deleted', $estimate, "Estimate #{$estimateNumber} deleted by " . auth()->user()->name);
+
+            return redirect()->route('estimates.index')->with('success', 'Estimate deleted successfully.');
+        });
     }
     public function approveVersion(Estimate $estimate)
     {

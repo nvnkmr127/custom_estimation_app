@@ -42,11 +42,17 @@ class EstimateViewModel
 
     protected function getEstimateDetails(): array
     {
+        // Robust Expiry Fallback: Default to 30 days from estimate date if NULL
+        $estimateDate = $this->estimate->estimate_date ? \Carbon\Carbon::parse($this->estimate->estimate_date) : now();
+        $expiryDate = $this->estimate->expiry_date
+            ? $this->estimate->expiry_date
+            : $estimateDate->copy()->addDays(30);
+
         return [
             'estimate_number' => $this->estimate->estimate_number,
             'estimate_title' => $this->estimate->title ?? 'Estimate',
-            'estimate_date' => $this->estimate->estimate_date ? \Carbon\Carbon::parse($this->estimate->estimate_date)->format('M d, Y') : '',
-            'expiry_date' => $this->estimate->expiry_date ? \Carbon\Carbon::parse($this->estimate->expiry_date)->format('M d, Y') : 'N/A',
+            'estimate_date' => $estimateDate->format('M d, Y'),
+            'expiry_date' => $expiryDate->format('M d, Y'),
             'status' => ucfirst($this->estimate->status),
             'currency' => $this->estimate->currency ?? '$',
         ];
@@ -89,7 +95,8 @@ class EstimateViewModel
             'company_phone' => $this->settings['company_phone'] ?? '',
             'company_address' => $this->settings['company_address_street'] ?? '',
             'company_city' => $this->settings['company_address_city'] ?? '',
-            'company_logo' => $this->processLogo($this->settings['company_logo'] ?? ''),
+            'company_logo' => $this->processLogo($this->settings['company_logo'] ?? $this->settings['app_logo'] ?? ''),
+            'copyright_year' => date('Y'),
         ];
     }
 
@@ -97,7 +104,7 @@ class EstimateViewModel
     {
         return [
             'client_note' => nl2br(htmlspecialchars($this->estimate->client_note ?? '')),
-            'terms' => nl2br(htmlspecialchars($this->estimate->terms ?? '')),
+            'terms' => $this->estimate->final_terms_html, // Using HTML version for smart merge and formatting
             'admin_note' => nl2br(htmlspecialchars($this->estimate->admin_note ?? '')),
         ];
     }
@@ -109,7 +116,7 @@ class EstimateViewModel
             'has_tax' => $this->estimate->has_tax ? 1 : 0,
             'has_transportation' => $this->estimate->has_transportation ? 1 : 0,
             'has_client_note' => $this->estimate->has_client_note ? 1 : 0,
-            'has_terms' => $this->estimate->has_terms ? 1 : 0,
+            'has_terms' => $this->estimate->has_final_terms ? 1 : 0,
             'has_items' => $this->estimate->items->count() > 0 ? 1 : 0,
             'room_based' => $this->estimate->type === 'room_based' ? 1 : 0,
         ];
@@ -170,13 +177,26 @@ class EstimateViewModel
 
     protected function processLogo($logoPath)
     {
-        if (empty($logoPath))
-            return '';
-
-        $path = public_path($logoPath);
-        if (file_exists($path)) {
-            return '<img src="file://' . $path . '" class="company-logo" style="max-height: 80px;" />';
+        // 1. Try provided path
+        if (!empty($logoPath)) {
+            $path = public_path($logoPath);
+            if (file_exists($path)) {
+                return '<img src="file://' . $path . '" class="company-logo" style="max-height: 80px;" />';
+            }
         }
-        return '';
+
+        // 2. Fallback to default common logo paths if generic setting is missing
+        reset:
+        $defaults = ['/logo.png', '/images/logo.png', '/storage/logo.png'];
+        foreach ($defaults as $d) {
+            $path = public_path($d);
+            if (file_exists($path)) {
+                return '<img src="file://' . $path . '" class="company-logo" style="max-height: 80px;" />';
+            }
+        }
+
+        // 3. Last Resort: Placeholder with Company Name if no image found
+        $name = $this->settings['company_legal_name'] ?? config('app.name');
+        return '<div style="font-size: 24px; font-weight: 900; color: #1e293b; letter-spacing: -1px;">' . htmlspecialchars($name) . '</div>';
     }
 }

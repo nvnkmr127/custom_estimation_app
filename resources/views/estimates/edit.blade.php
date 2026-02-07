@@ -998,7 +998,8 @@
                             class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                             placeholder="Message visible to client..."></textarea>
                     </div>
-                    <div x-data="{
+                    <div x-data="{ 
+                        showGlobalTerms: false,
                         standardTerms: `<div class='space-y-8'>
     <!-- Price Promise -->
     <div class='bg-slate-50 p-5 rounded-lg border border-slate-100'>
@@ -1072,7 +1073,25 @@
                         </div>
                         <textarea x-model="estimate.terms" name="terms" rows="12"
                             class="block w-full rounded-md border-0 py-2 px-3 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xs font-mono leading-relaxed"
-                            placeholder="Payment terms, validity..."></textarea>
+                            placeholder="Special terms for this estimate..."></textarea>
+                        <div class="mt-2 flex flex-col gap-1">
+                            <p class="text-[10px] text-slate-500">
+                                <span class="font-bold text-indigo-600">Tip:</span> Leave empty to use Global Terms. Add
+                                text to <strong>append</strong>. Start with <code
+                                    class="bg-slate-100 px-1 rounded text-rose-600">REPLACE:</code> to fully override.
+                            </p>
+                            <button type="button" @click="showGlobalTerms = !showGlobalTerms"
+                                class="text-[10px] text-indigo-500 font-bold hover:underline w-fit">
+                                <span
+                                    x-text="showGlobalTerms ? 'Hide Global Terms' : 'View Global Terms Reference'"></span>
+                            </button>
+                            <div x-show="showGlobalTerms" x-cloak
+                                class="mt-1 p-3 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 whitespace-pre-wrap max-h-40 overflow-y-auto shadow-inner">
+                                <div class="font-bold mb-1 uppercase tracking-wider text-[9px] text-slate-400">Current
+                                    Global Terms:</div>
+                                {!! nl2br(htmlspecialchars($settings['estimate_terms'] ?? 'No global terms configured.')) !!}
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium uppercase tracking-wide text-slate-500 mb-1">Internal

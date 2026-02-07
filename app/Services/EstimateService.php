@@ -460,8 +460,9 @@ class EstimateService
             // 2. Replicate Estimate
             $newEstimate = $estimate->replicate();
 
-            // Calculate next version number based on FAMILY maximum
-            $maxVersion = Estimate::where('id', $rootId)
+            // Calculate next version number based on FAMILY maximum (including soft-deleted versions)
+            $maxVersion = Estimate::withTrashed()
+                ->where('id', $rootId)
                 ->orWhere('parent_id', $rootId)
                 ->max('version');
 
@@ -492,8 +493,6 @@ class EstimateService
             $newEstimate->signer_ip = null;
             $newEstimate->view_count = 0;
             $newEstimate->last_viewed_at = null;
-            $newEstimate->converted_at = null;
-            $newEstimate->invoice_id = null;
             $newEstimate->perfex_proposal_id = null; // Detach from previous Perfex proposal to create a new one
 
             $newEstimate->push();

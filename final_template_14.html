@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+        /* Existing CSS will be injected by service, but good to have base reset */
+    </style>
+</head>
+<body>
+<!-- Top Black Header -->
+    <div class="portal-header">
+        <table class="header-content">
+            <tr>
+                <td width="60%">
+                    <div style="height:50px;margin-bottom:25px;">{company_logo}</div>
+                    <div class="ref-badge">Estimate #{estimate_number}</div>
+                    <div style="font-size:24px;font-weight:800;margin-top:15px;">Digital Work Proposal</div>
+                </td>
+                <td width="40%" align="right" valign="bottom">
+                    <div style="font-size:10px;font-weight:800;margin-bottom:5px;">Investment Summary</div>
+                    <div class="investment-total">{currency} {grand_total}</div>
+                    <div style="font-size:11px;margin-top:10px;font-weight:600;">
+                        Issued: {estimate_date} • Valid Until: {expiry_date}
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Client/Company Info -->
+    <table class="summary-grid">
+        <tr>
+            <td width="48%" valign="top">
+                <div class="summary-card">
+                    <span class="card-label">Client Recipient</span>
+                    <div style="font-weight:800;font-size:18px;">{client_name}</div>
+                    <div style="font-size:12px;margin-top:8px;line-height:1.6;">
+                        {client_address}<br>
+                        {client_email} • {client_phone}
+                    </div>
+                </div>
+            </td>
+            <td width="4%"></td>
+            <td width="48%" valign="top">
+                <div class="summary-card">
+                    <span class="card-label">Estimate Provider</span>
+                    <div style="font-weight:800;font-size:18px;">{company_name}</div>
+                    <div style="font-size:12px;margin-top:8px;line-height:1.6;">
+                        {company_address}, {company_city}<br>
+                        {company_email} • {company_phone}
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Main Logic -->
+    {IF_room_based}
+        {LOOP_SECTIONS}
+            <div class="section-wrapper">
+                <div class="section-bar">
+                    <table width="100%">
+                        <tr>
+                            <td>
+                                <div class="section-title">{section_name}</div>
+                                <div style="font-size:9px;font-weight:700;margin-top:2px;">Local Scope of Work</div>
+                            </td>
+                            <td align="right">
+                                <div class="section-price">{section_subtotal}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="item-table-wrapper">
+                    {IF_section_is_package}
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th width="70%">Description of Package</th>
+                                    <th width="30%" align="right">Package Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {LOOP_ITEMS}
+                                <tr>
+                                    <td>
+                                        <div class="item-name"></div></td></tr>{IF_has_image}{ENDIF}<div class="item-desc">{item_description}</div>
+                                        {item_comments}
+                                    
+                                    <div style="font-weight:800;font-size:14px;">{item_total}</div>
+                                
+                                {END_LOOP}
+                            
+                        
+                    {ENDIF}
+
+                    {IF_NOT_section_is_package}                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th width="45%">Item Overview</th>
+                                    <th width="20%">Configuration</th>
+                                    <th width="15%">Measurement</th>
+                                    <th width="20%" align="right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {LOOP_ITEMS}
+                                <tr>
+                                    <td>
+                                        <div class="item-name"></div></td></tr>{IF_has_image}{ENDIF}<div class="item-desc">{item_description}</div>
+                                        {IF_item_options}<div class="variant-pill">{item_options}</div>{ENDIF}
+                                        {IF_has_internal_note}
+                                            <div class="internal-note-box"><strong>INTERNAL NOTE:</strong> {item_internal_note}</div>
+                                        {ENDIF}
+                                        {item_comments}
+                                    
+                                    
+                                        <div style="font-weight:800;font-size:12px;">{item_unit}</div>
+                                        <div style="font-size:10px;font-weight:700;margin-top:4px;">Category: {item_unit_category}</div>
+                                    
+                                    
+                                        {IF_has_length}<div class="dim-detail"><span class="dim-l">L</span><span class="dim-v">{item_length}</span></div>{ENDIF}
+                                        {IF_has_width}<div class="dim-detail"><span class="dim-l">W</span><span class="dim-v">{item_width}</span></div>{ENDIF}
+                                        {IF_has_height}<div class="dim-detail"><span class="dim-l">H</span><span class="dim-v">{item_height}</span></div>{ENDIF}
+                                    
+                                    
+                                        <div style="font-weight:900;font-size:15px;">{item_total}</div>
+                                        <div style="font-size:10px;font-weight:700;">{item_quantity} x {item_price}</div>
+                                    
+                                
+                                {END_LOOP}
+                            
+                        
+                    {ENDIF}
+                
+            
+        {END_LOOP_SECTIONS}
+    {ENDIF}
+
+    {IF_NOT_room_based}
+        <div class="section-bar">
+            <div class="section-title">Project Items</div>
+        </div>
+        <div class="item-table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th width="50%">Description</th>
+                        <th width="15%" align="right">Rate</th>
+                        <th width="15%" align="center">Qty</th>
+                        <th width="20%" align="right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {LOOP_ITEMS}
+                    <tr>
+                        <td>
+                            <div class="item-name"></div></td></tr>{IF_has_image}{ENDIF}<div class="item-desc">{item_description}</div>
+                            {item_comments}
+                        
+                        {item_price}
+                        {item_quantity} {item_unit}
+                        {item_total}
+                    
+                    {END_LOOP}
+                
+            
+        
+    {ENDIF}
+
+    <!-- Dark Recap Section -->
+    <div class="recap-container">
+        <table width="100%">
+            <tr>
+                <td width="55%" valign="top" style="padding-right:50px;">
+                    <div class="card-label">Project Consultation Remarks</div>
+                    <div style="font-size:13px;color:#fff;line-height:1.8;">{client_note}</div>
+                    
+                    
+                </td>
+                <td width="45%" valign="top">
+                    <table width="100%">
+                        <tr class="totals-row">
+                            <td class="total-label">Proposal Subtotal</td>
+                            <td class="total-value">{subtotal}</td>
+                        </tr>
+                        {IF_has_discount}
+                        <tr class="totals-row">
+                            <td class="total-label">Project Adjustment</td>
+                            <td class="total-value" style="color:#fb7185;">- {discount_total}</td>
+                        </tr>
+                        {ENDIF}
+                        {IF_has_tax}
+                        <tr class="totals-row">
+                            <td class="total-label">Tax Allocation</td>
+                            <td class="total-value">{tax_total}</td>
+                        </tr>
+                        {ENDIF}
+                        {IF_has_transportation}
+                        <tr class="totals-row">
+                            <td class="total-label">Logistics Support</td>
+                            <td class="total-value">{transportation_charges}</td>
+                        </tr>
+                        {ENDIF}
+                        <tr class="investment-highlight">
+                            <td style="font-size:18px;font-weight:900;color:#fff;">Final Proposal Value</td>
+                            <td style="font-size:30px;font-weight:900;color:#fff;text-align:right;">{currency} {grand_total}</td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-top:40px;text-align:center;">
+                        <div style="width:130px;height:130px;margin:0 auto;opacity:0.8;">{approval_stamp}</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    
+    {IF_has_terms}
+    <div class="terms-section">
+        <div class="terms-header">Authorization Terms &amp; Conditions</div>
+        <div class="terms-content">
+            {terms}
+        </div>
+    </div>
+    {ENDIF}
+    <!-- Signatures -->
+    <table class="signature-grid">
+        <tr>
+            <td width="40%" valign="bottom" style="border-bottom:2px solid;padding-bottom:12px;">
+                <span class="card-label">For {company_name}</span>
+                <div style="font-weight:800;font-size:13px;margin-top:5px;">Digital Authorization Record</div>
+            </td>
+            <td width="20%"></td>
+            <td width="40%" valign="bottom" style="border-bottom:2px solid;padding-bottom:12px;">
+                <span class="card-label">Client Approval Record</span>
+                <div style="height:60px;">{signature_image}</div>
+            </td>
+        </tr>
+    </table>
+
+    <div style="text-align:center;font-size:9px;margin-bottom:40px;">
+        Generated via Smart Estimation Cloud • Project Reference: {estimate_number}
+    </div></div></div></div>
+</body>
+</html>

@@ -401,7 +401,7 @@
             </div>
 
             <!-- Terms & Conditions Button -->
-            @if($estimate->terms)
+            @if($estimate->has_final_terms)
                 <div class="p-6 sm:p-8 flex justify-center border-t border-slate-100">
                     <button @click="showTermsModal = true" class="group flex items-center gap-3 px-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all">
                         <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
@@ -681,7 +681,7 @@
                         <!-- Content Area -->
                         <div class="p-10 overflow-y-auto">
                             <div class="prose prose-slate max-w-none text-slate-600 leading-relaxed text-sm prose-p:mb-4 prose-headings:text-slate-900 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter prose-strong:text-slate-900 prose-strong:font-black">
-                                {!! $estimate->terms !!}
+                                {!! $estimate->final_terms_html !!}
                             </div>
                         </div>
 
