@@ -99,6 +99,7 @@ class PdfRenderingService
                 }
             }
 
+            // Removed fixed positioning for page border and footer logo to avoid DomPDF "position not supported" errors
             $layoutCss = "
             @page {
                 margin: 0.4in;
@@ -107,35 +108,15 @@ class PdfRenderingService
                 padding: 0; 
                 margin: 0;
             }
-            .page-border {
-                position: fixed;
-                top: 5px;
-                left: 5px;
-                right: 5px;
-                bottom: 5px;
-                border: 0.5pt solid #cbd5e1; /* Thinner, lighter border */
-                pointer-events: none;
-                z-index: 9999;
-            }
-            .footer-logo-container {
-                position: fixed;
-                bottom: 0;
-                right: 0;
-                z-index: 10000;
-                text-align: right;
-            }
-            .footer-logo-container img {
-                height: 25px;
-                width: auto;
-                opacity: 0.6;
-            }";
+            /* Page border and fixed footer removed for compatibility */
+            ";
             $finalCss .= $layoutCss;
 
-            // Inject border and footer logo div into HTML
-            $footerLogoInner = str_replace('max-height: 80px;', 'height: 25px;', $variables['company_logo'] ?? '');
-            $footerLogoHtml = '<div class="footer-logo-container">' . $footerLogoInner . '</div>';
+            // Header/Footer injection disabled to prevent positioning errors
+            // $footerLogoInner = str_replace('max-height: 80px;', 'height: 25px;', $variables['company_logo'] ?? '');
 
-            $html = preg_replace('/(<body[^>]*>)/i', '$1<div class="page-border"></div>' . $footerLogoHtml, $html);
+            // Just wrap body is enough
+            // $html = preg_replace('/(<body[^>]*>)/i', '$1', $html); 
         }
 
         if ($finalCss) {
