@@ -27,50 +27,59 @@ class PdfTemplateController extends Controller
 
     public function store(Request $request)
     {
-        // Sanitize PDF content to prevent XSS/Injection
-        $html = $request->input('html_content');
-        $html = $this->sanitizePdfContent($html);
+        try {
+            // Sanitize PDF content to prevent XSS/Injection
+            $html = $request->input('html_content');
+            $html = $this->sanitizePdfContent($html);
 
-        $request->merge([
-            'html_content' => $html
-        ]);
+            $request->merge([
+                'html_content' => $html
+            ]);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'html_content' => ['required', 'string', new \App\Rules\ValidPdfContent],
-            'css_content' => 'nullable|string',
-            'paper_size' => 'required|in:a4,letter',
-            'orientation' => 'required|in:portrait,landscape',
-            'primary_color' => 'required|string',
-            'secondary_color' => 'nullable|string',
-            'font_family' => 'required|string',
-            'is_active' => 'boolean',
-            'is_locked' => 'boolean',
-            'watermark_text' => 'nullable|string',
-            'watermark_opacity' => 'nullable|numeric|min:0|max:1',
-            'is_password_protected' => 'boolean',
-            'content_structure' => 'nullable|json',
-        ]);
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'html_content' => ['required', 'string', new \App\Rules\ValidPdfContent],
+                'css_content' => 'nullable|string',
+                'paper_size' => 'required|in:a4,letter',
+                'orientation' => 'required|in:portrait,landscape',
+                'primary_color' => 'required|string',
+                'secondary_color' => 'nullable|string',
+                'font_family' => 'required|string',
+                'is_active' => 'boolean',
+                'is_locked' => 'boolean',
+                'watermark_text' => 'nullable|string',
+                'watermark_opacity' => 'nullable|numeric|min:0|max:1',
+                'is_password_protected' => 'boolean',
+                'content_structure' => 'nullable|json',
+            ]);
 
-        $this->authorize('create', PdfTemplate::class);
+            $this->authorize('create', PdfTemplate::class);
 
-        $template = PdfTemplate::create([
-            'name' => $validated['name'],
-            'html_content' => $validated['html_content'] ?? '',
-            'css_content' => $validated['css_content'] ?? '',
-            'paper_size' => $validated['paper_size'] ?? 'a4',
-            'orientation' => $validated['orientation'] ?? 'portrait',
-            'primary_color' => $validated['primary_color'] ?? '#333333',
-            'secondary_color' => $validated['secondary_color'] ?? '#555555',
-            'font_family' => $validated['font_family'] ?? 'Helvetica',
-            'is_active' => $request->has('is_active'),
-            'is_default' => false,
-            'is_locked' => $request->has('is_locked'),
-            'watermark_text' => $validated['watermark_text'] ?? null,
-            'watermark_opacity' => $validated['watermark_opacity'] ?? 0.1,
-            'is_password_protected' => $request->has('is_password_protected'),
-            'content_structure' => isset($validated['content_structure']) ? json_decode($validated['content_structure'], true) : null,
-        ]);
+            $template = PdfTemplate::create([
+                'name' => $validated['name'],
+                'html_content' => $validated['html_content'] ?? '',
+                'css_content' => $validated['css_content'] ?? '',
+                'paper_size' => $validated['paper_size'] ?? 'a4',
+                'orientation' => $validated['orientation'] ?? 'portrait',
+                'primary_color' => $validated['primary_color'] ?? '#333333',
+                'secondary_color' => $validated['secondary_color'] ?? '#555555',
+                'font_family' => $validated['font_family'] ?? 'Helvetica',
+                'is_active' => $request->has('is_active'),
+                'is_default' => false,
+                'is_locked' => $request->has('is_locked'),
+                'watermark_text' => $validated['watermark_text'] ?? null,
+                'watermark_opacity' => $validated['watermark_opacity'] ?? 0.1,
+                'is_password_protected' => $request->has('is_password_protected'),
+                'content_structure' => isset($validated['content_structure']) ? json_decode($validated['content_structure'], true) : null,
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('PDF Template Creation Failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'input' => $request->except(['html_content', 'css_content']) // exclude large fields from log
+            ]);
+            return back()->with('error', 'Failed to save template: ' . $e->getMessage())->withInput();
+        }
 
         return redirect()->route('pdf-templates.index')->with('success', 'Template created successfully.');
     }
@@ -88,59 +97,68 @@ class PdfTemplateController extends Controller
 
     public function update(Request $request, PdfTemplate $pdfTemplate)
     {
-        $this->authorize('update', $pdfTemplate);
+        try {
+            $this->authorize('update', $pdfTemplate);
 
-        // Sanitize PDF content to prevent XSS/Injection
-        $html = $request->input('html_content');
-        $html = $this->sanitizePdfContent($html);
+            // Sanitize PDF content to prevent XSS/Injection
+            $html = $request->input('html_content');
+            $html = $this->sanitizePdfContent($html);
 
-        $request->merge([
-            'html_content' => $html
-        ]);
+            $request->merge([
+                'html_content' => $html
+            ]);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'html_content' => ['required', 'string', new \App\Rules\ValidPdfContent],
-            'css_content' => 'nullable|string',
-            'paper_size' => 'required|in:a4,letter',
-            'orientation' => 'required|in:portrait,landscape',
-            'primary_color' => 'required|string',
-            'secondary_color' => 'nullable|string',
-            'font_family' => 'required|string',
-            'is_active' => 'sometimes|boolean',
-            'is_locked' => 'sometimes|boolean',
-            'watermark_text' => 'nullable|string|max:50',
-            'watermark_opacity' => 'nullable|numeric|min:0|max:1',
-            'is_password_protected' => 'sometimes|boolean',
-            'content_structure' => 'nullable|json',
-        ]);
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'html_content' => ['required', 'string', new \App\Rules\ValidPdfContent],
+                'css_content' => 'nullable|string',
+                'paper_size' => 'required|in:a4,letter',
+                'orientation' => 'required|in:portrait,landscape',
+                'primary_color' => 'required|string',
+                'secondary_color' => 'nullable|string',
+                'font_family' => 'required|string',
+                'is_active' => 'sometimes|boolean',
+                'is_locked' => 'sometimes|boolean',
+                'watermark_text' => 'nullable|string|max:50',
+                'watermark_opacity' => 'nullable|numeric|min:0|max:1',
+                'is_password_protected' => 'sometimes|boolean',
+                'content_structure' => 'nullable|json',
+            ]);
 
-        // Create Version Snapshot
-        \App\Models\PdfTemplateVersion::create([
-            'pdf_template_id' => $pdfTemplate->id,
-            'version' => $pdfTemplate->versions()->count() + 1,
-            'html_content' => $pdfTemplate->html_content,
-            'css_content' => $pdfTemplate->css_content,
-            'content_structure' => $pdfTemplate->content_structure,
-            'created_by' => auth()->id(),
-        ]);
+            // Create Version Snapshot
+            \App\Models\PdfTemplateVersion::create([
+                'pdf_template_id' => $pdfTemplate->id,
+                'version' => $pdfTemplate->versions()->count() + 1,
+                'html_content' => $pdfTemplate->html_content,
+                'css_content' => $pdfTemplate->css_content,
+                'content_structure' => $pdfTemplate->content_structure,
+                'created_by' => auth()->id(),
+            ]);
 
-        $pdfTemplate->update([
-            'name' => $validated['name'],
-            'html_content' => $validated['html_content'] ?? '',
-            'css_content' => $validated['css_content'] ?? '',
-            'paper_size' => $validated['paper_size'] ?? 'a4',
-            'orientation' => $validated['orientation'] ?? 'portrait',
-            'primary_color' => $validated['primary_color'] ?? '#333333',
-            'secondary_color' => $validated['secondary_color'] ?? '#555555',
-            'font_family' => $validated['font_family'] ?? 'Helvetica',
-            'is_active' => $request->has('is_active'),
-            'is_locked' => $request->has('is_locked'),
-            'watermark_text' => $validated['watermark_text'] ?? null,
-            'watermark_opacity' => $validated['watermark_opacity'] ?? 0.1,
-            'is_password_protected' => $request->has('is_password_protected'),
-            'content_structure' => isset($validated['content_structure']) ? json_decode($validated['content_structure'], true) : null,
-        ]);
+            $pdfTemplate->update([
+                'name' => $validated['name'],
+                'html_content' => $validated['html_content'] ?? '',
+                'css_content' => $validated['css_content'] ?? '',
+                'paper_size' => $validated['paper_size'] ?? 'a4',
+                'orientation' => $validated['orientation'] ?? 'portrait',
+                'primary_color' => $validated['primary_color'] ?? '#333333',
+                'secondary_color' => $validated['secondary_color'] ?? '#555555',
+                'font_family' => $validated['font_family'] ?? 'Helvetica',
+                'is_active' => $request->has('is_active'),
+                'is_locked' => $request->has('is_locked'),
+                'watermark_text' => $validated['watermark_text'] ?? null,
+                'watermark_opacity' => $validated['watermark_opacity'] ?? 0.1,
+                'is_password_protected' => $request->has('is_password_protected'),
+                'content_structure' => isset($validated['content_structure']) ? json_decode($validated['content_structure'], true) : null,
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('PDF Template Update Failed: ' . $e->getMessage(), [
+                'template_id' => $pdfTemplate->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'Failed to update template: ' . $e->getMessage())->withInput();
+        }
 
         return redirect()->route('pdf-templates.index')->with('success', 'Template updated successfully.');
     }
@@ -293,12 +311,12 @@ class PdfTemplateController extends Controller
         }
 
         // 0.5 Pre-process: Unwrap Table Structure Tags from <p> and <div>
-        // WYSIWYG editors can wrap <tr>, <td>, <th> in paragraphs or divs.
+        // WYSIWYG editors can wrap <tr>, <td>, <th>, <table> in paragraphs or divs.
         // This is invalid HTML and causes Purifier to eject the table content.
         // We must remove BOTH the opening wrapper AND the closing wrapper.
         // We run this in a loop to handle nested wrappers (e.g. <div><p><tr>...</p></div>).
 
-        $structuralTags = ['tr', 'td', 'th', 'tbody', 'thead', 'tfoot'];
+        $structuralTags = ['table', 'tr', 'td', 'th', 'tbody', 'thead', 'tfoot'];
 
         do {
             $originalHtml = $html;
