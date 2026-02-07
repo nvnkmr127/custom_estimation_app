@@ -129,6 +129,10 @@ class PdfRenderingService
                 height: 25px;
                 width: auto;
                 opacity: 0.6;
+            }
+            /* Inject page breaks safely */
+            .terms-section {
+                page-break-before: always;
             }";
             $finalCss .= $layoutCss;
 
