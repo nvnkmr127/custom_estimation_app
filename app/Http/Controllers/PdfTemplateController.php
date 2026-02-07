@@ -188,97 +188,111 @@ class PdfTemplateController extends Controller
 
     public function preview(Request $request)
     {
-        $html = $request->input('html_content');
+        try {
+            $html = $request->input('html_content');
 
-        // Sanitize for preview too
-        $html = $this->sanitizePdfContent($html);
+            // Sanitize for preview too
+            $html = $this->sanitizePdfContent($html);
 
-        $css = $request->input('css_content');
+            $css = $request->input('css_content');
 
-        // Create a dummy estimate for preview
-        $estimate = new Estimate([
-            'estimate_number' => 'EST-PREVIEW',
-            'estimate_date' => now(),
-            'expiry_date' => now()->addDays(7),
-            'status' => 'draft',
-            'currency' => 'USD',
-            'subtotal' => 1000,
-            'total_tax' => 100,
-            'grand_total' => 1100,
-        ]);
+            // Create a dummy estimate for preview
+            $estimate = new Estimate([
+                'estimate_number' => 'EST-PREVIEW',
+                'estimate_date' => now(),
+                'expiry_date' => now()->addDays(7),
+                'status' => 'draft',
+                'currency' => 'USD',
+                'subtotal' => 1000,
+                'total_tax' => 100,
+                'grand_total' => 1100,
+            ]);
 
-        // Use the service to render
-        // We create a temporary template object just for rendering
-        $tempTemplate = new PdfTemplate([
-            'html_content' => $html,
-            'css_content' => $css,
-            'watermark_text' => $request->input('watermark_text'),
-            'watermark_opacity' => $request->input('watermark_opacity', 0.1),
-            'primary_color' => $request->input('primary_color', '#333333'), // For watermark color
-            'secondary_color' => $request->input('secondary_color', '#555555'),
-            'font_family' => $request->input('font_family', 'Helvetica'),
-        ]);
+            // Use the service to render
+            // We create a temporary template object just for rendering
+            $tempTemplate = new PdfTemplate([
+                'html_content' => $html,
+                'css_content' => $css,
+                'watermark_text' => $request->input('watermark_text'),
+                'watermark_opacity' => $request->input('watermark_opacity', 0.1),
+                'primary_color' => $request->input('primary_color', '#333333'), // For watermark color
+                'secondary_color' => $request->input('secondary_color', '#555555'),
+                'font_family' => $request->input('font_family', 'Helvetica'),
+            ]);
 
-        // Parse Preview State
-        $state = $request->input('preview_state', []);
-        $isRoomBased = $state['roomBased'] ?? true;
-        $hasTax = $state['hasTax'] ?? true;
-        $hasDiscount = $state['hasDiscount'] ?? true;
+            // Parse Preview State
+            $state = $request->input('preview_state', []);
+            $isRoomBased = $state['roomBased'] ?? true;
+            $hasTax = $state['hasTax'] ?? true;
+            $hasDiscount = $state['hasDiscount'] ?? true;
 
-        // Set Estimate Values based on state
-        $estimate->type = $isRoomBased ? 'room_based' : 'standard';
-        $estimate->total_tax = $hasTax ? 100 : 0;
-        $estimate->discount_total = $hasDiscount ? 50 : 0;
-        $estimate->grand_total = 1000 + $estimate->total_tax - $estimate->discount_total;
-        $estimate->has_tax = $hasTax;
-        $estimate->has_discount = $hasDiscount;
+            // Set Estimate Values based on state
+            $estimate->type = $isRoomBased ? 'room_based' : 'standard';
+            $estimate->total_tax = $hasTax ? 100 : 0;
+            $estimate->discount_total = $hasDiscount ? 50 : 0;
+            $estimate->grand_total = 1000 + $estimate->total_tax - $estimate->discount_total;
+            $estimate->has_tax = $hasTax;
+            $estimate->has_discount = $hasDiscount;
 
-        // Create Dummy Sections
-        $section1 = new \App\Models\EstimateSection(['name' => 'Primary Bedroom', 'subtotal' => 1250.00]);
-        $section2 = new \App\Models\EstimateSection(['name' => 'Gourmet Kitchen', 'subtotal' => 2800.00]);
+            // Create Dummy Sections
+            $section1 = new \App\Models\EstimateSection(['name' => 'Primary Bedroom', 'subtotal' => 1250.00]);
+            $section2 = new \App\Models\EstimateSection(['name' => 'Gourmet Kitchen', 'subtotal' => 2800.00]);
 
-        // Add dummy items for loops
-        $item1 = new \App\Models\EstimateItem([
-            'name' => 'Premium Wall Paint',
-            'description' => 'Two-coat eggshell finish with primer',
-            'quantity' => 1200,
-            'unit_price' => 1.50,
-            'total' => 1800.00,
-            'unit_type' => 'sqft',
-            'size' => 'Main Walls',
-            'formula' => 'area',
-            'length' => 60,
-            'width' => 20
-        ]);
+            // Add dummy items for loops
+            $item1 = new \App\Models\EstimateItem([
+                'name' => 'Premium Wall Paint',
+                'description' => 'Two-coat eggshell finish with primer',
+                'quantity' => 1200,
+                'unit_price' => 1.50,
+                'total' => 1800.00,
+                'unit_type' => 'sqft',
+                'size' => 'Main Walls',
+                'formula' => 'area',
+                'length' => 60,
+                'width' => 20
+            ]);
 
-        $product1 = new \App\Models\Product();
-        $product1->setRelation('images', collect([
-            (object) ['image_path' => 'https://images.unsplash.com/photo-1562184552-997c461abbe6?auto=format&fit=crop&w=100&q=80']
-        ]));
-        $item1->setRelation('product', $product1);
+            $product1 = new \App\Models\Product();
+            $product1->setRelation('images', collect([
+                (object) ['image_path' => 'https://images.unsplash.com/photo-1562184552-997c461abbe6?auto=format&fit=crop&w=100&q=80']
+            ]));
+            $item1->setRelation('product', $product1);
 
-        $item2 = new \App\Models\EstimateItem([
-            'name' => 'Custom Cabinetry',
-            'description' => 'Solid oak with soft-close hinges',
-            'quantity' => 1,
-            'unit_price' => 2250.00,
-            'total' => 2250.00,
-            'unit_type' => 'ea',
-            'formula' => 'fixed'
-        ]);
+            $item2 = new \App\Models\EstimateItem([
+                'name' => 'Custom Cabinetry',
+                'description' => 'Solid oak with soft-close hinges',
+                'quantity' => 1,
+                'unit_price' => 2250.00,
+                'total' => 2250.00,
+                'unit_type' => 'ea',
+                'formula' => 'fixed'
+            ]);
 
-        // Attach items to sections
-        $section1->setRelation('items', collect([$item1]));
-        $section2->setRelation('items', collect([$item2]));
+            // Attach items to sections
+            $section1->setRelation('items', collect([$item1]));
+            $section2->setRelation('items', collect([$item2]));
 
-        $estimate->setRelation('sections', collect([$section1, $section2]));
-        $estimate->setRelation('items', collect([$item1, $item2]));
+            $estimate->setRelation('sections', collect([$section1, $section2]));
+            $estimate->setRelation('items', collect([$item1, $item2]));
 
-        $service = new PdfRenderingService;
+            // Mock Relations for PdfRenderingService loaded relations
+            // 'items.comments.user', 'sections.items.comments.user'
+            $item1->setRelation('comments', collect([]));
+            $item2->setRelation('comments', collect([]));
 
-        $renderedInfo = $service->render($tempTemplate, $estimate, true);
+            $service = new PdfRenderingService;
 
-        return response($renderedInfo);
+            $renderedInfo = $service->render($tempTemplate, $estimate, true);
+
+            return response($renderedInfo);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('PDF Preview Failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'html_snippet' => substr($request->input('html_content'), 0, 500)
+            ]);
+            return response()->json(['error' => 'Preview generation failed: ' . $e->getMessage()], 500);
+        }
     }
 
     private function sanitizePdfContent($html)

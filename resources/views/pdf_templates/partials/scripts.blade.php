@@ -486,8 +486,17 @@
                         preview_state: this.previewState
                     })
                 })
-                    .then(res => res.text())
+                    .then(async res => {
+                        if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            throw new Error(data.error || 'Server Error: ' + res.status);
+                        }
+                        return res.text();
+                    })
                     .then(html => {
+                        const iframe = document.getElementById('previewFrame');
+                        if (!iframe) return;
+
                         const doc = iframe.contentWindow.document;
                         doc.open();
                         doc.write(html);
@@ -502,7 +511,16 @@
 
                         doc.close();
                     })
-                    .catch(err => console.error(err));
+                    .catch(err => {
+                        console.error(err);
+                        const iframe = document.getElementById('previewFrame');
+                        if (iframe) {
+                            const doc = iframe.contentWindow.document;
+                            doc.open();
+                            doc.write(`<div style="color:red; padding:20px; font-family:sans-serif;"><strong>Preview Failed:</strong><br>${err.message}</div>`);
+                            doc.close();
+                        }
+                    });
             },
 
             insertAtCursor(text) {
