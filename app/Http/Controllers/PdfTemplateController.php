@@ -313,8 +313,14 @@ class PdfTemplateController extends Controller
                 // We also allow &nbsp; since editors often add it: </tr>&nbsp;</div>
                 $html = preg_replace('/(<\/' . $tag . '>)(?:\s|&nbsp;|&#160;)*<\/(?:p|div)>/si', '$1', $html);
             }
-
         } while ($html !== $originalHtml); // Repeat until no more changes are made
+
+        // 0.8 Pre-process: Aggressively Strip Unsupported CSS Properties
+        // HTML Purifier in strict mode often fails on 'position' and 'page-break-*'.
+        // We strip them here to ensure the save succeeds. 
+        // Note: We inject necessary page-breaks and positioning in PdfRenderingService at runtime.
+        $html = preg_replace('/position\s*:\s*[^;"]+;?/i', '', $html);
+        $html = preg_replace('/page-break-(?:after|before|inside)\s*:\s*[^;"]+;?/i', '', $html);
 
         // 1. Mask Logic Tags & Structural Tags
         $html = preg_replace_callback('/\{[^{}]+\}|<html[^>]*>|<\/html>|<head[^>]*>|<\/head>|<body[^>]*>|<\/body>|<style[^>]*>.*?<\/style>|<meta[^>]*>|<!DOCTYPE[^>]*>/si', function ($matches) use (&$tokenMap) {
