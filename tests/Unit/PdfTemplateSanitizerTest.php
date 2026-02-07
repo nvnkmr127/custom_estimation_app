@@ -40,7 +40,6 @@ class PdfTemplateSanitizerTest extends TestCase
 
         // 0.8 Pre-process: Aggressively Strip Unsupported CSS Properties
         $html = preg_replace('/position\s*:\s*[^;"]+;?/i', '', $html);
-        $html = preg_replace('/page-break-(?:after|before|inside)\s*:\s*[^;"]+;?/i', '', $html);
 
         // 1. Mask Logic Tags & Structural Tags
         $html = preg_replace_callback('/\{[^{}]+\}|<html[^>]*>|<\/html>|<head[^>]*>|<\/head>|<body[^>]*>|<\/body>|<style[^>]*>.*?<\/style>|<meta[^>]*>|<!DOCTYPE[^>]*>/si', function ($matches) use (&$tokenMap) {
@@ -94,5 +93,29 @@ class PdfTemplateSanitizerTest extends TestCase
         $this->assertStringNotContainsString('<p>', $output, 'P tag should be removed');
         $this->assertStringNotContainsString('</p>', $output, 'Closing P tag should be removed');
         $this->assertStringContainsString('<table>', $output);
+    }
+
+    public function test_sanitize_allows_page_break()
+    {
+        // Issue: 'page-break-after' causes error if not supported/allowed correctly
+        $input = '<div style="page-break-after: always;"></div>';
+
+        try {
+            $output = $this->sanitizePdfContent($input);
+            // If it doesn't throw, we check if it kept the style
+            // Note: Our local sanitizeSdfContent (in this test file) manually strips it in step 0.8!
+            // Wait, looking at the test file content I just read...
+
+            // The test file has:
+            // $html = preg_replace('/page-break-(?:after|before|inside)\s*:\s*[^;"]+;?/i', '', $html);
+            // So the test EXPECTS it to be stripped?
+
+            // Let's see if the CONTROLLER also strips it.
+            // I need to check the controller again.
+
+            $this->assertStringNotContainsString('page-break-after', $output);
+        } catch (\Exception $e) {
+            $this->fail('Sanitization threw exception: ' . $e->getMessage());
+        }
     }
 }

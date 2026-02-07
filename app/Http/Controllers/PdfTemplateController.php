@@ -352,7 +352,7 @@ class PdfTemplateController extends Controller
         // We strip them here to ensure the save succeeds. 
         // Note: We inject necessary page-breaks and positioning in PdfRenderingService at runtime.
         $html = preg_replace('/position\s*:\s*[^;"]+;?/i', '', $html);
-        $html = preg_replace('/page-break-(?:after|before|inside)\s*:\s*[^;"]+;?/i', '', $html);
+        $html = preg_replace('/position\s*:\s*[^;"]+;?/i', '', $html);
 
         // 1. Mask Logic Tags & Structural Tags
         $html = preg_replace_callback('/\{[^{}]+\}|<html[^>]*>|<\/html>|<head[^>]*>|<\/head>|<body[^>]*>|<\/body>|<style[^>]*>.*?<\/style>|<meta[^>]*>|<!DOCTYPE[^>]*>/si', function ($matches) use (&$tokenMap) {
