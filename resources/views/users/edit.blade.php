@@ -42,6 +42,20 @@
                     @enderror
                 </div>
 
+                <!-- Mobile Number -->
+                <div class="sm:col-span-3">
+                    <label for="mobile_number" class="block text-sm font-medium leading-6 text-gray-900">Mobile
+                        Number</label>
+                    <div class="mt-2">
+                        <input type="text" name="mobile_number" id="mobile_number"
+                            value="{{ old('mobile_number', $user->mobile_number) }}"
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 @error('mobile_number') ring-red-300 @enderror">
+                    </div>
+                    @error('mobile_number')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Role -->
                 <div class="sm:col-span-3">
                     <label for="role" class="block text-sm font-medium leading-6 text-gray-900">Role</label>

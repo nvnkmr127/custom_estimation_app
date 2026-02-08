@@ -70,12 +70,16 @@ class QueueLifecycleSubscriber
         try {
             $command = unserialize($payload['data']['command']);
 
-            // Check if it has 'data' property which holds the arguments (The Event)
-            if (!property_exists($command, 'data') || empty($command->data)) {
+            // Case 1: Standard Laravel Listener
+            if (property_exists($command, 'data') && !empty($command->data)) {
+                $domainEvent = $command->data[0] ?? null;
+            }
+            // Case 2: Some custom dispatchers might store event differently
+            elseif (property_exists($command, 'event')) {
+                $domainEvent = $command->event;
+            } else {
                 return;
             }
-
-            $domainEvent = $command->data[0] ?? null;
 
             if ($domainEvent instanceof \App\Core\Events\DomainEvent) {
                 $eventId = $domainEvent->getEventId();
@@ -94,8 +98,11 @@ class QueueLifecycleSubscriber
             }
 
         } catch (\Throwable $e) {
-            // If unserialization fails or structure doesn't match, ignore.
-            // Log::warning("Failed to parse queue job for listener logging: " . $e->getMessage());
+            // Log warning but don't crash queue
+            Log::warning("QueueLifecycleSubscriber: Failed to parse listener job.", [
+                'error' => $e->getMessage(),
+                'listener' => $listenerClass
+            ]);
         }
     }
 }

@@ -19,8 +19,15 @@ class PdfRenderingService
     {
         $this->estimate = $estimate;
         $this->isWeb = $isWeb;
-        // Ensure comments are loaded for PDF generation to avoid N+1
-        $this->estimate->loadMissing(['items.comments.user', 'sections.items.comments.user']);
+        // Ensure comments and relations are loaded for PDF generation to avoid N+1
+        $this->estimate->loadMissing([
+            'items.comments.user', 
+            'items.product', 
+            'items.unitType',
+            'sections.items.comments.user',
+            'sections.items.product',
+            'sections.items.unitType'
+        ]);
 
         $this->settings = \App\Models\Setting::pluck('value', 'key')->toArray();
 
@@ -216,8 +223,34 @@ class PdfRenderingService
         return preg_replace_callback('/src=["\']([^"\']+)["\']/i', function ($matches) use ($isWeb) {
             $src = $matches[1];
 
-            // If it's already http/https, leave it (though DOMPDF might need enable_remote)
+            // Handle remote images (http/https)
             if (strpos($src, 'http') === 0) {
+                if ($isWeb) {
+                    return $matches[0];
+                }
+
+                // Optimization: Convert remote images to base64 to prevent Dompdf network timeouts
+                // This is especially important for large images or slow remote servers
+                try {
+                    // Set a short timeout for image downloading
+                    $context = stream_context_create(['http' => ['timeout' => 5]]);
+                    $imageContent = @file_get_contents($src, false, $context);
+                    
+                    if ($imageContent !== false) {
+                        $extension = pathinfo(parse_url($src, PHP_URL_PATH), PATHINFO_EXTENSION);
+                        $mime = 'image/png'; // default
+                        if ($extension === 'jpg' || $extension === 'jpeg') $mime = 'image/jpeg';
+                        elseif ($extension === 'gif') $mime = 'image/gif';
+                        elseif ($extension === 'svg') $mime = 'image/svg+xml';
+                        
+                        $base64 = base64_encode($imageContent);
+                        return 'src="data:' . $mime . ';base64,' . $base64 . '"';
+                    }
+                } catch (\Exception $e) {
+                    // If download fails, fall back to original URL and let Dompdf try (or fail gracefully)
+                    \Illuminate\Support\Facades\Log::warning("Failed to convert image to base64: $src - " . $e->getMessage());
+                }
+                
                 return $matches[0];
             }
 
@@ -342,7 +375,32 @@ class PdfRenderingService
             ]
         ];
 
-        return 'https://quickchart.io/chart?w=500&h=300&c=' . urlencode(json_encode($chartConfig));
+        // Cache Key based on config
+        $configJson = json_encode($chartConfig);
+        $hash = md5($configJson);
+        $cacheKey = "chart_img_{$hash}";
+
+        // Return cached base64 if available
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+             return \Illuminate\Support\Facades\Cache::get($cacheKey);
+        }
+
+        $url = 'https://quickchart.io/chart?w=500&h=300&c=' . urlencode($configJson);
+        
+        // Attempt to pre-fetch and cache
+        try {
+            $context = stream_context_create(['http' => ['timeout' => 5]]);
+            $imageContent = @file_get_contents($url, false, $context);
+            if ($imageContent) {
+                $base64 = 'data:image/png;base64,' . base64_encode($imageContent);
+                \Illuminate\Support\Facades\Cache::put($cacheKey, $base64, 3600); // Cache for 1 hour
+                return $base64;
+            }
+        } catch (\Exception $e) {
+            // fallback to URL
+        }
+
+        return $url;
     }
 
     protected function replaceVariables($html)
@@ -736,6 +794,7 @@ class PdfRenderingService
      */
     public function renderAndCache(PdfTemplate $template, Estimate $estimate)
     {
+        set_time_limit(300); // Increase execution time to 5 minutes
         $cacheKey = $this->resolveCacheKey($estimate, $template);
         $cachePath = storage_path('app/public/estimates_cache/' . $cacheKey);
 

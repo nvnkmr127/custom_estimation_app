@@ -19,4 +19,14 @@ class TestEvent extends BaseEvent
     {
         return $this->data;
     }
+
+    public function getEntityType(): string
+    {
+        return 'test_entity'; // dummy value
+    }
+
+    public function getEntityId(): int
+    {
+        return 1; // dummy value
+    }
 }

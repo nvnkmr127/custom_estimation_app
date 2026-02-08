@@ -1,0 +1,8 @@
+{
+    "helvetica": {
+        "normal": "\/Users\/naveenadicharla\/Documents\/custom_estimation_app\/storage\/fonts\/helvetica_normal_9fe4fe3d1985ab4094682f8629d4388f",
+        "bold": "helvetica_bold_eb0d89f0cd2ed4e8e65afd4b07929fd5",
+        "italic": "\/Users\/naveenadicharla\/Documents\/custom_estimation_app\/vendor\/dompdf\/dompdf\/lib\/fonts\/Helvetica-Oblique",
+        "bold_italic": "\/Users\/naveenadicharla\/Documents\/custom_estimation_app\/vendor\/dompdf\/dompdf\/lib\/fonts\/Helvetica-BoldOblique"
+    }
+}

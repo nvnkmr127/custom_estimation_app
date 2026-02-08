@@ -54,4 +54,29 @@ class PdfTemplatePreviewTest extends TestCase
         // Check if items loop was processed (dummy item names should be present)
         $response->assertSee('Premium Wall Paint');
     }
+
+    public function test_preview_handles_css_with_page_break()
+    {
+        // This used to cause a 500 error because of HTML Purifier config
+        // Now it should be stripped or ignored, but definitely return 200 OK
+
+        // Create verified user
+        $user = \App\Models\User::factory()->create(['email_verified_at' => now()]);
+
+        if (class_exists(\Spatie\Permission\Models\Role::class)) {
+            $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super_admin']);
+            $user->assignRole($role);
+        }
+
+        $this->withoutMiddleware();
+
+        $response = $this->actingAs($user)->postJson(route('pdf-templates.preview'), [
+            'html_content' => '<div style="page-break-after: always;">Wait for it...</div>',
+            'css_content' => '',
+            'preview_state' => ['roomBased' => false]
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertSee('Wait for it...');
+    }
 }

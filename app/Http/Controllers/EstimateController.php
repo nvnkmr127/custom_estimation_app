@@ -588,8 +588,9 @@ class EstimateController extends Controller
         }
 
         $service = new PdfRenderingService;
-        // Increase memory limit for PDF generation
+        // Increase memory limit and execution time for PDF generation
         ini_set('memory_limit', '512M');
+        set_time_limit(300);
         $path = $service->renderAndCache($template, $estimate);
 
         if (!$path || !file_exists($path)) {

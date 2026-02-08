@@ -40,16 +40,13 @@ class WebhookEventDispatcher
 
         // 4. Construct Envelope
         $envelope = [
-            'event_id' => method_exists($event, 'getEventId') ? $event->getEventId() : Str::uuid()->toString(),
-            'event_type' => $eventName,
-            'source' => $source,
-            'occurred_at' => $occurredAt->format(\DateTimeInterface::ATOM),
-            'version' => '1.0',
-            'payload' => [
-                'normalized' => $payloadData,
-                'raw' => null, // Could be original event data if needed
-            ],
+            'id' => method_exists($event, 'getEventId') ? $event->getEventId() : Str::uuid()->toString(),
+            'event' => $eventName,
+            'timestamp' => $occurredAt->format(\DateTimeInterface::ATOM),
+            'data' => $payloadData,
             'metadata' => [
+                'source' => $source,
+                'version' => '1.0',
                 'trace_id' => Str::uuid()->toString(),
                 'attempt' => 1,
             ]
@@ -59,6 +56,9 @@ class WebhookEventDispatcher
         if (method_exists($event, 'getEntityType')) {
             $envelope['metadata']['entity_type'] = $event->getEntityType();
             $envelope['metadata']['entity_id'] = $event->getEntityId();
+        }
+        if (method_exists($event, 'getTriggeredBy')) {
+            $envelope['metadata']['triggered_by'] = $event->getTriggeredBy();
         }
 
         // 5. Persist to WebhookEvent (Idempotency Check)

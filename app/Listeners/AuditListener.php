@@ -31,4 +31,15 @@ class AuditListener implements ShouldQueue
             'triggered_by' => $event->getTriggeredBy(),
         ]);
     }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(DomainEvent $event, \Throwable $exception): void
+    {
+        Log::channel('daily')->error('AUDIT LISTENER FAILED: ' . $event->getEventName(), [
+            'event_id' => $event->getEventId(),
+            'error' => $exception->getMessage(),
+        ]);
+    }
 }

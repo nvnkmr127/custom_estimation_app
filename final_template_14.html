@@ -1,14 +1,294 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <style>
-        @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
-        /* Existing CSS will be injected by service, but good to have base reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #1e293b;
+            background: #fff;
+        }
+
+        /* Header Styles */
+        .portal-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            padding: 30px 40px;
+            margin-bottom: 20px;
+        }
+
+        .header-content {
+            width: 100%;
+        }
+
+        .ref-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .investment-total {
+            font-size: 32px;
+            font-weight: 900;
+            color: #38bdf8;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        .summary-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .card-label {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+        }
+
+        /* Section Styles */
+        .section-wrapper {
+            margin-bottom: 25px;
+        }
+
+        .section-bar {
+            background: linear-gradient(90deg, #0f172a, #1e293b);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .section-price {
+            font-size: 20px;
+            font-weight: 900;
+            color: #38bdf8;
+        }
+
+        /* Item Table */
+        .item-table-wrapper {
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            overflow: hidden;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .data-table th {
+            background: #f1f5f9;
+            padding: 10px 15px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Item Details */
+        .item-name {
+            font-weight: 700;
+            font-size: 13px;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .item-desc {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .item-img {
+            margin: 8px 0;
+        }
+
+        .item-img img,
+        .item-image {
+            max-width: 60px;
+            max-height: 60px;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .variant-pill {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .internal-note-box {
+            background: #fef3c7;
+            border-left: 3px solid #f59e0b;
+            padding: 6px 10px;
+            margin-top: 6px;
+            font-size: 10px;
+            color: #92400e;
+        }
+
+        /* Dimensions */
+        .dim-detail {
+            margin-bottom: 2px;
+        }
+
+        .dim-l {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #475569;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 700;
+            margin-right: 4px;
+        }
+
+        .dim-v {
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        /* Recap / Totals */
+        .recap-container {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            padding: 30px 40px;
+            margin-top: 30px;
+            border-radius: 8px;
+        }
+
+        .totals-row td {
+            padding: 8px 0;
+        }
+
+        .total-label {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .total-value {
+            text-align: right;
+            font-weight: 700;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .investment-highlight td {
+            padding-top: 15px;
+            border-top: 1px solid #334155;
+        }
+
+        /* Terms */
+        .terms-section {
+            margin-top: 30px;
+            page-break-before: always;
+        }
+
+        .terms-header {
+            background: #0f172a;
+            color: #fff;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 800;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .terms-content {
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            padding: 20px;
+            font-size: 11px;
+            line-height: 1.7;
+            border-radius: 0 0 6px 6px;
+        }
+
+        /* Signatures */
+        .signature-grid {
+            width: 100%;
+            margin-top: 40px;
+        }
+
+        /* Comments */
+        .item-comments {
+            margin-top: 5px;
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        .comment-row {
+            margin-bottom: 2px;
+        }
+
+        .clarified-status {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        /* Utilities */
+        tr {
+            page-break-inside: avoid;
+        }
+
+        .page-break-before {
+            page-break-before: always;
+        }
+
+        .avoid-break {
+            page-break-inside: avoid;
+        }
     </style>
 </head>
+
 <body>
-<!-- Top Black Header -->
+    <!-- Top Black Header -->
     <div class="portal-header">
         <table class="header-content">
             <tr>
@@ -57,117 +337,127 @@
 
     <!-- Main Logic -->
     {IF_room_based}
-        {LOOP_SECTIONS}
-            <div class="section-wrapper">
-                <div class="section-bar">
-                    <table width="100%">
-                        <tr>
-                            <td>
-                                <div class="section-title">{section_name}</div>
-                                <div style="font-size:9px;font-weight:700;margin-top:2px;">Local Scope of Work</div>
-                            </td>
-                            <td align="right">
-                                <div class="section-price">{section_subtotal}</div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="item-table-wrapper">
-                    {IF_section_is_package}
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th width="70%">Description of Package</th>
-                                    <th width="30%" align="right">Package Value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {LOOP_ITEMS}
-                                <tr>
-                                    <td>
-                                        <div class="item-name"></div></td></tr>{IF_has_image}{ENDIF}<div class="item-desc">{item_description}</div>
-                                        {item_comments}
-                                    
-                                    <div style="font-weight:800;font-size:14px;">{item_total}</div>
-                                
-                                {END_LOOP}
-                            
-                        
-                    {ENDIF}
-
-                    {IF_NOT_section_is_package}                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th width="45%">Item Overview</th>
-                                    <th width="20%">Configuration</th>
-                                    <th width="15%">Measurement</th>
-                                    <th width="20%" align="right">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {LOOP_ITEMS}
-                                <tr>
-                                    <td>
-                                        <div class="item-name"></div></td></tr>{IF_has_image}{ENDIF}<div class="item-desc">{item_description}</div>
-                                        {IF_item_options}<div class="variant-pill">{item_options}</div>{ENDIF}
-                                        {IF_has_internal_note}
-                                            <div class="internal-note-box"><strong>INTERNAL NOTE:</strong> {item_internal_note}</div>
-                                        {ENDIF}
-                                        {item_comments}
-                                    
-                                    
-                                        <div style="font-weight:800;font-size:12px;">{item_unit}</div>
-                                        <div style="font-size:10px;font-weight:700;margin-top:4px;">Category: {item_unit_category}</div>
-                                    
-                                    
-                                        {IF_has_length}<div class="dim-detail"><span class="dim-l">L</span><span class="dim-v">{item_length}</span></div>{ENDIF}
-                                        {IF_has_width}<div class="dim-detail"><span class="dim-l">W</span><span class="dim-v">{item_width}</span></div>{ENDIF}
-                                        {IF_has_height}<div class="dim-detail"><span class="dim-l">H</span><span class="dim-v">{item_height}</span></div>{ENDIF}
-                                    
-                                    
-                                        <div style="font-weight:900;font-size:15px;">{item_total}</div>
-                                        <div style="font-size:10px;font-weight:700;">{item_quantity} x {item_price}</div>
-                                    
-                                
-                                {END_LOOP}
-                            
-                        
-                    {ENDIF}
-                
-            
-        {END_LOOP_SECTIONS}
-    {ENDIF}
-
-    {IF_NOT_room_based}
+    {LOOP_SECTIONS}
+    <div class="section-wrapper">
         <div class="section-bar">
-            <div class="section-title">Project Items</div>
+            <table width="100%">
+                <tr>
+                    <td>
+                        <div class="section-title">{section_name}</div>
+                        <div style="font-size:9px;font-weight:700;margin-top:2px;">Local Scope of Work</div>
+                    </td>
+                    <td align="right">
+                        <div class="section-price">{section_subtotal}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
+
         <div class="item-table-wrapper">
+            {IF_section_is_package}
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th width="50%">Description</th>
-                        <th width="15%" align="right">Rate</th>
-                        <th width="15%" align="center">Qty</th>
-                        <th width="20%" align="right">Total</th>
+                        <th width="70%">Description of Package</th>
+                        <th width="30%" align="right">Package Value</th>
                     </tr>
                 </thead>
                 <tbody>
                     {LOOP_ITEMS}
                     <tr>
                         <td>
-                            <div class="item-name"></div></td></tr>{IF_has_image}{ENDIF}<div class="item-desc">{item_description}</div>
+                            <div class="item-name">{item_name}</div>
+                            {IF_has_image}<div class="item-img">{item_image}</div>{ENDIF}
+                            <div class="item-desc">{item_description}</div>
                             {item_comments}
-                        
-                        {item_price}
-                        {item_quantity} {item_unit}
-                        {item_total}
-                    
+                        </td>
+                        <td align="right">
+                            <div style="font-weight:800;font-size:14px;">{item_total}</div>
+                        </td>
+                    </tr>
                     {END_LOOP}
-                
-            
-        
+                </tbody>
+            </table>
+            {ENDIF}
+
+            {IF_NOT_section_is_package}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th width="45%">Item Overview</th>
+                        <th width="20%">Configuration</th>
+                        <th width="15%">Measurement</th>
+                        <th width="20%" align="right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {LOOP_ITEMS}
+                    <tr>
+                        <td>
+                            <div class="item-name">{item_name}</div>
+                            {IF_has_image}<div class="item-img">{item_image}</div>{ENDIF}
+                            <div class="item-desc">{item_description}</div>
+                            {IF_item_options}<div class="variant-pill">{item_options}</div>{ENDIF}
+                            {IF_has_internal_note}
+                            <div class="internal-note-box"><strong>INTERNAL NOTE:</strong> {item_internal_note}</div>
+                            {ENDIF}
+                            {item_comments}
+                        </td>
+                        <td>
+                            <div style="font-weight:800;font-size:12px;">{item_unit}</div>
+                        </td>
+                        <td>
+                            {IF_has_length}<div class="dim-detail"><span class="dim-l">L</span><span
+                                    class="dim-v">{item_length}</span></div>{ENDIF}
+                            {IF_has_width}<div class="dim-detail"><span class="dim-l">W</span><span
+                                    class="dim-v">{item_width}</span></div>{ENDIF}
+                            {IF_has_height}<div class="dim-detail"><span class="dim-l">H</span><span
+                                    class="dim-v">{item_height}</span></div>{ENDIF}
+                        </td>
+                        <td align="right">
+                            <div style="font-weight:900;font-size:15px;">{item_total}</div>
+                        </td>
+                    </tr>
+                    {END_LOOP}
+                </tbody>
+            </table>
+            {ENDIF}
+        </div>
+    </div>
+    {END_LOOP_SECTIONS}
+    {ENDIF}
+
+    {IF_NOT_room_based}
+    <div class="section-bar">
+        <div class="section-title">Project Items</div>
+    </div>
+    <div class="item-table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th width="50%">Description</th>
+                    <th width="15%" align="right">Rate</th>
+                    <th width="15%" align="center">Qty</th>
+                    <th width="20%" align="right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {LOOP_ITEMS}
+                <tr>
+                    <td>
+                        <div class="item-name">{item_name}</div>
+                        {IF_has_image}<div class="item-img">{item_image}</div>{ENDIF}
+                        <div class="item-desc">{item_description}</div>
+                        {item_comments}
+                    </td>
+                    <td align="right">{item_price}</td>
+                    <td align="center">{item_quantity} {item_unit}</td>
+                    <td align="right">{item_total}</td>
+                </tr>
+                {END_LOOP}
+            </tbody>
+        </table>
+    </div>
     {ENDIF}
 
     <!-- Dark Recap Section -->
@@ -177,8 +467,6 @@
                 <td width="55%" valign="top" style="padding-right:50px;">
                     <div class="card-label">Project Consultation Remarks</div>
                     <div style="font-size:13px;color:#fff;line-height:1.8;">{client_note}</div>
-                    
-                    
                 </td>
                 <td width="45%" valign="top">
                     <table width="100%">
@@ -206,7 +494,8 @@
                         {ENDIF}
                         <tr class="investment-highlight">
                             <td style="font-size:18px;font-weight:900;color:#fff;">Final Proposal Value</td>
-                            <td style="font-size:30px;font-weight:900;color:#fff;text-align:right;">{currency} {grand_total}</td>
+                            <td style="font-size:30px;font-weight:900;color:#fff;text-align:right;">{currency}
+                                {grand_total}</td>
                         </tr>
                     </table>
 
@@ -218,7 +507,6 @@
         </table>
     </div>
 
-    
     {IF_has_terms}
     <div class="terms-section">
         <div class="terms-header">Authorization Terms &amp; Conditions</div>
@@ -227,6 +515,7 @@
         </div>
     </div>
     {ENDIF}
+
     <!-- Signatures -->
     <table class="signature-grid">
         <tr>
@@ -244,6 +533,8 @@
 
     <div style="text-align:center;font-size:9px;margin-bottom:40px;">
         Generated via Smart Estimation Cloud • Project Reference: {estimate_number}
-    </div></div></div></div>
+    </div>
+
 </body>
+
 </html>

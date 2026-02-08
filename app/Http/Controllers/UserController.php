@@ -38,6 +38,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'mobile_number' => ['nullable', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in(array_keys(PermissionService::getRoles()))],
             'max_discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -82,6 +83,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'mobile_number' => ['nullable', 'string', 'max:20'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in(array_keys(PermissionService::getRoles()))],
             'max_discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
