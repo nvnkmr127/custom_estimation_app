@@ -146,13 +146,18 @@ class InboundEndpoints extends Component
     public $mapperEndpointId = null;
     public $mappers = [];
     public $newMapperName = '';
-    public $newMapperTriggerRules = ''; // Keep request string for simple JSON edition initially
+
     public $newMapperActionType = 'create_lead';
 
     // Visual Mapping State
     public $mappingRows = [];
     public $availablePayloadKeys = [];
     public $systemFields = [];
+
+    // Trigger Rule State
+    public $triggerField = '';
+    public $triggerOperator = '=';
+    public $triggerValue = '';
 
     public function manageMappers($id)
     {
@@ -165,7 +170,12 @@ class InboundEndpoints extends Component
     public function startNewMapper()
     {
         $this->newMapperName = '';
-        $this->newMapperTriggerRules = '';
+
+        // Reset Trigger State
+        $this->triggerField = '';
+        $this->triggerOperator = '=';
+        $this->triggerValue = '';
+
         $this->newMapperActionType = 'create_lead';
         $this->mappingRows = [['source' => '', 'destination' => '']];
         $this->availablePayloadKeys = [];
@@ -291,15 +301,21 @@ class InboundEndpoints extends Component
             }
         }
 
-        // Special handling for hardcoded/specific fields if needed, but for now generic map is good.
-        // For 'update_estimate' we need specific keys often like 'identifier', 'status_map'.
-        // The user can map 'identifier' -> 'payload.id'. 
+        // Construct structured trigger rules
+        $triggerRules = null;
+        if (!empty($this->triggerField)) {
+            $triggerRules = [
+                'field' => $this->triggerField,
+                'operator' => $this->triggerOperator,
+                'value' => $this->triggerValue,
+            ];
+        }
 
         \App\Models\WebhookMapper::create([
             'uuid' => Str::uuid(),
             'webhook_inbound_endpoint_id' => $this->mapperEndpointId,
             'name' => $this->newMapperName,
-            'trigger_rules' => $this->newMapperTriggerRules ? json_decode($this->newMapperTriggerRules, true) : null,
+            'trigger_rules' => $triggerRules,
             'action_type' => $this->newMapperActionType,
             'action_config' => $actionConfig, // Saved as array, cast to JSON automatically
             'is_active' => true,
@@ -334,10 +350,19 @@ class InboundEndpoints extends Component
         }
 
         // 3. Create Temporary Mapper Object (not saved to DB)
+        $triggerRules = null;
+        if (!empty($this->triggerField)) {
+            $triggerRules = [
+                'field' => $this->triggerField,
+                'operator' => $this->triggerOperator,
+                'value' => $this->triggerValue,
+            ];
+        }
+
         $tempMapper = new \App\Models\WebhookMapper([
             'name' => $this->newMapperName,
             'action_type' => $this->newMapperActionType,
-            'trigger_rules' => $this->newMapperTriggerRules ? json_decode($this->newMapperTriggerRules, true) : null,
+            'trigger_rules' => $triggerRules,
             'action_config' => $actionConfig,
         ]);
 

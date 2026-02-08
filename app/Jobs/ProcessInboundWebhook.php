@@ -143,8 +143,38 @@ class ProcessInboundWebhook implements ShouldQueue
                 break;
 
             case 'create_lead':
-                Log::info("Webhook: 'Create Lead' action triggered. Payload data:", $payload);
-                // Implementation pending Lead model
+                Log::info("Webhook: 'Create Lead' action triggered.", ['payload_snippet' => array_keys($payload)]);
+
+                $clientData = [];
+                foreach ($config as $destField => $sourcePath) {
+                    // The UI adds 'payload.' prefix, but we are working with the payload array directly
+                    // So we strip 'payload.' to find the value in the array
+                    $cleanPath = str_replace('payload.', '', $sourcePath);
+                    $value = $this->getValue($payload, $cleanPath);
+
+                    if ($value !== null) {
+                        $clientData[$destField] = $value;
+                    }
+                }
+
+                if (empty($clientData)) {
+                    Log::warning("Webhook: No data-mapped fields found for Create Lead action.");
+                    break;
+                }
+
+                // Try to find existing client by unique identifiers to avoid duplicates
+                $client = null;
+                if (!empty($clientData['email'])) {
+                    $client = \App\Models\Client::where('email', $clientData['email'])->first();
+                }
+
+                if ($client) {
+                    $client->update($clientData);
+                    Log::info("Webhook: Updated existing Client #{$client->id} ({$client->email})");
+                } else {
+                    $client = \App\Models\Client::create($clientData);
+                    Log::info("Webhook: Created new Client #{$client->id}");
+                }
                 break;
 
             case 'notify_slack':

@@ -569,12 +569,45 @@
                                                         <option value="notify_slack">Slack Notification</option>
                                                     </select>
                                                 </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-slate-700 mb-1">Trigger
-                                                        (JSON)</label>
-                                                    <input type="text" wire:model="newMapperTriggerRules"
-                                                        class="block w-full rounded-lg border-0 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                                        placeholder='{"field": "type", "value": "submit"}'>
+                                                <div class="col-span-2">
+                                                    <label class="block text-xs font-bold text-slate-700 mb-1">Trigger Condition (Optional)</label>
+                                                    <div class="grid grid-cols-3 gap-2">
+                                                        <!-- Field -->
+                                                        <div>
+                                                            @if(!empty($availablePayloadKeys))
+                                                                <select wire:model="triggerField" 
+                                                                    class="block w-full rounded-lg border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xs sm:leading-6">
+                                                                    <option value="">-- No Filter (Run Always) --</option>
+                                                                    @foreach($availablePayloadKeys as $key)
+                                                                        <option value="{{ $key }}">{{ $key }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                            @else
+                                                                <input type="text" wire:model="triggerField" 
+                                                                    class="block w-full rounded-lg border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xs sm:leading-6"
+                                                                    placeholder="Field (e.g. status)">
+                                                            @endif
+                                                        </div>
+
+                                                        <!-- Operator -->
+                                                        <div>
+                                                            <select wire:model="triggerOperator" 
+                                                                class="block w-full rounded-lg border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xs sm:leading-6">
+                                                                <option value="=">Equals (=)</option>
+                                                                <option value="!=">Not Equals (!=)</option>
+                                                                <option value="contains">Contains</option>
+                                                                <option value=">">Greater Than (>)</option>
+                                                                <option value="<">Less Than (<)</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <!-- Value -->
+                                                        <div>
+                                                            <input type="text" wire:model="triggerValue" 
+                                                                class="block w-full rounded-lg border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xs sm:leading-6"
+                                                                placeholder="Value (e.g. open hot)">
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="mt-4">
@@ -624,7 +657,7 @@
                                                             @foreach($mappingRows as $index => $row)
                                                                 <tr>
                                                                     <td class="px-4 py-2">
-                                                                        @if(count($availablePayloadKeys) > 0)
+                                                                        @if(!empty($availablePayloadKeys))
                                                                             <select wire:model="mappingRows.{{ $index }}.source"
                                                                                 class="block w-full rounded-lg border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xs sm:leading-6">
                                                                                 <option value="">Select Payload Key</option>
