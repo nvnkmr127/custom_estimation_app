@@ -24,12 +24,30 @@ class EstimateApprovedDefinition implements WebhookEventDefinitionInterface
     public function buildPayload(object $resource): array
     {
         /** @var Estimate $resource */
+
+        $expiration = $resource->expiry_date ? $resource->expiry_date->endOfDay() : now()->addDays(30);
+        $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $resource->id]);
+
         return [
             'id' => $resource->id,
             'reference' => $resource->reference_number,
             'status' => $resource->status,
             'approved_at' => now()->toIso8601String(), // In real case, fetch from audit log or property
-            'url' => route('portal.show', $resource),
+            'signed_at' => $resource->signed_at ? $resource->signed_at->toIso8601String() : null,
+            'signer_ip' => $resource->signer_ip,
+            'url' => $resource->public_url,
+            'pdf' => $pdfUrl,
+            'client' => $resource->client ? [
+                'name' => $resource->client->name,
+                'email' => $resource->client->email,
+                'phone' => $resource->client->phone,
+                'secondary_phone' => $resource->client->secondary_phone,
+            ] : null,
+            'creator' => $resource->creator ? [
+                'name' => $resource->creator->name,
+                'email' => $resource->creator->email,
+                'phone' => $resource->creator->mobile_number,
+            ] : null,
         ];
     }
 
@@ -40,7 +58,18 @@ class EstimateApprovedDefinition implements WebhookEventDefinitionInterface
             'reference' => 'EST-2024-001',
             'status' => 'approved',
             'approved_at' => now()->toIso8601String(),
-            'url' => 'https://example.com/portal/estimates/123',
+            'signed_at' => now()->toIso8601String(),
+            'signer_ip' => '192.168.1.1',
+            'url' => 'https://example.com/portal/estimates/123?signature=...',
+            'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
+            'client' => [
+                'name' => 'John Doe',
+                'email' => 'client@example.com',
+            ],
+            'creator' => [
+                'name' => 'Agent Smith',
+                'email' => 'agent@company.com',
+            ],
         ];
     }
 }

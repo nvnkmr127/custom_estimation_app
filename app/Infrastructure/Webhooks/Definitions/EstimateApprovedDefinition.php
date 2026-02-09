@@ -24,12 +24,18 @@ class EstimateApprovedDefinition implements WebhookEventDefinitionInterface
     public function buildPayload(object $resource): array
     {
         /** @var Estimate $resource */
+
+        // Compute expiration for PDF link (same logic as public_url)
+        $expiration = $resource->expiry_date ? $resource->expiry_date->endOfDay() : now()->addDays(30);
+        $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $resource->id]);
+
         return [
             'id' => $resource->id,
             'reference' => $resource->reference_number,
             'status' => $resource->status,
             'approved_at' => now()->toIso8601String(), // In real case, fetch from audit log or property
-            'url' => route('portal.show', $resource),
+            'url' => $resource->public_url,
+            'pdf' => $pdfUrl,
         ];
     }
 
@@ -40,7 +46,8 @@ class EstimateApprovedDefinition implements WebhookEventDefinitionInterface
             'reference' => 'EST-2024-001',
             'status' => 'approved',
             'approved_at' => now()->toIso8601String(),
-            'url' => 'https://example.com/portal/estimates/123',
+            'url' => 'https://example.com/portal/estimates/123?signature=...',
+            'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
         ];
     }
 }

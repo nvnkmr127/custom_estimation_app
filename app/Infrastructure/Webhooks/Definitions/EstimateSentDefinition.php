@@ -24,12 +24,17 @@ class EstimateSentDefinition implements WebhookEventDefinitionInterface
     public function buildPayload(object $resource): array
     {
         /** @var Estimate $resource */
+
+        $expiration = $resource->expiry_date ? $resource->expiry_date->endOfDay() : now()->addDays(30);
+        $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $resource->id]);
+
         return [
             'id' => $resource->id,
             'reference' => $resource->reference_number,
             'sent_at' => now()->toIso8601String(),
             'client_email' => $resource->client ? $resource->client->email : null,
-            'url' => route('portal.show', $resource),
+            'url' => $resource->public_url,
+            'pdf' => $pdfUrl,
         ];
     }
 
@@ -40,7 +45,8 @@ class EstimateSentDefinition implements WebhookEventDefinitionInterface
             'reference' => 'EST-2024-001',
             'sent_at' => now()->toIso8601String(),
             'client_email' => 'client@example.com',
-            'url' => 'https://example.com/portal/estimates/123',
+            'url' => 'https://example.com/portal/estimates/123?signature=...',
+            'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
         ];
     }
 }

@@ -24,12 +24,18 @@ class EstimateUpdatedDefinition implements WebhookEventDefinitionInterface
     public function buildPayload(object $resource): array
     {
         /** @var Estimate $resource */
+
+        $expiration = $resource->expiry_date ? $resource->expiry_date->endOfDay() : now()->addDays(30);
+        $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $resource->id]);
+
         return [
             'id' => $resource->id,
             'reference' => $resource->reference_number,
             'total' => $resource->total,
             'status' => $resource->status,
             'updated_at' => $resource->updated_at ? $resource->updated_at->toIso8601String() : now()->toIso8601String(),
+            'url' => $resource->public_url,
+            'pdf' => $pdfUrl,
             'changes' => $resource->getChanges(),
         ];
     }
@@ -42,6 +48,8 @@ class EstimateUpdatedDefinition implements WebhookEventDefinitionInterface
             'total' => 1750.00,
             'status' => 'sent',
             'updated_at' => now()->toIso8601String(),
+            'url' => 'https://example.com/portal/estimates/123?signature=...',
+            'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
             'changes' => [
                 'total' => ['old' => 1500.00, 'new' => 1750.00],
                 'status' => ['old' => 'draft', 'new' => 'sent'],

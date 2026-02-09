@@ -24,16 +24,39 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
     public function buildPayload(object $resource): array
     {
         /** @var EstimateApproval $resource */
+        $estimate = $resource->estimate;
+
+        $expiration = $estimate->expiry_date ? $estimate->expiry_date->endOfDay() : now()->addDays(30);
+        $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $estimate->id]);
+
         return [
             'id' => $resource->id,
-            'estimate_id' => $resource->estimate_id,
-            'estimate_number' => $resource->estimate->estimate_number,
-            'user' => [
-                'id' => $resource->user_id,
-                'name' => $resource->user->name,
-            ],
+            'status' => 'change_requested',
             'comments' => $resource->comments,
             'requested_at' => $resource->updated_at->toIso8601String(),
+            'estimate' => [
+                'id' => $estimate->id,
+                'reference' => $estimate->estimate_number,
+                'total' => $estimate->total,
+                'url' => $estimate->public_url,
+                'pdf' => $pdfUrl,
+                'created_by' => $estimate->creator ? [
+                    'name' => $estimate->creator->name,
+                    'email' => $estimate->creator->email,
+                    'phone' => $estimate->creator->mobile_number,
+                ] : null,
+            ],
+            'client' => $estimate->client ? [
+                'name' => $estimate->client->name,
+                'email' => $estimate->client->email,
+                'phone' => $estimate->client->phone,
+                'secondary_phone' => $estimate->client->secondary_phone,
+            ] : null,
+            'approver' => $resource->user ? [
+                'name' => $resource->user->name,
+                'email' => $resource->user->email,
+                'phone' => $resource->user->mobile_number,
+            ] : null,
         ];
     }
 
@@ -41,14 +64,28 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
     {
         return [
             'id' => 46,
-            'estimate_id' => 124,
-            'estimate_number' => 'EST-2024-002',
-            'user' => [
-                'id' => 5,
-                'name' => 'Sarah Manager',
-            ],
+            'status' => 'change_requested',
             'comments' => 'Please adjust the quantity of Item A.',
             'requested_at' => now()->toIso8601String(),
+            'estimate' => [
+                'id' => 124,
+                'reference' => 'EST-2024-002',
+                'total' => 3000.00,
+                'url' => 'https://example.com/portal/estimates/124?signature=...',
+                'pdf' => 'https://example.com/portal/estimates/124/download?signature=...',
+                'created_by' => [
+                    'name' => 'Alice Estimator',
+                    'email' => 'alice@company.com',
+                ],
+            ],
+            'client' => [
+                'name' => 'Small Biz Inc',
+                'email' => 'contact@smallbiz.com',
+            ],
+            'approver' => [
+                'name' => 'Sarah Manager',
+                'email' => 'sarah@company.com',
+            ],
         ];
     }
 }
