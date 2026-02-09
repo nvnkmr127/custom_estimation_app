@@ -106,4 +106,10 @@ class Index extends Component
         WebhookDeadLetter::destroy($id);
         session()->flash('flash.banner', 'Dead letter removed.');
     }
+
+    public function deleteAll()
+    {
+        WebhookDeadLetter::query()->delete();
+        session()->flash('flash.banner', 'All dead letters removed.');
+    }
 }

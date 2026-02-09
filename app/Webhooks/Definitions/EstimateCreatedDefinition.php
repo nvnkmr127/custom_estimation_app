@@ -30,9 +30,9 @@ class EstimateCreatedDefinition implements WebhookEventDefinitionInterface
 
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
+            'reference' => $resource->estimate_number,
             'client_id' => $resource->client_id,
-            'total' => $resource->total,
+            'total' => $resource->grand_total,
             'mobile_number' => $resource->client?->phone,
             'status' => $resource->status,
             'created_at' => $resource->created_at ? $resource->created_at->toIso8601String() : now()->toIso8601String(),

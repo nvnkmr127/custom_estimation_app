@@ -33,8 +33,8 @@ class ApprovalApprovedDefinition implements WebhookEventDefinitionInterface
             'approved_at' => now()->toIso8601String(),
             'estimate' => [
                 'id' => $estimate->id,
-                'reference' => $estimate->reference_number,
-                'total' => $estimate->total,
+                'reference' => $estimate->estimate_number,
+                'total' => $estimate->grand_total,
                 'url' => $estimate->public_url,
                 'pdf' => $pdfUrl,
                 'created_by' => $estimate->creator ? [

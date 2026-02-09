@@ -30,10 +30,10 @@ class EstimateSubmittedDefinition implements WebhookEventDefinitionInterface
 
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
+            'reference' => $resource->estimate_number,
             'status' => $resource->status,
             'submitted_at' => now()->toIso8601String(),
-            'total' => $resource->total,
+            'total' => $resource->grand_total,
             'mobile_number' => $resource->client?->phone,
             'url' => $resource->public_url,
             'pdf' => $pdfUrl,

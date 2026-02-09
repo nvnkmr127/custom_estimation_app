@@ -37,7 +37,7 @@ class ApprovalRejectedDefinition implements WebhookEventDefinitionInterface
             'estimate' => [
                 'id' => $estimate->id,
                 'reference' => $estimate->estimate_number, // Fix: Use estimate_number as reference
-                'total' => $estimate->total,
+                'total' => $estimate->grand_total,
                 'url' => $estimate->public_url,
                 'pdf' => $pdfUrl,
                 'created_by' => $estimate->creator ? [

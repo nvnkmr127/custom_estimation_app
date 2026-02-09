@@ -30,8 +30,8 @@ class EstimateViewedDefinition implements WebhookEventDefinitionInterface
 
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
-            'total' => $resource->total,
+            'reference' => $resource->estimate_number,
+            'total' => $resource->grand_total,
             'mobile_number' => $resource->client?->phone,
             'viewed_at' => now()->toIso8601String(),
             'ip_address' => request()->ip(),

@@ -30,8 +30,8 @@ class EstimateUpdatedDefinition implements WebhookEventDefinitionInterface
 
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
-            'total' => $resource->total,
+            'reference' => $resource->estimate_number,
+            'total' => $resource->grand_total,
             'mobile_number' => $resource->client?->phone,
             'status' => $resource->status,
             'updated_at' => $resource->updated_at ? $resource->updated_at->toIso8601String() : now()->toIso8601String(),

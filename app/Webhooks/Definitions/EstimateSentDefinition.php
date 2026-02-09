@@ -30,8 +30,8 @@ class EstimateSentDefinition implements WebhookEventDefinitionInterface
 
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
-            'total' => $resource->total,
+            'reference' => $resource->estimate_number,
+            'total' => $resource->grand_total,
             'mobile_number' => $resource->client?->phone,
             'sent_at' => now()->toIso8601String(),
             'url' => $resource->public_url,

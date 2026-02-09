@@ -30,13 +30,13 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'content' => $resource->content,
-            'total' => $estimate->total,
+            'total' => $estimate->grand_total,
             'mobile_number' => $estimate->client?->phone,
             'created_at' => $resource->created_at ? $resource->created_at->toIso8601String() : now()->toIso8601String(),
             'estimate' => [
                 'id' => $estimate->id,
-                'reference' => $estimate->reference_number,
-                'total' => $estimate->total,
+                'reference' => $estimate->estimate_number,
+                'total' => $estimate->grand_total,
                 'url' => $estimate->public_url,
                 'pdf' => $pdfUrl,
                 'created_by' => $estimate->creator ? [

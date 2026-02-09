@@ -30,8 +30,8 @@ class EstimateApprovedDefinition implements WebhookEventDefinitionInterface
 
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
-            'total' => $resource->total,
+            'reference' => $resource->estimate_number,
+            'total' => $resource->grand_total,
             'mobile_number' => $resource->client?->phone,
             'status' => $resource->status,
             'approved_at' => now()->toIso8601String(), // In real case, fetch from audit log or property

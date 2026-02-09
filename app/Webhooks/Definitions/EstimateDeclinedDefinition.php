@@ -30,7 +30,7 @@ class EstimateDeclinedDefinition implements WebhookEventDefinitionInterface
 
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
+            'reference' => $resource->estimate_number,
             'status' => $resource->status,
             'declined_at' => now()->toIso8601String(), // Ideally fetch from audit log
             'reason' => $resource->client_notes, // Using client_notes as the decline reason

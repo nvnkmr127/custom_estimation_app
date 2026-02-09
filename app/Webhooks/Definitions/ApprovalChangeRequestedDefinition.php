@@ -37,7 +37,7 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
             'estimate' => [
                 'id' => $estimate->id,
                 'reference' => $estimate->estimate_number,
-                'total' => $estimate->total,
+                'total' => $estimate->grand_total,
                 'url' => $estimate->public_url,
                 'pdf' => $pdfUrl,
                 'created_by' => $estimate->creator ? [

@@ -30,7 +30,7 @@ class EstimateExpiredDefinition implements WebhookEventDefinitionInterface
 
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
+            'reference' => $resource->estimate_number,
             'expired_at' => $resource->expiry_date ? $resource->expiry_date->toIso8601String() : now()->toIso8601String(),
             'url' => $resource->public_url,
             'pdf' => $pdfUrl,
