@@ -33,6 +33,18 @@ class CommentController extends Controller
         // Determine comment type
         $type = auth()->check() ? 'internal' : 'client';
 
+        // If replying to a comment, inherit the context (Item vs Estimate)
+        if (!empty($validated['parent_id'])) {
+            $parent = EstimateComment::find($validated['parent_id']);
+            if ($parent) {
+                // Determine if we should inherit the commentable context
+                // Only inherit if the request didn't explicitly set a specific item 
+                // OR if we want to enforce strict threading (usually safer to enforce)
+                $validated['commentable_type'] = $parent->commentable_type;
+                $validated['commentable_id'] = $parent->commentable_id;
+            }
+        }
+
         $comment = $estimate->comments()->create([
             'commentable_type' => $validated['commentable_type'],
             'commentable_id' => $validated['commentable_id'] ?? null,
@@ -62,6 +74,8 @@ class CommentController extends Controller
         if ($type === 'client') {
             $this->notifyTeam($estimate, $comment);
         }
+
+        \Log::info("CommentController: Created comment ID {$comment->id} Type: {$type} On: {$comment->commentable_type} #{$comment->commentable_id}");
 
         return response()->json([
             'success' => true,

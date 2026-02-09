@@ -1,4 +1,8 @@
 <div x-data="{ showVersionModal: false }">
+    @php
+        $isApproved = in_array($estimate->status, ['approved', 'accepted']) || $estimate->approval_status === 'approved';
+    @endphp
+
 
     <!-- Version Warning -->
     @if(!$estimate->is_current_version)
@@ -40,11 +44,11 @@
                 @if($estimate->approval_status)
                     <span
                         class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                                                                                                                                                        @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
-                                                                                                                                                                                                        @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
-                                                                                                                                                                                                        @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
-                                                                                                                                                                                                        @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                                                                                                                                                                        @endif">
+                                                                                                                                                                                                                                                    @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
+                                                                                                                                                                                                                                                    @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
+                                                                                                                                                                                                                                                    @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
+                                                                                                                                                                                                                                                    @else bg-gray-50 text-gray-600 ring-gray-500/10
+                                                                                                                                                                                                                                                    @endif">
                         {{ ucfirst($estimate->approval_status) }}
                     </span>
                 @endif
@@ -54,12 +58,17 @@
 
         <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">
             <!-- Primary Actions -->
-            @if(($estimate->status === 'draft' || $estimate->status === 'declined' || (auth()->user()->hasRole('super_admin'))) && $estimate->is_current_version)
+            @if((($estimate->status === 'draft' || $estimate->status === 'declined' || (auth()->user()->hasRole('super_admin'))) && $estimate->is_current_version) && !$isApproved)
                 @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole('super_admin'))
+
                     <a href="{{ route('estimates.edit', $estimate) }}"
                         class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
                         Edit
                     </a>
+                    <button type="button" wire:click="ping"
+                        class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
+                        Ping Log
+                    </button>
                 @endif
 
                 @if($estimate->approval_status === 'draft' && $estimate->approvalChain)
@@ -97,16 +106,16 @@
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->
                     <div x-data="{ 
-                                                                                                                                                                                                                                                                                                                                                                                                checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
-                                                                                                                                                                                                                                                                                                                                                                                                requiredCount: {{ $checklists->where('is_required', true)->count() }},
-                                                                                                                                                                                                                                                                                                                                                                                                requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
-                                                                                                                                                                                                                                                                                                                                                                                                 toggleChecklist(id, checked) {
-                                                                                                                                                                                                                                                                                                                                                                                                     if (checked) this.checks.push(parseInt(id));
-                                                                                                                                                                                                                                                                                                                                                                                                     else this.checks = this.checks.filter(c => c !== parseInt(id));
-                                                                                                                                                                                                                                                                                                                                                                                                     $wire.toggleChecklist(id, checked);
-                                                                                                                                                                                                                                                                                                                                                                                                 },
-                                                                                                                                                                                                                                                                                                                                                                                                 get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
-                                                                                                                                                                                                                                                                                                                                                                                             }"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        requiredCount: {{ $checklists->where('is_required', true)->count() }},
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         toggleChecklist(id, checked) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             if (checked) this.checks.push(parseInt(id));
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             else this.checks = this.checks.filter(c => c !== parseInt(id));
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             $wire.toggleChecklist(id, checked);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         },
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     }"
                         class="flex gap-2 relative">
                         <!-- Approve Dropdown -->
                         <div x-data="{ open: false }" class="relative">
@@ -379,18 +388,21 @@
                 <div x-show="open" @click.outside="open = false"
                     class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                     x-cloak>
-                    <div class="py-1">
-                        <div class="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status
-                            Override</div>
-                        @foreach(['draft', 'sent', 'accepted', 'declined', 'expired'] as $status)
-                            @if($estimate->status !== $status)
-                                <button type="button" wire:click="markAs('{{ $status }}')"
-                                    class="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                                    Mark as {{ ucfirst($status) }}
-                                </button>
-                            @endif
-                        @endforeach
-                    </div>
+                    @if(!$isApproved)
+                        <div class="py-1">
+                            <div class="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status
+                                Override</div>
+                            @foreach(['draft', 'sent', 'accepted', 'declined', 'expired'] as $status)
+                                @if($estimate->status !== $status)
+                                    <button type="button" wire:click="markAs('{{ $status }}')"
+                                        class="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                                        Mark as {{ ucfirst($status) }}
+                                    </button>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
+
                 </div>
             </div>
         </div>
@@ -481,159 +493,167 @@
                                             </thead>
                                             <tbody class="divide-y divide-slate-200 bg-white">
                                                 @foreach($section->items as $item)
-                                                                            <tr class="group hover:bg-slate-50/30 transition-colors">
-                                                                                @if(!$section->is_package)
-                                                                                    <td class="px-3 py-4 align-middle">
-                                                                                        @if($item->product && $item->product->primary_image_url)
-                                                                                            <div class="relative h-12 w-12 mx-auto">
-                                                                                                <img src="{{ $item->product->primary_image_url }}"
-                                                                                                    class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
-                                                                                            </div>
-                                                                                        @else
-                                                                                            <div
-                                                                                                class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
-                                                                                                <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
-                                                                                                    stroke="currentColor">
-                                                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                                        stroke-width="2"
-                                                                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                                                </svg>
-                                                                                            </div>
-                                                                                        @endif
-                                                                                    </td>
-                                                                                @endif
-                                                                                @if(!$section->is_package)
-                                                                                    <td
-                                                                                        class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                                        <div class="font-bold text-slate-900">
-                                                                                            @if($item->unitType) {{ $item->unitType->name }} @endif
-                                                                                        </div>
-                                                                                        <div
-                                                                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                                                            {{ $item->unit_type }}
-                                                                                        </div>
-                                                                                    </td>
-                                                                                @endif
-                                                                                <td
-                                                                                    class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                                    <div class="min-w-0">
-                                                                                        <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
-                                                                                        @if($item->description)
-                                                                                            <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
-                                                                                                {{ $item->description }}
-                                                                                            </div>
-                                                                                        @endif
-                                                                                        @if(!empty($item->options) && is_array($item->options))
-                                                                                            <div class="flex flex-wrap gap-1.5">
-                                                                                                @foreach($item->options as $option)
-                                                                                                    <span
-                                                                                                        class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-                                                                                                        {{ $option['name'] }}: {{ $option['value'] }}
-                                                                                                    </span>
-                                                                                                @endforeach
-                                                                                            </div>
-                                                                                        @endif
-                                                                                        @if($item->internal_note)
-                                                                                            <div
-                                                                                                class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
-                                                                                                <svg class="h-3 w-3 text-amber-500" fill="none"
-                                                                                                    viewBox="0 0 24 24" stroke="currentColor">
-                                                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                                        stroke-width="2"
-                                                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                                                </svg>
-                                                                                                <span
-                                                                                                    class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
-                                                                                                    Note:</span> {{ $item->internal_note }}
-                                                                                            </div>
-                                                                                        @endif
-                                                                                        <!-- Item Comment Button -->
-                                                                                        <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->map(function ($c) {
-                                                    $c->formatted_date = $c->created_at->format('M j, g:i A');
-                                                    return $c; })->values()) }})" type="button"
-                                                                                            class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
-                                                                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                                                                                                stroke="currentColor">
-                                                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                                    stroke-width="2"
-                                                                                                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                                                                            </svg>
-                                                                                            @if($item->comments->isNotEmpty())
-                                                                                                {{ $item->comments->count() }}
-                                                                                                {{ Str::plural('Comment', $item->comments->count()) }}
-                                                                                            @else
-                                                                                                Comment
-                                                                                            @endif
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </td>
-                                                                                @if(!$section->is_package)
-                                                                                    <td
-                                                                                        class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                                        @if($item->length || $item->width || $item->height)
-                                                                                            <div class="flex flex-col gap-1.5">
-                                                                                                @if($item->length)
-                                                                                                    <div class="flex items-center gap-2">
-                                                                                                        <span
-                                                                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                                                        <span
-                                                                                                            class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
-                                                                                                            ft</span>
-                                                                                                    </div>
-                                                                                                @endif
-                                                                                                @if($item->width)
-                                                                                                    <div class="flex items-center gap-2">
-                                                                                                        <span
-                                                                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                                                        <span
-                                                                                                            class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
-                                                                                                            ft</span>
-                                                                                                    </div>
-                                                                                                @endif
-                                                                                                @if($item->height)
-                                                                                                    <div class="flex items-center gap-2">
-                                                                                                        <span
-                                                                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                                                                        <span
-                                                                                                            class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
-                                                                                                            ft</span>
-                                                                                                    </div>
-                                                                                                @endif
+                                                    <tr class="group hover:bg-slate-50/30 transition-colors">
+                                                        @if(!$section->is_package)
+                                                            <td class="px-3 py-4 align-middle">
+                                                                @if($item->product && $item->product->primary_image_url)
+                                                                    <div class="relative h-12 w-12 mx-auto">
+                                                                        <img src="{{ $item->product->primary_image_url }}"
+                                                                            class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
+                                                                    </div>
+                                                                @else
+                                                                    <div
+                                                                        class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
+                                                                        <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
+                                                                            stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                stroke-width="2"
+                                                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                @endif
+                                                            </td>
+                                                        @endif
+                                                        @if(!$section->is_package)
+                                                            <td
+                                                                class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
+                                                                <div class="font-bold text-slate-900">
+                                                                    @if($item->unitType) {{ $item->unitType->name }} @endif
+                                                                </div>
+                                                                <div
+                                                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                                                    {{ $item->unit_type }}
+                                                                </div>
+                                                            </td>
+                                                        @endif
+                                                        <td
+                                                            class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
+                                                            <div class="min-w-0">
+                                                                <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
+                                                                @if($item->description)
+                                                                    <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
+                                                                        {{ $item->description }}
+                                                                    </div>
+                                                                @endif
+                                                                @if(!empty($item->options) && is_array($item->options))
+                                                                    <div class="flex flex-wrap gap-1.5">
+                                                                        @foreach($item->options as $option)
+                                                                            <span
+                                                                                class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
+                                                                                {{ $option['name'] }}: {{ $option['value'] }}
+                                                                            </span>
+                                                                        @endforeach
+                                                                    </div>
+                                                                @endif
+                                                                @if($item->internal_note)
+                                                                    <div
+                                                                        class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
+                                                                        <svg class="h-3 w-3 text-amber-500" fill="none"
+                                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                                stroke-width="2"
+                                                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                        </svg>
+                                                                        <span
+                                                                            class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
+                                                                            Note:</span> {{ $item->internal_note }}
+                                                                    </div>
+                                                                @endif
+                                                                <!-- Item Comment Button -->
+                                                                @php
+                                                                    $allComments = $item->comments->flatMap(function ($c) {
+                                                                        return collect([$c])->merge($c->replies);
+                                                                    })->unique('id')->sortBy('created_at')->values()->map(function ($c) {
+                                                                        $c->formatted_date = $c->created_at->format('M j, g:i A');
+                                                                        return $c;
+                                                                    });
+                                                                @endphp
+                                                                <button
+                                                                    @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($allComments) }})"
+                                                                    type="button"
+                                                                    class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
+                                                                                                                                                                                                                                {{ $allComments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                                                        stroke="currentColor">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                                            stroke-width="2"
+                                                                            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                                                    </svg>
+                                                                    @if($allComments->isNotEmpty())
+                                                                        {{ $allComments->count() }}
+                                                                        {{ Str::plural('Comment', $allComments->count()) }}
+                                                                    @else
+                                                                        Comment
+                                                                    @endif
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        @if(!$section->is_package)
+                                                            <td
+                                                                class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
+                                                                @if($item->length || $item->width || $item->height)
+                                                                    <div class="flex flex-col gap-1.5">
+                                                                        @if($item->length)
+                                                                            <div class="flex items-center gap-2">
+                                                                                <span
+                                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
+                                                                                <span
+                                                                                    class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
+                                                                                    ft</span>
+                                                                            </div>
+                                                                        @endif
+                                                                        @if($item->width)
+                                                                            <div class="flex items-center gap-2">
+                                                                                <span
+                                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
+                                                                                <span
+                                                                                    class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
+                                                                                    ft</span>
+                                                                            </div>
+                                                                        @endif
+                                                                        @if($item->height)
+                                                                            <div class="flex items-center gap-2">
+                                                                                <span
+                                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                                                <span
+                                                                                    class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
+                                                                                    ft</span>
+                                                                            </div>
+                                                                        @endif
 
-                                                                                                @if($item->size > 0)
-                                                                                                    <div class="mt-2 pt-2 border-t border-slate-100">
-                                                                                                        <div
-                                                                                                            class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
-                                                                                                            {{ ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area'))) }}
-                                                                                                        </div>
-                                                                                                        <div class="text-xs font-bold text-slate-900">
-                                                                                                            {{ number_format($item->size, 2) }} <span
-                                                                                                                class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                @endif
-                                                                                            </div>
-                                                                                        @else
-                                                                                            <span class="text-xs text-slate-400">-</span>
-                                                                                        @endif
-                                                                                    </td>
-                                                                                @endif
-                                                                                <td
-                                                                                    class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                                                                                    {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
-                                                                                </td>
-                                                                                @if(!$section->is_package)
-                                                                                    <td
-                                                                                        class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                                        <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
-                                                                                    </td>
-                                                                                @endif
-                                                                                <td
-                                                                                    class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                                                                                    {{ $estimate->currency }} {{ number_format($item->total, 2) }}
-                                                                                </td>
-                                                                            </tr>
+                                                                        @if($item->size > 0)
+                                                                            <div class="mt-2 pt-2 border-t border-slate-100">
+                                                                                <div
+                                                                                    class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
+                                                                                    {{ ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area'))) }}
+                                                                                </div>
+                                                                                <div class="text-xs font-bold text-slate-900">
+                                                                                    {{ number_format($item->size, 2) }} <span
+                                                                                        class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endif
+                                                                    </div>
+                                                                @else
+                                                                    <span class="text-xs text-slate-400">-</span>
+                                                                @endif
+                                                            </td>
+                                                        @endif
+                                                        <td
+                                                            class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
+                                                            {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
+                                                        </td>
+                                                        @if(!$section->is_package)
+                                                            <td
+                                                                class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
+                                                                <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
+                                                            </td>
+                                                        @endif
+                                                        <td
+                                                            class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
+                                                            {{ $estimate->currency }} {{ number_format($item->total, 2) }}
+                                                        </td>
+                                                    </tr>
                                                 @endforeach
                                             </tbody>
                                             <tfoot class="bg-slate-50">
@@ -683,147 +703,155 @@
                                 </thead>
                                 <tbody class="divide-y divide-slate-200 bg-white">
                                     @foreach($estimate->items as $item)
-                                                            <tr class="group hover:bg-slate-50/30 transition-colors">
-                                                                <td class="px-3 py-4 align-middle">
-                                                                    @if($item->product && $item->product->primary_image_url)
-                                                                        <div class="relative h-12 w-12 mx-auto">
-                                                                            <img src="{{ $item->product->primary_image_url }}"
-                                                                                class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
-                                                                        </div>
-                                                                    @else
-                                                                        <div
-                                                                            class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
-                                                                            <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
-                                                                                stroke="currentColor">
-                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                            </svg>
-                                                                        </div>
-                                                                    @endif
-                                                                </td>
-                                                                <td
-                                                                    class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                    <div class="font-bold text-slate-900">
-                                                                        @if($item->unitType) {{ $item->unitType->name }} @endif
-                                                                    </div>
-                                                                    <div
-                                                                        class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                                        {{ $item->unit_type }}
-                                                                    </div>
-                                                                </td>
-                                                                <td
-                                                                    class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                    <div class="min-w-0">
-                                                                        <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
-                                                                        @if($item->description)
-                                                                            <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
-                                                                                {{ $item->description }}
-                                                                            </div>
-                                                                        @endif
-                                                                        @if(!empty($item->options) && is_array($item->options))
-                                                                            <div class="flex flex-wrap gap-1.5">
-                                                                                @foreach($item->options as $option)
-                                                                                    <span
-                                                                                        class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-                                                                                        {{ $option['name'] }}: {{ $option['value'] }}
-                                                                                    </span>
-                                                                                @endforeach
-                                                                            </div>
-                                                                        @endif
-                                                                        @if($item->internal_note)
-                                                                            <div
-                                                                                class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
-                                                                                <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24"
-                                                                                    stroke="currentColor">
-                                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                        stroke-width="2"
-                                                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                                </svg>
-                                                                                <span
-                                                                                    class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
-                                                                                    Note:</span> {{ $item->internal_note }}
-                                                                            </div>
-                                                                        @endif
-                                                                        <!-- Item Comment Button -->
-                                                                        <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->map(function ($c) {
-                                        $c->formatted_date = $c->created_at->format('M j, g:i A');
-                                        return $c; })->values()) }})" type="button"
-                                                                            class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
-                                                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                                                                                stroke="currentColor">
-                                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                                    stroke-width="2"
-                                                                                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                                                            </svg>
-                                                                            @if($item->comments->isNotEmpty())
-                                                                                {{ $item->comments->count() }}
-                                                                                {{ Str::plural('Comment', $item->comments->count()) }}
-                                                                            @else
-                                                                                Comment
-                                                                            @endif
-                                                                        </button>
-                                                                    </div>
-                                                                </td>
-                                                                <td
-                                                                    class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                    @if($item->length || $item->width || $item->height)
-                                                                        <div class="flex flex-col gap-1.5">
-                                                                            @if($item->length)
-                                                                                <div class="flex items-center gap-2">
-                                                                                    <span
-                                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
-                                                                                        ft</span>
-                                                                                </div>
-                                                                            @endif
-                                                                            @if($item->width)
-                                                                                <div class="flex items-center gap-2">
-                                                                                    <span
-                                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
-                                                                                        ft</span>
-                                                                                </div>
-                                                                            @endif
-                                                                            @if($item->height)
-                                                                                <div class="flex items-center gap-2">
-                                                                                    <span
-                                                                                        class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                                                    <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
-                                                                                        ft</span>
-                                                                                </div>
-                                                                            @endif
+                                        <tr class="group hover:bg-slate-50/30 transition-colors">
+                                            <td class="px-3 py-4 align-middle">
+                                                @if($item->product && $item->product->primary_image_url)
+                                                    <div class="relative h-12 w-12 mx-auto">
+                                                        <img src="{{ $item->product->primary_image_url }}"
+                                                            class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
+                                                    </div>
+                                                @else
+                                                    <div
+                                                        class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
+                                                        <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td
+                                                class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
+                                                <div class="font-bold text-slate-900">
+                                                    @if($item->unitType) {{ $item->unitType->name }} @endif
+                                                </div>
+                                                <div
+                                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                                    {{ $item->unit_type }}
+                                                </div>
+                                            </td>
+                                            <td
+                                                class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
+                                                <div class="min-w-0">
+                                                    <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
+                                                    @if($item->description)
+                                                        <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
+                                                            {{ $item->description }}
+                                                        </div>
+                                                    @endif
+                                                    @if(!empty($item->options) && is_array($item->options))
+                                                        <div class="flex flex-wrap gap-1.5">
+                                                            @foreach($item->options as $option)
+                                                                <span
+                                                                    class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
+                                                                    {{ $option['name'] }}: {{ $option['value'] }}
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    @endif
+                                                    @if($item->internal_note)
+                                                        <div
+                                                            class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
+                                                            <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24"
+                                                                stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                            <span
+                                                                class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
+                                                                Note:</span> {{ $item->internal_note }}
+                                                        </div>
+                                                    @endif
+                                                    <!-- Item Comment Button -->
+                                                    @php
+                                                        $allComments = $item->comments->flatMap(function ($c) {
+                                                            return collect([$c])->merge($c->replies);
+                                                        })->unique('id')->sortBy('created_at')->values()->map(function ($c) {
+                                                            $c->formatted_date = $c->created_at->format('M j, g:i A');
+                                                            return $c;
+                                                        });
+                                                    @endphp
+                                                    <button
+                                                        @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($allComments) }})"
+                                                        type="button"
+                                                        class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
+                                                                                                                                                            {{ $allComments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="2"
+                                                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                                        </svg>
+                                                        @if($allComments->isNotEmpty())
+                                                            {{ $allComments->count() }}
+                                                            {{ Str::plural('Comment', $allComments->count()) }}
+                                                        @else
+                                                            Comment
+                                                        @endif
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td
+                                                class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
+                                                @if($item->length || $item->width || $item->height)
+                                                    <div class="flex flex-col gap-1.5">
+                                                        @if($item->length)
+                                                            <div class="flex items-center gap-2">
+                                                                <span
+                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
+                                                                <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
+                                                                    ft</span>
+                                                            </div>
+                                                        @endif
+                                                        @if($item->width)
+                                                            <div class="flex items-center gap-2">
+                                                                <span
+                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
+                                                                <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
+                                                                    ft</span>
+                                                            </div>
+                                                        @endif
+                                                        @if($item->height)
+                                                            <div class="flex items-center gap-2">
+                                                                <span
+                                                                    class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                                <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
+                                                                    ft</span>
+                                                            </div>
+                                                        @endif
 
-                                                                            @if($item->size > 0)
-                                                                                <div class="mt-2 pt-2 border-t border-slate-100">
-                                                                                    <div
-                                                                                        class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
-                                                                                        {{ ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area'))) }}
-                                                                                    </div>
-                                                                                    <div class="text-xs font-bold text-slate-900">
-                                                                                        {{ number_format($item->size, 2) }} <span
-                                                                                            class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            @endif
-                                                                        </div>
-                                                                    @else
-                                                                        <span class="text-xs text-slate-400">-</span>
-                                                                    @endif
-                                                                </td>
-                                                                <td
-                                                                    class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                                                                    {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
-                                                                </td>
-                                                                <td
-                                                                    class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                    <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
-                                                                </td>
-                                                                <td
-                                                                    class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                                                                    {{ $estimate->currency }} {{ number_format($item->total, 2) }}
-                                                                </td>
-                                                            </tr>
+                                                        @if($item->size > 0)
+                                                            <div class="mt-2 pt-2 border-t border-slate-100">
+                                                                <div
+                                                                    class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
+                                                                    {{ ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area'))) }}
+                                                                </div>
+                                                                <div class="text-xs font-bold text-slate-900">
+                                                                    {{ number_format($item->size, 2) }} <span
+                                                                        class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                @else
+                                                    <span class="text-xs text-slate-400">-</span>
+                                                @endif
+                                            </td>
+                                            <td
+                                                class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
+                                                {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
+                                            </td>
+                                            <td
+                                                class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
+                                                <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
+                                            </td>
+                                            <td
+                                                class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
+                                                {{ $estimate->currency }} {{ number_format($item->total, 2) }}
+                                            </td>
+                                        </tr>
                                     @endforeach
                                 </tbody>
                             </table>
@@ -1027,13 +1055,17 @@
 
                                     <!-- Header -->
                                     <div
-                                        class="bg-white px-4 py-3 border-b border-gray-200 flex justify-between items-center sticky top-0 z-10">
-                                        <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
-                                            Discussion Thread</h3>
+                                        class="bg-white px-5 py-4 border-b border-gray-100 flex justify-between items-start sticky top-0 z-10">
+                                        <div>
+                                            <h3 class="text-lg font-bold text-slate-900" id="modal-title">
+                                                General Comments</h3>
+                                            <p class="text-[11px] text-slate-500 mt-0.5">Ask questions about the
+                                                estimate</p>
+                                        </div>
                                         <button type="button" @click="showCommentsModal = false"
-                                            class="text-gray-400 hover:text-gray-500">
+                                            class="text-gray-400 hover:text-gray-600 transition-colors">
                                             <span class="sr-only">Close</span>
-                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2"
                                                 stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round"
                                                     d="M6 18L18 6M6 6l12 12" />
@@ -1041,15 +1073,14 @@
                                         </button>
                                     </div>
 
-                                    <!-- Body (Scrollable) -->
-                                    <div class="px-4 py-4 overflow-y-auto flex-1 bg-slate-50 space-y-4 min-h-[40vh]"
+                                    <div class="px-5 py-5 overflow-y-auto flex-1 bg-white space-y-6 min-h-[40vh]"
                                         id="comments-thread-body"
                                         x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
                                         @if($estimate->comments->isEmpty())
-                                            <div class="text-center py-8">
+                                            <div class="text-center py-12">
                                                 <div
-                                                    class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mb-3">
-                                                    <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24"
+                                                    class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 mb-3">
+                                                    <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
                                                         stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
                                                             stroke-width="2"
@@ -1058,7 +1089,7 @@
                                                 </div>
                                                 <h3 class="mt-2 text-sm font-semibold text-gray-900">No comments yet
                                                 </h3>
-                                                <p class="mt-1 text-sm text-gray-500">Start the conversation with the
+                                                <p class="mt-1 text-xs text-slate-500">Start the conversation with the
                                                     client.</p>
                                             </div>
                                         @else
@@ -1066,21 +1097,22 @@
                                                 <div
                                                     class="flex {{ $comment->isClientComment() ? 'justify-start' : 'justify-end' }}">
                                                     <div
-                                                        class="flex max-w-[85%] {{ $comment->isClientComment() ? 'flex-row' : 'flex-row-reverse' }} items-end gap-2">
-                                                        <!-- Avatar -->
-                                                        <div class="flex-shrink-0">
+                                                        class="flex max-w-[85%] {{ $comment->isClientComment() ? 'flex-row' : 'flex-row-reverse' }} items-start gap-3">
+
+                                                        <!-- Avatar & Meta Column -->
+                                                        <div class="flex flex-col items-center gap-1.5 pt-1 shrink-0">
                                                             @if($comment->isClientComment())
-                                                                <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 ring-1 ring-white shadow-sm"
+                                                                <div class="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-bold text-indigo-600 ring-2 ring-white shadow-sm"
                                                                     title="{{ $comment->client_name }}">
                                                                     {{ substr($comment->client_name ?: 'C', 0, 1) }}
                                                                 </div>
                                                             @else
                                                                 @if($comment->user && $comment->user->avatar)
-                                                                    <img class="h-8 w-8 rounded-full bg-gray-50 ring-1 ring-white shadow-sm"
+                                                                    <img class="h-8 w-8 rounded-full bg-slate-50 ring-2 ring-white shadow-sm"
                                                                         src="{{ $comment->user->avatar }}" alt=""
                                                                         title="{{ $comment->user->name }}">
                                                                 @else
-                                                                    <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white ring-1 ring-white shadow-sm"
+                                                                    <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white ring-2 ring-white shadow-sm"
                                                                         title="{{ $comment->user->name ?? 'Staff' }}">
                                                                         {{ substr($comment->user->name ?? 'S', 0, 1) }}
                                                                     </div>
@@ -1088,57 +1120,76 @@
                                                             @endif
                                                         </div>
 
-                                                        <!-- Message Bubble -->
                                                         <div
-                                                            class="{{ $comment->isClientComment() ? 'bg-white rounded-tl-2xl rounded-tr-2xl rounded-br-2xl text-slate-700' : 'bg-indigo-600 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl text-white' }} p-3 shadow-sm ring-1 ring-black/5 text-sm">
-                                                            <div
-                                                                class="font-semibold text-[11px] mb-1 opacity-90 {{ $comment->isClientComment() ? 'text-slate-500' : 'text-indigo-100' }}">
-                                                                {{ $comment->isClientComment() ? ($comment->client_name ?: 'Client') : ($comment->user->name ?? 'Staff') }}
-                                                            </div>
-                                                            <div class="whitespace-pre-wrap leading-relaxed">
-                                                                {{ $comment->comment }}
-                                                            </div>
-                                                            <div
-                                                                class="flex items-center justify-between mt-1 pt-2 border-t {{ $comment->isClientComment() ? 'border-slate-100' : 'border-indigo-500/30' }}">
-                                                                <div class="flex items-center gap-2">
-                                                                    <div
-                                                                        class="text-[10px] opacity-70 {{ $comment->isClientComment() ? 'text-slate-400' : 'text-indigo-200' }}">
-                                                                        {{ $comment->created_at->format('M j, g:i A') }}
-                                                                    </div>
-                                                                    <!-- Status Badge -->
-                                                                    @if($comment->status === 'clarified')
-                                                                        <span
-                                                                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium {{ $comment->isClientComment() ? 'bg-green-100 text-green-800' : 'bg-green-500 text-white' }}">
-                                                                            Clarified
-                                                                        </span>
-                                                                    @elseif($comment->status === 'pending' && $comment->parent_id === null)
-                                                                        <span
-                                                                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium {{ $comment->isClientComment() ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500 text-white' }}">
-                                                                            Pending
-                                                                        </span>
-                                                                    @endif
-                                                                </div>
-
-                                                                <!-- Resolve/Reopen Action -->
-                                                                @if(auth()->check())
-                                                                    <div class="flex items-center">
-                                                                        <button
-                                                                            @click="$wire.toggleCommentStatus({{ $comment->id }}, '{{ $comment->status }}')"
-                                                                            type="button"
-                                                                            class="text-[10px] underline hover:no-underline {{ $comment->isClientComment() ? 'text-slate-500 hover:text-indigo-600' : 'text-indigo-200 hover:text-white' }}">
-                                                                            {{ $comment->status === 'pending' ? 'Mark Clarified' : 'Reopen' }}
-                                                                        </button>
-                                                                    </div>
+                                                            class="flex flex-col {{ $comment->isClientComment() ? 'items-start' : 'items-end' }} min-w-0">
+                                                            <!-- Group Meta -->
+                                                            <div class="flex items-center gap-2 mb-1.5 px-0.5">
+                                                                <span class="text-[10px] font-bold text-slate-900">
+                                                                    {{ $comment->isClientComment() ? ($comment->client_name ?: 'Client') : ($comment->user->name ?? 'Staff') }}
+                                                                </span>
+                                                                <span
+                                                                    class="text-[9px] text-slate-400 font-medium tracking-tight">
+                                                                    {{ $comment->created_at->format('M j, g:i A') }}
+                                                                </span>
+                                                                @if(!$comment->isClientComment())
+                                                                    <span
+                                                                        class="text-[10px] font-extrabold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-1 rounded">You</span>
                                                                 @endif
                                                             </div>
 
-                                                            <!-- Context Info (Item Name) -->
+                                                            <!-- Item Context Badge (Above Bubble) -->
                                                             @if($comment->commentable_type === 'App\Models\EstimateItem' && $comment->commentable)
-                                                                <div
-                                                                    class="mt-1 text-[10px] italic opacity-60 {{ $comment->isClientComment() ? 'text-slate-500' : 'text-indigo-200' }}">
-                                                                    Re: {{ $comment->commentable->name }}
-                                                                </div>
+                                                                @php
+                                                                    $targetItem = $comment->commentable;
+                                                                    $targetComments = $targetItem->comments->flatMap(function ($c) {
+                                                                        return collect([$c])->merge($c->replies);
+                                                                    })->unique('id')->sortBy('created_at')->values()->map(function ($c) {
+                                                                        $c->formatted_date = $c->created_at->format('M j, g:i A');
+                                                                        return $c;
+                                                                    });
+                                                                @endphp
+                                                                <button type="button"
+                                                                    @click="showCommentsModal = false; $nextTick(() => openItemComments({{ $targetItem->id }}, {{ Js::from($targetItem->name) }}, {{ Js::from($targetComments) }}))"
+                                                                    class="mb-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest shadow-sm hover:bg-indigo-700 transition-colors">
+                                                                    <span>On Item: {{ $targetItem->name }}</span>
+                                                                    <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24"
+                                                                        stroke="currentColor" stroke-width="4">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                                            d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                                    </svg>
+                                                                </button>
                                                             @endif
+
+                                                            <!-- Message Bubble -->
+                                                            <div class="relative group/bubble max-w-full">
+                                                                <div
+                                                                    class="{{ $comment->isClientComment() ? 'bg-slate-50 border border-slate-100 text-slate-700 rounded-2xl rounded-tl-none' : 'bg-indigo-600 text-white rounded-2xl rounded-tr-none' }} px-4 py-3 shadow-sm text-[13px] leading-relaxed break-words">
+                                                                    <div class="whitespace-pre-wrap">{{ $comment->comment }}
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Status Bubble Footer -->
+                                                                @if($comment->status === 'clarified' || ($comment->status === 'pending' && $comment->parent_id === null))
+                                                                    <div class="flex items-center gap-2 mt-1.5 px-1">
+                                                                        @if($comment->status === 'clarified')
+                                                                            <span
+                                                                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">Clarified</span>
+                                                                        @else
+                                                                            <span
+                                                                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">Pending</span>
+                                                                        @endif
+
+                                                                        @if(auth()->check())
+                                                                            <button
+                                                                                @click="$wire.toggleCommentStatus({{ $comment->id }}, '{{ $comment->status }}')"
+                                                                                type="button"
+                                                                                class="text-[9px] font-bold text-slate-400 hover:text-indigo-600 transition-colors underline decoration-dotted underline-offset-2">
+                                                                                {{ $comment->status === 'pending' ? 'Mark Clarified' : 'Reopen' }}
+                                                                            </button>
+                                                                        @endif
+                                                                    </div>
+                                                                @endif
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1147,21 +1198,24 @@
                                     </div>
 
                                     <!-- Footer / Reply Form -->
-                                    <div class="bg-white px-4 py-4 border-t border-gray-200 w-full">
+                                    <div class="bg-white px-5 py-4 border-t border-gray-100 w-full">
                                         <div x-data="{ comment: '' }">
-                                            <div class="relative">
-                                                <label for="markdown-comment" class="sr-only">Add your
-                                                    comment</label>
-                                                <textarea id="markdown-comment" x-model="comment" rows="3"
-                                                    class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                                    placeholder="Write a reply..."></textarea>
-                                                <div class="mt-2 flex justify-end">
-                                                    <button type="button"
-                                                        @click="$wire.addComment(comment); comment = ''"
-                                                        class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                                                        Send Reply
-                                                    </button>
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex-1 relative">
+                                                    <textarea x-model="comment" rows="1"
+                                                        @keydown.enter.prevent="if(comment.trim()) { $wire.addComment(comment); comment = ''; }"
+                                                        class="block w-full rounded-2xl border-0 py-3 px-4 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                                        placeholder="Type a message..."></textarea>
                                                 </div>
+                                                <button type="button"
+                                                    @click="if(comment.trim()) { $wire.addComment(comment); comment = ''; }"
+                                                    class="inline-flex items-center justify-center rounded-full h-10 w-10 bg-indigo-600 text-white shadow-md hover:bg-indigo-700 transition-all transform hover:scale-105 active:scale-95 shrink-0">
+                                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                        stroke="currentColor" stroke-width="2.5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                                    </svg>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -1337,11 +1391,11 @@
                                 <!-- Status Dot -->
                                 <div
                                     class="absolute -left-[19px] top-1 h-3 w-3 rounded-full border-2 border-white
-                                                                                                                                                                                                                                                                                                                    @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
-                                                                                                                                                                                                                                                                                                                    @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
-                                                                                                                                                                                                                                                                                                                    @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
-                                                                                                                                                                                                                                                                                                                    @else bg-slate-200
-                                                                                                                                                                                                                                                                                                                    @endif">
+                                                                                                                                                                                                                                                                                                                                                                                                            @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
+                                                                                                                                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
+                                                                                                                                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
+                                                                                                                                                                                                                                                                                                                                                                                                            @else bg-slate-200
+                                                                                                                                                                                                                                                                                                                                                                                                            @endif">
                                 </div>
 
                                 <div class="text-sm font-medium text-slate-900 leading-none">
@@ -1992,12 +2046,74 @@
     </div>
 
     <!-- Item Comments Modal -->
-    <div x-data="itemCommentsModal" x-show="isOpen" @keydown.escape.window="isOpen = false" class="relative z-50"
+    <div x-data="{
+                isOpen: false,
+                itemId: null,
+                itemName: '',
+                comments: [],
+                newComment: '',
+                isSubmitting: false,
+                init() {
+                    window.addEventListener('open-item-comments', (e) => {
+                        this.itemId = e.detail.id;
+                        this.itemName = e.detail.name;
+                        this.comments = Array.isArray(e.detail.comments) ? e.detail.comments : Object.values(e.detail.comments);
+                        this.isOpen = true;
+                        this.$nextTick(() => { const el = document.getElementById('item-comments-body'); if (el) el.scrollTop = el.scrollHeight; });
+                    });
+                },
+                async submit() {
+                    if (!this.newComment.trim()) return;
+                    this.isSubmitting = true;
+
+                    const commentText = this.newComment;
+
+                    // Optimistic Update
+                    this.comments.push({
+                        id: 'temp-' + Date.now(),
+                        comment: commentText,
+                        type: 'internal',
+                        created_at: new Date().toISOString(),
+                        formatted_date: 'Just now',
+                        user: { name: 'You' },
+                        status: 'pending'
+                    });
+
+                    this.newComment = '';
+                    this.$nextTick(() => { const el = document.getElementById('item-comments-body'); if (el) el.scrollTop = el.scrollHeight; });
+
+                    try {
+                        await $wire.addItemComment(this.itemId, commentText);
+                        // Convert Livewire's fresh data to our format if we could access it, 
+                        // but for now the optimistic update holds until page reload or re-open
+                    } catch (e) {
+                        console.error(e);
+                        alert('Failed to post comment');
+                        this.comments.pop(); // Remove optimistic comment on failure
+                        this.newComment = commentText; // Restore text
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+                async toggleStatus(commentId, currentStatus) {
+                    try {
+                        // Find local comment and update status optimistically
+                        const comment = this.comments.find(c => c.id === commentId);
+                        if (comment) {
+                            comment.status = currentStatus === 'pending' ? 'clarified' : 'pending';
+                        }
+                        await $wire.toggleCommentStatus(commentId, currentStatus);
+                    } catch (e) { console.error(e); }
+                }
+            }" x-show="isOpen" @keydown.escape.window="isOpen = false" class="relative z-50"
         aria-labelledby="modal-title" role="dialog" aria-modal="true" style="display: none;">
+
+        <!-- Backdrop -->
         <div x-show="isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-            class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity"></div>
+
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                 <div x-show="isOpen" @click.outside="isOpen = false" x-transition:enter="ease-out duration-300"
@@ -2006,14 +2122,15 @@
                     x-transition:leave="ease-in duration-200"
                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg flex flex-col max-h-[85vh]">
-                    <div
-                        class="bg-white px-4 py-3 border-b border-gray-200 flex justify-between items-center sticky top-0 z-10">
+                    class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-xl flex flex-col max-h-[90vh]">
+
+                    <!-- Header -->
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                         <div>
-                            <h3 class="text-base font-semibold leading-6 text-gray-900">Comments for Item</h3>
+                            <h3 class="text-lg font-bold text-slate-900">Item Discussion</h3>
                             <p class="text-xs text-slate-500" x-text="itemName"></p>
                         </div>
-                        <button type="button" @click="isOpen = false" class="text-gray-400 hover:text-gray-500">
+                        <button type="button" @click="isOpen = false" class="text-slate-400 hover:text-slate-600">
                             <span class="sr-only">Close</span>
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                                 stroke="currentColor">
@@ -2021,70 +2138,83 @@
                             </svg>
                         </button>
                     </div>
-                    <div class="px-4 py-4 overflow-y-auto flex-1 bg-slate-50 space-y-4 min-h-[40vh]"
+
+                    <!-- Thread -->
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 min-h-[40vh] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
                         id="item-comments-body">
                         <template x-if="comments.length === 0">
-                            <div class="text-center py-8">
-                                <div
-                                    class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mb-3">
-                                    <svg class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                    </svg>
-                                </div>
-                                <h3 class="mt-2 text-sm font-semibold text-gray-900">No comments yet</h3>
-                                <p class="mt-1 text-sm text-gray-500">Add a comment to this item.</p>
+                            <div class="flex flex-col items-center justify-center h-full text-slate-400 py-10">
+                                <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
+                                    </path>
+                                </svg>
+                                <h3 class="mt-2 text-sm font-semibold text-slate-900">No comments yet</h3>
+                                <p class="mt-1 text-sm text-slate-500">Start the conversation!</p>
                             </div>
                         </template>
+
                         <template x-for="comment in comments" :key="comment.id">
+                            <!-- Admin View: Client on Left, Internal on Right -->
                             <div class="flex" :class="comment.type === 'client' ? 'justify-start' : 'justify-end'">
                                 <div class="max-w-[85%]">
-                                    <div class="p-3 shadow-sm ring-1 ring-black/5 text-sm"
-                                        :class="comment.type === 'client' ? 'bg-white rounded-tl-2xl rounded-tr-2xl rounded-br-2xl text-slate-700' : 'bg-indigo-600 rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl text-white'">
-                                        <div class="whitespace-pre-wrap leading-relaxed" x-text="comment.comment">
+                                    <div class="flex items-end gap-2 mb-1"
+                                        :class="comment.type === 'client' ? '' : 'justify-end'">
+                                        <div x-show="comment.type === 'client'" class="flex flex-col">
+                                            <span class="text-xs font-bold text-slate-700"
+                                                x-text="comment.client_name || comment.commenter_name || 'Client'"></span>
                                         </div>
+                                        <span class="text-[10px] text-slate-400 font-medium"
+                                            x-text="comment.formatted_date"></span>
+                                        <div x-show="comment.type !== 'client'" class="flex flex-col">
+                                            <span class="text-xs font-bold text-slate-700"
+                                                x-text="comment.user ? comment.user.name : 'You'"></span>
+                                        </div>
+                                    </div>
 
-                                        <div class="flex items-center justify-between mt-1 pt-2 border-t"
+                                    <div class="p-3 rounded-2xl shadow-sm text-sm leading-relaxed relative group"
+                                        :class="comment.type === 'client' ? 'bg-white border border-slate-200 text-slate-700 rounded-tl-none' : 'bg-indigo-600 text-white rounded-tr-none'">
+                                        <p class="whitespace-pre-wrap" x-text="comment.comment"></p>
+
+                                        <!-- Actions (Status Toggle) for Admin -->
+                                        <div class="mt-2 pt-2 border-t flex justify-end"
                                             :class="comment.type === 'client' ? 'border-slate-100' : 'border-indigo-500/30'">
-                                            <div class="flex items-center gap-2">
-                                                <div class="text-[10px] opacity-70"
-                                                    :class="comment.type === 'client' ? 'text-slate-400' : 'text-indigo-200'"
-                                                    x-text="comment.formatted_date"></div>
-                                                <!-- Status Badge -->
-                                                <template x-if="comment.status === 'clarified'">
-                                                    <span
-                                                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium"
-                                                        :class="comment.type === 'client' ? 'bg-green-100 text-green-800' : 'bg-green-500 text-white'">Clarified</span>
-                                                </template>
-                                                <template x-if="comment.status === 'pending'">
-                                                    <span
-                                                        class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium"
-                                                        :class="comment.type === 'client' ? 'bg-yellow-100 text-yellow-800' : 'bg-yellow-500 text-white'">Pending</span>
-                                                </template>
-                                            </div>
-                                            @if(auth()->check())
-                                                <button @click="toggleStatus(comment.id, comment.status)" type="button"
-                                                    class="text-[10px] underline hover:no-underline"
-                                                    :class="comment.type === 'client' ? 'text-slate-500 hover:text-indigo-600' : 'text-indigo-200 hover:text-white'">
-                                                    <span
-                                                        x-text="comment.status === 'pending' ? 'Mark Clarified' : 'Reopen'"></span>
-                                                </button>
-                                            @endif
+                                            <button @click="toggleStatus(comment.id, comment.status)" type="button"
+                                                class="text-[10px] underline hover:no-underline font-medium transition-colors"
+                                                :class="comment.type === 'client' ? 'text-slate-400 hover:text-indigo-600' : 'text-indigo-200 hover:text-white'">
+                                                <span
+                                                    x-text="comment.status === 'pending' ? 'Mark Resolved' : 'Reopen'"></span>
+                                                <span x-show="comment.status === 'clarified'"
+                                                    class="ml-1 opacity-70">(Resolved)</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </template>
                     </div>
-                    <div class="bg-white px-4 py-4 border-t border-gray-200 w-full">
-                        <textarea x-model="newComment" rows="2"
-                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                            placeholder="Write a comment..."></textarea>
-                        <div class="mt-2 flex justify-end">
+
+                    <!-- Footer -->
+                    <div class="bg-white px-4 py-4 border-t border-slate-100 w-full">
+                        <div class="flex gap-2">
+                            <textarea x-model="newComment" rows="1"
+                                class="flex-1 rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 resize-none py-3 text-sm shadow-sm"
+                                placeholder="Type a message..."></textarea>
                             <button type="button" @click="submit" :disabled="isSubmitting"
-                                class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50">
-                                Send
+                                class="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg x-show="!isSubmitting" class="w-5 h-5" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+                                <svg x-show="isSubmitting" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
                             </button>
                         </div>
                     </div>
@@ -2151,7 +2281,7 @@
             totalTax: {{ $estimate->total_tax ?? 0 }},
             discount: {{ $estimate->discount_total ?? 0 }},
             grandTotal: {{ $estimate->grand_total ?? 0 }} 
-                                                                                                                                                };
+                                                                                                                                                                                            };
 
         const defaults = {
             hasCustomItems: () => false,
@@ -2171,47 +2301,7 @@
             }
         }
 
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('itemCommentsModal', () => ({
-                isOpen: false,
-                itemId: null,
-                itemName: '',
-                comments: [],
-                newComment: '',
-                isSubmitting: false,
-                init() {
-                    window.addEventListener('open-item-comments', (e) => {
-                        this.itemId = e.detail.id;
-                        this.itemName = e.detail.name;
-                        this.comments = Array.isArray(e.detail.comments) ? e.detail.comments : Object.values(e.detail.comments);
-                        this.isOpen = true;
-                        this.$nextTick(() => { const el = document.getElementById('item-comments-body'); if (el) el.scrollTop = el.scrollHeight; });
-                    });
-                },
-                async submit() {
-                    if (!this.newComment.trim()) return;
-                    this.isSubmitting = true;
-                    try {
-                        await this.$wire.addItemComment(this.itemId, this.newComment);
-                        this.newComment = '';
-                        // We need to update the visual comments list. 
-                        // Since Livewire refreshed the component, we can wait for a dispatch or just reload.
-                        // Actually, Livewire will update the data bound to the view.
-                        this.isOpen = false;
-                    } catch (e) {
-                        console.error(e);
-                        alert('Failed to post comment');
-                    } finally {
-                        this.isSubmitting = false;
-                    }
-                },
-                async toggleStatus(commentId, currentStatus) {
-                    try {
-                        await this.$wire.toggleCommentStatus(commentId, currentStatus);
-                    } catch (e) { console.error(e); }
-                }
-            }));
-        });
+
 
         window.openItemComments = function (id, name, comments) {
             window.dispatchEvent(new CustomEvent('open-item-comments', { detail: { id, name, comments } }));

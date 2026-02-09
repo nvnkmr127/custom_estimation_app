@@ -41,9 +41,11 @@ class ShowEstimate extends Component
             'client',
             'items.product.images',
             'items.unitType',
+            'items.comments.replies.user',
             'items.comments.user',
             'sections.items.product.images',
             'sections.items.unitType',
+            'sections.items.comments.replies.user',
             'sections.items.comments.user',
             'approvals.user',
             'pdfTemplate',
@@ -332,26 +334,86 @@ class ShowEstimate extends Component
 
     public function addComment($comment)
     {
+        \Log::info("Livewire: addComment called", ['comment' => $comment, 'estimate_id' => $this->estimate->id]);
+
+        if (empty(trim($comment)))
+            return;
+
         try {
-            app()->call([app(\App\Http\Controllers\EstimateController::class), 'storeComment'], [
-                'request' => request()->merge(['comment' => $comment]),
-                'estimate' => $this->estimate
+            DB::beginTransaction();
+
+            $this->authorize('update', $this->estimate);
+
+            $newComment = $this->estimate->comments()->create([
+                'commentable_type' => Estimate::class,
+                'commentable_id' => $this->estimate->id,
+                'user_id' => auth()->id(),
+                'comment' => $comment,
+                'type' => 'internal',
             ]);
+
+            \Log::info("Admin Posted Comment: ID {$newComment->id}");
+
+            // Notify followers
+            $followers = $this->estimate->followers->reject(fn($u) => $u->id === auth()->id());
+            foreach ($followers as $follower) {
+                try {
+                    $follower->notify(new \App\Notifications\EstimateCommentNotification($newComment, $this->estimate));
+                } catch (\Exception $ne) {
+                    \Log::warning("Notification failed for user {$follower->id}: " . $ne->getMessage());
+                }
+            }
+
+            DB::commit();
+            \Log::info("Livewire: addComment success");
             $this->refreshEstimate();
         } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Livewire: addComment failed", ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to add comment: ' . $e->getMessage());
         }
     }
 
     public function addItemComment($itemId, $comment)
     {
+        \Log::info("Livewire: addItemComment called", ['itemId' => $itemId, 'comment' => $comment]);
+
+        if (empty(trim($comment)))
+            return;
+
         try {
-            app()->call([app(\App\Http\Controllers\CommentController::class), 'store'], [
-                'request' => request()->merge(['comment' => $comment, 'estimate_item_id' => $itemId]),
-                'estimate' => $this->estimate
+            DB::beginTransaction();
+
+            $this->authorize('update', $this->estimate);
+
+            $item = EstimateItem::findOrFail($itemId);
+
+            $newComment = $this->estimate->comments()->create([
+                'commentable_type' => EstimateItem::class,
+                'commentable_id' => $item->id,
+                'user_id' => auth()->id(),
+                'comment' => $comment,
+                'type' => 'internal',
             ]);
+
+            \Log::info("Admin Posted Item Comment: ID {$newComment->id}");
+
+            // Notify followers
+            $followers = $this->estimate->followers->reject(fn($u) => $u->id === auth()->id());
+            foreach ($followers as $follower) {
+                try {
+                    $follower->notify(new \App\Notifications\EstimateCommentNotification($newComment, $this->estimate));
+                } catch (\Exception $ne) {
+                    \Log::warning("Notification failed for user {$follower->id}: " . $ne->getMessage());
+                }
+            }
+
+            DB::commit();
+            \Log::info("Livewire: addItemComment success");
             $this->refreshEstimate();
         } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Livewire: addItemComment failed", ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to add item comment: ' . $e->getMessage());
         }
     }
@@ -403,12 +465,19 @@ class ShowEstimate extends Component
     {
         try {
             $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
-            // Use DB to update directly as it's a simple status change
-            DB::table('comments')->where('id', $commentId)->update(['status' => $newStatus]);
+            // Correct table name is estimate_comments
+            DB::table('estimate_comments')->where('id', $commentId)->update(['status' => $newStatus]);
             $this->refreshEstimate();
         } catch (\Exception $e) {
+            \Log::error("Failed to toggle comment status", ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to update comment status: ' . $e->getMessage());
         }
+    }
+
+    public function ping()
+    {
+        \Log::info("Livewire: PING received from " . auth()->user()->name);
+        session()->flash('success', 'Ping received!');
     }
 
     public function render()

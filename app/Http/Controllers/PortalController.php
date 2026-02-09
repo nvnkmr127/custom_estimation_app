@@ -54,7 +54,12 @@ class PortalController extends Controller
         $estimate->increment('engagement_score'); // Boost score on every view
 
         // Load items for the view
-        $estimate->load(['sections.items', 'comments.user']); // Load comments with user (if any internal replies are visible, though currently filtering for client)
+        $estimate->load([
+            'sections.items.comments.user',
+            'sections.items.comments.replies', // Load replies for item comments
+            'comments.user',
+            'comments.replies' // Load replies for estimate comments
+        ]);
 
         // Render PDF Template HTML
         $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first() ?? \App\Models\PdfTemplate::first();
@@ -65,7 +70,59 @@ class PortalController extends Controller
             $htmlContent = $service->render($template, $estimate, true);
         }
 
-        return view('portal.estimates.show', compact('estimate', 'htmlContent'));
+        // Prepare unified comments logic
+        $commentData = collect();
+
+        \Log::info("Portal View: Processing Comments for Estimate #{$estimate->id}");
+
+        $transform = function ($c, $itemName = null, $parent = null) {
+            // Prioritize parent context effectively to group replies with their thread
+            $type = ($parent && $parent->commentable_type) ? $parent->commentable_type : $c->commentable_type;
+            $id = ($parent && $parent->commentable_id) ? $parent->commentable_id : $c->commentable_id;
+
+            $finalItemName = $itemName ?? (($type === 'App\Models\EstimateItem' && $c->commentable) ? ($c->commentable->name ?? optional(\App\Models\EstimateItem::find($id))->name) : null);
+
+            \Log::info("Processing Comment ID: {$c->id}, Type: {$c->type}, ParentID: " . ($parent ? $parent->id : 'NULL') . ", ItemName: {$finalItemName}, CommentableType: {$type}, CommentableID: {$id}");
+
+            return [
+                'id' => $c->id,
+                'comment' => $c->comment,
+                'type' => $c->type,
+                'created_at' => $c->created_at,
+                'commentable_type' => $type,
+                'commentable_id' => $id,
+                'user' => $c->user,
+                'item_name' => $finalItemName
+            ];
+        };
+
+        // 1. Item Comments & Replies (Process these first to ensure correct context wins)
+        foreach ($estimate->sections as $section) {
+            foreach ($section->items as $item) {
+                // We access the relationship loaded via eager loading
+                foreach ($item->comments as $comment) {
+                    $itemName = $item->name;
+                    $commentData->push($transform($comment, $itemName, null));
+                    foreach ($comment->replies as $reply) {
+                        // Pass parent and item name
+                        $commentData->push($transform($reply, $itemName, $comment));
+                    }
+                }
+            }
+        }
+
+        // 2. General Estimate Comments & Replies
+        foreach ($estimate->comments as $comment) {
+            $commentData->push($transform($comment, null, null));
+            foreach ($comment->replies as $reply) {
+                // Pass parent so reply inherits context
+                $commentData->push($transform($reply, null, $comment));
+            }
+        }
+
+        $comments = $commentData->unique('id')->sortBy('created_at')->values();
+
+        return view('portal.estimates.show', compact('estimate', 'htmlContent', 'comments'));
     }
 
     /**
@@ -187,7 +244,31 @@ class PortalController extends Controller
             'comment' => 'required|string|max:1000',
             'client_name' => 'nullable|string|max:255',
             'client_email' => 'nullable|email|max:255',
+            'item_id' => 'nullable|exists:estimate_items,id',
         ]);
+
+        $commentableType = \App\Models\Estimate::class;
+        $commentableId = $estimate->id;
+
+        if ($request->filled('item_id')) {
+            // Verify item belongs to estimate
+            $item = $estimate->items()->where('id', $request->item_id)->first();
+            // If direct items relationship doesn't cover sections (it depends on implementation), fallback
+            if (!$item) {
+                // Try sections items
+                foreach ($estimate->sections as $section) {
+                    if ($section->items->contains('id', $request->item_id)) {
+                        $item = $section->items->where('id', $request->item_id)->first();
+                        break;
+                    }
+                }
+            }
+
+            if ($item) {
+                $commentableType = \App\Models\EstimateItem::class;
+                $commentableId = $item->id;
+            }
+        }
 
         $comment = $estimate->comments()->create([
             'comment' => $request->comment,
@@ -195,14 +276,28 @@ class PortalController extends Controller
             'client_email' => $request->client_email,
             'type' => 'client',
             'is_read' => false,
-            'commentable_type' => \App\Models\Estimate::class,
-            'commentable_id' => $estimate->id,
+            'commentable_type' => $commentableType,
+            'commentable_id' => $commentableId,
         ]);
 
         // Notify Creator and Followers
         $followers = $estimate->followers;
         foreach ($followers as $follower) {
             $follower->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate));
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'comment' => [
+                    'id' => $comment->id,
+                    'comment' => $comment->comment,
+                    'type' => $comment->type,
+                    'created_at' => $comment->created_at->toISOString(),
+                    'formatted_date' => 'Just now',
+                    'client_name' => $comment->client_name ?: 'You',
+                ]
+            ]);
         }
 
         return back()->with('success', 'Thank you! Your comment has been sent to the team.');

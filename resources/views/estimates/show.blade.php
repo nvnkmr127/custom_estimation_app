@@ -44,8 +44,8 @@
         <!-- Left Column: Items & Notes (3/4 width) -->
         <div class="lg:col-span-3 space-y-8">
             <!-- Items Table -->
-            <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl overflow-hidden">
-                <div class="px-4 py-5 sm:p-6">
+            <div class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl overflow-hidden">
+                <div class="px-4 py-5 sm:p-8">
                     <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">
                         {{ $estimate->type === 'room_based' ? 'Rooms & Items (Updated)' : 'Line Items' }}
                     </h2>
@@ -122,7 +122,7 @@
 
             <!-- Notes -->
             @if($estimate->has_client_note || $estimate->has_terms)
-                <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 sm:p-6">
+                <div class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl px-4 py-5 sm:p-8">
                     <h3 class="text-base font-semibold text-slate-900 mb-4">Terms & Notes</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         @if($estimate->has_client_note)
@@ -147,7 +147,7 @@
 
             <!-- Approval History -->
             @if($estimate->approvals->isNotEmpty())
-                <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mb-6">
+                <div class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl px-4 py-6 mb-8">
                     <h3 class="text-sm font-semibold text-slate-900 mb-3">Approval History</h3>
                     <ul class="space-y-4">
                         @foreach($estimate->approvals->sortBy('created_at') as $approval)
@@ -183,7 +183,7 @@
 
             <!-- Internal Note -->
             @if($estimate->admin_note)
-                <div class="bg-yellow-50 shadow-sm ring-1 ring-yellow-200 sm:rounded-xl px-4 py-5 mb-6">
+                <div class="bg-yellow-50/50 shadow-sm ring-1 ring-yellow-200 sm:rounded-2xl px-4 py-6 mb-8">
                     <h3 class="text-sm font-semibold text-yellow-800 mb-2">Internal Note</h3>
                     <div class="text-sm text-yellow-700 whitespace-pre-wrap">{{ $estimate->admin_note }}</div>
                 </div>
@@ -194,8 +194,8 @@
             <!-- Comments Section -->
             <x-estimates.comments-section :estimate="$estimate" />
 
-            <!-- Approval Chain -->
-            <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5">
+            <!-- Client Details Section -->
+            <div class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl px-4 py-6">
                 <h3 class="text-sm font-semibold text-slate-900 mb-3">Client Details</h3>
                 <div class="flex items-start gap-3">
                     <div
@@ -220,7 +220,7 @@
             <!-- Notification: Newer Proposal Available -->
 
             @if($latestVersion && $latestVersion->version > $estimate->version)
-                <div class="bg-blue-50 shadow-sm ring-1 ring-blue-200 sm:rounded-xl px-4 py-3 mb-6">
+                <div class="bg-blue-50/50 shadow-sm ring-1 ring-blue-200 sm:rounded-2xl px-4 py-4 mb-8">
                     <h3 class="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2">Newer Version Available</h3>
                     <p class="text-xs text-blue-700 mb-3">There is a newer draft/proposal (v{{ $latestVersion->version }})
                         available.</p>
@@ -233,7 +233,7 @@
 
             <!-- Approval / Make Current (For Creator/Admin) -->
             @if(isset($estimate->parent) && $estimate->is_current_version === false && (auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin'])))
-                <div class="bg-yellow-50 shadow-sm ring-1 ring-yellow-200 sm:rounded-xl px-4 py-3 mb-6">
+                <div class="bg-amber-50 shadow-sm ring-1 ring-amber-200 sm:rounded-2xl px-4 py-4 mb-8">
                     <h3 class="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-2">Proposed Changes
                         (v{{ $estimate->version }})</h3>
                     <p class="text-xs text-yellow-700 mb-3">This is a proposed version. Approve it to make it the live
@@ -255,7 +255,7 @@
 
             <!-- Approval Chain -->
             @if($estimate->approval_chain_id && $estimate->approvalChain)
-                <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5">
+                <div class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl px-4 py-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-sm font-semibold text-slate-900">Approval Workflow</h3>
                         <a href="#" title="{{ $estimate->approvalChain->name }}"
@@ -301,7 +301,7 @@
 
             <!-- Activity Log -->
             <div x-data="{ showActivityModal: false }"
-                class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mt-6">
+                class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl px-4 py-6 mt-8">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-sm font-semibold text-slate-900">Activity Log</h3>
                     @if($activityLogs->count() > 5)
@@ -394,9 +394,9 @@
 
             <!-- Changes vs Previous -->
             @if(isset($diff) && (!empty($diff['overview']) || !empty($diff['items']['added']) || !empty($diff['items']['removed']) || !empty($diff['items']['modified'])))
-                <div x-data="{ showDiffModal: false }" class="mb-6">
+                <div x-data="{ showDiffModal: false }" class="mb-8">
                     <!-- Sidebar Summary Card -->
-                    <div class="bg-indigo-50 shadow-sm ring-1 ring-indigo-200 sm:rounded-xl px-4 py-5">
+                    <div class="bg-indigo-50 shadow-sm ring-1 ring-indigo-200 sm:rounded-2xl px-4 py-6">
                         <div class="flex items-center justify-between mb-2">
                             <h3 class="text-sm font-semibold text-indigo-900">Changes vs Previous</h3>
                             <button @click="showDiffModal = true" type="button"
@@ -425,8 +425,8 @@
 
                 <!-- History / Versions -->
                 @if($allVersions->count() > 1)
-                    <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5">
-                        <h3 class="text-sm font-semibold text-slate-900 mb-3">Version History</h3>
+                    <div class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl px-4 py-6">
+                        <h3 class="text-sm font-semibold text-slate-900 mb-4">Version History</h3>
                         <div class="space-y-2">
                             @foreach($allVersions as $ver)
                                 <a href="{{ route('estimates.show', $ver) }}"
@@ -449,8 +449,8 @@
 
                 <!-- Signature -->
                 @if($estimate->signed_at)
-                    <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5">
-                        <h3 class="text-sm font-semibold text-slate-900 mb-3">Signed by Client</h3>
+                    <div class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl px-4 py-6">
+                        <h3 class="text-sm font-semibold text-slate-900 mb-4">Signed by Client</h3>
                         <div class="p-4 bg-slate-50 border border-slate-100 rounded-lg">
                             <img src="{{ $estimate->signature }}" alt="Signature" class="h-12 mb-2 mix-blend-multiply">
                             <div class="text-xs text-slate-500">
@@ -497,17 +497,6 @@
 
 
 
-                window.toggleCommentStatus = async function (commentId, currentStatus) {
-                    const newStatus = currentStatus === 'pending' ? 'clarified' : 'pending';
-                    try {
-                        const response = await fetch(`/comments/${commentId}/status`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                            body: JSON.stringify({ status: newStatus })
-                        });
-                        if (response.ok) { window.location.reload(); }
-                    } catch (e) { console.error(e); }
-                };
             </script>
         @endpush
 </x-app-layout>

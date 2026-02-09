@@ -1,4 +1,8 @@
 <x-app-layout>
+    @php
+        $defaultPdftemplate = $pdfTemplates->firstWhere('is_default', true) ?? $pdfTemplates->first();
+        $defaultPdfTemplateId = $defaultPdftemplate ? $defaultPdftemplate->id : '';
+    @endphp
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
@@ -18,20 +22,28 @@
 
     <!-- Main Logic -->
     <script>
+        const today = new Date();
+        const offset = today.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(today - offset)).toISOString().split('T')[0];
+
+        const expiryDate = new Date();
+        expiryDate.setDate(today.getDate() + 15);
+        const localExpiryISOTime = (new Date(expiryDate - offset)).toISOString().split('T')[0];
+
         window.estimateData = {
             id: null,
             client_id: '',
             status: 'draft',
             title: '',
-            estimate_date: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
-            expiry_date: '',
+            estimate_date: localISOTime,
+            expiry_date: localExpiryISOTime,
             currency: '{{ $defaults['currency'] ?? 'USD' }}',
             type: 'room_based',
             discount_type: 'percentage',
             discount_value: 0,
             client_note: {!! json_encode($defaults['client_note'] ?? '') !!},
             terms: {!! json_encode($defaults['terms'] ?? '') !!},
-            pdf_template_id: '',
+            pdf_template_id: '{{ $defaultPdfTemplateId }}',
             sections: [],
             items: [],
             tax_1: @json($defaults['tax_1_rate'] ?? 0),
@@ -189,49 +201,36 @@
 
 
 
-                    <div class="sm:col-span-2">
-                        <x-input-label value="PDF Template" required />
-                        <select name="pdf_template_id" x-model="estimate.pdf_template_id"
-                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            <option value="">Select a template...</option>
-                            @foreach($pdfTemplates as $template)
-                                <option value="{{ $template->id }}" {{ $template->is_default ? 'selected' : '' }}>
-                                    {{ $template->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                    @if(auth()->user()->hasRole('super_admin'))
+                        <div class="sm:col-span-2">
+                            <x-input-label value="PDF Template" required />
+                            <select name="pdf_template_id" x-model="estimate.pdf_template_id"
+                                class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                                <option value="">Select a template...</option>
+                                @foreach($pdfTemplates as $template)
+                                    <option value="{{ $template->id }}" {{ $template->is_default ? 'selected' : '' }}>
+                                        {{ $template->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @else
+                        <input type="hidden" name="pdf_template_id" x-model="estimate.pdf_template_id">
+                    @endif
 
                     <div class="sm:col-span-2">
                         <x-input-label value="Estimate Date" required />
                         <x-text-input type="date" x-model="estimate.estimate_date" name="estimate_date" required />
                     </div>
 
-                    <div class="sm:col-span-2">
-                        <x-input-label value="Layout Type" />
-                        <select name="layout_type" x-model="estimate.layout_type"
-                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            <option value="modern">Modern</option>
-                            <option value="classic">Classic</option>
-                            <option value="simple">Simple</option>
-                        </select>
-                    </div>
+
 
                     <div class="sm:col-span-2">
                         <x-input-label value="Expiry Date" />
                         <x-text-input type="date" x-model="estimate.expiry_date" name="expiry_date" />
                     </div>
 
-                    <div class="sm:col-span-2">
-                        <x-input-label value="Currency" />
-                        <div class="mt-2.5 flex items-center gap-2">
-                            <span
-                                class="inline-flex items-center rounded-md bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200"
-                                x-text="estimate.currency"></span>
-                            <input type="hidden" name="currency" x-model="estimate.currency">
-                            <span class="text-xs text-slate-400 font-medium">(System Default)</span>
-                        </div>
-                    </div>
+                    <input type="hidden" name="currency" x-model="estimate.currency">
 
                     <div class="sm:col-span-6">
                         <x-input-label value="Estimate Type" class="mb-3" />

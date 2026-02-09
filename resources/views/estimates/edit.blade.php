@@ -189,31 +189,14 @@
                         <x-text-input type="date" x-model="estimate.estimate_date" name="estimate_date" required />
                     </div>
 
-                    <div class="sm:col-span-2">
-                        <x-input-label value="Layout Type" />
-                        <select name="layout_type" x-model="estimate.layout_type"
-                            class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            <option value="modern">Modern</option>
-                            <option value="classic">Classic</option>
-                            <option value="simple">Simple</option>
-                        </select>
-                    </div>
+
 
                     <div class="sm:col-span-2">
                         <x-input-label value="Expiry Date" />
                         <x-text-input type="date" x-model="estimate.expiry_date" name="expiry_date" />
                     </div>
 
-                    <div class="sm:col-span-2">
-                        <x-input-label value="Currency" />
-                        <div class="mt-2.5 flex items-center gap-2">
-                            <span
-                                class="inline-flex items-center rounded-md bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200"
-                                x-text="estimate.currency"></span>
-                            <input type="hidden" name="currency" x-model="estimate.currency">
-                            <span class="text-xs text-slate-400 font-medium">(System Default)</span>
-                        </div>
-                    </div>
+                    <input type="hidden" name="currency" x-model="estimate.currency">
 
                     <div class="sm:col-span-6">
                         <x-input-label value="Estimate Type" class="mb-3" />

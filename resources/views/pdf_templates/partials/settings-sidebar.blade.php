@@ -13,6 +13,13 @@
             <label for="is_active" class="ml-2 block text-sm text-gray-900">Active</label>
         </div>
 
+        <div class="flex items-center">
+            <input type="hidden" name="is_default" value="0">
+            <input type="checkbox" id="is_default" name="is_default" value="1" {{ old('is_default', $pdfTemplate->is_default) ? 'checked' : '' }}
+                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+            <label for="is_default" class="ml-2 block text-sm text-gray-900">Set as Default Template</label>
+        </div>
+
         <hr class="border-gray-200">
 
         <!-- PDF Settings -->

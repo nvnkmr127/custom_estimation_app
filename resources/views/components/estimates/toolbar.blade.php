@@ -59,11 +59,11 @@
             <x-estimate-status-badge :status="$estimate->status" />
             @if($estimate->approval_status)
                 <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
-                                                                @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
-                                                                @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
-                                                                @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                                @endif">
+                                                                    @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
+                                                                    @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
+                                                                    @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
+                                                                    @else bg-gray-50 text-gray-600 ring-gray-500/10
+                                                                    @endif">
                     {{ ucfirst($estimate->approval_status) }}
                 </span>
             @endif
@@ -116,20 +116,20 @@
             @if($estimate->status === 'waiting_approval')
                 <!-- Checklist Logic embedded in Approve -->
                 <div x-data="{ 
-                                                                                    checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
-                                                                                    requiredCount: {{ $checklists->where('is_required', true)->count() }},
-                                                                                    requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
-                                                                                    toggleChecklist(id, checked) {
-                                                                                        if (checked) this.checks.push(parseInt(id));
-                                                                                        else this.checks = this.checks.filter(c => c !== parseInt(id));
-                                                                                        fetch('{{ route('estimates.toggle-checklist', $estimate) }}', {
-                                                                                            method: 'POST',
-                                                                                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                                                                                            body: JSON.stringify({ checklist_id: id, completed: checked })
-                                                                                        });
-                                                                                    },
-                                                                                    get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
-                                                                                }" class="flex gap-2 relative">
+                                                                                            checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
+                                                                                            requiredCount: {{ $checklists->where('is_required', true)->count() }},
+                                                                                            requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
+                                                                                            toggleChecklist(id, checked) {
+                                                                                                if (checked) this.checks.push(parseInt(id));
+                                                                                                else this.checks = this.checks.filter(c => c !== parseInt(id));
+                                                                                                fetch('{{ route('estimates.toggle-checklist', $estimate) }}', {
+                                                                                                    method: 'POST',
+                                                                                                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                                                                                    body: JSON.stringify({ checklist_id: id, completed: checked })
+                                                                                                });
+                                                                                            },
+                                                                                            get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
+                                                                                        }" class="flex gap-2 relative">
                     <!-- Approve Dropdown -->
                     <div x-data="{ open: false }" class="relative">
                         <button @click="open = !open" type="button"
@@ -333,7 +333,7 @@
                         x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                         x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
                         x-transition:leave-end="opacity-0"
-                        class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+                        class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity"></div>
 
                     <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
                         <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
@@ -344,7 +344,7 @@
                                 x-transition:leave="ease-in duration-200"
                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                                class="relative transform overflow-hidden rounded-2xl bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                                 <div>
                                     <div
                                         class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">

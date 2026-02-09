@@ -36,6 +36,14 @@
         <tbody class="divide-y divide-slate-200 bg-white">
             @forelse($items as $item)
                 <tr class="group hover:bg-slate-50/30 transition-colors">
+                    @php
+                        $allComments = $item->comments->flatMap(function ($c) {
+                            return collect([$c])->merge($c->replies);
+                        })->unique('id')->sortBy('created_at')->values()->map(function ($c) {
+                            $c->formatted_date = $c->created_at->format('M j, g:i A');
+                            return $c;
+                        });
+                    @endphp
                     @if(!$isPackage)
                         <td class="px-3 py-4 align-middle">
                             @if($item->product && $item->product->primary_image_url)
@@ -63,7 +71,10 @@
                     @endif
                     <td class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
                         <div class="min-w-0">
-                            <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
+                            <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($allComments) }})" 
+                                    class="font-bold text-slate-900 mb-0.5 hover:text-indigo-600 transition-colors text-left w-full">
+                                {{ $item->name }}
+                            </button>
                             @if($item->description)
                                 <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
                                     {{ $item->description }}
@@ -89,14 +100,14 @@
                             @endif
                             
                             <!-- Comment Button -->
-                            <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($item->comments->map(function ($c) { $c->formatted_date = $c->created_at->format('M j, g:i A'); return $c; })->values()) }})" 
+                            <button @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($allComments) }})" 
                                 type="button"
-                                class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors {{ $item->comments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors {{ $allComments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
                                 <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                                 </svg>
-                                @if($item->comments->isNotEmpty())
-                                    {{ $item->comments->count() }} {{ Str::plural('Comment', $item->comments->count()) }}
+                                @if($allComments->isNotEmpty())
+                                    {{ $allComments->count() }} {{ Str::plural('Comment', $allComments->count()) }}
                                 @else
                                     Comment
                                 @endif

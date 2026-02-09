@@ -181,6 +181,8 @@ class EstimateController extends Controller
         $estimates = Estimate::whereIn('id', $request->estimate_ids)->get();
 
         foreach ($estimates as $estimate) {
+            /** @var Estimate $estimate */
+
             // Authorize
             if ($request->action === 'delete') {
                 if (auth()->user()->can('delete', $estimate)) {
@@ -197,7 +199,11 @@ class EstimateController extends Controller
                     ];
 
                     if (isset($statusMap[$request->action])) {
-                        $estimate->update(['status' => $statusMap[$request->action]]);
+                        $updateData = ['status' => $statusMap[$request->action]];
+                        if ($statusMap[$request->action] === Estimate::STATUS_SENT) {
+                            $updateData['expiry_date'] = now()->addDays(15);
+                        }
+                        $estimate->update($updateData);
                         ActivityLog::log('status_updated', $estimate, "Bulk action: status changed to " . $statusMap[$request->action] . " by " . auth()->user()->name);
 
                         // Dispatch Event based on action
@@ -489,7 +495,12 @@ class EstimateController extends Controller
             }
 
             $oldStatus = $estimate->status;
-            $estimate->update(['status' => $status]);
+
+            $updateData = ['status' => $status];
+            if ($status === Estimate::STATUS_SENT) {
+                $updateData['expiry_date'] = now()->addDays(15);
+            }
+            $estimate->update($updateData);
 
             ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} status manually changed from {$oldStatus} to {$status}.");
 
@@ -619,7 +630,12 @@ class EstimateController extends Controller
         $this->authorize('view', $estimate);
 
         // Load items for the view
-        $estimate->load(['sections.items', 'comments.user']);
+        $estimate->load([
+            'sections.items.comments.user',
+            'sections.items.comments.replies', // Load replies for item comments
+            'comments.user',
+            'comments.replies' // Load replies for estimate comments
+        ]);
 
         // Render PDF Template HTML
         $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first() ?? \App\Models\PdfTemplate::first();
@@ -630,7 +646,51 @@ class EstimateController extends Controller
             $htmlContent = $service->render($template, $estimate, true);
         }
 
-        return view('portal.estimates.show', compact('estimate', 'htmlContent'));
+        // Prepare unified comments logic
+        $commentData = collect();
+
+        $transform = function ($c, $itemName = null, $parent = null) {
+            return [
+                'id' => $c->id,
+                'comment' => $c->comment,
+                'type' => $c->type,
+                'created_at' => $c->created_at,
+                // Inherit commentable info from parent if missing (crucial for replies)
+                'commentable_type' => $c->commentable_type ?? ($parent ? $parent->commentable_type : null),
+                'commentable_id' => $c->commentable_id ?? ($parent ? $parent->commentable_id : null),
+                'user' => $c->user,
+                'item_name' => $itemName ?? (($c->commentable_type === 'App\Models\EstimateItem' && $c->commentable) ? $c->commentable->name : null)
+            ];
+        };
+
+        // 1. General Estimate Comments & Replies
+        foreach ($estimate->comments as $comment) {
+            $commentData->push($transform($comment, null, null));
+            foreach ($comment->replies as $reply) {
+                // Pass parent so reply inherits context
+                $commentData->push($transform($reply, null, $comment));
+            }
+        }
+
+
+        // 2. Item Comments & Replies
+        foreach ($estimate->sections as $section) {
+            foreach ($section->items as $item) {
+                foreach ($item->comments as $comment) {
+                    $itemName = $item->name;
+                    $commentData->push($transform($comment, $itemName, null));
+                    foreach ($comment->replies as $reply) {
+                        // Pass parent and item name
+                        $commentData->push($transform($reply, $itemName, $comment));
+                    }
+                }
+
+            }
+        }
+
+        $comments = $commentData->unique('id')->sortBy('created_at')->values();
+
+        return view('portal.estimates.show', compact('estimate', 'htmlContent', 'comments'));
     }
 
     /**
@@ -677,37 +737,61 @@ class EstimateController extends Controller
      */
     public function storeComment(Request $request, Estimate $estimate)
     {
-        $this->authorize('update', $estimate); // assuming permission
+        \Log::info("EstimateController: storeComment called", [
+            'estimate_id' => $estimate->id,
+            'request_all' => $request->all()
+        ]);
+
+        $this->authorize('update', $estimate);
 
         $validated = $request->validate([
             'comment' => 'required|string|max:5000',
+            'commentable_type' => 'nullable|string',
+            'commentable_id' => 'nullable|numeric',
+        ]);
+
+        $type = Estimate::class;
+        $id = $estimate->id;
+
+        // If specific item is targeted
+        if (!empty($validated['commentable_type']) && !empty($validated['commentable_id'])) {
+            // Allow commenting on Items
+            if ($validated['commentable_type'] === 'App\\Models\\EstimateItem') {
+                // Verify item belongs to estimate for security
+                $item = \App\Models\EstimateItem::where('id', $validated['commentable_id'])
+                    ->where('estimate_id', $estimate->id)
+                    ->first();
+                if ($item) {
+                    $type = 'App\\Models\\EstimateItem';
+                    $id = $item->id;
+                }
+            }
+        }
+
+        \Log::info("EstimateController: Creating comment", [
+            'type' => $type,
+            'id' => $id,
+            'user_id' => auth()->id()
         ]);
 
         $comment = $estimate->comments()->create([
-            'commentable_type' => Estimate::class,
-            'commentable_id' => $estimate->id,
+            'commentable_type' => $type,
+            'commentable_id' => $id,
             'user_id' => auth()->id(),
             'comment' => $validated['comment'],
-            'type' => 'internal', // Staff comments are internal (but communicated to client via thread view?)
-            // Wait, if it's a thread shared with client, type should be 'internal'?
-            // The portal displays all comments or just client/client?
-            // Re-checking portal logic: specific scope?
-            // Portal controller shows: all comments?
+            'type' => 'internal',
         ]);
 
-        // Check Portal Controller show method logic?
-        // Actually, we should probably set type='client' or similar if we want client to see it?
-        // But the schema has 'type' enum ['client', 'internal'].
-        // Internal usually means "internal team only". 
-        // If this is a conversation with the client, we might need a status change or specific type.
-        // However, for now, let's treat staff replies as visible if we update the portal to show them.
-        // Assuming 'internal' might be filtered out in portal.
-        // Let's check EstimateComment model scopes.
+        \Log::info("Admin Posted Comment: ID {$comment->id} on {$comment->commentable_type} #{$comment->commentable_id}");
 
         // Notify Creator and Followers (excluding self)
         $followers = $estimate->followers->reject(fn($u) => $u->id === auth()->id());
         foreach ($followers as $follower) {
             $follower->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate));
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'comment' => $comment]);
         }
 
         return back()->with('success', 'Comment posted.');

@@ -51,9 +51,15 @@ class PdfTemplateController extends Controller
                 'watermark_opacity' => 'nullable|numeric|min:0|max:1',
                 'is_password_protected' => 'boolean',
                 'content_structure' => 'nullable|json',
+                'is_default' => 'sometimes|boolean',
             ]);
 
             $this->authorize('create', PdfTemplate::class);
+
+            // Handle Default Logic
+            if ($request->boolean('is_default')) {
+                PdfTemplate::query()->update(['is_default' => false]);
+            }
 
             $template = PdfTemplate::create([
                 'name' => $validated['name'],
@@ -65,7 +71,7 @@ class PdfTemplateController extends Controller
                 'secondary_color' => $validated['secondary_color'] ?? '#555555',
                 'font_family' => $validated['font_family'] ?? 'Helvetica',
                 'is_active' => $request->has('is_active'),
-                'is_default' => false,
+                'is_default' => $request->boolean('is_default'),
                 'is_locked' => $request->has('is_locked'),
                 'watermark_text' => $validated['watermark_text'] ?? null,
                 'watermark_opacity' => $validated['watermark_opacity'] ?? 0.1,
@@ -123,6 +129,7 @@ class PdfTemplateController extends Controller
                 'watermark_opacity' => 'nullable|numeric|min:0|max:1',
                 'is_password_protected' => 'sometimes|boolean',
                 'content_structure' => 'nullable|json',
+                'is_default' => 'sometimes|boolean',
             ]);
 
             // Create Version Snapshot
@@ -135,6 +142,11 @@ class PdfTemplateController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
+            // Handle Default Logic
+            if ($request->boolean('is_default')) {
+                PdfTemplate::query()->where('id', '!=', $pdfTemplate->id)->update(['is_default' => false]);
+            }
+
             $pdfTemplate->update([
                 'name' => $validated['name'],
                 'html_content' => $validated['html_content'] ?? '',
@@ -145,6 +157,7 @@ class PdfTemplateController extends Controller
                 'secondary_color' => $validated['secondary_color'] ?? '#555555',
                 'font_family' => $validated['font_family'] ?? 'Helvetica',
                 'is_active' => $request->has('is_active'),
+                'is_default' => $request->boolean('is_default'),
                 'is_locked' => $request->has('is_locked'),
                 'watermark_text' => $validated['watermark_text'] ?? null,
                 'watermark_opacity' => $validated['watermark_opacity'] ?? 0.1,

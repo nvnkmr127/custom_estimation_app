@@ -604,9 +604,12 @@ class EstimateService
                 'email'
             ));
 
-            // Update status if it was approved
+            // Update status and set Expiry to 15 days from now
             if ($estimate->status === Estimate::STATUS_APPROVED) {
-                $estimate->update(['status' => Estimate::STATUS_SENT]);
+                $estimate->update([
+                    'status' => Estimate::STATUS_SENT,
+                    'expiry_date' => now()->addDays(15),
+                ]);
             }
 
             ActivityLog::create([

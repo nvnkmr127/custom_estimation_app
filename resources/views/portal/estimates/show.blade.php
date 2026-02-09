@@ -1,5 +1,5 @@
 <x-portal-layout>
-    <div class="max-w-4xl mx-auto" x-data="portalShow()">
+    <div class="max-w-4xl mx-auto" x-data="portalShow()" wire:ignore>
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -261,12 +261,10 @@
                                     </div>
                                 </div>
                              </template>
-                             <template x-if="projectImages.length > 3">
-                             <div @click="currentImageIndex = 3; showImageModal = true" class="aspect-square rounded-lg bg-slate-900 overflow-hidden relative group flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800 transition-colors">
+                             <div x-show="projectImages.length > 3" @click="currentImageIndex = 3; showImageModal = true" class="aspect-square rounded-lg bg-slate-900 overflow-hidden relative group flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800 transition-colors">
                                 <span class="text-white text-sm font-black" x-text="'+' + (projectImages.length - 3)"></span>
                                 <span class="text-white/50 text-[10px] font-bold uppercase tracking-tighter">View All</span>
                              </div>
-                             </template>
                         </div>
                     </div>
                 </div>
@@ -313,14 +311,14 @@
                             class="bg-slate-50/50 border-t border-slate-100">
                             <div class="p-4 space-y-4">
                                 @foreach($section->items as $item)
-                                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-row items-start gap-4 transition-all hover:shadow-md group/item">
+                                    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-row items-start gap-4 transition-all hover:shadow-md group/item">
 
                                         <!-- Image Column (Fixed Width) -->
                                         @php
                                             $imageUrl = $item->product ? $item->product->primary_image_url : null;
                                         @endphp
                                         @if(!$section->is_package && $imageUrl)
-                                            <div class="w-16 h-16 sm:w-24 sm:h-24 bg-slate-50 rounded-lg shrink-0 overflow-hidden border border-slate-200 shadow-sm relative group-hover/item:shadow-md transition-all">
+                                            <div class="w-16 h-16 sm:w-24 sm:h-24 bg-slate-50 rounded-2xl shrink-0 overflow-hidden border border-slate-200 shadow-sm relative group-hover/item:shadow-md transition-all">
                                                     <img src="{{ $imageUrl }}" class="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110">
                                             </div>
                                         @endif
@@ -330,7 +328,7 @@
 
                                             <!-- Main Details (Name, Desc) -->
                                             <div class="sm:col-span-5">
-                                                <h4 class="font-bold text-slate-900 text-sm mb-1 group-hover/item:text-indigo-600 transition-colors">{{ $item->name }}</h4>
+                                                <button @click="openItemComments({{ $item->id }})" class="font-bold text-slate-900 text-sm mb-1 group-hover/item:text-indigo-600 transition-colors text-left">{{ $item->name }}</button>
                                                 <div class="text-xs text-slate-500 leading-relaxed prose prose-sm max-w-none prose-p:my-0 prose-p:leading-relaxed">
                                                     {!! $item->description !!}
                                                 </div>
@@ -388,7 +386,22 @@
 
                                                 <div class="text-right">
                                                     <div class="text-sm font-black text-slate-900">{{ number_format($item->total, 2) }}</div>
-                                                    <div class="text-xs text-slate-400 font-medium mt-0.5">{{ $item->quantity }} x {{ number_format($item->unit_price, 2) }}</div>
+                                                    
+                                                    <!-- Item Actions -->
+                                                    <div class="mt-2 flex justify-end">
+                                                        <button @click="openItemComments({{ $item->id }})" class="group flex items-center gap-1.5 px-2 py-1 rounded-2xl hover:bg-indigo-50 transition-colors" title="Discuss this item">
+                                                            <div class="relative">
+                                                                <svg class="w-4 h-4 text-slate-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                                                @if($item->comments->count() > 0)
+                                                                    <span class="absolute -top-1.5 -right-1.5 flex h-3 w-3">
+                                                                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                                                      <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                                                                    </span>
+                                                                @endif
+                                                            </div>
+                                                            <span class="text-[10px] font-bold text-slate-400 group-hover:text-indigo-600">Discuss</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -399,6 +412,10 @@
                     </div>
                 @endforeach
             </div>
+
+            <!-- Comments Thread Removed per user request (moved to modal) -->
+            
+            <!-- Terms & Conditions Button -->
 
             <!-- Terms & Conditions Button -->
             @if($estimate->has_final_terms)
@@ -424,6 +441,8 @@
                 class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-3 z-30 sm:hidden">
                 <button @click="showDeclineModal = true"
                     class="flex-1 py-3 text-red-600 font-bold text-sm bg-red-50 rounded-xl">Decline</button>
+                <button @click="showCommentModal = true"
+                    class="flex-1 py-3 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-xl">Comment</button>
                 <button @click="showAcceptModal = true"
                     class="flex-[2] py-3 bg-slate-900 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-500/30">Accept
                     Estimate</button>
@@ -436,6 +455,11 @@
                     PDF</a>
                 <button @click="showDeclineModal = true"
                     class="px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-semibold transition-colors">Decline</button>
+                <button @click="showCommentModal = true"
+                    class="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                    Comments
+                </button>
                 <button @click="showAcceptModal = true"
                     class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-lg transition-all transform hover:-translate-y-0.5">Accept
                     Estimate</button>
@@ -601,6 +625,92 @@
             </div>
         </div>
 
+        <!-- Comment Modal (General & Item) -->
+        <div x-show="showCommentModal" class="relative z-50" style="display: none;" 
+             @keydown.escape.window="showCommentModal = false; activeItemId = null">
+            <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" x-transition.opacity></div>
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-xl flex flex-col max-h-[90vh]"
+                        @click.away="showCommentModal = false; activeItemId = null">
+                        
+                        <!-- Header -->
+                        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900" x-text="activeItemId ? 'Item Discussion' : 'General Comments'"></h3>
+                                <p class="text-xs text-slate-500" x-text="activeItemId ? 'Discussing specific item details' : 'Ask questions about the estimate'"></p>
+                            </div>
+                            <button @click="showCommentModal = false; activeItemId = null" class="text-slate-400 hover:text-slate-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- Thread -->
+                        <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 min-h-[300px] max-h-[60vh] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100" id="comment-thread-container">
+                             <!-- Empty State -->
+                             <div x-show="getComments().length === 0" class="flex flex-col items-center justify-center h-full text-slate-400 py-10">
+                                <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                <p class="text-sm">No comments yet. Start the conversation!</p>
+                             </div>
+
+                            <!-- Message Loop -->
+                             <div>
+                                 <template x-for="(comment, index) in getComments()" :key="comment.id + '-' + index">
+                                    <div :class="comment.type === 'client' ? 'flex justify-end' : 'flex justify-start'">
+                                        <div class="max-w-[85%]">
+                                            <div class="flex items-end gap-2 mb-1" :class="comment.type === 'client' ? 'justify-end' : ''">
+                                                <div x-show="comment.type !== 'client'" class="flex flex-col">
+                                                     <span class="text-xs font-bold text-slate-700" x-text="comment.user ? comment.user.name : 'Team'"></span>
+                                                </div>
+                                                <span class="text-[10px] text-slate-400 font-medium" x-text="new Date(comment.created_at).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})"></span>
+                                                <span x-show="comment.type === 'client'" class="text-xs font-bold text-slate-700">You</span>
+                                            </div>
+                                            
+                                            <!-- Item Reference Badge (If viewing general thread but comment is on item) -->
+                                            <div x-show="!activeItemId && comment.commentable_type && comment.commentable_type.includes('EstimateItem') && comment.item_name"
+                                                 class="mb-1 text-[10px] font-bold uppercase tracking-wider text-indigo-500 bg-indigo-50 px-2 py-1 rounded inline-block cursor-pointer hover:bg-indigo-100 transition-colors"
+                                                 @click="openItemComments(comment.commentable_id)">
+                                                On Item: <span x-text="comment.item_name"></span> &rarr;
+                                            </div>
+
+                                            <div class="p-3 rounded-2xl shadow-sm text-sm leading-relaxed"
+                                                :class="comment.type === 'client' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'">
+                                                <p x-html="comment.comment.replace(/\n/g, '<br>')"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                 </template>
+                             </div>
+                        </div>
+
+                        <!-- Footer (Input) -->
+                        <div class="p-4 bg-white border-t border-slate-100">
+                            <form @submit.prevent="submitComment()" class="space-y-3">
+                                <div class="flex gap-2">
+                                    <textarea x-model="newComment" rows="1" 
+                                        class="flex-1 rounded-2xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 resize-none py-3 px-4 text-sm"
+                                        required placeholder="Type a message..."></textarea>
+                                    <button type="submit" :disabled="isSubmitting"
+                                        class="p-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 shadow-md transition-colors flex items-center justify-center disabled:opacity-50">
+                                        <svg x-show="!isSubmitting" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                        <svg x-show="isSubmitting" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4" x-show="!hasPostedComment && getComments().length === 0">
+                                    <div>
+                                        <input type="text" x-model="clientName" class="w-full rounded-xl border-slate-200 text-xs focus:ring-indigo-500 focus:border-indigo-500 p-2" placeholder="Your Name (Optional)">
+                                    </div>
+                                    <div>
+                                        <input type="email" x-model="clientEmail" class="w-full rounded-xl border-slate-200 text-xs focus:ring-indigo-500 focus:border-indigo-500 p-2" placeholder="Email (Optional)">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Video Modal -->
         <div x-show="showVideoModal" class="relative z-[60]" style="display: none;" @keydown.escape.window="showVideoModal = false">
             <div class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl transition-opacity" x-transition.opacity @click="showVideoModal = false"></div>
@@ -716,29 +826,58 @@
         <script>
             document.addEventListener('alpine:init', () => {
                 Alpine.data('portalShow', () => ({
+                    // UI State
                     showCommentModal: false,
                     showDeclineModal: false,
                     showAcceptModal: false,
                     showVideoModal: false,
                     showTermsModal: false,
                     showImageModal: false,
+                    activeSection: null,
                     agreedToTerms: false,
-                    selectedImage: null,
-                    currentImageIndex: 0,
-                    projectImages: @json($showcaseImages),
+                    
+                    // Library Instances
                     signaturePad: null,
-                    activeSection: null, // For accordion
-                    labels: @json($estimate->sections->pluck('name')),
-                    totals: @json($estimate->sections->pluck('total')),
-                    expiryDate: '{{ $estimate->expiry_date ? $estimate->expiry_date->toIso8601String() : '' }}',
+                    
+                    // Data
+                    projectImages: @json($showcaseImages),
+                    currentImageIndex: 0,
+                    
+                    // Comment System
+                    activeItemId: null,
+                    allComments: @json($comments),
+                    hasPostedComment: false, 
+                    newComment: '',
+                    clientName: '',
+                    clientEmail: '',
+                    isSubmitting: false,
+
+                    // Expiry/Countdown
+                    expiryDate: @json($estimate->expiry_date),
                     countdown: { days: 0, hours: 0, minutes: 0, seconds: 0, expired: false },
 
+                    // Chart Data
+                    chartLabels: @json($estimate->sections->pluck('name')),
+                    chartTotals: @json($estimate->sections->pluck('total')),
+
                     init() {
-                        // Initialize Signature Pad
+                        // Project Images fallback check
+                        if (!this.projectImages || this.projectImages.length === 0) {
+                            this.projectImages = {!! json_encode($showcaseImages) !!};
+                        }
+
+                        // Initialize Charts & Countdown
+                        this.$nextTick(() => {
+                            this.renderChart();
+                            this.updateCountdown();
+                            setInterval(() => this.updateCountdown(), 1000);
+                        });
+
+                        // Watch for Acceptance Modal to init Signature Pad
                         this.$watch('showAcceptModal', value => {
                             if (value) {
                                 this.$nextTick(() => {
-                                    var canvas = document.getElementById('signature-pad');
+                                    const canvas = document.getElementById('signature-pad');
                                     if (canvas && typeof SignaturePad !== 'undefined') {
                                         this.signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)' });
                                         window.addEventListener('resize', () => this.resizeCanvas(canvas));
@@ -748,73 +887,173 @@
                             }
                         });
 
-                        // Watch for video modal open/close to play/pause video
+                        // Watch for Video Modal
                         this.$watch('showVideoModal', value => {
                             if (value) {
-                                // Playing logic
                                 if (this.$refs.companyVideo) {
                                     if (!this.$refs.companyVideo.src) {
                                         this.$refs.companyVideo.src = this.$refs.companyVideo.dataset.src;
                                     }
                                     this.$nextTick(() => { this.$refs.companyVideo.play(); });
                                 }
-                                
-                                // For YouTube
                                 const yt = document.getElementById('youtube-player');
                                 if (yt && (!yt.src || yt.src === 'about:blank' || yt.src === '')) {
                                     yt.src = yt.dataset.src;
                                 }
                             } else {
-                                // Pause local video
-                                if (this.$refs.companyVideo) {
-                                    this.$refs.companyVideo.pause();
-                                }
-                                // Stop YouTube video by clearing src
+                                if (this.$refs.companyVideo) this.$refs.companyVideo.pause();
                                 const yt = document.getElementById('youtube-player');
-                                if (yt) {
-                                    yt.src = ''; // Hard stop
-                                }
+                                if (yt) yt.src = ''; 
                             }
                         });
 
-                        // Watch for image modal close
+                        // Watch for Image Lightbox
                         this.$watch('showImageModal', value => {
-                            if (value) {
-                                document.body.style.overflow = 'hidden';
-                            } else {
-                                document.body.style.overflow = '';
-                            }
+                            document.body.style.overflow = value ? 'hidden' : '';
                         });
-
-                        // Initialize Charts
-                        this.initCharts();
-
-                        // Start countdown if expiry date is set
-                        if (this.expiryDate) {
-                            this.startCountdown();
-                        }
                     },
 
-                    startCountdown() {
-                        const expiryTime = new Date(this.expiryDate).getTime();
-                        
-                        const update = () => {
-                            const now = new Date().getTime();
-                            const distance = expiryTime - now;
+                    // Methods
+                    updateCountdown() {
+                        if (!this.expiryDate) return;
+                        const now = new Date().getTime();
+                        const expiry = new Date(this.expiryDate).getTime();
+                        const distance = expiry - now;
 
-                            if (distance < 0) {
-                                this.countdown.expired = true;
-                                return;
+                        if (distance < 0) {
+                            this.countdown.expired = true;
+                            return;
+                        }
+
+                        this.countdown.days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                        this.countdown.hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        this.countdown.minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                        this.countdown.seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    },
+
+                    renderChart() {
+                        const ctx = document.getElementById('costBreakdownChart');
+                        if (!ctx) return;
+
+                        // Build dataset: Use sections if multiple, otherwise subtotal/tax
+                        let labels = this.chartLabels;
+                        let data = this.chartTotals;
+
+                        if (labels.length <= 1) {
+                            labels = ['Subtotal', 'Tax'];
+                            data = [{{ $estimate->subtotal }}, {{ $estimate->total_tax }}];
+                        }
+
+                        new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    data: data,
+                                    backgroundColor: [
+                                        '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#94a3b8'
+                                    ],
+                                    borderWidth: 0,
+                                    hoverOffset: 10
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '75%',
+                                plugins: {
+                                    legend: {
+                                        position: 'right',
+                                        labels: {
+                                            usePointStyle: true,
+                                            padding: 20,
+                                            font: { family: 'Inter', size: 11, weight: 'bold' },
+                                            color: '#64748b'
+                                        }
+                                    },
+                                    tooltip: {
+                                        backgroundColor: '#1e293b',
+                                        padding: 12,
+                                        titleFont: { size: 14, weight: 'bold' },
+                                        bodyFont: { size: 12 },
+                                        cornerRadius: 8,
+                                        displayColors: false
+                                    }
+                                }
                             }
+                        });
+                    },
 
-                            this.countdown.days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                            this.countdown.hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            this.countdown.minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                            this.countdown.seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                        };
+                    getComments() {
+                        if (this.activeItemId) {
+                            return this.allComments.filter(c => 
+                                c.commentable_type && 
+                                c.commentable_type.includes('EstimateItem') && 
+                                c.commentable_id === this.activeItemId
+                            );
+                        }
+                        return this.allComments;
+                    },
 
-                        update();
-                        setInterval(update, 1000);
+                    openItemComments(itemId) {
+                        this.activeItemId = itemId;
+                        this.showCommentModal = true;
+                        this.$nextTick(() => {
+                            const el = document.getElementById('comment-thread-container');
+                            if (el) el.scrollTop = el.scrollHeight;
+                        });
+                    },
+
+                    async submitComment() {
+                        if (!this.newComment.trim() || this.isSubmitting) return;
+                        this.isSubmitting = true;
+                        
+                        const commentText = this.newComment;
+                        const tempId = 'temp-' + Date.now();
+                        
+                        this.allComments.push({
+                            id: tempId,
+                            comment: commentText,
+                            type: 'client',
+                            created_at: new Date().toISOString(),
+                            client_name: this.clientName || 'You',
+                            commentable_type: this.activeItemId ? 'App\\Models\\EstimateItem' : 'App\\Models\\Estimate',
+                            commentable_id: this.activeItemId || {{ $estimate->id }}
+                        });
+                        
+                        this.newComment = '';
+                        this.hasPostedComment = true;
+                        this.$nextTick(() => {
+                            const el = document.getElementById('comment-thread-container');
+                            if (el) el.scrollTop = el.scrollHeight;
+                        });
+
+                        try {
+                            const response = await fetch("{{ URL::signedRoute('portal.comment', $estimate) }}", {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json', 
+                                    'Accept': 'application/json', 
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}' 
+                                },
+                                body: JSON.stringify({ 
+                                    item_id: this.activeItemId,
+                                    comment: commentText,
+                                    client_name: this.clientName,
+                                    client_email: this.clientEmail
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            if (!data.success) throw new Error('Failed');
+                        } catch (e) {
+                            console.error(e);
+                            alert('Failed to post comment.');
+                            this.allComments = this.allComments.filter(c => c.id !== tempId);
+                            this.newComment = commentText;
+                        } finally {
+                            this.isSubmitting = false;
+                        }
                     },
 
                     nextImage() {
@@ -827,44 +1066,11 @@
 
                     resizeCanvas(canvas) {
                         if (!this.signaturePad) return;
-                        var ratio = Math.max(window.devicePixelRatio || 1, 1);
+                        const ratio = Math.max(window.devicePixelRatio || 1, 1);
                         canvas.width = canvas.offsetWidth * ratio;
                         canvas.height = canvas.offsetHeight * ratio;
                         canvas.getContext('2d').scale(ratio, ratio);
                         this.signaturePad.clear();
-                    },
-
-                    initCharts() {
-                        const ctx = document.getElementById('costBreakdownChart');
-                        if (ctx) {
-                            new Chart(ctx, {
-                                type: 'doughnut',
-                                data: {
-                                    labels: this.labels,
-                                    datasets: [{
-                                        data: this.totals,
-                                        backgroundColor: [
-                                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'
-                                        ],
-                                        borderWidth: 0
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                        legend: {
-                                            position: 'right',
-                                            labels: {
-                                                usePointStyle: true,
-                                                font: { family: 'Inter', size: 11 }
-                                            }
-                                        }
-                                    },
-                                    cutout: '70%',
-                                }
-                            });
-                        }
                     },
 
                     toggleSection(id) {
