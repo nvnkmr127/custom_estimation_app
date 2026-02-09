@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Webhooks\Events;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\WebhookEvent;
+use App\Models\WebhookDelivery;
 use Illuminate\Database\Eloquent\Builder;
 
 class Index extends Component
@@ -72,11 +73,26 @@ class Index extends Component
         // Let's support filtering by "Has at least one failure" via subquery if requested.
         // For now, simple list.
 
-        $events = $query->paginate(15);
+        $events = $query->paginate(25);
+
+        // Stats for the dashboard
+        $stats = [
+            'total' => WebhookEvent::count(),
+            'failed' => WebhookDelivery::where('status', 'failed')->distinct('webhook_event_id')->count('webhook_event_id'),
+            'processing' => WebhookDelivery::whereIn('status', ['processing', 'retrying', 'pending'])->distinct('webhook_event_id')->count('webhook_event_id'),
+            'success_rate' => 0,
+        ];
+
+        $totalDeliveries = WebhookDelivery::count();
+        if ($totalDeliveries > 0) {
+            $successDeliveries = WebhookDelivery::where('status', 'success')->count();
+            $stats['success_rate'] = round(($successDeliveries / $totalDeliveries) * 100, 1);
+        }
 
         return view('livewire.admin.webhooks.events.index', [
             'events' => $events,
             'types' => WebhookEvent::distinct('event_type')->pluck('event_type'),
+            'stats' => $stats,
         ]);
     }
 }

@@ -24,6 +24,7 @@
     </a>
 
     <x-global-search />
+    <x-toast />
     <div x-data="{ sidebarOpen: false }" class="min-h-full">
 
         <!-- Mobile Sidebar Backdrop -->

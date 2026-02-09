@@ -30,11 +30,11 @@ class WebhookInboundEvent extends Model
         $this->update([
             'status' => 'pending',
             'error_message' => null,
-            'result' => null, // Assuming result column exists or we clear error
-            'attempt_count' => $this->attempt_count + 1
+            'error' => null,
+            'attempt_count' => ($this->attempt_count ?? 0) + 1
         ]);
 
-        // Logic to re-trigger processing would go here (e.g., dispatch job)
-        // \App\Jobs\ProcessInboundWebhook::dispatch($this);
+        // Logic to re-trigger processing
+        \App\Jobs\ProcessInboundWebhook::dispatch($this);
     }
 }
