@@ -34,6 +34,7 @@ class EstimateSubmittedDefinition implements WebhookEventDefinitionInterface
             'status' => $resource->status,
             'submitted_at' => now()->toIso8601String(),
             'total' => $resource->total,
+            'mobile_number' => $resource->client?->phone,
             'url' => $resource->public_url,
             'pdf' => $pdfUrl,
             'client' => $resource->client ? [
@@ -58,15 +59,18 @@ class EstimateSubmittedDefinition implements WebhookEventDefinitionInterface
             'status' => 'submitted',
             'submitted_at' => now()->toIso8601String(),
             'total' => 1500.00,
+            'mobile_number' => '123-456-7890',
             'url' => 'https://example.com/portal/estimates/123?signature=...',
             'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
             'client' => [
                 'name' => 'John Doe',
                 'email' => 'client@example.com',
+                'phone' => '123-456-7890',
             ],
             'creator' => [
                 'name' => 'Agent Smith',
                 'email' => 'agent@company.com',
+                'phone' => '555-0199',
             ],
         ];
     }

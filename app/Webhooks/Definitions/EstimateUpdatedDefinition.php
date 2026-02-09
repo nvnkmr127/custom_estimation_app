@@ -32,6 +32,7 @@ class EstimateUpdatedDefinition implements WebhookEventDefinitionInterface
             'id' => $resource->id,
             'reference' => $resource->reference_number,
             'total' => $resource->total,
+            'mobile_number' => $resource->client?->phone,
             'status' => $resource->status,
             'updated_at' => $resource->updated_at ? $resource->updated_at->toIso8601String() : now()->toIso8601String(),
             'url' => $resource->public_url,
@@ -57,6 +58,7 @@ class EstimateUpdatedDefinition implements WebhookEventDefinitionInterface
             'id' => 123,
             'reference' => 'EST-2024-001',
             'total' => 1750.00,
+            'mobile_number' => '123-456-7890',
             'status' => 'sent',
             'updated_at' => now()->toIso8601String(),
             'url' => 'https://example.com/portal/estimates/123?signature=...',
@@ -73,6 +75,7 @@ class EstimateUpdatedDefinition implements WebhookEventDefinitionInterface
             'creator' => [
                 'name' => 'Agent Smith',
                 'email' => 'agent@company.com',
+                'phone' => '555-0199',
             ],
         ];
     }

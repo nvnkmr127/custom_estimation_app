@@ -30,6 +30,8 @@ class ApprovalRequestedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'status' => $resource->status,
+            'total' => $estimate->total,
+            'mobile_number' => $estimate->client?->phone,
             'created_at' => $resource->created_at->toIso8601String(),
             'estimate' => [
                 'id' => $estimate->id,
@@ -62,6 +64,8 @@ class ApprovalRequestedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 1,
             'status' => 'pending',
+            'total' => 5000.00,
+            'mobile_number' => '123-456-7890',
             'created_at' => now()->toIso8601String(),
             'estimate' => [
                 'id' => 123,
@@ -77,10 +81,12 @@ class ApprovalRequestedDefinition implements WebhookEventDefinitionInterface
             'client' => [
                 'name' => 'John Doe',
                 'email' => 'client@example.com',
+                'phone' => '123-456-7890',
             ],
             'approver' => [
                 'name' => 'Manager One',
                 'email' => 'manager@company.com',
+                'phone' => '555-0199',
             ],
         ];
     }

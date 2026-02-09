@@ -31,6 +31,8 @@ class EstimateRejectedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'reference' => $resource->reference_number,
+            'total' => $resource->total,
+            'mobile_number' => $resource->client?->phone,
             'status' => $resource->status,
             'rejected_at' => now()->toIso8601String(),
             'url' => $resource->public_url,
@@ -54,6 +56,8 @@ class EstimateRejectedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 123,
             'reference' => 'EST-2024-001',
+            'total' => 1500.00,
+            'mobile_number' => '123-456-7890',
             'status' => 'rejected',
             'rejected_at' => now()->toIso8601String(),
             'reason' => 'Total exceeds limit for draft status',
@@ -62,10 +66,12 @@ class EstimateRejectedDefinition implements WebhookEventDefinitionInterface
             'client' => [
                 'name' => 'John Doe',
                 'email' => 'client@example.com',
+                'phone' => '123-456-7890',
             ],
             'creator' => [
                 'name' => 'Agent Smith',
                 'email' => 'agent@company.com',
+                'phone' => '555-0199',
             ],
         ];
     }

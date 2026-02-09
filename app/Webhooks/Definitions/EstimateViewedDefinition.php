@@ -31,6 +31,8 @@ class EstimateViewedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'reference' => $resource->reference_number,
+            'total' => $resource->total,
+            'mobile_number' => $resource->client?->phone,
             'viewed_at' => now()->toIso8601String(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -55,6 +57,8 @@ class EstimateViewedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 123,
             'reference' => 'EST-2024-001',
+            'total' => 1500.00,
+            'mobile_number' => '123-456-7890',
             'viewed_at' => now()->toIso8601String(),
             'ip_address' => '1.2.3.4',
             'user_agent' => 'Mozilla/5.0...',
@@ -63,10 +67,12 @@ class EstimateViewedDefinition implements WebhookEventDefinitionInterface
             'client' => [
                 'name' => 'John Doe',
                 'email' => 'client@example.com',
+                'phone' => '123-456-7890',
             ],
             'creator' => [
                 'name' => 'Agent Smith',
                 'email' => 'agent@company.com',
+                'phone' => '555-0199',
             ],
         ];
     }

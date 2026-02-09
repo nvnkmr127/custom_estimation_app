@@ -30,6 +30,8 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'content' => $resource->content,
+            'total' => $estimate->total,
+            'mobile_number' => $estimate->client?->phone,
             'created_at' => $resource->created_at ? $resource->created_at->toIso8601String() : now()->toIso8601String(),
             'estimate' => [
                 'id' => $estimate->id,
@@ -62,6 +64,8 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 101,
             'content' => 'Can we get a discount on the installation?',
+            'total' => 1500.00,
+            'mobile_number' => '123-456-7890',
             'created_at' => now()->toIso8601String(),
             'estimate' => [
                 'id' => 123,
@@ -77,10 +81,12 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
             'client' => [
                 'name' => 'John Doe',
                 'email' => 'client@example.com',
+                'phone' => '123-456-7890',
             ],
             'commenter' => [
                 'name' => 'John Doe',
                 'email' => 'client@example.com',
+                'phone' => '123-456-7890',
             ],
         ];
     }

@@ -31,6 +31,8 @@ class EstimateApprovedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'reference' => $resource->reference_number,
+            'total' => $resource->total,
+            'mobile_number' => $resource->client?->phone,
             'status' => $resource->status,
             'approved_at' => now()->toIso8601String(), // In real case, fetch from audit log or property
             'signed_at' => $resource->signed_at ? $resource->signed_at->toIso8601String() : null,
@@ -56,6 +58,8 @@ class EstimateApprovedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 123,
             'reference' => 'EST-2024-001',
+            'total' => 1500.00,
+            'mobile_number' => '123-456-7890',
             'status' => 'approved',
             'approved_at' => now()->toIso8601String(),
             'signed_at' => now()->toIso8601String(),
@@ -65,10 +69,12 @@ class EstimateApprovedDefinition implements WebhookEventDefinitionInterface
             'client' => [
                 'name' => 'John Doe',
                 'email' => 'client@example.com',
+                'phone' => '123-456-7890',
             ],
             'creator' => [
                 'name' => 'Agent Smith',
                 'email' => 'agent@company.com',
+                'phone' => '555-0199',
             ],
         ];
     }
