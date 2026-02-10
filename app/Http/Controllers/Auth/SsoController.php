@@ -82,8 +82,9 @@ class SsoController extends Controller
             $user = \App\Models\User::where('email', $decoded->email)->first();
 
             if ($user) {
-                // Always update the role to keep it in sync with the Auth Portal
+                // Always update the role and name to keep it in sync with the Auth Portal
                 $updateData = [
+                    'name' => $decoded->name ?? $user->name,
                     'role' => $this->mapRole($decoded->role ?? null),
                 ];
 
