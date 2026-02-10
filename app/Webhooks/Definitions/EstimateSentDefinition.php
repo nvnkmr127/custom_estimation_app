@@ -6,6 +6,7 @@ use App\Models\Estimate;
 
 class EstimateSentDefinition implements WebhookEventDefinitionInterface
 {
+    use \App\Webhooks\Traits\ShortenUrls;
     public function name(): string
     {
         return 'estimate.sent';
@@ -28,14 +29,19 @@ class EstimateSentDefinition implements WebhookEventDefinitionInterface
         $expiration = $resource->expiry_date ? $resource->expiry_date->endOfDay() : now()->addDays(30);
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $resource->id]);
 
+        // Shorten URLs for cleaner webhook payloads
+        $expiryDays = $expiration->diffInDays(now());
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
+        $shortEstimateUrl = $this->shortenUrl($resource->public_url, $expiryDays);
+
         return [
             'id' => $resource->id,
             'reference' => $resource->estimate_number,
             'total' => $resource->grand_total,
             'mobile_number' => $resource->client?->phone,
             'sent_at' => now()->toIso8601String(),
-            'url' => $resource->public_url,
-            'pdf' => $pdfUrl,
+            'url' => $shortEstimateUrl,
+            'pdf' => $shortPdfUrl,
             'client' => $resource->client ? [
                 'name' => $resource->client->name,
                 'email' => $resource->client->email,
@@ -56,19 +62,19 @@ class EstimateSentDefinition implements WebhookEventDefinitionInterface
             'id' => 123,
             'reference' => 'EST-2024-001',
             'total' => 1500.00,
-            'mobile_number' => '123-456-7890',
+            'mobile_number' => '8688771397',
             'sent_at' => now()->toIso8601String(),
             'url' => 'https://example.com/portal/estimates/123?signature=...',
             'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
             'client' => [
                 'name' => 'John Doe',
-                'email' => 'client@example.com',
-                'phone' => '123-456-7890',
+                'email' => 'wapmedia3@gmail.com',
+                'phone' => '8688771397',
             ],
             'creator' => [
                 'name' => 'Agent Smith',
-                'email' => 'agent@company.com',
-                'phone' => '555-0199',
+                'email' => 'wapmedia3@gmail.com',
+                'phone' => '8688771397',
             ],
         ];
     }

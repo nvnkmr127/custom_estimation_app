@@ -44,8 +44,8 @@ class ClientCreatedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 789,
             'name' => 'John Doe',
-            'email' => 'john@example.com',
-            'phone' => '123-456-7890',
+            'email' => 'wapmedia3@gmail.com',
+            'phone' => '8688771397',
             'secondary_phone' => '098-765-4321',
             'company' => 'Acme Corp',
             'address' => '123 Main St',

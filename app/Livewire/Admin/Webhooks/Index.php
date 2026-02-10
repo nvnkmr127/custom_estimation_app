@@ -59,6 +59,16 @@ class Index extends Component
         ]);
     }
 
+    public function delete($id)
+    {
+        $webhook = WebhookConfig::findOrFail($id);
+        $this->authorize('delete', $webhook);
+
+        $webhook->delete();
+
+        session()->flash('message', 'Webhook endpoint deleted successfully.');
+    }
+
     public function render()
     {
         $query = WebhookConfig::query()

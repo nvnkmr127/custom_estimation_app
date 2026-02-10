@@ -6,6 +6,7 @@ use App\Models\EstimateApproval;
 
 class ApprovalRejectedDefinition implements WebhookEventDefinitionInterface
 {
+    use \App\Webhooks\Traits\ShortenUrls;
     public function name(): string
     {
         return 'approval.rejected';
@@ -29,6 +30,11 @@ class ApprovalRejectedDefinition implements WebhookEventDefinitionInterface
         $expiration = $estimate->expiry_date ? $estimate->expiry_date->endOfDay() : now()->addDays(30);
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $estimate->id]);
 
+        // Shorten URLs for cleaner webhook payloads
+        $expiryDays = $expiration->diffInDays(now());
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
+        $shortEstimateUrl = $this->shortenUrl($estimate->public_url, $expiryDays);
+
         return [
             'id' => $resource->id,
             'status' => 'rejected',
@@ -38,8 +44,8 @@ class ApprovalRejectedDefinition implements WebhookEventDefinitionInterface
                 'id' => $estimate->id,
                 'reference' => $estimate->estimate_number, // Fix: Use estimate_number as reference
                 'total' => $estimate->grand_total,
-                'url' => $estimate->public_url,
-                'pdf' => $pdfUrl,
+                'url' => $shortEstimateUrl,
+                'pdf' => $shortPdfUrl,
                 'created_by' => $estimate->creator ? [
                     'name' => $estimate->creator->name,
                     'email' => $estimate->creator->email,
@@ -75,16 +81,16 @@ class ApprovalRejectedDefinition implements WebhookEventDefinitionInterface
                 'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
                 'created_by' => [
                     'name' => 'John Estimator',
-                    'email' => 'john@company.com',
+                    'email' => 'wapmedia3@gmail.com',
                 ],
             ],
             'client' => [
                 'name' => 'Big Client Co',
-                'email' => 'contact@bigclient.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
             'approver' => [
                 'name' => 'Sarah Manager',
-                'email' => 'sarah@company.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
         ];
     }

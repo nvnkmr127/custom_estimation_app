@@ -6,6 +6,7 @@ use App\Models\Estimate;
 
 class EstimateDeclinedDefinition implements WebhookEventDefinitionInterface
 {
+    use \App\Webhooks\Traits\ShortenUrls;
     public function name(): string
     {
         return 'estimate.declined';
@@ -28,14 +29,19 @@ class EstimateDeclinedDefinition implements WebhookEventDefinitionInterface
         $expiration = $resource->expiry_date ? $resource->expiry_date->endOfDay() : now()->addDays(30);
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $resource->id]);
 
+        // Shorten URLs for cleaner webhook payloads
+        $expiryDays = $expiration->diffInDays(now());
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
+        $shortEstimateUrl = $this->shortenUrl($resource->public_url, $expiryDays);
+
         return [
             'id' => $resource->id,
             'reference' => $resource->estimate_number,
             'status' => $resource->status,
             'declined_at' => now()->toIso8601String(), // Ideally fetch from audit log
             'reason' => $resource->client_notes, // Using client_notes as the decline reason
-            'url' => $resource->public_url,
-            'pdf' => $pdfUrl,
+            'url' => $shortEstimateUrl,
+            'pdf' => $shortPdfUrl,
             'client' => $resource->client ? [
                 'name' => $resource->client->name,
                 'email' => $resource->client->email,
@@ -62,11 +68,11 @@ class EstimateDeclinedDefinition implements WebhookEventDefinitionInterface
             'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
             'client' => [
                 'name' => 'John Doe',
-                'email' => 'client@example.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
             'creator' => [
                 'name' => 'Agent Smith',
-                'email' => 'agent@company.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
         ];
     }

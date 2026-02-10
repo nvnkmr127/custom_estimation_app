@@ -4,6 +4,7 @@ namespace App\Webhooks\Definitions;
 
 class CommentAddedDefinition implements WebhookEventDefinitionInterface
 {
+    use \App\Webhooks\Traits\ShortenUrls;
     public function name(): string
     {
         return 'comment.added';
@@ -27,6 +28,11 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
         $expiration = $estimate->expiry_date ? $estimate->expiry_date->endOfDay() : now()->addDays(30);
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $estimate->id]);
 
+        // Shorten URLs for cleaner webhook payloads
+        $expiryDays = $expiration->diffInDays(now());
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
+        $shortEstimateUrl = $this->shortenUrl($estimate->public_url, $expiryDays);
+
         return [
             'id' => $resource->id,
             'content' => $resource->content,
@@ -37,8 +43,8 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
                 'id' => $estimate->id,
                 'reference' => $estimate->estimate_number,
                 'total' => $estimate->grand_total,
-                'url' => $estimate->public_url,
-                'pdf' => $pdfUrl,
+                'url' => $shortEstimateUrl,
+                'pdf' => $shortPdfUrl,
                 'created_by' => $estimate->creator ? [
                     'name' => $estimate->creator->name,
                     'email' => $estimate->creator->email,
@@ -65,7 +71,7 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
             'id' => 101,
             'content' => 'Can we get a discount on the installation?',
             'total' => 1500.00,
-            'mobile_number' => '123-456-7890',
+            'mobile_number' => '8688771397',
             'created_at' => now()->toIso8601String(),
             'estimate' => [
                 'id' => 123,
@@ -75,18 +81,18 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
                 'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
                 'created_by' => [
                     'name' => 'Agent Smith',
-                    'email' => 'agent@company.com',
+                    'email' => 'wapmedia3@gmail.com',
                 ],
             ],
             'client' => [
                 'name' => 'John Doe',
-                'email' => 'client@example.com',
-                'phone' => '123-456-7890',
+                'email' => 'wapmedia3@gmail.com',
+                'phone' => '8688771397',
             ],
             'commenter' => [
                 'name' => 'John Doe',
-                'email' => 'client@example.com',
-                'phone' => '123-456-7890',
+                'email' => 'wapmedia3@gmail.com',
+                'phone' => '8688771397',
             ],
         ];
     }

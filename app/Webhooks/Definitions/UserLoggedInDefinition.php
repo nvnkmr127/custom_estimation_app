@@ -38,7 +38,7 @@ class UserLoggedInDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 1,
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'wapmedia3@gmail.com',
             'role' => 'estimator',
             'logged_in_at' => now()->toIso8601String(),
         ];

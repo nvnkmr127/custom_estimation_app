@@ -35,6 +35,9 @@ Route::get('t/{estimate}/pixel.png', [App\Http\Controllers\TrackingController::c
 Route::get('tracking/open/{id}', [App\Http\Controllers\EmailTrackingController::class, 'trackOpen'])->name('tracking.open');
 Route::get('tracking/click/{id}', [App\Http\Controllers\EmailTrackingController::class, 'trackClick'])->name('tracking.click');
 
+// Short URL Redirects
+Route::get('s/{code}', [App\Http\Controllers\ShortUrlController::class, 'redirect'])->name('short-url.redirect');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', App\Livewire\Dashboard::class)->name('dashboard');
 

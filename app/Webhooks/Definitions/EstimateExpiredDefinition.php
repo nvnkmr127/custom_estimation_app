@@ -6,6 +6,7 @@ use App\Models\Estimate;
 
 class EstimateExpiredDefinition implements WebhookEventDefinitionInterface
 {
+    use \App\Webhooks\Traits\ShortenUrls;
     public function name(): string
     {
         return 'estimate.expired';
@@ -28,12 +29,17 @@ class EstimateExpiredDefinition implements WebhookEventDefinitionInterface
         $expiration = $resource->expiry_date ? $resource->expiry_date->endOfDay() : now()->addDays(30);
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $resource->id]);
 
+        // Shorten URLs for cleaner webhook payloads
+        $expiryDays = $expiration->diffInDays(now());
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
+        $shortEstimateUrl = $this->shortenUrl($resource->public_url, $expiryDays);
+
         return [
             'id' => $resource->id,
             'reference' => $resource->estimate_number,
             'expired_at' => $resource->expiry_date ? $resource->expiry_date->toIso8601String() : now()->toIso8601String(),
-            'url' => $resource->public_url,
-            'pdf' => $pdfUrl,
+            'url' => $shortEstimateUrl,
+            'pdf' => $shortPdfUrl,
             'client' => $resource->client ? [
                 'name' => $resource->client->name,
                 'email' => $resource->client->email,
@@ -58,11 +64,11 @@ class EstimateExpiredDefinition implements WebhookEventDefinitionInterface
             'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
             'client' => [
                 'name' => 'John Doe',
-                'email' => 'client@example.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
             'creator' => [
                 'name' => 'Agent Smith',
-                'email' => 'agent@company.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
         ];
     }

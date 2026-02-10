@@ -474,11 +474,7 @@ class ShowEstimate extends Component
         }
     }
 
-    public function ping()
-    {
-        \Log::info("Livewire: PING received from " . auth()->user()->name);
-        session()->flash('success', 'Ping received!');
-    }
+
 
     public function render()
     {

@@ -7,7 +7,7 @@ The Single Sign-On (SSO) integration uses **OpenID Connect (OIDC)** inspired JWT
 Refer to the [Main Configuration Guide](./SSO_CONFIG.md) for a full list of `.env` variables.
 
 ## Authentication Flow
-1. **Redirect**: `Authenticate` middleware detects guest status and redirects to `{AUTH_CORE_URL}/login?redirect={APP_URL}`.
+1. **Redirect**: `Authenticate` middleware detects guest status and redirects to `{AUTH_CORE_URL}/login?redirect=https://estimator.onestudio.co.in/`.
 2. **Callback**: The `SsoController@callback` receives the JWT.
 3. **Verification**: Token is verified for signature, expiration, audience, issuer, and uniqueness (JTI).
 4. **Provisioning**: User is found by email or created.

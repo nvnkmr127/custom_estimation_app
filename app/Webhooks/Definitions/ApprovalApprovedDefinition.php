@@ -4,6 +4,7 @@ namespace App\Webhooks\Definitions;
 
 class ApprovalApprovedDefinition implements WebhookEventDefinitionInterface
 {
+    use \App\Webhooks\Traits\ShortenUrls;
     public function name(): string
     {
         return 'approval.approved';
@@ -27,6 +28,11 @@ class ApprovalApprovedDefinition implements WebhookEventDefinitionInterface
         $expiration = $estimate->expiry_date ? $estimate->expiry_date->endOfDay() : now()->addDays(30);
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $estimate->id]);
 
+        // Shorten URLs for cleaner webhook payloads
+        $expiryDays = $expiration->diffInDays(now());
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
+        $shortEstimateUrl = $this->shortenUrl($estimate->public_url, $expiryDays);
+
         return [
             'id' => $resource->id,
             'status' => 'approved',
@@ -35,8 +41,8 @@ class ApprovalApprovedDefinition implements WebhookEventDefinitionInterface
                 'id' => $estimate->id,
                 'reference' => $estimate->estimate_number,
                 'total' => $estimate->grand_total,
-                'url' => $estimate->public_url,
-                'pdf' => $pdfUrl,
+                'url' => $shortEstimateUrl,
+                'pdf' => $shortPdfUrl,
                 'created_by' => $estimate->creator ? [
                     'name' => $estimate->creator->name,
                     'email' => $estimate->creator->email,
@@ -71,16 +77,16 @@ class ApprovalApprovedDefinition implements WebhookEventDefinitionInterface
                 'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
                 'created_by' => [
                     'name' => 'Sales Rep',
-                    'email' => 'sales@company.com',
+                    'email' => 'wapmedia3@gmail.com',
                 ],
             ],
             'client' => [
                 'name' => 'John Doe',
-                'email' => 'client@example.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
             'approver' => [
                 'name' => 'Manager One',
-                'email' => 'manager@company.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
         ];
     }

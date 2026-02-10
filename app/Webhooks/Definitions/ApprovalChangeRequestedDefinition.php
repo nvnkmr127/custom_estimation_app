@@ -6,6 +6,7 @@ use App\Models\EstimateApproval;
 
 class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterface
 {
+    use \App\Webhooks\Traits\ShortenUrls;
     public function name(): string
     {
         return 'approval.change_requested';
@@ -29,6 +30,11 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
         $expiration = $estimate->expiry_date ? $estimate->expiry_date->endOfDay() : now()->addDays(30);
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $estimate->id]);
 
+        // Shorten URLs for cleaner webhook payloads
+        $expiryDays = $expiration->diffInDays(now());
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
+        $shortEstimateUrl = $this->shortenUrl($estimate->public_url, $expiryDays);
+
         return [
             'id' => $resource->id,
             'status' => 'change_requested',
@@ -38,8 +44,8 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
                 'id' => $estimate->id,
                 'reference' => $estimate->estimate_number,
                 'total' => $estimate->grand_total,
-                'url' => $estimate->public_url,
-                'pdf' => $pdfUrl,
+                'url' => $shortEstimateUrl,
+                'pdf' => $shortPdfUrl,
                 'created_by' => $estimate->creator ? [
                     'name' => $estimate->creator->name,
                     'email' => $estimate->creator->email,
@@ -75,16 +81,16 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
                 'pdf' => 'https://example.com/portal/estimates/124/download?signature=...',
                 'created_by' => [
                     'name' => 'Alice Estimator',
-                    'email' => 'alice@company.com',
+                    'email' => 'wapmedia3@gmail.com',
                 ],
             ],
             'client' => [
                 'name' => 'Small Biz Inc',
-                'email' => 'contact@smallbiz.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
             'approver' => [
                 'name' => 'Sarah Manager',
-                'email' => 'sarah@company.com',
+                'email' => 'wapmedia3@gmail.com',
             ],
         ];
     }

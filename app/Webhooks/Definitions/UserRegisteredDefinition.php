@@ -35,7 +35,7 @@ class UserRegisteredDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 5,
             'name' => 'Jane Smith',
-            'email' => 'jane@example.com',
+            'email' => 'wapmedia3@gmail.com',
             'registered_at' => now()->toIso8601String(),
         ];
     }

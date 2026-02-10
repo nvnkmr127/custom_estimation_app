@@ -4,11 +4,11 @@ This guide is for system administrators responsible for configuring the connecti
 
 ## 1. Requirement: Application Name (Slug)
 When you register this application in the Nexus Identity portal, the **Application ID** or **Slug** must exactly match the `SSO_JWT_AUDIENCE` setting in our application. 
-*   **Recommendation**: Use the full URL of this application (e.g., `https://estimates.yourcompany.com`) as the ID in both places.
+*   **Recommendation**: Use the full URL of this application (`https://estimator.onestudio.co.in/`) as the ID in both places.
 
 ## 2. Requirement: Callback URL
 You must register the following URL as the **Allowed Callback URL** in the authentication portal:
-`https://your-app-domain.com/sso/callback`
+`https://estimator.onestudio.co.in/sso/callback`
 
 *   **Note**: This URL is case-sensitive and must use the same protocol (HTTP vs HTTPS) as the live site.
 
