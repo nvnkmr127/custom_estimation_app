@@ -57,6 +57,7 @@ return [
     */
 
     'role_mapping' => [
+        'super_admin' => 'super_admin',
         'admin' => 'super_admin',
         'estimator_admin' => 'estimator_admin',
         'manager' => 'estimator_manager',
