@@ -122,4 +122,14 @@ return [
 
     'jti_ttl' => env('SSO_JTI_TTL', 3600),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Sync Token
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret token used to authenticate sync requests from the Auth Portal.
+    |
+    */
+    'sync_token' => env('SSO_SYNC_TOKEN'),
+
 ];

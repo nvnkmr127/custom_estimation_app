@@ -19,6 +19,9 @@ Route::get('/sso/callback', [App\Http\Controllers\Auth\SsoController::class, 'ca
     ->name('sso.callback')
     ->middleware(['guest', 'throttle:6,1']);
 
+// SSO Config Sync (Used by Auth Portal)
+Route::get('/api/sso/sync', [App\Http\Controllers\Auth\SsoSyncController::class, 'index']);
+
 // Portal (Signed Routes)
 Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::get('/estimates/{estimate}', [App\Http\Controllers\PortalController::class, 'show'])->name('show')->middleware('signed');
