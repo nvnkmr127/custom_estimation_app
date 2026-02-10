@@ -24,8 +24,12 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(Request $request): \Illuminate\View\View|\Illuminate\Http\RedirectResponse
     {
+        if (config('sso.enabled') && !$request->has('local')) {
+            return redirect()->route('sso.login');
+        }
+
         return view('auth.login');
     }
 

@@ -26,8 +26,12 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View|RedirectResponse
     {
+        if (config('sso.enabled') && !$request->has('local')) {
+            return redirect()->route('sso.login');
+        }
+
         return view('auth.register');
     }
 

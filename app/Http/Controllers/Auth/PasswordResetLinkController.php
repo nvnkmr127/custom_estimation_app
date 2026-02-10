@@ -13,8 +13,12 @@ class PasswordResetLinkController extends Controller
     /**
      * Display the password reset link request view.
      */
-    public function create(): View
+    public function create(Request $request): View|RedirectResponse
     {
+        if (config('sso.enabled') && !$request->has('local')) {
+            return redirect()->route('sso.login');
+        }
+
         return view('auth.forgot-password');
     }
 
@@ -37,8 +41,8 @@ class PasswordResetLinkController extends Controller
         );
 
         return $status == Password::RESET_LINK_SENT
-                    ? back()->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                        ->withErrors(['email' => __($status)]);
+            ? back()->with('status', __($status))
+            : back()->withInput($request->only('email'))
+                ->withErrors(['email' => __($status)]);
     }
 }
