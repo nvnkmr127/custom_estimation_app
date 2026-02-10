@@ -82,14 +82,19 @@ class SsoController extends Controller
             $user = \App\Models\User::where('email', $decoded->email)->first();
 
             if ($user) {
-                // Do not override existing users' basic info, but link SSO if not linked
+                // Always update the role to keep it in sync with the Auth Portal
+                $updateData = [
+                    'role' => $this->mapRole($decoded->role ?? null),
+                ];
+
+                // Link SSO if not already linked
                 if (!$user->provider_name) {
-                    $user->update([
-                        'provider_name' => 'auth_core',
-                        'provider_id' => $decoded->sub,
-                        'source' => 'sso',
-                    ]);
+                    $updateData['provider_name'] = 'auth_core';
+                    $updateData['provider_id'] = $decoded->sub;
+                    $updateData['source'] = 'sso';
                 }
+
+                $user->update($updateData);
             } else {
                 // Auto-provisioning for new users
                 $user = \App\Models\User::create([
