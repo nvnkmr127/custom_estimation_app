@@ -44,7 +44,8 @@
                 @forelse($clients as $client)
                     <tr class="hover:bg-gray-50">
                         <td class="whitespace-nowrap px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">{{ $client->name }}</div>
+                            <a href="{{ route('clients.show', $client) }}"
+                                class="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors">{{ $client->name }}</a>
                             @if($client->city || $client->state)
                                 <div class="text-sm text-gray-500">
                                     {{ $client->city }}{{ $client->city && $client->state ? ', ' : '' }}{{ $client->state }}
