@@ -31,7 +31,7 @@ class WebhookController extends Controller
         }
 
         // 3. Dispatch for Async Processing
-        ProcessInboundWebhook::dispatch($event);
+        ProcessInboundWebhook::dispatchSync($event);
 
         // 4. Acknowledge Receipt
         return response()->json(['message' => 'Accepted'], 202);
@@ -88,7 +88,7 @@ class WebhookController extends Controller
         ]);
 
         // 4. Dispatch for Async Processing
-        ProcessInboundWebhook::dispatch($event);
+        ProcessInboundWebhook::dispatchSync($event);
 
         return response()->json(['message' => 'Received'], 200);
     }
