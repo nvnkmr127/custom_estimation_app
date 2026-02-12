@@ -91,19 +91,31 @@ class ProcessInboundWebhook implements ShouldQueue
     {
         // If no rules, assume always trigger? Or never? Let's say never to be safe, or allow "catch all" if empty.
         // For now, if empty, we skip.
-        if (empty($rules))
+        if (empty($rules)) {
+            Log::info("Webhook Debug: No rules defined, matching by default.");
             return true;
+        }
 
         $field = $rules['field'] ?? null;
         $value = $rules['value'] ?? null;
         $operator = $rules['operator'] ?? '=';
 
-        if (!$field)
+        if (!$field) {
+            Log::info("Webhook Debug: No field in rules, matching by default.");
             return true; // Empty rule = match all
+        }
 
         $actualValue = $this->getValue($payload, $field);
 
-        return match ($operator) {
+        Log::info("Webhook Debug: Checking Trigger Rule", [
+            'field' => $field,
+            'expected_value' => $value,
+            'operator' => $operator,
+            'actual_value' => $actualValue,
+            'payload_keys' => array_keys($payload)
+        ]);
+
+        $result = match ($operator) {
             '=' => $actualValue == $value,
             '!=' => $actualValue != $value,
             'contains' => str_contains((string) $actualValue, (string) $value),
@@ -111,6 +123,12 @@ class ProcessInboundWebhook implements ShouldQueue
             '<' => $actualValue < $value,
             default => false,
         };
+
+        if (!$result) {
+            Log::info("Webhook Debug: Trigger Rule Failed.");
+        }
+
+        return $result;
     }
 
     protected function executeAction(\App\Models\WebhookMapper $mapper, array $payload): void
