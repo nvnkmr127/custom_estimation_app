@@ -146,6 +146,7 @@ class InboundEndpoints extends Component
     public $mapperEndpointId = null;
     public $mappers = [];
     public $newMapperName = '';
+    public $editingMapperId = null;
 
     public $newMapperActionType = 'create_lead';
 
@@ -170,6 +171,7 @@ class InboundEndpoints extends Component
     public function startNewMapper()
     {
         $this->newMapperName = '';
+        $this->editingMapperId = null;
 
         // Reset Trigger State
         $this->triggerField = '';
@@ -284,6 +286,35 @@ class InboundEndpoints extends Component
         $this->mappingRows = array_values($this->mappingRows);
     }
 
+    public function editMapper($id)
+    {
+        $mapper = \App\Models\WebhookMapper::findOrFail($id);
+        $this->editingMapperId = $mapper->id;
+        $this->newMapperName = $mapper->name;
+        $this->newMapperActionType = $mapper->action_type;
+
+        $rules = $mapper->trigger_rules;
+        $this->triggerField = $rules['field'] ?? '';
+        $this->triggerOperator = $rules['operator'] ?? '=';
+        $this->triggerValue = $rules['value'] ?? '';
+
+        $config = $mapper->action_config ?? [];
+        $this->mappingRows = [];
+        foreach ($config as $dest => $source) {
+            $this->mappingRows[] = [
+                'source' => str_replace('payload.', '', $source),
+                'destination' => $dest
+            ];
+        }
+
+        if (empty($this->mappingRows)) {
+            $this->mappingRows = [['source' => '', 'destination' => '']];
+        }
+
+        $this->updateSystemFields();
+        $this->discoverKeys();
+    }
+
     public function createMapper()
     {
         $this->validate([
@@ -311,19 +342,30 @@ class InboundEndpoints extends Component
             ];
         }
 
-        \App\Models\WebhookMapper::create([
-            'uuid' => Str::uuid(),
-            'webhook_inbound_endpoint_id' => $this->mapperEndpointId,
-            'name' => $this->newMapperName,
-            'trigger_rules' => $triggerRules,
-            'action_type' => $this->newMapperActionType,
-            'action_config' => $actionConfig, // Saved as array, cast to JSON automatically
-            'is_active' => true,
-        ]);
+        if ($this->editingMapperId) {
+            $mapper = \App\Models\WebhookMapper::findOrFail($this->editingMapperId);
+            $mapper->update([
+                'name' => $this->newMapperName,
+                'trigger_rules' => $triggerRules,
+                'action_type' => $this->newMapperActionType,
+                'action_config' => $actionConfig,
+            ]);
+            session()->flash('success', 'Mapper updated successfully.');
+        } else {
+            \App\Models\WebhookMapper::create([
+                'uuid' => Str::uuid(),
+                'webhook_inbound_endpoint_id' => $this->mapperEndpointId,
+                'name' => $this->newMapperName,
+                'trigger_rules' => $triggerRules,
+                'action_type' => $this->newMapperActionType,
+                'action_config' => $actionConfig, // Saved as array, cast to JSON automatically
+                'is_active' => true,
+            ]);
+            session()->flash('success', 'Mapper created successfully.');
+        }
 
         $this->startNewMapper();
         $this->loadMappers();
-        session()->flash('success', 'Mapper created successfully.');
     }
 
     public $dryRunResult = null;

@@ -528,16 +528,28 @@
                                                         <div class="text-xs text-slate-500 font-mono mt-0.5">
                                                             {{ $mapper->action_type }}</div>
                                                     </div>
-                                                    <button wire:click="deleteMapper({{ $mapper->id }})"
-                                                        class="text-slate-400 hover:text-rose-500 transition">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                            viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                                            </path>
-                                                        </svg>
-                                                    </button>
+                                                    <div class="flex items-center gap-2">
+                                                        <button wire:click="editMapper({{ $mapper->id }})"
+                                                            class="text-slate-400 hover:text-indigo-600 transition">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                                viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                                                </path>
+                                                            </svg>
+                                                        </button>
+                                                        <button wire:click="deleteMapper({{ $mapper->id }})"
+                                                            class="text-slate-400 hover:text-rose-500 transition">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                                viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                                </path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             @empty
                                                 <div
@@ -548,9 +560,14 @@
                                         </div>
                                     </div>
 
-                                    {{-- New Mapper Form --}}
+                                    {{-- Mapper Form --}}
                                     <div class="mt-8 pt-6 border-t border-slate-100">
-                                        <h4 class="text-sm font-bold text-slate-900 mb-4">Add New Mapper</h4>
+                                        <div class="flex items-center justify-between mb-4">
+                                            <h4 class="text-sm font-bold text-slate-900">{{ $editingMapperId ? 'Edit Mapper Rule' : 'Add New Mapper' }}</h4>
+                                            @if($editingMapperId)
+                                                <button wire:click="startNewMapper" class="text-xs font-bold text-rose-500 hover:text-rose-700">Cancel Edit</button>
+                                            @endif
+                                        </div>
                                         <div class="space-y-4">
                                             <div>
                                                 <label class="block text-xs font-bold text-slate-700 mb-1">Rule Name</label>
@@ -718,7 +735,7 @@
                                                     Test Logic (Dry Run)
                                                 </button>
                                                 <button wire:click="createMapper" class="flex-[2] rounded-lg bg-indigo-600 px-3 py-2 text-sm font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                                                    Save Mapper Rule
+                                                    {{ $editingMapperId ? 'Update Mapper Rule' : 'Save Mapper Rule' }}
                                                 </button>
                                             </div>
 
