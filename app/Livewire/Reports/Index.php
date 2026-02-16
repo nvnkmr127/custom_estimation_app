@@ -471,34 +471,33 @@ class Index extends Component
         // 9. Estimator Leaderboard (If Admin)
         $leaderboard = [];
         if (auth()->user()->isAdmin()) {
-            $leaderboard = \App\Models\User::whereHas('estimates', function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('estimate_date', [$startDate, $endDate]);
-            })
-                ->withCount([
-                    'estimates as total_estimates' => function ($q) use ($startDate, $endDate) {
-                        $q->whereBetween('estimate_date', [$startDate, $endDate]);
-                    }
-                ])
-                ->withSum([
-                    'estimates as total_revenue' => function ($q) use ($startDate, $endDate) {
-                        $q->where('status', 'accepted')->whereBetween('estimate_date', [$startDate, $endDate]);
-                    }
-                ], 'grand_total')
-                ->get()
-                ->map(function ($user) use ($startDate, $endDate) {
-                    $wonCount = $user->estimates()->where('status', 'accepted')->whereBetween('estimate_date', [$startDate, $endDate])->count();
-                    $total = $user->total_estimates;
-                    $winRate = $total > 0 ? round(($wonCount / $total) * 100, 1) : 0;
-                    return [
-                        'name' => $user->name,
-                        'revenue' => $user->total_revenue ?? 0,
-                        'estimates' => $total,
-                        'win_rate' => $winRate,
-                        'avatar' => $user->profile_photo_url, // Assuming standard Laravel User model
-                    ];
-                })
-                ->sortByDesc('revenue')
-                ->values();
+            // Updated logic: Query estimates directly grouped by creator to avoid 'user_id' column error
+            // The User->estimates() relationship likely defaults to user_id, but the FK is created_by.
+
+            $estimatorStats = \App\Models\Estimate::whereBetween('estimate_date', [$startDate, $endDate])
+                ->selectRaw('created_by, count(*) as total_estimates, sum(case when status = "accepted" then 1 else 0 end) as won_count, sum(case when status = "accepted" then grand_total else 0 end) as total_revenue')
+                ->whereNotNull('created_by')
+                ->groupBy('created_by')
+                ->get();
+
+            // Map stats to user details
+            $leaderboard = $estimatorStats->map(function ($stat) {
+                $user = \App\Models\User::find($stat->created_by);
+                if (!$user)
+                    return null;
+
+                $total = $stat->total_estimates;
+                $winRate = $total > 0 ? round(($stat->won_count / $total) * 100, 1) : 0;
+
+                return [
+                    'name' => $user->name,
+                    'revenue' => $stat->total_revenue ?? 0,
+                    'estimates' => $total,
+                    'win_rate' => $winRate,
+                    // Use a default avatar or user's if method exists
+                    'avatar' => method_exists($user, 'profile_photo_url') ? $user->profile_photo_url : "https://ui-avatars.com/api/?name=" . urlencode($user->name) . "&color=7F9CF5&background=EBF4FF",
+                ];
+            })->filter()->sortByDesc('revenue')->values();
         }
 
         // 10. Deal Size Distribution (Histogram)
