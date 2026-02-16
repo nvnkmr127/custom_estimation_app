@@ -220,7 +220,7 @@
                     init() {
                          this.renderChart(this.chartData);
                          Livewire.on('chartDataUpdated', (data) => {
-                             // Data is passed as an object { trendData: ..., ... }
+                             /* Data is passed as an object { trendData: ..., ... } */
                              if (data.trendData) {
                                 this.chartData = data.trendData;
                                 this.renderChart(this.chartData);
@@ -293,10 +293,10 @@
                                         label: 'Count',
                                         data: [funnel.sent, funnel.opened, funnel.viewed, funnel.accepted],
                                         backgroundColor: [
-                                            '#3b82f6', // blue-500
-                                            '#6366f1', // indigo-500
-                                            '#8b5cf6', // violet-500
-                                            '#22c55e'  // green-500
+                                            '#3b82f6', /* blue-500 */
+                                            '#6366f1', /* indigo-500 */
+                                            '#8b5cf6', /* violet-500 */
+                                            '#22c55e'  /* green-500 */
                                         ],
                                         barPercentage: 0.6,
                                     }]
@@ -340,14 +340,14 @@
                             }
                             const ctx = this.$refs.canvas.getContext('2d');
                             
-                            // Default colors mapping
+                            /* Default colors mapping */
                             const colors = {
-                                'accepted': '#22c55e', // green-500
-                                'declined': '#ef4444', // red-500
-                                'sent': '#3b82f6',     // blue-500
-                                'draft': '#9ca3af',    // gray-400
-                                'expired': '#f59e0b',  // amber-500
-                                'waiting_approval': '#a855f7' // purple-500
+                                'accepted': '#22c55e', /* green-500 */
+                                'declined': '#ef4444', /* red-500 */
+                                'sent': '#3b82f6',     /* blue-500 */
+                                'draft': '#9ca3af',    /* gray-400 */
+                                'expired': '#f59e0b',  /* amber-500 */
+                                'waiting_approval': '#a855f7' /* purple-500 */
                             };
     
                             const labels = Object.keys(statusCounts);
@@ -418,7 +418,7 @@
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                                                                                                                                                                                                            {{ match ($estimate->status) {
+                                                                                                                                                                                                                                                                                                            {{ match ($estimate->status) {
                                 'accepted' => 'bg-green-50 text-green-700 ring-green-600/20',
                                 'declined' => 'bg-red-50 text-red-700 ring-red-600/20',
                                 'sent' => 'bg-blue-50 text-blue-700 ring-blue-600/20',
@@ -510,9 +510,11 @@
                         @forelse($hotLeads as $lead)
                             <tr class="hover:bg-orange-50/50 transition-colors">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {{ Str::limit($lead->client->name ?? 'Unknown', 15) }}</td>
+                                    {{ Str::limit($lead->client->name ?? 'Unknown', 15) }}
+                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-center font-bold text-orange-600">
-                                    {{ $lead->view_count }}</td>
+                                    {{ $lead->view_count }}
+                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
                                     <a href="{{ route('estimates.edit', $lead->id) }}"
                                         class="text-indigo-600 hover:text-indigo-900 text-xs uppercase font-bold">Open</a>
@@ -549,9 +551,11 @@
                         @forelse($staleEstimates as $estimate)
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {{ Str::limit($estimate->client->name ?? 'Unknown', 15) }}</td>
+                                    {{ Str::limit($estimate->client->name ?? 'Unknown', 15) }}
+                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-500">
-                                    {{ $estimate->updated_at->diffInDays() }} days</td>
+                                    {{ $estimate->updated_at->diffInDays() }} days
+                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
                                     <a href="{{ route('estimates.edit', $estimate->id) }}"
                                         class="text-indigo-600 hover:text-indigo-900 text-xs uppercase font-bold">Nudge</a>
@@ -612,8 +616,139 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    @push('scripts')
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    @endpush
+    <!-- Strategic Breakdown Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <!-- Top Revenue Categories -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Revenue by Category</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($topCategories as $category)
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ $category->name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                    {{ number_format($category->revenue, 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">No category data.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recurring vs New Business -->
+        <div class="bg-white rounded-lg shadow overflow-hidden p-6">
+            <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Recurring vs New Business</h3>
+
+            <div class="space-y-6">
+                <!-- New Business -->
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-sm font-medium text-gray-700">New Business</span>
+                        <span class="text-sm font-semibold text-gray-900">{{ number_format($newBusinessRevenue, 2) }}
+                            ({{ $newBusinessPercentage }}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ $newBusinessPercentage }}%"></div>
+                    </div>
+                </div>
+
+                <!-- Recurring Business -->
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-sm font-medium text-gray-700">Recurring Business</span>
+                        <span class="text-sm font-semibold text-gray-900">{{ number_format($recurringRevenue, 2) }}
+                            ({{ $recurringPercentage }}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-purple-600 h-2.5 rounded-full" style="width: {{ $recurringPercentage }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500">
+                    <p>* "New Business" counts revenue from a client's first accepted estimate in this period.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Analytics Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8 mb-12">
+        <!-- Cohort Analysis -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Client Retention by Cohort</h3>
+                <p class="text-xs text-gray-500">Revenue from clients acquired in previous months.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acquisition
+                                Month</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Active Clients
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue
+                                Contributed</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($cohortRevenue as $cohort)
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ $cohort->acquisition_month }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
+                                    {{ $cohort->active_clients }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                                    {{ number_format($cohort->revenue, 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">No cohort data
+                                    available.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Product Affinity & Market Basket -->
+        <div class="bg-white rounded-lg shadow overflow-hidden p-6">
+            <h3 class="text-base font-semibold leading-6 text-gray-900 mb-2">Product Affinity</h3>
+            <p class="text-sm text-gray-500 mb-6">Frequently bought with
+                <strong>{{ $topAffinityName ?: 'Top Product' }}</strong>:</p>
+
+            @if(count($affinityProducts) > 0)
+                <ul role="list" class="divide-y divide-gray-100">
+                    @foreach($affinityProducts as $product)
+                        <li class="flex gap-x-4 py-3">
+                            <div class="flex-auto">
+                                <p class="text-sm font-semibold leading-6 text-gray-900">{{ $product->name }}</p>
+                                <p class="text-xs text-gray-500">Found in {{ $product->frequency }} shared estimates</p>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p class="text-sm text-gray-500 text-center py-8">No significant product pairings found because the top
+                    product has no sold companions.</p>
+            @endif
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </div>

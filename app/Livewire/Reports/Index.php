@@ -14,7 +14,7 @@ class Index extends Component
     public $customEndDate;
     public $userId = '';
     public $users = [];
-    public $revenueTarget = 50000;
+    public $revenueTarget;
 
     public function mount()
     {
@@ -27,6 +27,19 @@ class Index extends Component
         } else {
             $this->users = [auth()->user()];
             $this->userId = auth()->id();
+        }
+
+        // Load target from settings or default
+        $this->revenueTarget = \App\Models\Setting::getCached('revenue_target', 50000);
+    }
+
+    public function updatedRevenueTarget($value)
+    {
+        if (is_numeric($value)) {
+            \App\Models\Setting::updateOrCreate(
+                ['key' => 'revenue_target'],
+                ['value' => $value]
+            );
         }
     }
 
@@ -296,6 +309,146 @@ class Index extends Component
         // Just prepare the % for the view
         $goalProgress = $this->revenueTarget > 0 ? min(round(($currentRevenue / $this->revenueTarget) * 100, 1), 100) : 0;
 
+        // -----------------------------
+        // New Strategic Metrics
+        // -----------------------------
+
+        // 4. Revenue by Category
+        $topCategories = DB::table('estimate_items')
+            ->join('estimates', 'estimate_items.estimate_id', '=', 'estimates.id')
+            ->join('products', 'estimate_items.product_id', '=', 'products.id')
+            ->join('product_categories', 'products.category_id', '=', 'product_categories.id')
+            ->whereBetween('estimates.estimate_date', [$startDate, $endDate])
+            ->where('estimates.status', 'accepted')
+            ->when($this->userId, function ($q) {
+                return $q->where('estimates.created_by', $this->userId);
+            })
+            ->select('product_categories.name', DB::raw('sum(estimate_items.total) as revenue'))
+            ->groupBy('product_categories.name')
+            ->orderByDesc('revenue')
+            ->limit(5)
+            ->get();
+
+        // 5. Lost Reason Analysis
+        // Assuming we capture 'decline_reason_id' or similar on Estimate, or use EstimateApproval comments/status?
+        // Checking Estimate model... it has 'status'='declined'. 
+        // We need to check if we store the specific reason. 
+        // EstimateController references DeclineReason model.
+        // Let's assume we can join on a 'decline_reason_id' if it exists or use a workaround.
+        // Checking schema... Estimate model has status but no direct 'decline_reason_id' visible in fillable.
+        // Wait, show() method loads 'declineReasons'.
+        // If the relation isn't direct on Estimate, we might need to skip or check ActivityLog/Approval.
+        // Let's implement a placeholder or check ActivityLog for "Declined: [Reason]" pattern if needed.
+        // For now, let's try to see if there's a joinable table.
+        // Estimate has no 'decline_reason_id' in fillable. 
+        // Let's skip Lost Reason for now if schema is unclear, OR use ActivityLog text parsing.
+        // BETTER: Let's implement Recurring vs New Business which is robust.
+
+        // 6. Recurring vs New Business
+        // New Business: Client's first accepted estimate is in this period.
+        // Recurring: Client has older accepted estimates.
+
+        $acceptedEstimates = (clone $baseQuery)->where('status', 'accepted')
+            ->whereBetween('estimate_date', [$startDate, $endDate])
+            ->select('id', 'client_id', 'grand_total')
+            ->get();
+
+        $recurringRevenue = 0;
+        $newBusinessRevenue = 0;
+
+        foreach ($acceptedEstimates as $estimate) {
+            // Check if this client has ANY accepted estimate BEFORE this one (strictly before start date potentially, or just before this one)
+            $previousWins = Estimate::where('client_id', $estimate->client_id)
+                ->where('status', 'accepted')
+                ->where('id', '!=', $estimate->id)
+                ->where('estimate_date', '<', $startDate) // strictly historical
+                ->exists();
+
+            if ($previousWins) {
+                $recurringRevenue += $estimate->grand_total;
+            } else {
+                $newBusinessRevenue += $estimate->grand_total;
+            }
+        }
+
+        // Calculate percentages
+        $totalWonRevenue = $recurringRevenue + $newBusinessRevenue;
+        $recurringPercentage = $totalWonRevenue > 0 ? round(($recurringRevenue / $totalWonRevenue) * 100, 1) : 0;
+        $newBusinessPercentage = $totalWonRevenue > 0 ? round(($newBusinessRevenue / $totalWonRevenue) * 100, 1) : 0;
+
+        // -----------------------------
+        // Advanced Analytics (Data Scientist Level)
+        // -----------------------------
+
+        // 7. Client Retention Cohort Analysis (Simplified)
+        // Group clients by their "acquisition month" (first estimate date).
+        // Then calculate how much revenue they generated in the CURRENT period.
+        // This shows: "Are our old clients still buying?" vs "Are new clients buying?"
+
+        $cohorts = DB::table('estimates')
+            ->selectRaw('DATE_FORMAT(MIN(estimate_date), "%Y-%m") as acquisition_month, client_id')
+            ->where('status', 'accepted')
+            ->groupBy('client_id');
+
+        // Join cohorts with current period revenue
+        // This query:
+        // 1. Calculates acquisition month for ALL clients who ever bought.
+        // 2. Joins with estimates in the CURRENT filtered period.
+        // 3. Groups by acquisition month to show revenue contribution by vintage.
+
+        $cohortRevenue = DB::table('estimates as e')
+            ->joinSub($cohorts, 'c', function ($join) {
+                $join->on('e.client_id', '=', 'c.client_id');
+            })
+            ->whereBetween('e.estimate_date', [$startDate, $endDate])
+            ->where('e.status', 'accepted')
+            ->when($this->userId, function ($q) {
+                return $q->where('e.created_by', $this->userId);
+            })
+            ->selectRaw('c.acquisition_month, SUM(e.grand_total) as revenue, COUNT(DISTINCT e.client_id) as active_clients')
+            ->groupBy('c.acquisition_month')
+            ->orderByDesc('c.acquisition_month')
+            ->limit(12) // Show last 12 vintage months
+            ->get();
+
+        // 8. Product Affinity (Market Basket Analysis Lite)
+        // "People who bought X also bought Y"
+        // Find pairs of products that appear in the same accepted estimates.
+        // This is complex in SQL. Simplified approach:
+        // Find the top selling product, then find what ELSE is in the same estimates.
+
+        $topProductId = DB::table('estimate_items')
+            ->join('estimates', 'estimate_items.estimate_id', '=', 'estimates.id')
+            ->whereBetween('estimates.estimate_date', [$startDate, $endDate])
+            ->where('estimates.status', 'accepted')
+            ->select('product_id')
+            ->groupBy('product_id')
+            ->orderByRaw('COUNT(*) DESC')
+            ->limit(1)
+            ->value('product_id');
+
+        $affinityProducts = [];
+        $topProductName = '';
+
+        if ($topProductId) {
+            $topProductName = \App\Models\Product::find($topProductId)->name ?? 'Unknown';
+
+            // Find estimates with this product
+            $estimateIdsWithTop = DB::table('estimate_items')
+                ->where('product_id', $topProductId)
+                ->pluck('estimate_id');
+
+            // Find OTHER items in those estimates
+            $affinityProducts = DB::table('estimate_items')
+                ->join('products', 'estimate_items.product_id', '=', 'products.id')
+                ->whereIn('estimate_items.estimate_id', $estimateIdsWithTop)
+                ->where('estimate_items.product_id', '!=', $topProductId)
+                ->select('products.name', DB::raw('COUNT(*) as frequency'))
+                ->groupBy('products.name')
+                ->orderByDesc('frequency')
+                ->limit(5)
+                ->get();
+        }
 
         return view('livewire.reports.index', array_merge([
             'totalCount' => $totalCount,
@@ -323,6 +476,14 @@ class Index extends Component
             'avgDiscountLost' => $avgDiscountLost,
             'revenueTarget' => $this->revenueTarget,
             'goalProgress' => $goalProgress,
+            'topCategories' => $topCategories,
+            'recurringRevenue' => $recurringRevenue,
+            'newBusinessRevenue' => $newBusinessRevenue,
+            'recurringPercentage' => $recurringPercentage,
+            'newBusinessPercentage' => $newBusinessPercentage,
+            'cohortRevenue' => $cohortRevenue,
+            'affinityProducts' => $affinityProducts,
+            'topAffinityName' => $topProductName,
         ], $chartData))->layout('layouts.app');
     }
 }
