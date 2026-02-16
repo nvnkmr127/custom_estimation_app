@@ -235,7 +235,7 @@ class EstimateController extends Controller
     {
         $this->authorize('create', Estimate::class);
 
-        $products = Product::with(['images', 'options.values'])->get();
+        $products = Product::with(['images', 'options.values'])->active()->get();
         $templates = $this->hydrateTemplates(RoomTemplate::all());
 
         $packages = ItemPackage::all()->values();
@@ -364,7 +364,7 @@ class EstimateController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        $products = Product::with(['images', 'options.values'])->get();
+        $products = Product::with(['images', 'options.values'])->active()->get();
         $templates = $this->hydrateTemplates(RoomTemplate::all());
         $packages = ItemPackage::all()->values();
         $clients = Client::orderBy('name')->get();
