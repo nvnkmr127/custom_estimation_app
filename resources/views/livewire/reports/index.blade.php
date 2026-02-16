@@ -216,11 +216,10 @@
             <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Revenue Trend</h3>
             <div class="relative h-80 w-full" x-data="{
                     chart: null,
-                    chartData: @json($trendData),
+                    chartData: {{ json_encode($trendData) }},
                     init() {
                          this.renderChart(this.chartData);
                          Livewire.on('chartDataUpdated', (data) => {
-                             /* Data is passed as an object { trendData: ..., ... } */
                              if (data.trendData) {
                                 this.chartData = data.trendData;
                                 this.renderChart(this.chartData);
@@ -269,7 +268,7 @@
                 <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Sales Funnel</h3>
                 <div class="relative h-64 w-full" x-data="{
                         chart: null,
-                        funnelData: @json($funnelData),
+                        funnelData: {{ json_encode($funnelData) }},
                         init() {
                              this.renderChart(this.funnelData);
                              Livewire.on('chartDataUpdated', (data) => {
@@ -293,10 +292,10 @@
                                         label: 'Count',
                                         data: [funnel.sent, funnel.opened, funnel.viewed, funnel.accepted],
                                         backgroundColor: [
-                                            '#3b82f6', /* blue-500 */
-                                            '#6366f1', /* indigo-500 */
-                                            '#8b5cf6', /* violet-500 */
-                                            '#22c55e'  /* green-500 */
+                                            '#3b82f6',
+                                            '#6366f1',
+                                            '#8b5cf6',
+                                            '#22c55e'
                                         ],
                                         barPercentage: 0.6,
                                     }]
@@ -324,7 +323,7 @@
                 <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Estimate Status Breakdown</h3>
                 <div class="relative h-64 w-full flex justify-center" x-data="{
                         chart: null,
-                        statusData: @json($statusData),
+                        statusData: {{ json_encode($statusData) }},
                         init() {
                              this.renderChart(this.statusData);
                              Livewire.on('chartDataUpdated', (data) => {
@@ -340,14 +339,13 @@
                             }
                             const ctx = this.$refs.canvas.getContext('2d');
                             
-                            /* Default colors mapping */
                             const colors = {
-                                'accepted': '#22c55e', /* green-500 */
-                                'declined': '#ef4444', /* red-500 */
-                                'sent': '#3b82f6',     /* blue-500 */
-                                'draft': '#9ca3af',    /* gray-400 */
-                                'expired': '#f59e0b',  /* amber-500 */
-                                'waiting_approval': '#a855f7' /* purple-500 */
+                                'accepted': '#22c55e',
+                                'declined': '#ef4444',
+                                'sent': '#3b82f6',
+                                'draft': '#9ca3af',
+                                'expired': '#f59e0b',
+                                'waiting_approval': '#a855f7'
                             };
     
                             const labels = Object.keys(statusCounts);
@@ -418,7 +416,7 @@
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                                                                                                                                                                                                                                                            {{ match ($estimate->status) {
+                                                                                                                                                                                                                                                                                                                                                            {{ match ($estimate->status) {
                                 'accepted' => 'bg-green-50 text-green-700 ring-green-600/20',
                                 'declined' => 'bg-red-50 text-red-700 ring-red-600/20',
                                 'sent' => 'bg-blue-50 text-blue-700 ring-blue-600/20',
@@ -635,9 +633,11 @@
                         @forelse($topCategories as $category)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {{ $category->name }}</td>
+                                    {{ $category->name }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    {{ number_format($category->revenue, 2) }}</td>
+                                    {{ number_format($category->revenue, 2) }}
+                                </td>
                             </tr>
                         @empty
                             <tr>
@@ -709,11 +709,14 @@
                         @forelse($cohortRevenue as $cohort)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {{ $cohort->acquisition_month }}</td>
+                                    {{ $cohort->acquisition_month }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
-                                    {{ $cohort->active_clients }}</td>
+                                    {{ $cohort->active_clients }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                    {{ number_format($cohort->revenue, 2) }}</td>
+                                    {{ number_format($cohort->revenue, 2) }}
+                                </td>
                             </tr>
                         @empty
                             <tr>
@@ -730,7 +733,8 @@
         <div class="bg-white rounded-lg shadow overflow-hidden p-6">
             <h3 class="text-base font-semibold leading-6 text-gray-900 mb-2">Product Affinity</h3>
             <p class="text-sm text-gray-500 mb-6">Frequently bought with
-                <strong>{{ $topAffinityName ?: 'Top Product' }}</strong>:</p>
+                <strong>{{ $topAffinityName ?: 'Top Product' }}</strong>:
+            </p>
 
             @if(count($affinityProducts) > 0)
                 <ul role="list" class="divide-y divide-gray-100">
