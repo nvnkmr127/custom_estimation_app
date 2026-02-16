@@ -77,7 +77,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Estimates Show (Livewire Component)
     Route::get('/estimates/{estimate}', \App\Livewire\Estimates\ShowEstimate::class)->name('estimates.show');
 
-    Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports', \App\Livewire\Reports\Index::class)->name('reports.index');
 
     // General Resources (Protected by Policies)
     Route::get('/approvals', [App\Http\Controllers\ApprovalController::class, 'index'])->name('approvals.index');
