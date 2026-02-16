@@ -1,4 +1,11 @@
-<div class="space-y-6">
+<div class="space-y-6" x-init="
+    if (typeof Chart === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        document.head.appendChild(script);
+        script.onload = () => { $dispatch('chart-library-loaded'); };
+    }
+">
     <!-- Filters -->
     <div class="sm:flex sm:items-center sm:justify-between">
         <div>
@@ -225,7 +232,12 @@
                     chart: null,
                     chartData: {{ json_encode($trendData) }},
                     init() {
-                         this.renderChart(this.chartData);
+                         if (typeof Chart === 'undefined') {
+                             document.addEventListener('chart-library-loaded', () => this.renderChart(this.chartData));
+                         } else {
+                             this.renderChart(this.chartData);
+                         }
+                         
                          Livewire.on('chartDataUpdated', (data) => {
                              if (data.trendData) {
                                 this.chartData = data.trendData;
@@ -277,7 +289,12 @@
                         chart: null,
                         funnelData: {{ json_encode($funnelData) }},
                         init() {
-                             this.renderChart(this.funnelData);
+                             if (typeof Chart === 'undefined') {
+                                 document.addEventListener('chart-library-loaded', () => this.renderChart(this.funnelData));
+                             } else {
+                                this.renderChart(this.funnelData);
+                             }
+                             
                              Livewire.on('chartDataUpdated', (data) => {
                                  if (data.funnelData) {
                                     this.funnelData = data.funnelData;
@@ -332,7 +349,12 @@
                         chart: null,
                         statusData: {{ json_encode($statusData) }},
                         init() {
-                             this.renderChart(this.statusData);
+                             if (typeof Chart === 'undefined') {
+                                 document.addEventListener('chart-library-loaded', () => this.renderChart(this.statusData));
+                             } else {
+                                this.renderChart(this.statusData);
+                             }
+                             
                              Livewire.on('chartDataUpdated', (data) => {
                                  if (data.statusData) {
                                     this.statusData = data.statusData;
@@ -825,7 +847,11 @@
                         chart: null,
                         buckets: {{ json_encode($dealSizeBuckets) }},
                         init() {
-                             this.renderChart(this.buckets);
+                             if (typeof Chart === 'undefined') {
+                                 document.addEventListener('chart-library-loaded', () => this.renderChart(this.buckets));
+                             } else {
+                                this.renderChart(this.buckets);
+                             }
                         },
                         renderChart(data) {
                             if (this.chart) {
