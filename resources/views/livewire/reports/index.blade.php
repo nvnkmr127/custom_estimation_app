@@ -18,14 +18,21 @@
                 <option value="this_year">This Year</option>
             </select>
             @if(count($users) > 1)
-                <select wire:model.live="userId"
-                    class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                    <option value="">All Users</option>
-                    @foreach($users as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }}</option>
-                    @endforeach
-                </select>
+                <div>
+                    <select wire:model.live="userId"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                        <option value="">All Users</option>
+                        @foreach ($users as $user)
+                            <option value="{{ $user->id }}">{{ $user->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
             @endif
+            <!-- Client Search -->
+            <div>
+                <input type="text" wire:model.live.debounce.500ms="clientSearch" placeholder="Search Client..."
+                    class="block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
             <!-- Custom Date Range could be added here later -->
         </div>
     </div>
@@ -416,7 +423,7 @@
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                                                                                                                                                                                                                                                                                                            {{ match ($estimate->status) {
+                                                                                                                                                                                                                                                                                                                                                                                    {{ match ($estimate->status) {
                                 'accepted' => 'bg-green-50 text-green-700 ring-green-600/20',
                                 'declined' => 'bg-red-50 text-red-700 ring-red-600/20',
                                 'sent' => 'bg-blue-50 text-blue-700 ring-blue-600/20',
@@ -753,6 +760,102 @@
             @endif
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Enterprise Analytics Section -->
+    <div class="space-y-8 mt-12 mb-12">
+        <h2 class="text-xl font-bold text-gray-900">Enterprise Performance</h2>
 
-</div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Estimator Leaderboard (Admin Only) -->
+            @if(count($leaderboard) > 0)
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-indigo-50">
+                        <div>
+                            <h3 class="text-base font-semibold leading-6 text-indigo-900">🏆 Estimator Leaderboard</h3>
+                            <p class="text-xs text-indigo-700">Top performers by revenue.</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estimator
+                                    </th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Win Rate
+                                    </th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach($leaderboard as $estimator)
+                                    <tr class="hover:bg-indigo-50/50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-8 w-8">
+                                                    <img class="h-8 w-8 rounded-full" src="{{ $estimator['avatar'] }}" alt="">
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">{{ $estimator['name'] }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500">{{ $estimator['estimates'] }} Estimates
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <span
+                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $estimator['win_rate'] > 50 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                                {{ $estimator['win_rate'] }}%
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-bold">
+                                            {{ number_format($estimator['revenue'], 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Deal Size Distribution -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Deal Size Distribution</h3>
+                <div class="relative h-64 w-full" x-data="{
+                        chart: null,
+                        buckets: {{ json_encode($dealSizeBuckets) }},
+                        init() {
+                             this.renderChart(this.buckets);
+                        },
+                        renderChart(data) {
+                            if (this.chart) {
+                                this.chart.destroy();
+                            }
+                            const ctx = this.$refs.canvas.getContext('2d');
+                            
+                            this.chart = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: Object.keys(data),
+                                    datasets: [{
+                                        label: 'Deals Closed',
+                                        data: Object.values(data),
+                                        backgroundColor: '#8b5cf6', // violet-500
+                                        borderRadius: 4,
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } },
+                                    scales: { y: { beginAtZero: true } }
+                                }
+                            });
+                        }
+                    }" wire:ignore>
+                    <canvas x-ref="canvas"></canvas>
+                </div>
+                <p class="mt-4 text-xs text-gray-500 text-center">Breakdown of accepted estimates by value range.</p>
+            </div>
+        </div>
+    </div>

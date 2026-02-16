@@ -15,6 +15,9 @@ class Index extends Component
     public $userId = '';
     public $users = [];
     public $revenueTarget;
+    public $clientSearch = '';
+    public $leaderboard = [];
+    public $dealSizeBuckets = [];
 
     public function mount()
     {
@@ -44,6 +47,11 @@ class Index extends Component
     }
 
     public function updatedUserId()
+    {
+        $this->dispatchCharts();
+    }
+
+    public function updatedClientSearch()
     {
         $this->dispatchCharts();
     }
@@ -112,6 +120,12 @@ class Index extends Component
         $query = Estimate::query();
         if ($this->userId) {
             $query->where('created_by', $this->userId);
+        }
+
+        if ($this->clientSearch) {
+            $query->whereHas('client', function ($q) {
+                $q->where('name', 'like', '%' . $this->clientSearch . '%');
+            });
         }
 
         // 1. Trend Data
@@ -450,6 +464,70 @@ class Index extends Component
                 ->get();
         }
 
+        // -----------------------------
+        // Enterprise Level Analytics
+        // -----------------------------
+
+        // 9. Estimator Leaderboard (If Admin)
+        $leaderboard = [];
+        if (auth()->user()->isAdmin()) {
+            $leaderboard = \App\Models\User::whereHas('estimates', function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('estimate_date', [$startDate, $endDate]);
+            })
+                ->withCount([
+                    'estimates as total_estimates' => function ($q) use ($startDate, $endDate) {
+                        $q->whereBetween('estimate_date', [$startDate, $endDate]);
+                    }
+                ])
+                ->withSum([
+                    'estimates as total_revenue' => function ($q) use ($startDate, $endDate) {
+                        $q->where('status', 'accepted')->whereBetween('estimate_date', [$startDate, $endDate]);
+                    }
+                ], 'grand_total')
+                ->get()
+                ->map(function ($user) use ($startDate, $endDate) {
+                    $wonCount = $user->estimates()->where('status', 'accepted')->whereBetween('estimate_date', [$startDate, $endDate])->count();
+                    $total = $user->total_estimates;
+                    $winRate = $total > 0 ? round(($wonCount / $total) * 100, 1) : 0;
+                    return [
+                        'name' => $user->name,
+                        'revenue' => $user->total_revenue ?? 0,
+                        'estimates' => $total,
+                        'win_rate' => $winRate,
+                        'avatar' => $user->profile_photo_url, // Assuming standard Laravel User model
+                    ];
+                })
+                ->sortByDesc('revenue')
+                ->values();
+        }
+
+        // 10. Deal Size Distribution (Histogram)
+        $dealSizes = (clone $baseQuery)->where('status', 'accepted')
+            ->whereBetween('estimate_date', [$startDate, $endDate])
+            ->pluck('grand_total');
+
+        // Define Buckets: <1k, 1k-5k, 5k-20k, 20k-50k, 50k+
+        $buckets = [
+            '< $1k' => 0,
+            '$1k - $5k' => 0,
+            '$5k - $20k' => 0,
+            '$20k - $50k' => 0,
+            '$50k+' => 0,
+        ];
+
+        foreach ($dealSizes as $amount) {
+            if ($amount < 1000)
+                $buckets['< $1k']++;
+            elseif ($amount < 5000)
+                $buckets['$1k - $5k']++;
+            elseif ($amount < 20000)
+                $buckets['$5k - $20k']++;
+            elseif ($amount < 50000)
+                $buckets['$20k - $50k']++;
+            else
+                $buckets['$50k+']++;
+        }
+
         return view('livewire.reports.index', array_merge([
             'totalCount' => $totalCount,
             'acceptedCount' => $acceptedCount,
@@ -484,6 +562,8 @@ class Index extends Component
             'cohortRevenue' => $cohortRevenue,
             'affinityProducts' => $affinityProducts,
             'topAffinityName' => $topProductName,
+            'leaderboard' => $leaderboard,
+            'dealSizeBuckets' => $buckets,
         ], $chartData))->layout('layouts.app');
     }
 }
