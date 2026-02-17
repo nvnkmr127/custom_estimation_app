@@ -254,14 +254,14 @@
                         </h3>
                         <div class="grid grid-cols-2 gap-2">
                              <template x-for="(img, index) in projectImages.slice(0, 3)" :key="index">
-                                <div @click="currentImageIndex = index; showImageModal = true" class="aspect-square rounded-lg bg-slate-100 overflow-hidden relative group cursor-pointer">
+                                <div @click="openProjectGallery(index)" class="aspect-square rounded-lg bg-slate-100 overflow-hidden relative group cursor-pointer">
                                     <img :src="img.includes('unsplash') ? img.replace('w=1200', 'w=400') : (img.startsWith('http') ? img : '{{ asset('') }}' + img.replace(/^\//, ''))" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
                                     <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
                                     </div>
                                 </div>
                              </template>
-                             <div x-show="projectImages.length > 3" @click="currentImageIndex = 3; showImageModal = true" class="aspect-square rounded-lg bg-slate-900 overflow-hidden relative group flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800 transition-colors">
+                             <div x-show="projectImages.length > 3" @click="openProjectGallery(3)" class="aspect-square rounded-lg bg-slate-900 overflow-hidden relative group flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800 transition-colors">
                                 <span class="text-white text-sm font-black" x-text="'+' + (projectImages.length - 3)"></span>
                                 <span class="text-white/50 text-[10px] font-bold uppercase tracking-tighter">View All</span>
                              </div>
@@ -318,8 +318,9 @@
                                             $imageUrl = $item->product ? $item->product->primary_image_url : null;
                                         @endphp
                                         @if(!$section->is_package && $imageUrl)
-                                            <div class="w-16 h-16 sm:w-24 sm:h-24 bg-slate-50 rounded-2xl shrink-0 overflow-hidden border border-slate-200 shadow-sm relative group-hover/item:shadow-md transition-all">
+                                            <div @click.stop="openItemImage('{{ $imageUrl }}')" class="w-16 h-16 sm:w-24 sm:h-24 bg-slate-50 rounded-2xl shrink-0 overflow-hidden border border-slate-200 shadow-sm relative group-hover/item:shadow-md transition-all cursor-zoom-in">
                                                     <img src="{{ $imageUrl }}" class="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110">
+                                                    <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center"></div>
                                             </div>
                                         @endif
 
@@ -747,21 +748,21 @@
             </button>
 
             <!-- Navigation Arrows -->
-            <button @click="prevImage()" class="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all">
+            <button @click="prevImage()" x-show="lightboxImages.length > 1" class="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </button>
-            <button @click="nextImage()" class="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all">
+            <button @click="nextImage()" x-show="lightboxImages.length > 1" class="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             </button>
 
             <!-- Image Container -->
             <div class="relative max-w-[90vw] max-h-[85vh] flex flex-col items-center gap-6" @click.away="showImageModal = false">
-                <img :src="projectImages[currentImageIndex].startsWith('http') ? projectImages[currentImageIndex] : '{{ asset('') }}' + projectImages[currentImageIndex].replace(/^\//, '')" 
+                <img :src="lightboxImages[currentImageIndex] && lightboxImages[currentImageIndex].startsWith('http') ? lightboxImages[currentImageIndex] : '{{ asset('') }}' + (lightboxImages[currentImageIndex] || '').replace(/^\//, '')" 
                     class="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl transition-all duration-500 transform animate-scale-in">
                 
                 <!-- Counter & Title -->
-                <div class="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 flex items-center gap-4">
-                    <span class="text-white text-xs font-bold uppercase tracking-widest whitespace-nowrap">Project Image <span x-text="currentImageIndex + 1"></span> / <span x-text="projectImages.length"></span></span>
+                <div class="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 flex items-center gap-4" x-show="lightboxImages.length > 1">
+                    <span class="text-white text-xs font-bold uppercase tracking-widest whitespace-nowrap">Image <span x-text="currentImageIndex + 1"></span> / <span x-text="lightboxImages.length"></span></span>
                 </div>
             </div>
         </div>
@@ -841,6 +842,7 @@
                     
                     // Data
                     projectImages: @json($showcaseImages),
+                    lightboxImages: [],
                     currentImageIndex: 0,
                     
                     // Comment System
@@ -1056,12 +1058,24 @@
                         }
                     },
 
+                    openProjectGallery(index) {
+                        this.lightboxImages = this.projectImages;
+                        this.currentImageIndex = index;
+                        this.showImageModal = true;
+                    },
+
+                    openItemImage(url) {
+                         this.lightboxImages = [url];
+                         this.currentImageIndex = 0;
+                         this.showImageModal = true;
+                    },
+
                     nextImage() {
-                        this.currentImageIndex = (this.currentImageIndex + 1) % this.projectImages.length;
+                        this.currentImageIndex = (this.currentImageIndex + 1) % this.lightboxImages.length;
                     },
 
                     prevImage() {
-                        this.currentImageIndex = (this.currentImageIndex - 1 + this.projectImages.length) % this.projectImages.length;
+                        this.currentImageIndex = (this.currentImageIndex - 1 + this.lightboxImages.length) % this.lightboxImages.length;
                     },
 
                     resizeCanvas(canvas) {
