@@ -82,14 +82,14 @@
                         <dl class="space-y-3 text-sm max-w-xs ml-auto">
                             <div class="flex justify-between text-slate-600">
                                 <dt>Subtotal</dt>
-                                <dd class="font-medium">{{ $estimate->currency }}
+                                <dd class="font-medium">{{ $estimate->currency_symbol }}
                                     {{ number_format($estimate->subtotal, 2) }}
                                 </dd>
                             </div>
                             @if($estimate->has_tax)
                                 <div class="flex justify-between text-slate-600">
                                     <dt>Tax</dt>
-                                    <dd class="font-medium">{{ $estimate->currency }}
+                                    <dd class="font-medium">{{ $estimate->currency_symbol }}
                                         {{ number_format($estimate->total_tax, 2) }}
                                     </dd>
                                 </div>
@@ -97,7 +97,7 @@
                             @if($estimate->has_discount)
                                 <div class="flex justify-between text-red-600">
                                     <dt>Discount</dt>
-                                    <dd class="font-medium">- {{ $estimate->currency }}
+                                    <dd class="font-medium">- {{ $estimate->currency_symbol }}
                                         {{ number_format($estimate->discount_total, 2) }}
                                     </dd>
                                 </div>
@@ -105,7 +105,7 @@
                             @if($estimate->has_transportation)
                                 <div class="flex justify-between text-slate-600">
                                     <dt>Transportation</dt>
-                                    <dd class="font-medium">{{ $estimate->currency }}
+                                    <dd class="font-medium">{{ $estimate->currency_symbol }}
                                         {{ number_format($estimate->transportation_charges, 2) }}
                                     </dd>
                                 </div>
@@ -113,7 +113,7 @@
                             <div
                                 class="flex justify-between border-t border-slate-200 pt-3 text-base font-bold text-slate-900">
                                 <dt>Grand Total</dt>
-                                <dd>{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</dd>
+                                <dd>{{ $estimate->currency_symbol }} {{ number_format($estimate->grand_total, 2) }}</dd>
                             </div>
                         </dl>
                     </div>

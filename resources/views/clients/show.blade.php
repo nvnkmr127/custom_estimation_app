@@ -93,16 +93,16 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                                         <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                @if($estimate->status === 'accepted') bg-green-50 text-green-700 ring-green-600/20
-                                                @elseif($estimate->status === 'declined') bg-red-50 text-red-700 ring-red-600/10
-                                                @elseif($estimate->status === 'sent') bg-blue-50 text-blue-700 ring-blue-700/10
-                                                @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                @endif">
+                                                    @if($estimate->status === 'accepted') bg-green-50 text-green-700 ring-green-600/20
+                                                    @elseif($estimate->status === 'declined') bg-red-50 text-red-700 ring-red-600/10
+                                                    @elseif($estimate->status === 'sent') bg-blue-50 text-blue-700 ring-blue-700/10
+                                                    @else bg-gray-50 text-gray-600 ring-gray-500/10
+                                                    @endif">
                                             {{ ucfirst($estimate->status) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                        {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
+                                        {{ $estimate->currency_symbol }} {{ number_format($estimate->grand_total, 2) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <a href="{{ route('estimates.show', $estimate) }}"

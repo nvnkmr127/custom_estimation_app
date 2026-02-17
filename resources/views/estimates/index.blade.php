@@ -26,7 +26,8 @@
                 <dd class="mt-2 flex items-baseline text-2xl font-semibold text-gray-900">
                     {{ number_format($stats['total_count']) }}
                     <span
-                        class="ml-2 text-sm font-normal text-gray-500">({{ number_format($stats['total_value'], 2) }})</span>
+                        class="ml-2 text-sm font-normal text-gray-500">(@php $sym = \App\Models\Setting::getCached('currency_symbol') ?? '$'; @endphp
+                        {{ $sym }} {{ number_format($stats['total_value'], 2) }})</span>
                 </dd>
             </a>
 
@@ -50,8 +51,8 @@
                     <dd
                         class="mt-2 flex items-baseline text-2xl font-semibold {{ $statusColors[$status] ?? 'text-gray-900' }}">
                         {{ number_format($stats[$status . '_count'] ?? 0) }}
-                        <span
-                            class="ml-2 text-sm font-normal text-gray-500">({{ number_format($stats[$status . '_value'] ?? 0, 2) }})</span>
+                        <span class="ml-2 text-sm font-normal text-gray-500">({{ $sym }}
+                            {{ number_format($stats[$status . '_value'] ?? 0, 2) }})</span>
                     </dd>
                 </a>
             @endforeach
@@ -304,7 +305,7 @@
                                         <x-estimate-status-badge :status="$estimate->status" />
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm font-semibold text-gray-900">
-                                        {{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}
+                                        {{ $estimate->currency_symbol }} {{ number_format($estimate->grand_total, 2) }}
                                     </td>
                                     <td
                                         class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">

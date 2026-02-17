@@ -87,7 +87,7 @@
                     <h3 class="text-base font-semibold leading-7 text-gray-900 mb-4">Pricing</h3>
                     <div class="flex items-baseline gap-2">
                         <span
-                            class="text-3xl font-bold text-gray-900">${{ number_format($product->unit_price, 2) }}</span>
+                            class="text-3xl font-bold text-gray-900">{{ $product->currency_symbol }}{{ number_format($product->unit_price, 2) }}</span>
                         <span class="text-sm font-medium text-gray-500">per {{ $product->unit_type }}</span>
                     </div>
                     @if($product->tax_1 > 0)
@@ -160,7 +160,7 @@
                                                     {{ $value->value }}
                                                     @if($value->price_adjustment > 0)
                                                         <span
-                                                            class="text-xs text-indigo-500 ml-1">(+{{ $product->currency ?? '$' }}{{ $value->price_adjustment }})</span>
+                                                            class="text-xs text-indigo-500 ml-1">(+{{ $product->currency_symbol }}{{ $value->price_adjustment }})</span>
                                                     @endif
                                                 </span>
                                             @endforeach

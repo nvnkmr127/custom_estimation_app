@@ -513,7 +513,7 @@
                                                     <div class="relative">
                                                         <span
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                            x-text="estimate.currency"></span>
+                                                            x-text="estimate.currency_symbol"></span>
                                                         <input type="number" step="0.01" x-model="item.unit_price"
                                                             readonly
                                                             class="block w-full rounded-lg border-slate-200 bg-slate-100 py-1.5 pl-8 pr-3 text-sm text-slate-500 text-right font-medium focus:ring-0 transition-all cursor-not-allowed">
@@ -533,7 +533,7 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
                                                         <span class="text-sm font-bold text-slate-900"
-                                                            x-text="estimate.currency + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                                            x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
                                                     </div>
                                                 </td>
                                                 <!-- Actions -->
@@ -626,7 +626,7 @@
                                                     <div class="relative">
                                                         <span
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                            x-text="estimate.currency"></span>
+                                                            x-text="estimate.currency_symbol"></span>
                                                         <input type="number" step="0.01" x-model="item.unit_price"
                                                             @input="calculateTotals"
                                                             class="block w-full rounded-lg border-slate-200 bg-slate-50/50 py-1.5 pl-8 pr-3 text-sm text-slate-900 text-right font-medium focus:ring-2 focus:ring-indigo-600 transition-all">
@@ -643,7 +643,7 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
                                                         <span class="text-sm font-bold text-slate-900"
-                                                            x-text="estimate.currency + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                                            x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
                                                     </div>
                                                 </td>
                                                 <!-- Actions (Subset) -->
@@ -889,7 +889,7 @@
                                         <div class="relative">
                                             <span
                                                 class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                x-text="estimate.currency"></span>
+                                                x-text="estimate.currency_symbol"></span>
                                             <input type="number" step="0.01" x-model="item.unit_price" readonly
                                                 class="block w-full rounded-lg border-slate-200 bg-slate-100 py-1.5 pl-8 pr-3 text-sm text-slate-500 text-right font-medium focus:ring-0 transition-all cursor-not-allowed">
                                         </div>
@@ -906,7 +906,7 @@
                                             <span
                                                 class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
                                             <span class="text-sm font-bold text-slate-900"
-                                                x-text="estimate.currency + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                                x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
                                         </div>
                                     </td>
                                     <td class="px-3 py-4 text-right">
@@ -1146,7 +1146,7 @@
                         <div class="flex justify-between items-center py-2 border-t border-slate-100 mt-2">
                             <dt class="text-slate-600">Transportation</dt>
                             <dd class="flex items-center gap-2">
-                                <span class="text-xs text-slate-400" x-text="estimate.currency"></span>
+                                <span class="text-xs text-slate-400" x-text="estimate.currency_symbol"></span>
                                 <input type="number" step="0.01" x-model="estimate.transportation_charges"
                                     name="transportation_charges" @input="calculateTotals"
                                     class="block w-20 rounded-md border-0 py-1 text-right text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm sm:leading-6">
@@ -1167,7 +1167,7 @@
                         <div class="flex justify-between border-t border-slate-200 pt-3">
                             <dt class="text-base font-bold text-slate-900">Grand Total</dt>
                             <dd class="text-base font-bold text-indigo-600"
-                                x-text="estimate.currency + ' ' + totals.grandTotal.toFixed(2)"></dd>
+                                x-text="estimate.currency_symbol + ' ' + totals.grandTotal.toFixed(2)"></dd>
                         </div>
                     </dl>
                 </div>

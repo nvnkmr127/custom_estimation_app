@@ -101,6 +101,17 @@ class Estimate extends Model
         'transportation_charges',
     ];
 
+    protected $appends = ['currency_symbol', 'has_discount', 'has_tax', 'has_transportation'];
+
+    /**
+     * Get the currency symbol from system settings or fallback to code.
+     */
+    public function getCurrencySymbolAttribute()
+    {
+        $symbol = Setting::getCached('currency_symbol');
+        return $symbol ?: ($this->attributes['currency'] ?? '$');
+    }
+
     /**
      * Standardized Visibility Rules
      */

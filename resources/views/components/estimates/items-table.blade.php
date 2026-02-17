@@ -143,7 +143,7 @@
                         </td>
                     @endif
                     <td class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                        {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
+                        {{ $estimate->currency_symbol }} {{ number_format($item->unit_price, 2) }}
                     </td>
                     @if(!$isPackage)
                         <td class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
@@ -151,7 +151,7 @@
                         </td>
                     @endif
                     <td class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                        {{ $estimate->currency }} {{ number_format($item->total, 2) }}
+                        {{ $estimate->currency_symbol }} {{ number_format($item->total, 2) }}
                     </td>
                 </tr>
             @empty

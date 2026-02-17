@@ -54,7 +54,7 @@ class EstimateViewModel
             'estimate_date' => $estimateDate->format('M d, Y'),
             'expiry_date' => $expiryDate->format('M d, Y'),
             'status' => ucfirst($this->estimate->status),
-            'currency' => $this->estimate->currency ?? '$',
+            'currency' => $this->estimate->currency_symbol ?? '$',
         ];
     }
 

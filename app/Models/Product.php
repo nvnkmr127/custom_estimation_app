@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Setting;
 
 class Product extends Model
 {
@@ -134,6 +135,13 @@ class Product extends Model
             return $imagePath;
         }
 
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($imagePath);
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        return $disk->url($imagePath);
+    }
+
+    public function getCurrencySymbolAttribute()
+    {
+        return Setting::getCached('currency_symbol', '$');
     }
 }

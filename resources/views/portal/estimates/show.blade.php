@@ -86,7 +86,7 @@
                         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                             <div class="text-xs text-slate-300 uppercase tracking-wider font-bold mb-1">Grand Total
                             </div>
-                            <div class="text-2xl sm:text-3xl font-black">{{ $estimate->currency ?? 'INR' }}
+                            <div class="text-2xl sm:text-3xl font-black">{{ $estimate->currency_symbol }}
                                 {{ number_format($estimate->grand_total, 2) }}</div>
                             
                             @if($estimate->expiry_date)
@@ -142,7 +142,7 @@
                             <div>
                                 <div class="text-xs text-slate-500 font-bold uppercase">Subtotal</div>
                                 <div class="text-lg font-bold text-slate-900">
-                                    {{ number_format($estimate->subtotal, 2) }}</div>
+                                    {{ $estimate->currency_symbol }} {{ number_format($estimate->subtotal, 2) }}</div>
                             </div>
                             <div class="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,7 +158,7 @@
                                 <div>
                                     <div class="text-xs text-slate-500 font-bold uppercase">Total Tax</div>
                                     <div class="text-lg font-bold text-slate-900">
-                                        {{ number_format($estimate->total_tax, 2) }}</div>
+                                        {{ $estimate->currency_symbol }} {{ number_format($estimate->total_tax, 2) }}</div>
                                 </div>
                                 <div
                                     class="h-8 w-8 rounded-full bg-green-50 flex items-center justify-center text-green-600">
@@ -302,7 +302,7 @@
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="font-bold text-slate-900">{{ number_format($section->total, 2) }}</div>
+                                <div class="font-bold text-slate-900">{{ $estimate->currency_symbol }} {{ number_format($section->total, 2) }}</div>
                             </div>
                         </button>
 
@@ -385,7 +385,7 @@
                                                 <div class="sm:hidden text-xs text-slate-400 font-bold uppercase">Total</div>
 
                                                 <div class="text-right">
-                                                    <div class="text-sm font-black text-slate-900">{{ number_format($item->total, 2) }}</div>
+                                                    <div class="text-sm font-black text-slate-900">{{ $estimate->currency_symbol }} {{ number_format($item->total, 2) }}</div>
                                                     
                                                     <!-- Item Actions -->
                                                     <div class="mt-2 flex justify-end">

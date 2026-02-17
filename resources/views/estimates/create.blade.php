@@ -38,6 +38,7 @@
             estimate_date: localISOTime,
             expiry_date: localExpiryISOTime,
             currency: '{{ $defaults['currency'] ?? 'USD' }}',
+            currency_symbol: '{{ $defaults['currency_symbol'] ?? '$' }}',
             type: 'room_based',
             discount_type: 'percentage',
             discount_value: 0,
@@ -554,7 +555,7 @@
                                                     <div class="relative">
                                                         <span
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                            x-text="estimate.currency"></span>
+                                                            x-text="estimate.currency_symbol"></span>
                                                         <input type="number" step="0.01" x-model="item.unit_price"
                                                             :readonly="!!item.product_id" @input="calculateTotals"
                                                             :class="!!item.product_id ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
@@ -573,7 +574,7 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
                                                         <span class="text-sm font-bold text-slate-900"
-                                                            x-text="estimate.currency + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                                            x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
                                                     </div>
                                                 </td>
                                                 <td class="px-3 py-4 text-right">
@@ -659,7 +660,7 @@
                                                     <div class="relative">
                                                         <span
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                            x-text="estimate.currency"></span>
+                                                            x-text="estimate.currency_symbol"></span>
                                                         <input type="number" step="0.01" x-model="item.unit_price"
                                                             :readonly="isItemLocked(item)" @input="calculateTotals"
                                                             :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
@@ -676,7 +677,7 @@
                                                     <div class="flex flex-col"><span
                                                             class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span><span
                                                             class="text-sm font-bold text-slate-900"
-                                                            x-text="estimate.currency + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                                            x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
                                                     </div>
                                                 </td>
                                                 <!-- Actions -->
@@ -928,7 +929,7 @@
                                         <div class="relative">
                                             <span
                                                 class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                                x-text="estimate.currency"></span>
+                                                x-text="estimate.currency_symbol"></span>
                                             <input type="number" step="0.01" x-model="item.unit_price"
                                                 :readonly="isItemLocked(item)" @input="calculateTotals"
                                                 :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
@@ -947,7 +948,7 @@
                                             <span
                                                 class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
                                             <span class="text-sm font-bold text-slate-900"
-                                                x-text="estimate.currency + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                                x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
                                         </div>
                                     </td>
                                     <td class="px-3 py-4 text-right">
@@ -1117,7 +1118,7 @@
                         <div class="flex justify-between items-center py-2 border-t border-slate-100 mt-2">
                             <dt class="text-slate-600">Transportation</dt>
                             <dd class="flex items-center gap-2">
-                                <span class="text-xs text-slate-400" x-text="estimate.currency"></span>
+                                <span class="text-xs text-slate-400" x-text="estimate.currency_symbol"></span>
                                 <input type="number" step="0.01" x-model="estimate.transportation_charges"
                                     name="transportation_charges" @input="calculateTotals"
                                     class="block w-20 rounded-md border-0 py-1 text-right text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm sm:leading-6">
@@ -1138,7 +1139,7 @@
                         <div class="flex justify-between border-t border-slate-200 pt-3">
                             <dt class="text-base font-bold text-slate-900">Grand Total</dt>
                             <dd class="text-base font-bold text-indigo-600"
-                                x-text="estimate.currency + ' ' + totals.grandTotal.toFixed(2)"></dd>
+                                x-text="estimate.currency_symbol + ' ' + totals.grandTotal.toFixed(2)"></dd>
                         </div>
                     </dl>
                 </div>

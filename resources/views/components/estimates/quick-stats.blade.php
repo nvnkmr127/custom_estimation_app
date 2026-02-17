@@ -3,7 +3,7 @@
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
     <div class="bg-white p-4 rounded-2xl shadow-sm ring-1 ring-slate-200">
         <dt class="text-xs font-semibold text-slate-500 uppercase">Grand Total</dt>
-        <dd class="mt-1 text-lg font-bold text-slate-900">{{ $estimate->currency }}
+        <dd class="mt-1 text-lg font-bold text-slate-900">{{ $estimate->currency_symbol }}
             {{ number_format($estimate->grand_total, 2) }}
         </dd>
     </div>
