@@ -18,6 +18,13 @@ class TaskController extends Controller
     {
         $query = Task::with(['assignedTo', 'estimate', 'client']);
 
+        if (!auth()->user()->isAdmin()) {
+            $query->where(function ($q) {
+                $q->where('assigned_to', auth()->id())
+                    ->orWhere('created_by', auth()->id());
+            });
+        }
+
         // Filters
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);

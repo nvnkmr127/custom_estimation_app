@@ -69,7 +69,17 @@ class AppServiceProvider extends ServiceProvider
             // View Composer for Layout
             view()->composer('components.app-layout', function ($view) {
                 $unreadCount = auth()->check() ? auth()->user()->unreadNotifications->count() : 0;
-                $pendingApprovals = \App\Models\Estimate::where('status', 'waiting_approval')->count();
+                // Personalized Pending Approvals Count
+                $user = auth()->user();
+                $pendingApprovals = 0;
+
+                if ($user) {
+                    $pendingApprovals = \App\Models\Estimate::where('approval_status', 'submitted')
+                        ->whereHas('approvals', function ($query) use ($user) {
+                            $query->where('user_id', $user->id)
+                                ->where('status', 'pending');
+                        })->count();
+                }
                 $pendingSuggestions = \App\Models\Product::pending()->count();
                 $dlqCount = \App\Models\WebhookDeadLetter::count();
 

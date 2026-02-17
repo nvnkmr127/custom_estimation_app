@@ -12,26 +12,42 @@ class Dashboard extends Component
     public function render()
     {
         $cacheDuration = 300; // 5 minutes
+        $user = auth()->user();
 
-        $stats = \Illuminate\Support\Facades\Cache::remember('dashboard_stats_' . auth()->id(), $cacheDuration, function () {
+        $stats = \Illuminate\Support\Facades\Cache::remember('dashboard_stats_' . $user->id, $cacheDuration, function () use ($user) {
+            $estimateQuery = Estimate::query();
+            $taskQuery = \App\Models\Task::query();
+
+            // Scope for non-admins
+            if (!$user->isAdmin()) {
+                $estimateQuery->where('created_by', $user->id);
+                $taskQuery->where('assigned_to', $user->id);
+            }
+
             // 1. Overview Stats
             return [
-                'total' => Estimate::count(),
-                'draft' => Estimate::where('status', 'draft')->count(),
-                'sent' => Estimate::where('status', 'sent')->count(),
-                'accepted' => Estimate::where('status', 'accepted')->count(),
-                'declined' => Estimate::where('status', 'declined')->count(),
-                'tasks_pending' => \App\Models\Task::pending()->count(),
-                'tasks_overdue' => \App\Models\Task::overdue()->count(),
+                'total' => (clone $estimateQuery)->count(),
+                'draft' => (clone $estimateQuery)->where('status', 'draft')->count(),
+                'sent' => (clone $estimateQuery)->where('status', 'sent')->count(),
+                'accepted' => (clone $estimateQuery)->where('status', 'accepted')->count(),
+                'declined' => (clone $estimateQuery)->where('status', 'declined')->count(),
+                'tasks_pending' => (clone $taskQuery)->pending()->count(),
+                'tasks_overdue' => (clone $taskQuery)->overdue()->count(),
             ];
         });
 
         // 2. Financials (Pipeline)
-        $financials = \Illuminate\Support\Facades\Cache::remember('dashboard_financials_' . auth()->id(), $cacheDuration, function () {
+        $financials = \Illuminate\Support\Facades\Cache::remember('dashboard_financials_' . $user->id, $cacheDuration, function () use ($user) {
+            $estimateQuery = Estimate::query();
+
+            if (!$user->isAdmin()) {
+                $estimateQuery->where('created_by', $user->id);
+            }
+
             return [
-                'pipeline_revenue' => Estimate::whereIn('status', ['draft', 'sent'])->sum('grand_total'),
-                'converted_revenue' => Estimate::where('status', 'accepted')->sum('grand_total'),
-                'weightedForecast' => Estimate::whereIn('status', ['sent', 'waiting_approval'])
+                'pipeline_revenue' => (clone $estimateQuery)->whereIn('status', ['draft', 'sent'])->sum('grand_total'),
+                'converted_revenue' => (clone $estimateQuery)->where('status', 'accepted')->sum('grand_total'),
+                'weightedForecast' => (clone $estimateQuery)->whereIn('status', ['sent', 'waiting_approval'])
                     ->selectRaw('SUM(grand_total * 0.7) as weighted_total')
                     ->first()->weighted_total ?? 0,
             ];
@@ -48,17 +64,36 @@ class Dashboard extends Component
         }
 
         // 4. Recent Data
-        $recent_estimates = Estimate::latest()->take(5)->get();
+        // Base Query Reuse
+        $baseEstimateQuery = Estimate::query();
+        if (!$user->isAdmin()) {
+            $baseEstimateQuery->where('created_by', $user->id);
+        }
+
+        $recent_estimates = (clone $baseEstimateQuery)->latest()->take(5)->get();
+
         // Hot Leads: Sent estimates with engagement > 0, ordered by score
-        $hot_leads = Estimate::where('status', 'sent')
+        $hot_leads = (clone $baseEstimateQuery)->where('status', 'sent')
             ->where('engagement_score', '>', 0)
             ->orderByDesc('engagement_score')
             ->orderByDesc('last_viewed_at')
             ->take(5)
             ->get();
 
-        $recent_tasks = \App\Models\Task::with('assignedTo')->latest()->take(5)->get();
-        $recent_activities = \App\Models\ActivityLog::with('user')->latest()->take(10)->get();
+        $recentQuery = \App\Models\Task::with('assignedTo');
+        if (!$user->isAdmin()) {
+            $recentQuery->where('assigned_to', $user->id);
+        }
+        $recent_tasks = $recentQuery->latest()->take(5)->get();
+
+        // Activity Logs
+        // Admin sees all, User sees their own actions? Or actions on their estimates?
+        // Simplest: User sees actions they performed.
+        $activityQuery = \App\Models\ActivityLog::with('user');
+        if (!$user->isAdmin()) {
+            $activityQuery->where('user_id', $user->id);
+        }
+        $recent_activities = $activityQuery->latest()->take(10)->get();
 
         return view('livewire.dashboard', compact(
             'stats',
