@@ -40,6 +40,12 @@ class AppServiceProvider extends ServiceProvider
                     config(['app.name' => $settings['app_name']]);
                 }
 
+                if ($settings->has('timezone')) {
+                    $timezone = $settings['timezone'];
+                    config(['app.timezone' => $timezone]);
+                    date_default_timezone_set($timezone);
+                }
+
                 view()->share('app_settings', $settings);
                 $this->app->instance('app_settings', $settings);
             }
