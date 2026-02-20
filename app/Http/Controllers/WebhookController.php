@@ -14,19 +14,30 @@ class WebhookController extends Controller
      */
     public function handle(Request $request, string $provider)
     {
-        // 1. Log Raw Payload Immediately
-        $event = WebhookInboundEvent::create([
-            'provider' => $provider,
-            'provider_event_id' => $this->extractEventId($request, $provider),
-            'payload' => $request->all(),
-            'headers' => $request->headers->all(),
-            'status' => 'pending',
-        ]);
+        // 1. Log Raw Payload (Idempotent Check)
+        $eventId = $this->extractEventId($request, $provider);
+        $event = WebhookInboundEvent::firstOrCreate(
+            ['provider' => $provider, 'provider_event_id' => $eventId],
+            [
+                'payload' => $request->all(),
+                'headers' => $request->headers->all(),
+                'status' => 'pending',
+            ]
+        );
 
-        // 2. Verification (Can be moved to Middleware for cleaner code, but kept here for initial logic)
+        // If it already existed and was processed, just return success
+        if (!$event->wasRecentlyCreated && $event->status === 'processed') {
+            return response()->json(['message' => 'Already processed'], 200);
+        }
+
+        // 2. Verification
         if (!$this->verifySignature($request, $provider)) {
-            $event->update(['status' => 'failed', 'error' => 'Invalid signature']);
-            Log::warning("Webhook: Invalid signature for provider {$provider}");
+            $event->update([
+                'status' => 'failed',
+                'error_message' => 'Invalid signature',
+                'error' => 'Expected signature mismatch in headers: ' . json_encode($request->headers->all())
+            ]);
+            Log::warning("Webhook [{$provider}]: Invalid signature. Content-Type: " . $request->header('Content-Type'));
             return response()->json(['error' => 'Invalid signature'], 403);
         }
 
@@ -96,8 +107,8 @@ class WebhookController extends Controller
     protected function extractEventId(Request $request, string $provider): ?string
     {
         return match ($provider) {
-            'perfex' => $request->input('proposal_id') ?? $request->input('id'),
-            default => $request->header('X-Event-Id'),
+            'perfex' => $request->input('proposal_id') ?? $request->input('id') ?? $request->input('event_id'),
+            default => $request->header('X-Event-Id') ?? $request->header('X-Request-Id') ?? (string) \Illuminate\Support\Str::uuid(),
         };
     }
 

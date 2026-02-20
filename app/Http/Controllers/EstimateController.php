@@ -624,6 +624,45 @@ class EstimateController extends Controller
     }
 
     /**
+     * Calculate estimate totals via AJAX.
+     */
+    public function calculate(Request $request)
+    {
+        $data = $request->all();
+
+        // Create a temporary estimate instance
+        $estimate = new Estimate($data);
+
+        // Populate items
+        $items = collect([]);
+        if ($request->type === 'room_based') {
+            foreach ($request->sections ?? [] as $sectionData) {
+                foreach ($sectionData['items'] ?? [] as $itemData) {
+                    $items->push(new EstimateItem($itemData));
+                }
+            }
+        } else {
+            foreach ($request->items ?? [] as $itemData) {
+                $items->push(new EstimateItem($itemData));
+            }
+        }
+
+        $estimate->setRelation('items', $items);
+
+        // Use the PriceCalculator
+        $calculator = new \App\Services\Calculations\PriceCalculator();
+        $results = $calculator->calculate($estimate);
+
+        return response()->json([
+            'subtotal' => $results['estimate_updates']['subtotal'],
+            'total_tax' => $results['estimate_updates']['total_tax'],
+            'discount' => $results['estimate_updates']['discount_total'],
+            'grand_total' => $results['estimate_updates']['grand_total'],
+            'approval_chain_id' => $results['estimate_updates']['approval_chain_id'],
+        ]);
+    }
+
+    /**
      * Preview the estimate as a client (Admin View).
      */
     public function portalPreview(Estimate $estimate)

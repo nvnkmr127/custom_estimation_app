@@ -23,8 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->validateCsrfTokens(except: [
-            '/webhooks/*',
-            '/catch/*',
+            'webhooks/*',
+            'catch/*',
         ]);
     })
     ->withSchedule(function ($schedule) {

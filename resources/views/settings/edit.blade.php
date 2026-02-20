@@ -74,6 +74,31 @@
                                 </div>
                             </div>
 
+                            <!-- Favicon -->
+                            <div class="col-span-full">
+                                <label for="app_favicon"
+                                    class="block text-sm font-medium leading-6 text-slate-900">Application
+                                    Favicon</label>
+                                <div class="mt-2 flex items-center gap-x-3">
+                                    @if(isset($settings['app_favicon']))
+                                        <img src="{{ \Illuminate\Support\Str::startsWith($settings['app_favicon'], ['http://', 'https://']) ? $settings['app_favicon'] : asset($settings['app_favicon']) }}"
+                                            alt="Current Favicon"
+                                            class="h-8 w-8 rounded object-cover bg-slate-50 ring-1 ring-slate-900/10">
+                                    @else
+                                        <div
+                                            class="h-8 w-8 rounded bg-slate-100 flex items-center justify-center text-slate-400">
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                    @endif
+                                    <input type="file" name="app_favicon" id="app_favicon"
+                                        class="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                </div>
+                                <p class="mt-2 text-xs text-slate-500">Recommended size: 32x32px or 64x64px.</p>
+                            </div>
+
                             <!-- Legal Name -->
                             <div class="sm:col-span-4">
                                 <label for="company_legal_name"
@@ -544,28 +569,28 @@
                                     @php $savedImages = json_decode($settings['portal_company_showcase_images'], true); @endphp
                                     @if($savedImages && count($savedImages) > 0)
                                         <div class="mt-4 grid grid-cols-4 gap-4" x-data="{
-                                                            images: {{ json_encode($savedImages) }},
-                                                            deleteImage(index, url) {
-                                                                if (!confirm('Remove this image from showcase?')) return;
+                                                                    images: {{ json_encode($savedImages) }},
+                                                                    deleteImage(index, url) {
+                                                                        if (!confirm('Remove this image from showcase?')) return;
 
-                                                                fetch(url, {
-                                                                    method: 'DELETE',
-                                                                    headers: {
-                                                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                                                        'X-Requested-With': 'XMLHttpRequest',
-                                                                        'Accept': 'application/json'
+                                                                        fetch(url, {
+                                                                            method: 'DELETE',
+                                                                            headers: {
+                                                                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                                                'X-Requested-With': 'XMLHttpRequest',
+                                                                                'Accept': 'application/json'
+                                                                            }
+                                                                        })
+                                                                        .then(response => response.json())
+                                                                        .then(data => {
+                                                                            if (data.success) {
+                                                                                // Remove from local array to update UI
+                                                                                this.images = this.images.filter((_, i) => i !== index);
+                                                                            }
+                                                                        })
+                                                                        .catch(error => console.error('Error:', error));
                                                                     }
-                                                                })
-                                                                .then(response => response.json())
-                                                                .then(data => {
-                                                                    if (data.success) {
-                                                                        // Remove from local array to update UI
-                                                                        this.images = this.images.filter((_, i) => i !== index);
-                                                                    }
-                                                                })
-                                                                .catch(error => console.error('Error:', error));
-                                                            }
-                                                        }">
+                                                                }">
                                             <template x-for="(img, index) in images" :key="index">
                                                 <div
                                                     class="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">

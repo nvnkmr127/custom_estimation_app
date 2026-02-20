@@ -14,6 +14,10 @@
     <!-- Scripts -->
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    @if(isset($app_settings['app_favicon']))
+        <link rel="icon" type="image/x-icon" href="{{ $app_settings['app_favicon'] }}">
+    @endif
 </head>
 
 <body class="h-full bg-slate-50 font-sans antialiased text-slate-900">
@@ -40,7 +44,13 @@
 
             <!-- Logo area -->
             <div class="flex h-16 shrink-0 items-center px-6 bg-slate-950/50">
-                <h1 class="text-xl font-bold tracking-tight">Estimation App</h1>
+                @if(isset($app_settings['app_logo']))
+                    <img src="{{ $app_settings['app_logo'] }}" alt="{{ $app_settings['app_name'] ?? config('app.name') }}"
+                        class="h-8 w-auto">
+                @else
+                    <h1 class="text-xl font-bold tracking-tight">
+                        {{ $app_settings['app_name'] ?? config('app.name', 'Estimation App') }}</h1>
+                @endif
             </div>
 
             <!-- Navigation -->

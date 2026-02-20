@@ -21,8 +21,8 @@ class PdfRenderingService
         $this->isWeb = $isWeb;
         // Ensure comments and relations are loaded for PDF generation to avoid N+1
         $this->estimate->loadMissing([
-            'items.comments.user', 
-            'items.product', 
+            'items.comments.user',
+            'items.product',
             'items.unitType',
             'sections.items.comments.user',
             'sections.items.product',
@@ -235,14 +235,17 @@ class PdfRenderingService
                     // Set a short timeout for image downloading
                     $context = stream_context_create(['http' => ['timeout' => 5]]);
                     $imageContent = @file_get_contents($src, false, $context);
-                    
+
                     if ($imageContent !== false) {
                         $extension = pathinfo(parse_url($src, PHP_URL_PATH), PATHINFO_EXTENSION);
                         $mime = 'image/png'; // default
-                        if ($extension === 'jpg' || $extension === 'jpeg') $mime = 'image/jpeg';
-                        elseif ($extension === 'gif') $mime = 'image/gif';
-                        elseif ($extension === 'svg') $mime = 'image/svg+xml';
-                        
+                        if ($extension === 'jpg' || $extension === 'jpeg')
+                            $mime = 'image/jpeg';
+                        elseif ($extension === 'gif')
+                            $mime = 'image/gif';
+                        elseif ($extension === 'svg')
+                            $mime = 'image/svg+xml';
+
                         $base64 = base64_encode($imageContent);
                         return 'src="data:' . $mime . ';base64,' . $base64 . '"';
                     }
@@ -250,7 +253,7 @@ class PdfRenderingService
                     // If download fails, fall back to original URL and let Dompdf try (or fail gracefully)
                     \Illuminate\Support\Facades\Log::warning("Failed to convert image to base64: $src - " . $e->getMessage());
                 }
-                
+
                 return $matches[0];
             }
 
@@ -382,11 +385,11 @@ class PdfRenderingService
 
         // Return cached base64 if available
         if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
-             return \Illuminate\Support\Facades\Cache::get($cacheKey);
+            return \Illuminate\Support\Facades\Cache::get($cacheKey);
         }
 
         $url = 'https://quickchart.io/chart?w=500&h=300&c=' . urlencode($configJson);
-        
+
         // Attempt to pre-fetch and cache
         try {
             $context = stream_context_create(['http' => ['timeout' => 5]]);
@@ -796,7 +799,11 @@ class PdfRenderingService
     {
         set_time_limit(300); // Increase execution time to 5 minutes
         $cacheKey = $this->resolveCacheKey($estimate, $template);
-        $cachePath = storage_path('app/public/estimates_cache/' . $cacheKey);
+        $directory = storage_path('app/public/estimates_cache');
+        if (!file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+        $cachePath = $directory . '/' . $cacheKey;
 
         // Check if cached file exists and is fresher than the estimate/template update
         // Logic: The key already contains timestamps, so if file exists with that name, it's valid.

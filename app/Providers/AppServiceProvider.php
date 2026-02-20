@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
             // Note: LogDomainEvent logic is now handled by LaravelEventDispatcher dispatching LogEvent job directly.
 
             if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
-                $settings = \App\Models\Setting::all()->pluck('value', 'key');
+                $settings = collect(\App\Models\Setting::getAllCached());
 
                 if ($settings->has('app_name')) {
                     config(['app.name' => $settings['app_name']]);

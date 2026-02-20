@@ -23,6 +23,7 @@ class SettingsController extends Controller
             // General
             'app_name' => 'required|string|max:255',
             'app_logo' => 'nullable|image|max:2048',
+            'app_favicon' => 'nullable|image|max:1024',
             'app_timezone' => 'nullable|string|max:255',
 
             // Company Identity
@@ -141,6 +142,17 @@ class SettingsController extends Controller
 
             Setting::updateOrCreate(
                 ['key' => 'app_logo'],
+                ['value' => $publicPath]
+            );
+        }
+
+        // Handle Favicon Upload
+        if ($request->hasFile('app_favicon')) {
+            $path = $request->file('app_favicon')->store('settings', 'public');
+            $publicPath = Storage::disk('public')->url($path);
+
+            Setting::updateOrCreate(
+                ['key' => 'app_favicon'],
                 ['value' => $publicPath]
             );
         }

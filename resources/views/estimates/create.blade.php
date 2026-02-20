@@ -818,8 +818,11 @@
                                                     <div class="relative group">
                                                         <select x-model="item.unit_type_id"
                                                             @change="onUnitTypeChange(item)"
-                                                            :class="hasItemError(item, null) && (!item.unit_type_id || item.unit_type_id === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-slate-200 bg-slate-50/50'"
-                                                            class="block w-full rounded-lg py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-white">
+                                                            :disabled="isItemLocked(item)" :class="[
+                                                                hasItemError(item, null) && (!item.unit_type_id || item.unit_type_id === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-slate-200 bg-slate-50/50',
+                                                                isItemLocked(item) ? 'cursor-not-allowed text-slate-400' : 'cursor-pointer hover:bg-white text-slate-600'
+                                                            ]"
+                                                            class="block w-full rounded-lg py-1.5 px-2 text-[10px] font-bold focus:ring-2 focus:ring-indigo-600 transition-all appearance-none">
                                                             <option value="">Manual</option>
                                                             <template x-for="type in unitTypes" :key="type.id">
                                                                 <option :value="type.id" x-text="type.name"></option>
@@ -838,8 +841,11 @@
                                                     <div class="relative">
                                                         <template x-if="item.unit_type_id">
                                                             <select x-model="item.unit_type"
-                                                                :class="hasItemError(item, null) && (!item.unit_type || item.unit_type === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-indigo-200 bg-indigo-50/30'"
-                                                                class="block w-full rounded-lg py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
+                                                                :disabled="isItemLocked(item)" :class="[
+                                                                    hasItemError(item, null) && (!item.unit_type || item.unit_type === '') ? 'border-rose-300 bg-rose-50/50 ring-2 ring-rose-200' : 'border-indigo-200 bg-indigo-50/30',
+                                                                    isItemLocked(item) ? 'cursor-not-allowed text-indigo-400' : 'cursor-pointer hover:bg-indigo-50/50'
+                                                                ]"
+                                                                class="block w-full rounded-lg py-1.5 px-2 text-[11px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none shadow-sm text-center">
                                                                 <template
                                                                     x-for="u in getUnitsByTypeId(item.unit_type_id)"
                                                                     :key="u">
@@ -1136,10 +1142,22 @@
                                 </div>
                             </dd>
                         </div>
-                        <div class="flex justify-between border-t border-slate-200 pt-3">
+                        <div class="flex justify-between border-t border-slate-200 pt-3 relative">
                             <dt class="text-base font-bold text-slate-900">Grand Total</dt>
                             <dd class="text-base font-bold text-indigo-600"
                                 x-text="estimate.currency_symbol + ' ' + totals.grandTotal.toFixed(2)"></dd>
+
+                            <!-- AJAX Loading Spinner -->
+                            <div x-show="isCalculating" class="absolute -top-1 right-0" style="display: none;">
+                                <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg"
+                                    fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                            </div>
                         </div>
                     </dl>
                 </div>

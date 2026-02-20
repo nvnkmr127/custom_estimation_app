@@ -64,6 +64,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('estimates/{estimate}/revert', [EstimateController::class, 'revertToDraft'])->name('estimates.revert');
     Route::get('estimates/{estimate}/pdf', [EstimateController::class, 'downloadPdf'])->name('estimates.pdf');
     Route::post('estimates/preview', [EstimateController::class, 'preview'])->name('estimates.preview');
+    Route::post('estimates/calculate', [EstimateController::class, 'calculate'])->name('estimates.calculate');
     Route::post('estimates/batch-download', [EstimateController::class, 'batchDownload'])->name('estimates.batch-download');
     Route::get('estimates/{estimate}/portal-preview', [EstimateController::class, 'portalPreview'])->name('estimates.portal-preview');
 

@@ -73,6 +73,8 @@
             },
             selectedClient: null,
             isSubmitting: false,
+            isCalculating: false,
+            _calcTimeout: null,
             validationErrors: [],
 
             generateUid() {
@@ -240,8 +242,8 @@
             },
 
             isItemLocked(item) {
-                const hasProduct = item.product_id !== null && item.product_id !== undefined && item.product_id !== '' && item.product_id !== 0 && item.product_id !== '0';
-                return !!(hasProduct || item.is_package || item.is_locked);
+                // An item is considered locked if it came from a product, package, or has a defined unit_type_id (admin configuration)
+                return !!item.product_id || !!item.is_package || !!item.unit_type_id;
             },
 
             initClientSearch() {
@@ -839,6 +841,55 @@
                     discount,
                     grandTotal: subtotal + totalTax - discount + transportation
                 };
+
+                // Trigger Remote AJAX Sync (Debounced)
+                clearTimeout(this._calcTimeout);
+                this._calcTimeout = setTimeout(() => {
+                    this.calculateTotalsRemote();
+                }, 500);
+            },
+
+            calculateTotalsRemote() {
+                this.isCalculating = true;
+
+                // Prepare minimal payload
+                const payload = {
+                    type: this.estimate.type,
+                    tax_1: this.estimate.tax_1,
+                    tax_2: this.estimate.tax_2,
+                    discount_type: this.estimate.discount_type,
+                    discount_value: this.estimate.discount_value,
+                    transportation_charges: this.estimate.transportation_charges,
+                    sections: this.estimate.sections,
+                    items: this.estimate.items
+                };
+
+                fetch('{{ route("estimates.calculate") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        // Update totals with authoritative server-side results
+                        this.totals.subtotal = data.subtotal;
+                        this.totals.totalTax = data.total_tax;
+                        this.totals.discount = data.discount;
+                        this.totals.grandTotal = data.grand_total;
+
+                        // Sync approval chain if relevant
+                        if (data.approval_chain_id) {
+                            this.estimate.approval_chain_id = data.approval_chain_id;
+                        }
+                    })
+                    .catch(e => console.error('Remote calculation error:', e))
+                    .finally(() => {
+                        this.isCalculating = false;
+                    });
             },
 
             toggleCalculator(item) {
@@ -1016,26 +1067,38 @@
                     });
                 }
 
+                // Ensure at least one item exists
+                const totalItems = this.estimate.type === 'room_based'
+                    ? this.estimate.sections.reduce((sum, s) => sum + (s.items?.length || 0), 0)
+                    : this.estimate.items.length;
+
+                if (totalItems === 0) {
+                    errors.push({
+                        location: 'Estimate Items',
+                        itemName: 'Content',
+                        message: 'The estimate must contain at least one room or item before saving.'
+                    });
+                }
+
                 // Validate unit configurations
                 const validateItem = (item, location) => {
-                    // Check if unit configuration is started but not completed
-                    if (item._showTypePicker || item.unit_type_id) {
-                        // If unit type picker is shown or unit_type_id is set, we need both fields
-                        if (!item.unit_type_id || item.unit_type_id === '') {
-                            errors.push({
-                                location: location,
-                                itemName: item.name || 'Unnamed Item',
-                                message: 'Unit Type is required'
-                            });
-                        }
-
+                    // Only validate if a unit type has been selected or the picker was explicitly opened
+                    // This allows "pure" custom items (Manual unit type) to skip this check
+                    if (item.unit_type_id) {
                         if (!item.unit_type || item.unit_type === '') {
                             errors.push({
                                 location: location,
                                 itemName: item.name || 'Unnamed Item',
-                                message: 'Unit is required'
+                                message: 'Specific Unit is required for the selected Unit Type'
                             });
                         }
+                    } else if (item._showTypePicker) {
+                        // If they clicked "Unit" button but didn't pick anything
+                        errors.push({
+                            location: location,
+                            itemName: item.name || 'Unnamed Item',
+                            message: 'Please select a Unit Type or leave as Manual'
+                        });
                     }
                 };
 
@@ -1057,10 +1120,19 @@
 
             // --- Form Submission ---
             previewPdf() {
+                // Remove empty rooms before preview
+                if (this.estimate.type === 'room_based') {
+                    this.estimate.sections = this.estimate.sections.filter(s => s.items && s.items.length > 0);
+                }
                 this.submitHiddenForm('{{ route("estimates.preview") }}', true);
             },
 
             submitForm() {
+                // Automatically remove empty rooms before saving
+                if (this.estimate.type === 'room_based') {
+                    this.estimate.sections = this.estimate.sections.filter(s => s.items && s.items.length > 0);
+                }
+
                 // Validate all required fields before submission
                 if (!this.validateForm()) {
                     // Scroll to top to show error message

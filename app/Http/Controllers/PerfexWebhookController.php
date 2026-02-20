@@ -10,17 +10,29 @@ class PerfexWebhookController extends Controller
 {
     public function handle(Request $request)
     {
+        Log::info('Perfex Webhook attempt from IP: ' . $request->ip(), [
+            'headers' => $request->headers->all(),
+            'all_data' => $request->all(),
+            'raw_content' => $request->getContent(),
+        ]);
+
         // Security Check
-        $token = $request->header('X-Perfex-Token');
+        $token = $request->header('X-Perfex-Token') ?? $request->input('token');
         $secret = config('services.perfex.webhook_secret');
 
-        if (empty($secret) || $token !== $secret) {
-            Log::warning('Unauthorized Perfex Webhook attempt from IP: '.$request->ip());
+        if (empty($secret)) {
+            Log::warning('Perfex Webhook: Secret is not configured in .env (PERFEX_WEBHOOK_SECRET)');
+            return response()->json(['error' => 'Secret not configured'], 500);
+        }
+
+        if ($token !== $secret) {
+            Log::warning('Unauthorized Perfex Webhook attempt. Token mismatch.', [
+                'received' => $token,
+                'is_empty' => empty($token)
+            ]);
 
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-
-        Log::info('Perfex Webhook:', $request->all());
 
         $type = $request->input('event_type') ?? $request->input('action');
         $data = $request->all();
