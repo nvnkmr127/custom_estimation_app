@@ -17,21 +17,24 @@
         <div class="overflow-hidden rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
             <dt class="truncate text-sm font-medium text-gray-500">Revenue Forecast</dt>
             <dd class="mt-2 text-3xl font-semibold tracking-tight text-indigo-600">
-                {{ number_format($weightedForecast, 2) }}
+                <span
+                    class="text-lg font-medium mr-1">{{ \App\Models\Setting::getCurrencySymbol() }}</span>{{ number_format($weightedForecast, 2) }}
             </dd>
             <dd class="mt-1 text-xs text-gray-500">70% Weighted Pipeline</dd>
         </div>
         <div class="overflow-hidden rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
             <dt class="truncate text-sm font-medium text-gray-500">Pipeline Value</dt>
             <dd class="mt-2 text-3xl font-semibold tracking-tight text-gray-900">
-                {{ number_format($pipeline_revenue, 2) }}
+                <span
+                    class="text-lg font-medium mr-1">{{ \App\Models\Setting::getCurrencySymbol() }}</span>{{ number_format($pipeline_revenue, 2) }}
             </dd>
             <dd class="mt-1 text-xs text-gray-500">{{ $stats['sent'] }} Sent, {{ $stats['draft'] }} Draft</dd>
         </div>
         <div class="overflow-hidden rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
             <dt class="truncate text-sm font-medium text-gray-500">Converted Revenue</dt>
             <dd class="mt-2 text-3xl font-semibold tracking-tight text-green-600">
-                {{ number_format($converted_revenue, 2) }}
+                <span
+                    class="text-lg font-medium mr-1">{{ \App\Models\Setting::getCurrencySymbol() }}</span>{{ number_format($converted_revenue, 2) }}
             </dd>
             <dd class="mt-1 text-xs text-green-600">{{ $stats['accepted'] }} Accepted</dd>
         </div>
@@ -72,7 +75,9 @@
                             </svg>
                             Hot Leads
                         </h3>
-                        <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">{{ $hot_leads->count() }} Alert</span>
+                        <span
+                            class="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">{{ $hot_leads->count() }}
+                            Alert</span>
                     </div>
                     <ul role="list" class="divide-y divide-red-50">
                         @foreach($hot_leads as $lead)
@@ -97,7 +102,9 @@
                                 </div>
                                 <div class="flex shrink-0 items-center gap-x-4">
                                     <div class="text-right">
-                                        <p class="text-xs font-medium text-gray-900">{{ number_format($lead->grand_total, 2) }}
+                                        <p class="text-xs font-medium text-gray-900">
+                                            {{ \App\Models\Setting::getCurrencySymbol() }}
+                                            {{ number_format($lead->grand_total, 2) }}
                                         </p>
                                         <span
                                             class="inline-flex items-center rounded-md bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200">View</span>
@@ -131,6 +138,7 @@
                             <div class="flex shrink-0 items-center gap-x-4">
                                 <div class="text-right">
                                     <p class="text-xs font-medium text-gray-900">
+                                        {{ \App\Models\Setting::getCurrencySymbol() }}
                                         {{ number_format($estimate->grand_total, 2) }}
                                     </p>
                                     <p class="mt-1 text-[10px] text-gray-500">{{ ucfirst($estimate->status) }}</p>

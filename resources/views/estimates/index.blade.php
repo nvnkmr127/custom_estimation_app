@@ -26,7 +26,7 @@
                 <dd class="mt-2 flex items-baseline text-2xl font-semibold text-gray-900">
                     {{ number_format($stats['total_count']) }}
                     <span
-                        class="ml-2 text-sm font-normal text-gray-500">(@php $sym = \App\Models\Setting::getCached('currency_symbol') ?? '$'; @endphp
+                        class="ml-2 text-sm font-normal text-gray-500">(@php $sym = \App\Models\Setting::getCurrencySymbol(); @endphp
                         {{ $sym }} {{ number_format($stats['total_value'], 2) }})</span>
                 </dd>
             </a>

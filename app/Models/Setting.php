@@ -36,4 +36,25 @@ class Setting extends Model
 
         return $settings[$key] ?? $default;
     }
+
+    public static function getCurrencySymbol()
+    {
+        $symbol = static::getCached('currency_symbol');
+        $code = static::getCached('currency_code', 'USD');
+
+        if (!$symbol || $symbol === $code) {
+            $mapping = [
+                'USD' => '$',
+                'INR' => '₹',
+                'EUR' => '€',
+                'GBP' => '£',
+                'AUD' => 'A$',
+                'CAD' => 'C$',
+                'JPY' => '¥',
+            ];
+            return $mapping[$code] ?? $code;
+        }
+
+        return $symbol;
+    }
 }

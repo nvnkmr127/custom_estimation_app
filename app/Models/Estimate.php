@@ -104,12 +104,11 @@ class Estimate extends Model
     protected $appends = ['currency_symbol', 'has_discount', 'has_tax', 'has_transportation'];
 
     /**
-     * Get the currency symbol from system settings or fallback to code.
+     * Get the currency symbol from system settings or fallback to code-based mapping.
      */
     public function getCurrencySymbolAttribute()
     {
-        $symbol = Setting::getCached('currency_symbol');
-        return $symbol ?: ($this->attributes['currency'] ?? '$');
+        return Setting::getCurrencySymbol();
     }
 
     /**

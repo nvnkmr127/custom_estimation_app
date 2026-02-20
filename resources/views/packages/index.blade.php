@@ -43,7 +43,7 @@
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-slate-500">
                                         <div class="flex flex-col">
                                             <span
-                                                class="font-bold text-slate-900">{{ \App\Models\Setting::getCached('currency_symbol', '$') }}{{ number_format($package->total_price, 2) }}</span>
+                                                class="font-bold text-slate-900">{{ \App\Models\Setting::getCurrencySymbol() }}{{ number_format($package->total_price, 2) }}</span>
                                             <span
                                                 class="text-[10px] font-medium uppercase tracking-wide text-slate-500">{{ count($package->items ?? []) }}
                                                 items</span>

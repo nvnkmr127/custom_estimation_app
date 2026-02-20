@@ -33,7 +33,7 @@
                         <div class="sm:col-span-1">
                             <dt class="text-sm font-medium text-gray-500">Total Price</dt>
                             <dd class="mt-1 text-sm text-gray-900 font-semibold">
-                                {{ \App\Models\Setting::getCached('currency_symbol', '$') }}{{ number_format($package->total_price, 2) }}
+                                {{ \App\Models\Setting::getCurrencySymbol() }}{{ number_format($package->total_price, 2) }}
                             </dd>
                         </div>
                         <div class="sm:col-span-2">
@@ -83,10 +83,10 @@
                                         {{ $item['quantity'] }} {{ $item['unit_type'] ?? '' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ \App\Models\Setting::getCached('currency_symbol', '$') }}{{ number_format($item['unit_price'] ?? 0, 2) }}
+                                        {{ \App\Models\Setting::getCurrencySymbol() }}{{ number_format($item['unit_price'] ?? 0, 2) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-medium">
-                                        {{ \App\Models\Setting::getCached('currency_symbol', '$') }}{{ number_format(($item['quantity'] * ($item['unit_price'] ?? 0)), 2) }}
+                                        {{ \App\Models\Setting::getCurrencySymbol() }}{{ number_format(($item['quantity'] * ($item['unit_price'] ?? 0)), 2) }}
                                     </td>
                                 </tr>
                             @empty
@@ -102,7 +102,7 @@
                                     class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Total</td>
                                 <td class="px-6 py-3 text-left text-sm font-bold text-gray-900">
-                                    {{ \App\Models\Setting::getCached('currency_symbol', '$') }}{{ number_format($package->total_price, 2) }}
+                                    {{ \App\Models\Setting::getCurrencySymbol() }}{{ number_format($package->total_price, 2) }}
                                 </td>
                             </tr>
                         </tfoot>

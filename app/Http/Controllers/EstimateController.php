@@ -249,7 +249,7 @@ class EstimateController extends Controller
 
         $defaults = [
             'currency' => $settings['currency_code'] ?? 'USD',
-            'currency_symbol' => $settings['currency_symbol'] ?? '$',
+            'currency_symbol' => Setting::getCurrencySymbol(),
             'tax_1_name' => $settings['tax_1_name'] ?? 'Tax 1',
             'tax_1_rate' => (float) ($settings['tax_1_rate'] ?? 0),
             'tax_2_name' => $settings['tax_2_name'] ?? 'Tax 2',

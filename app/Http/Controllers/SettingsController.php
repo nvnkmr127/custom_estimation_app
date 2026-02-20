@@ -138,7 +138,7 @@ class SettingsController extends Controller
         // Handle Logo Upload
         if ($request->hasFile('app_logo')) {
             $path = $request->file('app_logo')->store('settings', 'public');
-            $publicPath = Storage::disk('public')->url($path);
+            $publicPath = asset('storage/' . $path);
 
             Setting::updateOrCreate(
                 ['key' => 'app_logo'],
@@ -149,7 +149,7 @@ class SettingsController extends Controller
         // Handle Favicon Upload
         if ($request->hasFile('app_favicon')) {
             $path = $request->file('app_favicon')->store('settings', 'public');
-            $publicPath = Storage::disk('public')->url($path);
+            $publicPath = asset('storage/' . $path);
 
             Setting::updateOrCreate(
                 ['key' => 'app_favicon'],
@@ -160,7 +160,7 @@ class SettingsController extends Controller
         // Handle Video Upload
         if ($request->hasFile('portal_company_video')) {
             $path = $request->file('portal_company_video')->store('showcase', 'public');
-            $publicPath = Storage::disk('public')->url($path);
+            $publicPath = asset('storage/' . $path);
 
             Setting::updateOrCreate(
                 ['key' => 'portal_company_video'],
@@ -171,7 +171,7 @@ class SettingsController extends Controller
         // Handle Video Thumbnail
         if ($request->hasFile('portal_company_video_thumbnail')) {
             $path = $request->file('portal_company_video_thumbnail')->store('showcase', 'public');
-            $publicPath = Storage::disk('public')->url($path);
+            $publicPath = asset('storage/' . $path);
 
             Setting::updateOrCreate(
                 ['key' => 'portal_company_video_thumbnail'],
@@ -184,7 +184,7 @@ class SettingsController extends Controller
             $images = [];
             foreach ($request->file('portal_company_showcase_images') as $file) {
                 $path = $file->store('showcase', 'public');
-                $images[] = Storage::disk('public')->url($path);
+                $images[] = asset('storage/' . $path);
             }
             Setting::updateOrCreate(
                 ['key' => 'portal_company_showcase_images'],
@@ -351,7 +351,7 @@ class SettingsController extends Controller
 
         // Optionally delete from storage if it's a local file
         if (str_contains($imagePath, '/storage/')) {
-            $storageUrl = Storage::disk('public')->url('');
+            $storageUrl = asset('storage/');
             $storagePath = str_replace($storageUrl, '', $imagePath);
             Storage::disk('public')->delete($storagePath);
         }

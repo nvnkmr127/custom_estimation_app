@@ -43,7 +43,7 @@
                                 @if($coupon->type === 'percentage')
                                     {{ $coupon->value }}%
                                 @else
-                                    {{ \App\Models\Setting::getCached('currency_symbol', '$') }}{{ number_format($coupon->value, 2) }}
+                                    {{ \App\Models\Setting::getCurrencySymbol() }}{{ number_format($coupon->value, 2) }}
                                 @endif
                             </dd>
                         </div>
@@ -51,7 +51,7 @@
                             <div class="sm:col-span-1">
                                 <dt class="text-sm font-medium text-gray-500">Max Discount</dt>
                                 <dd class="mt-1 text-sm text-gray-900">
-                                    {{ \App\Models\Setting::getCached('currency_symbol', '$') }}{{ number_format($coupon->max_discount, 2) }}
+                                    {{ \App\Models\Setting::getCurrencySymbol() }}{{ number_format($coupon->max_discount, 2) }}
                                 </dd>
                             </div>
                         @endif

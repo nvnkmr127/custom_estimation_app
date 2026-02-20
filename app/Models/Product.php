@@ -142,6 +142,6 @@ class Product extends Model
 
     public function getCurrencySymbolAttribute()
     {
-        return Setting::getCached('currency_symbol', '$');
+        return Setting::getCurrencySymbol();
     }
 }
