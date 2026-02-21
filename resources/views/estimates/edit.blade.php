@@ -3,31 +3,55 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-    <div class="sm:flex sm:items-center mb-8">
-        <div class="sm:flex-auto">
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Edit Estimate #{{ $estimate->estimate_number }}
-            </h1>
-            <p class="mt-2 text-sm text-slate-500">Update estimate details, items, and pricing.</p>
-        </div>
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <div class="flex gap-2">
-                <a href="{{ route('estimates.analytics', $estimate) }}"
-                    class="block rounded-lg bg-indigo-50 px-4 py-2.5 text-center text-sm font-semibold text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100 transition-all duration-200">
-                    View Analytics
-                </a>
-                <a href="{{ route('estimates.index') }}"
-                    class="block rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200">
-                    Cancel & Back
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Logic -->
     <script>
         window.estimateData = {!! json_encode($estimate) !!};
     </script>
     <div x-data="estimateBuilder(window.estimateData)" x-init="init()" class="pb-20">
+        <div class="sm:flex sm:items-center mb-8">
+            <div class="sm:flex-auto flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Edit Estimate
+                        #{{ $estimate->estimate_number }}
+                    </h1>
+                    <p class="mt-2 text-sm text-slate-500">Update estimate details, items, and pricing.</p>
+                </div>
+
+            </div>
+            <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <div class="flex items-center gap-4">
+                    <!-- Autosave Indicator -->
+                    <div x-cloak x-show="autosaveStatus"
+                        class="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-white border border-slate-200 px-2 py-1.5 rounded-md shadow-sm">
+                        <svg x-show="autosaveStatus === 'Saving...'" class="animate-spin h-3.5 w-3.5 text-indigo-600"
+                            fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <svg x-show="autosaveStatus.startsWith('Saved')" class="h-3.5 w-3.5 text-emerald-500"
+                            fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span x-text="autosaveStatus" class="leading-none mt-px"></span>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <a href="{{ route('estimates.analytics', $estimate) }}"
+                            class="block rounded-lg bg-indigo-50 px-4 py-2.5 text-center text-sm font-semibold text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100 transition-all duration-200">
+                            View Analytics
+                        </a>
+                        <a href="{{ route('estimates.index') }}"
+                            class="block rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200">
+                            Cancel & Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Logic -->
 
         <form action="{{ route('estimates.update', $estimate) }}" method="POST" @submit.prevent="submitForm"
             class="space-y-8" novalidate>

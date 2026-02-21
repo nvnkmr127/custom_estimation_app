@@ -7,20 +7,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-    <div class="sm:flex sm:items-center mb-8">
-        <div class="sm:flex-auto">
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Create New Estimate</h1>
-            <p class="mt-2 text-sm text-slate-500">Create a new estimate with rooms and items.</p>
-        </div>
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <a href="{{ route('estimates.index') }}"
-                class="block rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200">
-                Cancel
-            </a>
-        </div>
-    </div>
-
-    <!-- Main Logic -->
     <script>
         const today = new Date();
         const offset = today.getTimezoneOffset() * 60000;
@@ -53,6 +39,33 @@
         // Pass defaults to JS for tax logic if needed, though simpler to handle via Alpine data
     </script>
     <div x-data="estimateBuilder(window.estimateData)" x-init="init()" class="pb-20">
+        <div class="sm:flex sm:items-center mb-8">
+            <div class="sm:flex-auto flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Create New Estimate</h1>
+                    <p class="mt-2 text-sm text-slate-500">Create a new estimate with rooms and items.</p>
+                </div>
+            </div>
+            <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <div class="flex items-center gap-4">
+                    <!-- Autosave Indicator -->
+                    <div x-cloak x-show="autosaveStatus"
+                        class="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-white border border-slate-200 px-2 py-1.5 rounded-md shadow-sm">
+                        <svg x-show="autosaveStatus.startsWith('Saved')" class="h-3.5 w-3.5 text-emerald-500"
+                            fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span x-text="autosaveStatus" class="leading-none mt-px"></span>
+                    </div>
+                    <a href="{{ route('estimates.index') }}"
+                        class="block rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Logic -->
 
         <form action="{{ route('estimates.store') }}" method="POST" @submit.prevent="submitForm" class="space-y-8"
             novalidate>

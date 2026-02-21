@@ -24,6 +24,9 @@
                 isOpen: false,
                 activeItem: null
             },
+            autosaveStatus: '',
+            autosaveTimer: null,
+            lastSavedEstimateState: '',
             estimate: {
                 // Defaults
                 client_id: '',
@@ -239,6 +242,30 @@
                     this.initSortable();
                     this.initClientSearch();
                 });
+
+                // Set initial state and start autosave timer
+                this.lastSavedEstimateState = JSON.stringify(this.estimate);
+                this.autosaveTimer = setInterval(() => {
+                    this.autoSave();
+                }, 30000); // Autosave every 30 seconds
+
+                // Optional: Recover local draft for create mode
+                if (!this.estimate.id) {
+                    const localDraft = localStorage.getItem('estimate_autosave');
+                    if (localDraft) {
+                        if (confirm('An unsaved draft estimate was found locally. Would you like to restore it?')) {
+                            try {
+                                const parsed = JSON.parse(localDraft);
+                                Object.assign(this.estimate, parsed);
+                                this.calculateTotals();
+                            } catch (e) {
+                                console.error('Failed to parse local draft:', e);
+                            }
+                        } else {
+                            localStorage.removeItem('estimate_autosave');
+                        }
+                    }
+                }
             },
 
             isItemLocked(item) {
@@ -1152,7 +1179,62 @@
                 return errors.length === 0;
             },
 
-            // --- Form Submission ---
+            // --- Form Submission & Autosave ---
+            autoSave() {
+                // If the form has validation errors, don't interrupt typing but also don't silently fail if we don't have enough data
+                // For a true "save draft state", we only skip if no items or missing client.
+
+                let estimateData = JSON.parse(JSON.stringify(this.estimate));
+
+                if (estimateData.type === 'room_based') {
+                    estimateData.sections = estimateData.sections.filter(s => s.items && s.items.length > 0);
+                }
+
+                const currentStateString = JSON.stringify(estimateData);
+                if (currentStateString === this.lastSavedEstimateState) {
+                    return; // No changes
+                }
+
+                if (!this.estimate.id) {
+                    // Create mode: Save offline to local storage
+                    localStorage.setItem('estimate_autosave', currentStateString);
+                    this.autosaveStatus = 'Saved locally at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    this.lastSavedEstimateState = currentStateString;
+                    return;
+                }
+
+                // Edit mode: Save to server
+                this.autosaveStatus = 'Saving...';
+
+                const actionUrl = `{{ route('estimates.update', ':id') }}`.replace(':id', this.estimate.id);
+                estimateData._autosave = true;
+
+                fetch(actionUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify(estimateData)
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            this.autosaveStatus = 'Saved at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            this.lastSavedEstimateState = currentStateString;
+                        } else if (response.status === 422) {
+                            // Backend validation failure — we might skip this visually to not disturb the user, but we'll show it
+                            this.autosaveStatus = 'Autosave paused (validation error)';
+                        } else {
+                            this.autosaveStatus = 'Autosave failed';
+                        }
+                    })
+                    .catch(err => {
+                        this.autosaveStatus = 'Offline - changes kept locally';
+                        localStorage.setItem('estimate_autosave_fallback_' + this.estimate.id, currentStateString);
+                    });
+            },
+
             previewPdf() {
                 // Remove empty rooms before preview
                 if (this.estimate.type === 'room_based') {
@@ -1177,6 +1259,12 @@
                 const actionUrl = this.estimate.id
                     ? `{{ route('estimates.update', ':id') }}`.replace(':id', this.estimate.id)
                     : `{{ route('estimates.store') }}`;
+
+                // On successful submit, clear any localStorage
+                localStorage.removeItem('estimate_autosave');
+                if (this.estimate.id) {
+                    localStorage.removeItem('estimate_autosave_fallback_' + this.estimate.id);
+                }
 
                 this.submitHiddenForm(actionUrl, false, this.estimate.id ? 'PUT' : 'POST');
             },
