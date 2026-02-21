@@ -128,9 +128,18 @@
                         <div class="mt-2 text-slate-900">
                             <select id="client-search" x-ref="clientSearch" name="client_id" required
                                 class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                <option value="{{ $estimate->client_id }}">
-                                    {{ $estimate->client->name ?? 'Search for a client or lead...' }}
-                                </option>
+                                @if(request()->has('duplicate'))
+                                    <option value="">Select a client...</option>
+                                    @foreach($clients as $client)
+                                        <option value="{{ $client->id }}" {{ $estimate->client_id == $client->id ? 'selected' : '' }}>
+                                            {{ $client->name }}
+                                        </option>
+                                    @endforeach
+                                @else
+                                    <option value="{{ $estimate->client_id }}" selected>
+                                        {{ $estimate->client->name ?? 'Search for a client or lead...' }}
+                                    </option>
+                                @endif
                             </select>
                         </div>
 
@@ -274,7 +283,7 @@
                 <!-- Room-Based List -->
                 <div x-show="estimate.type === 'room_based'" class="space-y-6 sections-container">
                     <template x-for="(section, sectionIndex) in estimate.sections" :key="sectionIndex">
-                        <div class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden"
+                        <div class="section-card border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden"
                             :data-section-index="sectionIndex">
                             <!-- Section Header -->
                             <div
@@ -344,7 +353,7 @@
                                         :data-section-index="sectionIndex">
                                         <template x-for="(item, itemIndex) in section.items"
                                             :key="item._uid || item.id || itemIndex">
-                                            <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                                            <tr class="item-row group hover:bg-slate-50/50 transition-all duration-200">
                                                 <!-- Handle -->
                                                 <td
                                                     class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
@@ -687,7 +696,12 @@
                 </div>
 
                 <!-- Standard List Table -->
-                <div x-show="estimate.type === 'standard'" class="overflow-x-auto min-h-[100px]">
+                <div x-show="estimate.type === 'standard' || (estimate.type === 'room_based' && estimate.items.length > 0)"
+                    class="overflow-x-auto min-h-[100px]">
+                    <div x-show="estimate.type === 'room_based'"
+                        class="px-4 py-2 bg-slate-100/50 border-b border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">General Items</h3>
+                    </div>
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50/50">
                             <tr>
@@ -721,7 +735,7 @@
                         <tbody class="bg-white divide-y divide-slate-200 standard-items-sortable">
                             <template x-for="(item, itemIndex) in estimate.items"
                                 :key="item._uid || item.id || itemIndex">
-                                <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                                <tr class="item-row group hover:bg-slate-50/50 transition-all duration-200">
                                     <td
                                         class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
                                         <svg class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"
@@ -938,24 +952,26 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <button type="button" @click="openProductPicker(null)"
+                        x-show="estimate.type === 'standard' || estimate.type === 'room_based'"
+                        class="h-full min-h-[160px] border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
+                        <svg class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                        </svg>
+                        <span>Add Item</span>
+                    </button>
 
-                <button type="button" @click="openProductPicker(null)" x-show="estimate.type === 'standard'"
-                    class="h-full min-h-[160px] border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
-                    <svg class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
-                        <path
-                            d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                    </svg>
-                    <span>Add Item</span>
-                </button>
-
-                <button type="button" @click="openRoomModal()" x-show="estimate.type === 'room_based'"
-                    class="h-full min-h-[160px] w-full border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
-                    <svg class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
-                        <path
-                            d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                    </svg>
-                    <span>Add New Room</span>
-                </button>
+                    <button type="button" @click="openRoomModal()" x-show="estimate.type === 'room_based'"
+                        class="h-full min-h-[160px] border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
+                        <svg class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                        </svg>
+                        <span>Add New Room</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Product Picker Modal -->

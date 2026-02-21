@@ -251,6 +251,14 @@
                 // Prevent double initialization
                 if (!el || el._choices) return;
 
+                // Cache original options before Choices.js modifies the DOM
+                const originalChoices = Array.from(el.options).map(opt => ({
+                    value: opt.value,
+                    label: opt.text,
+                    selected: opt.selected,
+                    disabled: opt.disabled
+                }));
+
                 const choices = new Choices(el, {
                     searchEnabled: true,
                     searchPlaceholderValue: 'Type to search Perfex CRM...',
@@ -263,26 +271,34 @@
 
                 // Sync initial value if editing
                 if (this.estimate.client_id) {
-                    choices.setChoiceByValue(this.estimate.client_id);
+                    choices.setChoiceByValue(String(this.estimate.client_id));
                 }
 
                 el.addEventListener('search', (event) => {
                     const query = event.detail.value;
-                    if (query.length < 3) return;
+                    if (query.length < 3) {
+                        // Restore original local clients if query is short
+                        choices.setChoices(originalChoices, 'value', 'label', true);
+                        return;
+                    }
 
                     fetch(`{{ route('perfex.search') }}?q=${query}`)
                         .then(response => response.json())
                         .then(data => {
-                            if (!Array.isArray(data)) {
-                                console.error('Perfex Search Error:', data);
-                                choices.setChoices([], 'value', 'label', true);
-                                return;
+                            let formattedData = [];
+                            if (Array.isArray(data)) {
+                                formattedData = data.map(client => ({
+                                    value: String(client.id),
+                                    label: client.name + (client.email ? ` (${client.email})` : '')
+                                }));
                             }
-                            const formattedData = data.map(client => ({
-                                value: client.id,
-                                label: client.name + (client.email ? ` (${client.email})` : '')
-                            }));
-                            choices.setChoices(formattedData, 'value', 'label', true);
+
+                            // Replace choices with original + new fetched data
+                            // Filter out duplicates (if perfex API returns a local client)
+                            const existingValues = new Set(originalChoices.map(c => String(c.value)));
+                            const newUniqueData = formattedData.filter(d => !existingValues.has(String(d.value)));
+
+                            choices.setChoices([...originalChoices, ...newUniqueData], 'value', 'label', true);
                         })
                         .catch(err => console.error('Client search error', err));
                 });
@@ -312,45 +328,63 @@
             initSortable() {
                 // Sections
                 const sectionsContainer = document.querySelector('.sections-container');
-                if (sectionsContainer) {
-                    new Sortable(sectionsContainer, {
+                if (sectionsContainer && !sectionsContainer._sortable) {
+                    sectionsContainer._sortable = new Sortable(sectionsContainer, {
                         animation: 150,
                         handle: '.section-handle',
+                        draggable: '.section-card',
                         onEnd: (evt) => {
-                            const movedItem = this.estimate.sections.splice(evt.oldIndex, 1)[0];
-                            this.estimate.sections.splice(evt.newIndex, 0, movedItem);
+                            const movedItem = this.estimate.sections.splice(evt.oldDraggableIndex, 1)[0];
+                            this.estimate.sections.splice(evt.newDraggableIndex, 0, movedItem);
+                            this.calculateTotals();
                         }
                     });
                 }
 
                 // Section Items
                 document.querySelectorAll('.section-items-sortable').forEach(el => {
-                    new Sortable(el, {
+                    if (el._sortable) return;
+                    el._sortable = new Sortable(el, {
                         animation: 150,
                         group: 'items',
                         handle: '.handle',
+                        draggable: '.item-row',
                         onEnd: (evt) => {
-                            // Find parent section index
-                            const sectionEl = evt.from.closest('[data-section-index]');
-                            const sectionIndex = sectionEl ? parseInt(sectionEl.dataset.sectionIndex) : -1;
+                            const fromSectionIdx = parseInt(evt.from.dataset.sectionIndex);
+                            const toSectionIdx = parseInt(evt.to.dataset.sectionIndex);
 
-                            if (sectionIndex !== -1) {
-                                const movedItem = this.estimate.sections[sectionIndex].items.splice(evt.oldIndex, 1)[0];
-                                this.estimate.sections[sectionIndex].items.splice(evt.newIndex, 0, movedItem);
+                            // Ensure section indices are valid
+                            if (isNaN(fromSectionIdx)) return;
+
+                            if (evt.from === evt.to) {
+                                // Same section move
+                                const items = this.estimate.sections[fromSectionIdx].items;
+                                const movedItem = items.splice(evt.oldDraggableIndex, 1)[0];
+                                items.splice(evt.newDraggableIndex, 0, movedItem);
+                            } else {
+                                // Cross section move
+                                if (isNaN(toSectionIdx)) return;
+                                const fromItems = this.estimate.sections[fromSectionIdx].items;
+                                const toItems = this.estimate.sections[toSectionIdx].items;
+                                const movedItem = fromItems.splice(evt.oldDraggableIndex, 1)[0];
+                                toItems.splice(evt.newDraggableIndex, 0, movedItem);
                             }
+                            this.calculateTotals();
                         }
                     });
                 });
 
                 // Standard Items
                 const standardList = document.querySelector('.standard-items-sortable');
-                if (standardList) {
-                    new Sortable(standardList, {
+                if (standardList && !standardList._sortable) {
+                    standardList._sortable = new Sortable(standardList, {
                         animation: 150,
                         handle: '.handle',
+                        draggable: '.item-row',
                         onEnd: (evt) => {
-                            const movedItem = this.estimate.items.splice(evt.oldIndex, 1)[0];
-                            this.estimate.items.splice(evt.newIndex, 0, movedItem);
+                            const movedItem = this.estimate.items.splice(evt.oldDraggableIndex, 1)[0];
+                            this.estimate.items.splice(evt.newDraggableIndex, 0, movedItem);
+                            this.calculateTotals();
                         }
                     });
                 }

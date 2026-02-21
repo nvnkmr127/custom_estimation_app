@@ -470,7 +470,7 @@ class EstimateController extends Controller
 
         $newEstimate = $this->estimateService->copy($estimate);
 
-        return redirect()->route('estimates.edit', $newEstimate)->with('success', 'Estimate copied successfully.');
+        return redirect()->route('estimates.edit', ['estimate' => $newEstimate->id, 'duplicate' => 1])->with('success', 'Estimate copied successfully.');
     }
 
     /**

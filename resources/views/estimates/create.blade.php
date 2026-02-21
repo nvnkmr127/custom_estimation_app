@@ -310,7 +310,7 @@
                 <!-- Room-Based List -->
                 <div x-show="estimate.type === 'room_based'" class="space-y-6 sections-container">
                     <template x-for="(section, sectionIndex) in estimate.sections" :key="sectionIndex">
-                        <div class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden"
+                        <div class="section-card border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden"
                             :data-section-index="sectionIndex">
                             <!-- Room Header -->
                             <div
@@ -386,7 +386,7 @@
                                         :data-section-index="sectionIndex">
                                         <template x-for="(item, itemIndex) in section.items"
                                             :key="item._uid || item.id || itemIndex">
-                                            <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                                            <tr class="item-row group hover:bg-slate-50/50 transition-all duration-200">
                                                 <td
                                                     class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
                                                     <svg class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"
@@ -635,7 +635,7 @@
                                         :data-section-index="sectionIndex">
                                         <template x-for="(item, itemIndex) in section.items"
                                             :key="item._uid || item.id || itemIndex">
-                                            <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                                            <tr class="item-row group hover:bg-slate-50/50 transition-all duration-200">
                                                 <td
                                                     class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
                                                     <svg class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"
@@ -731,7 +731,12 @@
                 </div>
 
                 <!-- Standard List Table -->
-                <div x-show="estimate.type === 'standard'" class="overflow-x-auto min-h-[100px]">
+                <div x-show="estimate.type === 'standard' || (estimate.type === 'room_based' && estimate.items.length > 0)"
+                    class="overflow-x-auto min-h-[100px]">
+                    <div x-show="estimate.type === 'room_based'"
+                        class="px-4 py-2 bg-slate-100/50 border-b border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">General Items</h3>
+                    </div>
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50/50">
                             <tr>
@@ -765,7 +770,7 @@
                         <tbody class="bg-white divide-y divide-slate-200 standard-items-sortable">
                             <template x-for="(item, itemIndex) in estimate.items"
                                 :key="item._uid || item.id || itemIndex">
-                                <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                                <tr class="item-row group hover:bg-slate-50/50 transition-all duration-200">
                                     <td
                                         class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
                                         <svg class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24"
