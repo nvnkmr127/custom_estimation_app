@@ -35,8 +35,7 @@ class CheckEstimateLock
         // 3. Accepted: client_status is accepted
 
         $isPending = in_array($estimate->approval_status, [
-            Estimate::APP_STATUS_SUBMITTED,
-            Estimate::APP_STATUS_PENDING
+            Estimate::APP_STATUS_WAITING
         ]);
 
         $isSent = in_array($estimate->client_status, [
@@ -46,14 +45,7 @@ class CheckEstimateLock
 
         $isAccepted = ($estimate->client_status === Estimate::CLT_STATUS_ACCEPTED);
 
-        // Also check legacy statuses for safety
-        $isLegacyLocked = in_array($estimate->status, [
-            Estimate::STATUS_WAITING_APPROVAL,
-            Estimate::STATUS_SENT,
-            Estimate::STATUS_ACCEPTED
-        ]);
-
-        if ($isPending || $isSent || $isAccepted || $isLegacyLocked) {
+        if ($isPending || $isSent || $isAccepted) {
             // Note: If it's sent/accepted, the Service layer handles branching (creating a new draft).
             // However, this middleware acts as a hard guard to inform the user or protect from non-Standard update routes.
             // If the goal is to allow branching, we should ONLY apply this to certain routes or allow it to pass for 'update'.

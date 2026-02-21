@@ -37,14 +37,15 @@ class AutomationController extends Controller
             ->paginate(10);
 
         $events = [
-            'estimate.created',
-            'estimate.sent',
-            'estimate.viewed',
-            'estimate.accepted',
-            'estimate.declined',
-            'approval.requested',
-            'approval.approved',
-            'approval.rejected',
+            'EstimateSubmitted',
+            'EstimateApproved',
+            'EstimateSent',
+            'EstimateAccepted',
+            'EstimateCreated',
+            'EstimateViewed',
+            'EstimateDeclined',
+            'EstimateRejected',
+            'EstimateExpired',
             'comment.added',
             'user.registered',
         ];
@@ -125,17 +126,17 @@ class AutomationController extends Controller
     protected function getEvents()
     {
         return [
-            'estimate.created',
-            'estimate.sent',
-            'estimate.viewed',
-            'estimate.accepted',
-            'estimate.declined',
-            'approval.requested',
-            'approval.approved',
-            'approval.rejected',
+            'EstimateSubmitted',
+            'EstimateApproved',
+            'EstimateSent',
+            'EstimateAccepted',
+            'EstimateCreated',
+            'EstimateViewed',
+            'EstimateDeclined',
+            'EstimateRejected',
+            'EstimateExpired',
             'comment.added',
             'user.registered',
-            'estimate.expired',
         ];
     }
 

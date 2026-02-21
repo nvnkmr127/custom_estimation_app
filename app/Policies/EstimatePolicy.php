@@ -59,17 +59,11 @@ class EstimatePolicy
             Estimate::CLT_STATUS_ACCEPTED,
             Estimate::CLT_STATUS_DECLINED
         ]) || in_array($estimate->approval_status, [
-                Estimate::APP_STATUS_SUBMITTED,
-                Estimate::APP_STATUS_PENDING
+                Estimate::APP_STATUS_WAITING
             ]);
 
         if ($isLocked && !$user->hasRole('super_admin')) {
             // Note: Service layer might branch if finalized, but Policy acts as the primary gate.
-            return false;
-        }
-
-        // Legacy check fallback
-        if ($estimate->status === Estimate::STATUS_WAITING_APPROVAL && !$user->hasRole('super_admin')) {
             return false;
         }
 

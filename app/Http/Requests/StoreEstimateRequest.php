@@ -15,16 +15,16 @@ class StoreEstimateRequest extends FormRequest
 
     public function rules()
     {
-        $statusRules = [Estimate::STATUS_DRAFT];
+        $statusRules = [Estimate::EST_STATUS_DRAFT];
 
         // Only Admins can create in non-draft status directly
         if ($this->user()->hasRole(['super_admin', 'admin'])) {
             $statusRules = [
-                Estimate::STATUS_DRAFT,
-                Estimate::STATUS_SENT,
-                Estimate::STATUS_ACCEPTED,
-                Estimate::STATUS_DECLINED, // unlikely but possible
-                Estimate::STATUS_EXPIRED,
+                Estimate::EST_STATUS_DRAFT,
+                Estimate::EST_STATUS_SENT,
+                Estimate::EST_STATUS_ACCEPTED,
+                Estimate::EST_STATUS_DECLINED, // unlikely but possible
+                Estimate::EST_STATUS_EXPIRED,
             ];
         }
 

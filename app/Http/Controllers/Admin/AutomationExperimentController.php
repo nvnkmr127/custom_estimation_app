@@ -21,10 +21,10 @@ class AutomationExperimentController extends Controller
     public function create()
     {
         $events = [
-            'estimate.created',
-            'estimate.updated',
-            'estimate.viewed',
-            'estimate.accepted',
+            'EstimateCreated',
+            'EstimateUpdated',
+            'EstimateViewed',
+            'EstimateAccepted',
             'invoice.paid'
         ];
         return view('admin.automation.experiments.create', compact('events'));

@@ -21,25 +21,25 @@ class UpdateEstimateRequest extends FormRequest
         // If current is Draft, can stay Draft.
         // Use 'markAs' for transitions.
 
-        $statusRules = [Estimate::STATUS_DRAFT];
+        $statusRules = [Estimate::EST_STATUS_DRAFT];
 
         if ($this->user()->hasRole(['super_admin', 'admin'])) {
             // Admin can do anything
             $statusRules = [
-                Estimate::STATUS_DRAFT,
-                Estimate::STATUS_SENT,
-                Estimate::STATUS_ACCEPTED,
-                Estimate::STATUS_DECLINED,
-                Estimate::STATUS_EXPIRED,
-                Estimate::STATUS_WAITING_APPROVAL,
-                Estimate::STATUS_APPROVED,
+                Estimate::EST_STATUS_DRAFT,
+                Estimate::EST_STATUS_SENT,
+                Estimate::EST_STATUS_ACCEPTED,
+                Estimate::EST_STATUS_DECLINED,
+                Estimate::EST_STATUS_EXPIRED,
+                Estimate::EST_STATUS_PENDING_APPROVAL,
+                Estimate::EST_STATUS_APPROVED,
             ];
         } else {
             // Regular User
             // If currently Sent/Approved/Accepted, editing will Trigger Branching (Service logic).
             // Ideally, we shouldn't even validate status here because Service overrides it to 'draft' on branch.
             // But if NOT branching (editing Draft), we can keep Draft or 'Waiting Approval'.
-            $statusRules = [Estimate::STATUS_DRAFT, Estimate::STATUS_WAITING_APPROVAL];
+            $statusRules = [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_PENDING_APPROVAL];
         }
 
         return [

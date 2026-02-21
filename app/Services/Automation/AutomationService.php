@@ -34,16 +34,24 @@ class AutomationService
         // 1. Check for Active Experiment
         $experimentVariant = $this->experimentService->dispatch($eventName, (object) $event->getPayload());
 
+        // Support both old event string and new exact class names
+        $eventClass = get_class($event);
+        $eventBasename = class_basename($event);
+
         if ($experimentVariant) {
             // Hijack flows: run ONLY the selected experiment variant
             $automations = collect([$experimentVariant]);
             Log::info("Automation: Experiment Active. Routing to variant: {$experimentVariant->id} for event: {$eventName}");
         } else {
-            // Normal Flow: Find all matching automations
+            // Normal Flow: Find all matching automations by structural event names
             $automations = Automation::active()
                 ->current()
-                ->whereHas('triggers', function ($query) use ($eventName) {
-                    $query->where('event_name', $eventName);
+                ->whereHas('triggers', function ($query) use ($eventName, $eventClass, $eventBasename) {
+                    $query->whereIn('event_name', [
+                        $eventName,
+                        $eventClass,
+                        $eventBasename
+                    ]);
                 })->get();
         }
 
