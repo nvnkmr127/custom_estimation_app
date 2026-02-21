@@ -20,6 +20,7 @@ class WebhookServiceProvider extends ServiceProvider
             $registry->register(new \App\Webhooks\Definitions\EstimateUpdatedDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateSentDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateApprovedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateAcceptedDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateRejectedDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateDeclinedDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateViewedDefinition());

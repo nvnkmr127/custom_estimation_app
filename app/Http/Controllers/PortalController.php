@@ -186,7 +186,7 @@ class PortalController extends Controller
             \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'accepted'));
 
             // Dispatch Event
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, 0, 'client'));
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateAccepted($estimate, 0, 'client'));
 
             return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. It has also been synced to our CRM.');
         });
