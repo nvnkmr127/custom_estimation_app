@@ -50,8 +50,8 @@
                 estimate_date: initialData.estimate_date ? initialData.estimate_date.split('T')[0] : new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
                 expiry_date: initialData.expiry_date ? initialData.expiry_date.split('T')[0] : '',
 
-                // Ensure Arrays exist
-                items: initialData.items || [],
+                // Ensure Arrays exist. Filter out items that belong to sections because the backend joins them all together otherwise!
+                items: initialData.items && Array.isArray(initialData.items) ? initialData.items.filter(i => !i.estimate_section_id) : [],
                 sections: initialData.sections || [],
 
                 // Nullable Foreign Keys

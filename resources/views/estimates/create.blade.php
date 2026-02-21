@@ -1023,14 +1023,13 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <button type="button" @click="openProductPicker(null)"
-                    x-show="estimate.type === 'standard' || estimate.type === 'room_based'"
+                <button type="button" @click="openProductPicker(null)" x-show="estimate.type === 'standard'"
                     class="h-full min-h-[160px] border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
                     <svg class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
                         <path
                             d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                     </svg>
-                    <span x-text="estimate.type === 'room_based' ? 'Add General Item' : 'Add Item'"></span>
+                    <span>Add Item</span>
                 </button>
 
                 <button type="button" @click="openRoomModal()" x-show="estimate.type === 'room_based'"
