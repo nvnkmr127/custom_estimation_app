@@ -27,6 +27,8 @@ class ApprovalRequested extends BaseEvent
             'approval_id' => $this->approval->id,
             'approver_id' => $this->approverUserId,
             'approver_name' => $this->approval->user ? $this->approval->user->name : 'N/A',
+            'message' => 'You have a new estimate approval request.',
+            'link' => route('approvals.index'),
         ];
     }
     public function getEntityType(): string

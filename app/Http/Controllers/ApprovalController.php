@@ -26,7 +26,7 @@ class ApprovalController extends Controller
         $user = auth()->user();
 
         // Get estimates where user has a pending approval
-        $pendingEstimates = Estimate::where('approval_status', 'submitted')
+        $pendingEstimates = Estimate::whereIn('approval_status', ['submitted', 'pending'])
             ->whereHas('approvals', function ($query) use ($user) {
                 $query->where('user_id', $user->id)
                     ->where('status', 'pending');
