@@ -44,7 +44,11 @@ class ApprovalController extends Controller
     public function submit(Estimate $estimate)
     {
         try {
+            \Log::info("ApprovalController@submit called for Estimate ID: {$estimate->id} by User ID: " . auth()->id());
+
             $estimate = $this->workflowService->submitForApproval($estimate);
+
+            \Log::info("ApprovalChain evaluation complete. Estimate status is now: {$estimate->approval_status}");
 
             if ($estimate->approval_status === Estimate::APP_STATUS_APPROVED) {
                 // Auto-approved
@@ -54,6 +58,7 @@ class ApprovalController extends Controller
 
             // Dispatch events for the submitted estimate
             $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSubmittedForApproval($estimate, auth()->id()));
+
 
             // Dispatch events for each pending approval
             foreach ($estimate->approvals()->where('status', 'pending')->get() as $approval) {
@@ -66,6 +71,7 @@ class ApprovalController extends Controller
 
             return redirect()->back()->with('success', 'Estimate submitted for approval successfully.');
         } catch (\Exception $e) {
+            \Log::error("ApprovalController@submit failed for Estimate ID: {$estimate->id} - Error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return redirect()->back()->with('error', $e->getMessage());
         }
     }

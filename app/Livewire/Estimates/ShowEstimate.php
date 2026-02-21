@@ -246,13 +246,37 @@ class ShowEstimate extends Component
     public function submitForApproval()
     {
         try {
-            $response = app()->call([app(\App\Http\Controllers\ApprovalController::class), 'submit'], ['estimate' => $this->estimate]);
-            if ($response instanceof RedirectResponse)
-                return $response;
-            $this->refreshEstimate();
-            session()->flash('success', 'Estimate submitted for approval.');
+            DB::beginTransaction();
+            $workflowService = app(\App\Services\Estimates\EstimateWorkflowService::class);
+            $dispatcher = app(\App\Core\Events\EventDispatcherInterface::class);
+
+            \Log::info("Livewire ShowEstimate: submitForApproval called for Estimate ID: {$this->estimate->id}");
+
+            $estimate = $workflowService->submitForApproval($this->estimate);
+
+            if ($estimate->approval_status === Estimate::APP_STATUS_APPROVED) {
+                $dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'auto_skip'));
+                session()->flash('success', 'Estimate approved automatically as it does not require additional authorization.');
+            } else {
+                $dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSubmittedForApproval($estimate, auth()->id()));
+                foreach ($estimate->approvals()->where('status', 'pending')->get() as $approval) {
+                    $dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRequested(
+                        $estimate->id,
+                        $approval,
+                        $approval->user_id
+                    ));
+                }
+                session()->flash('success', 'Estimate submitted for approval.');
+            }
+
+            DB::commit();
+            return redirect()->route('estimates.show', $this->estimate->id);
+
         } catch (\Exception $e) {
-            session()->flash('error', 'Failed to submit for approval: ' . $e->getMessage());
+            DB::rollBack();
+            \Log::error("Livewire ShowEstimate submit failing: " . $e->getMessage());
+            session()->flash('error', $e->getMessage());
+            return redirect()->route('estimates.show', $this->estimate->id);
         }
     }
 
