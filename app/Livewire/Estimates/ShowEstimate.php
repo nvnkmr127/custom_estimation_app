@@ -256,7 +256,6 @@ class ShowEstimate extends Component
 
             DB::commit();
             return redirect()->route('estimates.show', $this->estimate->id);
-            return redirect()->route('estimates.show', $this->estimate->id);
 
         } catch (\Exception $e) {
             DB::rollBack();

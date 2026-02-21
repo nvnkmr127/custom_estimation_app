@@ -48,6 +48,19 @@ return new class extends Migration {
             ->where('client_status', 'draft')
             ->update(['client_status' => 'not_sent']);
 
+        // Fix estimate_status consistency with approval_status
+        // If still in 'draft' estimate_status but approval is 'waiting' → should be 'pending_approval'
+        DB::table('estimates')
+            ->where('estimate_status', 'draft')
+            ->where('approval_status', 'waiting')
+            ->update(['estimate_status' => 'pending_approval']);
+
+        // If still in 'draft' estimate_status but approval is 'approved' → should be 'approved'
+        DB::table('estimates')
+            ->where('estimate_status', 'draft')
+            ->where('approval_status', 'approved')
+            ->update(['estimate_status' => 'approved']);
+
         if (DB::getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE estimates MODIFY COLUMN approval_status ENUM('not_required', 'waiting', 'approved', 'changes_requested', 'rejected') DEFAULT 'not_required'");
             DB::statement("ALTER TABLE estimates MODIFY COLUMN client_status VARCHAR(255) DEFAULT 'not_sent'");
