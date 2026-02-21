@@ -73,7 +73,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/estimates/{estimate}/analytics/export', [App\Http\Controllers\AnalyticsController::class, 'export'])->name('estimates.analytics.export');
 
     // Estimates Show (Livewire Component)
-    Route::resource('estimates', EstimateController::class)->except(['show']);
+    Route::resource('estimates', EstimateController::class)->except(['show'])->middleware('estimate.lock');
 
     // Estimates Show (Livewire Component)
     Route::get('/estimates/{estimate}', \App\Livewire\Estimates\ShowEstimate::class)->name('estimates.show');
@@ -109,6 +109,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('estimates/{estimate}/reply', [App\Http\Controllers\EstimateController::class, 'storeComment'])->name('estimates.reply');
     Route::post('estimates/bulk-update', [App\Http\Controllers\EstimateController::class, 'bulkUpdate'])->name('estimates.bulk-update');
     Route::post('estimates/{estimate}/send', [App\Http\Controllers\EstimateController::class, 'sendToClient'])->name('estimates.send');
+    Route::post('estimates/{estimate}/extend-expiry', [App\Http\Controllers\EstimateController::class, 'extendExpiry'])->name('estimates.extend-expiry');
     Route::post('estimates/{estimate}/followers', [App\Http\Controllers\EstimateController::class, 'addFollower'])->name('estimates.followers.add');
     Route::delete('estimates/{estimate}/followers/{user}', [App\Http\Controllers\EstimateController::class, 'removeFollower'])->name('estimates.followers.remove');
 

@@ -13,10 +13,14 @@ use Illuminate\Support\Facades\Cache;
 class EstimateService
 {
     private $dispatcher;
+    private $stateService;
 
-    public function __construct(\App\Core\Events\EventDispatcherInterface $dispatcher)
-    {
+    public function __construct(
+        \App\Core\Events\EventDispatcherInterface $dispatcher,
+        \App\Services\Estimates\EstimateStateService $stateService
+    ) {
         $this->dispatcher = $dispatcher;
+        $this->stateService = $stateService;
     }
 
     /**
@@ -157,13 +161,11 @@ class EstimateService
                 }
             }
 
-            // Logic Gap Fix: If estimate was rejected or has changes requested, editing it should reset approval status to 'draft'
-            // so the user knows it is a work-in-progress again.
-            if (in_array($estimate->approval_status, ['rejected', 'changes_requested'])) {
-                $estimate->approval_status = 'draft';
-                // We set property here, update() call below will persist it if we include it or separate call.
-                // Since $data is passed to update(), we should explicitly update this field.
-                $estimate->forceFill(['approval_status' => 'draft']);
+            // MT-15: Edit After Send/Approval Guard
+            // If editing an estimate that is NOT in draft, reset it to force re-approval.
+            // (If finalized, it branched above, so this handles in-place edits like submitted/pending)
+            if (!$isBranched && $estimate->approval_status !== Estimate::APP_STATUS_DRAFT) {
+                $this->stateService->resetSafetyWorkflow($estimate);
             }
 
             $estimate->update($data);
@@ -479,13 +481,13 @@ class EstimateService
             $baseNumber = preg_replace('/-v\d+$/', '', $estimate->estimate_number);
             $newEstimate->estimate_number = $baseNumber . '-v' . $newEstimate->version;
 
-            $newEstimate->status = Estimate::STATUS_DRAFT; // Reset status
-            $newEstimate->approval_status = 'draft'; // Reset approval status
+            // MT-15: Reset workflow for the new version
+            $this->stateService->resetSafetyWorkflow($newEstimate);
+
             $newEstimate->created_by = auth()->id() ?? $estimate->created_by; // Set creator to current user
 
             // Fix: Reset dates for new version to avoid legacy expiry issues
             $newEstimate->estimate_date = now();
-            $newEstimate->expiry_date = null;
 
             // Clear state fields for new version
             $newEstimate->signature = null;
@@ -523,23 +525,44 @@ class EstimateService
             $newEstimate = $estimate->replicate([
                 'estimate_number',
                 'status',
+                'estimate_status',
+                'approval_status',
+                'client_status',
                 'signature',
                 'signed_at',
                 'signer_ip',
                 'email_opened_at',
                 'last_viewed_at',
                 'view_count',
+                'sent_at',
+                'expires_at',
+                'accepted_at',
+                'declined_at',
+                'parent_id', // Copying creates a new family
+                'version',
+                'perfex_proposal_id',
             ]);
 
             // Generate new estimate number (Uses new V2 Logic automatically)
             $newEstimate->estimate_number = $this->generateNextNumber();
-
-            $newEstimate->status = Estimate::STATUS_DRAFT;
             $newEstimate->version = 1;
+            $newEstimate->parent_id = null; // New root
+
+            // MT-16: Reset all statuses to clean draft
+            $this->stateService->resetSafetyWorkflow($newEstimate);
+
             $newEstimate->save();
 
             // Copy sections and items
             $this->duplicateEstimateItems($estimate, $newEstimate);
+
+            // Copy Manual Followers
+            foreach ($estimate->manualFollowers as $follower) {
+                $newEstimate->manualFollowers()->create([
+                    'user_id' => $follower->user_id,
+                    'permissions' => $follower->permissions,
+                ]);
+            }
 
             ActivityLog::log('copied', $newEstimate, "Estimate #{$newEstimate->estimate_number} was created by copying #{$estimate->estimate_number}");
 
@@ -591,46 +614,40 @@ class EstimateService
             throw new \Exception('Client does not have a valid email address.');
         }
 
-        try {
-            // Ensure estimate is approved before sending
-            if (!in_array($estimate->status, [Estimate::STATUS_APPROVED, Estimate::STATUS_SENT])) {
-                throw new \Exception('Estimate must be approved before it can be sent to the client.');
-            }
+        return DB::transaction(function () use ($estimate) {
+            try {
+                // Business Rule: Ensure estimate is approved before sending
+                // We use the new structured approval_status field
+                if ($estimate->approval_status !== Estimate::APP_STATUS_APPROVED) {
+                    // If the old legacy status is 'approved', we might want to allow it once?
+                    // But safer to enforce new APP_STATUS_APPROVED.
+                    if ($estimate->status !== Estimate::STATUS_APPROVED) {
+                        throw new \Exception('Estimate must be approved before it can be sent to the client.');
+                    }
+                }
 
-            // Dispatch Event instead of direct email
-            event(new \App\Core\Events\Estimates\EstimateSent(
-                $estimate,
-                auth()->id() ?? 0, // Fallback for system actions
-                'email'
-            ));
+                // Perform Transition via StateService
+                // Use 'force' to allow resending (which resets sent_at and expires_at)
+                $this->stateService->transitionClientStatus($estimate, Estimate::CLT_STATUS_SENT, true);
 
-            // Update status and set Expiry to 15 days from now
-            if ($estimate->status === Estimate::STATUS_APPROVED) {
-                $estimate->update([
-                    'status' => Estimate::STATUS_SENT,
-                    'expiry_date' => now()->addDays(15),
+                // Dispatch Event for Email/Notifications
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent(
+                    $estimate,
+                    auth()->id() ?? 0,
+                    'email'
+                ));
+
+                return true;
+            } catch (\Exception $e) {
+                Log::error('Failed to send estimate to client', [
+                    'estimate_id' => $estimate->id,
+                    'user_id' => auth()->id(),
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
                 ]);
+                throw $e;
             }
-
-            ActivityLog::create([
-                'action' => 'sent_to_client',
-                'description' => 'Estimate sent to client via email',
-                'subject_type' => Estimate::class,
-                'subject_id' => $estimate->id,
-                'causer_type' => auth()->check() ? get_class(auth()->user()) : null,
-                'causer_id' => auth()->id(),
-            ]);
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Failed to send estimate to client', [
-                'estimate_id' => $estimate->id,
-                'user_id' => auth()->id(),
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            throw $e;
-        }
+        });
     }
 
     /**

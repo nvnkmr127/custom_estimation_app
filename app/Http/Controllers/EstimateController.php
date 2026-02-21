@@ -526,6 +526,25 @@ class EstimateController extends Controller
     }
 
     /**
+     * Extend the expiry of an estimate.
+     */
+    public function extendExpiry(Request $request, Estimate $estimate, \App\Services\Estimates\EstimateStateService $stateService)
+    {
+        $this->authorize('extendExpiry', $estimate);
+
+        $request->validate([
+            'expiry_date' => 'required|date|after:today',
+        ]);
+
+        try {
+            $stateService->extendExpiry($estimate, \Carbon\Carbon::parse($request->expiry_date));
+            return back()->with('success', 'Estimate expiry extended successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to extend expiry: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Revert the estimate to draft status.
      */
     public function revertToDraft(Estimate $estimate)

@@ -25,6 +25,29 @@ class Estimate extends Model
 
     const STATUS_APPROVED = 'approved';
 
+    // Structured Statuses
+    // Internal Estimate Lifecycle
+    const EST_STATUS_DRAFT = 'draft';
+    const EST_STATUS_ACTIVE = 'active';
+    const EST_STATUS_EXPIRED = 'expired';
+    const EST_STATUS_VOID = 'void';
+
+    // Approval Workflow Status
+    const APP_STATUS_DRAFT = 'draft';
+    const APP_STATUS_SUBMITTED = 'submitted';
+    const APP_STATUS_PENDING = 'pending';
+    const APP_STATUS_APPROVED = 'approved';
+    const APP_STATUS_REJECTED = 'rejected';
+    const APP_STATUS_CHANGES_REQUESTED = 'changes_requested';
+
+    // Client Interaction Status
+    const CLT_STATUS_DRAFT = 'draft';
+    const CLT_STATUS_SENT = 'sent';
+    const CLT_STATUS_VIEWED = 'viewed';
+    const CLT_STATUS_ACCEPTED = 'accepted';
+    const CLT_STATUS_DECLINED = 'declined';
+
+
     protected static function boot()
     {
         parent::boot();
@@ -32,6 +55,29 @@ class Estimate extends Model
         static::creating(function ($estimate) {
             if (!$estimate->created_by && auth()->check()) {
                 $estimate->created_by = auth()->id();
+            }
+
+            // Apply defaults if not set
+            $estimate->estimate_status = $estimate->estimate_status ?? self::EST_STATUS_DRAFT;
+            $estimate->approval_status = $estimate->approval_status ?? self::APP_STATUS_DRAFT;
+            $estimate->client_status = $estimate->client_status ?? self::CLT_STATUS_DRAFT;
+        });
+
+        static::saving(function ($estimate) {
+            // Enum validation
+            $valid_est = [self::EST_STATUS_DRAFT, self::EST_STATUS_ACTIVE, self::EST_STATUS_EXPIRED, self::EST_STATUS_VOID];
+            if ($estimate->estimate_status && !in_array($estimate->estimate_status, $valid_est)) {
+                throw new \InvalidArgumentException("Invalid estimate_status: {$estimate->estimate_status}");
+            }
+
+            $valid_app = [self::APP_STATUS_DRAFT, self::APP_STATUS_SUBMITTED, self::APP_STATUS_PENDING, self::APP_STATUS_APPROVED, self::APP_STATUS_REJECTED, self::APP_STATUS_CHANGES_REQUESTED];
+            if ($estimate->approval_status && !in_array($estimate->approval_status, $valid_app)) {
+                throw new \InvalidArgumentException("Invalid approval_status: {$estimate->approval_status}");
+            }
+
+            $valid_clt = [self::CLT_STATUS_DRAFT, self::CLT_STATUS_SENT, self::CLT_STATUS_VIEWED, self::CLT_STATUS_ACCEPTED, self::CLT_STATUS_DECLINED];
+            if ($estimate->client_status && !in_array($estimate->client_status, $valid_clt)) {
+                throw new \InvalidArgumentException("Invalid client_status: {$estimate->client_status}");
             }
         });
 
@@ -99,6 +145,12 @@ class Estimate extends Model
         'last_nurtured_at',
         'last_viewed_at',
         'transportation_charges',
+        'estimate_status',
+        'client_status',
+        'sent_at',
+        'expires_at',
+        'accepted_at',
+        'declined_at',
     ];
 
     protected $appends = ['currency_symbol', 'has_discount', 'has_tax', 'has_transportation'];
@@ -201,6 +253,22 @@ class Estimate extends Model
     }
 
     /**
+     * Check if the estimate is expired.
+     */
+    public function isExpired(): bool
+    {
+        if ($this->status === self::STATUS_EXPIRED || $this->estimate_status === self::EST_STATUS_EXPIRED) {
+            return true;
+        }
+
+        if ($this->expires_at && $this->expires_at->isPast()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * The attributes that should be hidden for arrays.
      *
      * @var array
@@ -248,6 +316,11 @@ class Estimate extends Model
         'last_engagement_at' => 'datetime',
         'last_nurtured_at' => 'datetime',
         'last_viewed_at' => 'datetime',
+        'email_opened_at' => 'datetime',
+        'sent_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'accepted_at' => 'datetime',
+        'declined_at' => 'datetime',
     ];
 
 
@@ -265,8 +338,8 @@ class Estimate extends Model
     public function getPublicUrlAttribute()
     {
         // Expire link when estimate expires, or default to 30 days if null
-        // Ensure accurate Carbon instance if casting fails for some reason, though $casts covers it.
-        $expiration = $this->expiry_date ? $this->expiry_date->endOfDay() : now()->addDays(30);
+        // We use the new 'expires_at' field for the signed URL
+        $expiration = $this->expires_at ? $this->expires_at->endOfDay() : now()->addDays(30);
 
         // Pass parameters as an array for route binding
         return \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.show', $expiration, ['estimate' => $this->id]);

@@ -437,7 +437,7 @@
         </div>
 
         <!-- Sticky Mobile Actions -->
-        @if(!in_array($estimate->status, ['accepted', 'declined']))
+        @if(!in_array($estimate->status, ['accepted', 'declined']) && !$estimate->isExpired())
             <div
                 class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-3 z-30 sm:hidden">
                 <button @click="showDeclineModal = true"
@@ -451,6 +451,7 @@
 
             <!-- Desktop Actions -->
             <div class="hidden sm:flex justify-end gap-3 mb-10">
+                @if(!$estimate->isExpired())
                 <a href="{{ URL::signedRoute('portal.download', $estimate) }}"
                     class="px-4 py-2 bg-white text-slate-700 border border-slate-300 rounded-lg font-semibold hover:bg-slate-50 transition-colors">Download
                     PDF</a>
@@ -464,6 +465,7 @@
                 <button @click="showAcceptModal = true"
                     class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-lg transition-all transform hover:-translate-y-0.5">Accept
                     Estimate</button>
+                @endif
             </div>
         @elseif($estimate->status === 'accepted')
             <!-- Execution Details Card -->

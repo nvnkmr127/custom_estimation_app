@@ -52,7 +52,23 @@ class EstimatePolicy
 
     public function update(User $user, Estimate $estimate)
     {
-        // Lock editing if waiting for approval (except for super_admin who might need to intervene)
+        // 1. Lock if Finalized/Accepted/Sent
+        $isLocked = in_array($estimate->client_status, [
+            Estimate::CLT_STATUS_SENT,
+            Estimate::CLT_STATUS_VIEWED,
+            Estimate::CLT_STATUS_ACCEPTED,
+            Estimate::CLT_STATUS_DECLINED
+        ]) || in_array($estimate->approval_status, [
+                Estimate::APP_STATUS_SUBMITTED,
+                Estimate::APP_STATUS_PENDING
+            ]);
+
+        if ($isLocked && !$user->hasRole('super_admin')) {
+            // Note: Service layer might branch if finalized, but Policy acts as the primary gate.
+            return false;
+        }
+
+        // Legacy check fallback
         if ($estimate->status === Estimate::STATUS_WAITING_APPROVAL && !$user->hasRole('super_admin')) {
             return false;
         }
@@ -99,5 +115,10 @@ class EstimatePolicy
     public function revertToDraft(User $user, Estimate $estimate)
     {
         return $this->update($user, $estimate);
+    }
+
+    public function extendExpiry(User $user, Estimate $estimate)
+    {
+        return $user->hasRole(['super_admin', 'admin', 'estimator_admin']);
     }
 }

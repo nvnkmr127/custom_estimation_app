@@ -11,5 +11,6 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('approval:check-timeouts')->hourly();
 Schedule::command('estimates:nurture')->daily();
+Schedule::command('estimates:check-expiry')->daily();
 Schedule::command('automation:run-scheduled')->everyMinute();
 Schedule::command('automation:analytics-calculate')->dailyAt('01:00');

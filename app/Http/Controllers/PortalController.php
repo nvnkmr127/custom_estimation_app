@@ -12,11 +12,71 @@ class PortalController extends Controller
 
     protected $analytics;
     protected $dispatcher;
+    protected $stateService;
 
-    public function __construct(\App\Services\AnalyticsService $analytics, \App\Core\Events\EventDispatcherInterface $dispatcher)
-    {
+    public function __construct(
+        \App\Services\AnalyticsService $analytics,
+        \App\Core\Events\EventDispatcherInterface $dispatcher,
+        \App\Services\Estimates\EstimateStateService $stateService
+    ) {
         $this->analytics = $analytics;
         $this->dispatcher = $dispatcher;
+        $this->stateService = $stateService;
+    }
+
+    /**
+     * Centralized validation for portal access.
+     */
+    protected function validateAccess(Estimate $estimate, Request $request)
+    {
+        // 1. Signature Verification (Laravel built-in)
+        if (!$request->hasValidSignature()) {
+            abort(403, 'This link has expired or is invalid.');
+        }
+
+        // 2. Version Verification
+        if (!$estimate->is_current_version) {
+            // Find the current version if possible to redirect, or just block
+            $current = $estimate->parent_id ? Estimate::where('id', $estimate->parent_id)->first() : Estimate::where('parent_id', $estimate->id)->where('is_current_version', true)->first();
+            if ($current && $current->id !== $estimate->id) {
+                // We don't automatically redirect to avoid exposing new version URLs without a new email,
+                // but we block the old one.
+                abort(403, 'This version of the estimate is no longer active. Please check your email for the latest version.');
+            }
+        }
+
+        // 3. Status Verification (Internal Lifecycle)
+        if ($estimate->estimate_status === Estimate::EST_STATUS_VOID) {
+            abort(410, 'This estimate has been voided.');
+        }
+
+        // 4. Client Lifecycle Status Verification
+        $allowedStatuses = [
+            Estimate::CLT_STATUS_SENT,
+            Estimate::CLT_STATUS_VIEWED,
+            Estimate::CLT_STATUS_ACCEPTED,
+            Estimate::CLT_STATUS_DECLINED,
+        ];
+
+        // Legacy check fallback if new status not set
+        if (!$estimate->client_status && !in_array($estimate->status, [Estimate::STATUS_SENT, Estimate::STATUS_APPROVED, Estimate::STATUS_ACCEPTED, Estimate::STATUS_DECLINED])) {
+            abort(403, 'This estimate is not yet available for viewing.');
+        }
+
+        if ($estimate->client_status && !in_array($estimate->client_status, $allowedStatuses)) {
+            // If it was rejected or draft internally, block client access
+            abort(403, 'This estimate is currently unavailable.');
+        }
+
+        // 5. Expiration Verification (Business Logic)
+        if ($estimate->isExpired()) {
+            // We allow viewing if already accepted, but block new actions
+            if ($request->isMethod('get')) {
+                // Allow viewing (blade shows countdown/expired state)
+            } else {
+                abort(403, 'This estimate has expired and can no longer be acted upon.');
+            }
+        }
     }
 
     /**
@@ -24,22 +84,7 @@ class PortalController extends Controller
      */
     public function show(Request $request, Estimate $estimate)
     {
-        // Ensure the signed URL is valid
-        if (!$request->hasValidSignature()) {
-            abort(403, 'This link has expired or is invalid.');
-        }
-
-        // Restrict access based on status
-        $allowedStatuses = [
-            Estimate::STATUS_SENT,
-            Estimate::STATUS_ACCEPTED,
-            Estimate::STATUS_DECLINED,
-            Estimate::STATUS_EXPIRED
-        ];
-
-        if (!in_array($estimate->status, $allowedStatuses)) {
-            abort(403, 'This estimate is not yet available for viewing.');
-        }
+        $this->validateAccess($estimate, $request);
 
         // Track view
         $this->analytics->logAccess($estimate, 'view');
@@ -130,9 +175,7 @@ class PortalController extends Controller
      */
     public function accept(Request $request, Estimate $estimate)
     {
-        if (!$request->hasValidSignature()) {
-            abort(403);
-        }
+        $this->validateAccess($estimate, $request);
 
         $request->validate([
             'signature' => 'required|string',
@@ -158,38 +201,40 @@ class PortalController extends Controller
             // Ignore location errors
         }
 
-        return DB::transaction(function () use ($request, $estimate, $location) {
-            // Lock for concurrency
-            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
+        try {
+            return DB::transaction(function () use ($estimate, $request, $location) {
+                // Use State Service for Transition (Handles Lock, Concurrency, and Side Effects)
+                $this->stateService->transitionClientStatus($estimate, Estimate::CLT_STATUS_ACCEPTED, false, [
+                    'signature' => $request->signature,
+                    'signed_at' => now(),
+                    'signer_ip' => $request->ip(),
+                    'signer_agent' => $request->userAgent(),
+                    'signer_location' => $location,
+                    'status' => Estimate::STATUS_ACCEPTED, // Sync legacy status field too
+                ]);
 
-            if (!$estimate->canTransitionTo(Estimate::STATUS_ACCEPTED)) {
-                if ($estimate->status === Estimate::STATUS_ACCEPTED) {
-                    return redirect()->back()->with('info', 'This estimate has already been accepted.');
-                }
-                return redirect()->back()->with('error', "This estimate cannot be accepted in its current state ({$estimate->status}).");
+                // Auto-Sync to Perfex (Queue to avoid blocking client)
+                \App\Jobs\SyncEstimateToPerfex::dispatch($estimate);
+
+                // Notify Admins
+                $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'admin'])->get();
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'accepted'));
+
+                // Dispatch Event
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateAccepted($estimate, 0, 'client'));
+
+                return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. It has also been synced to our CRM.');
+            });
+
+        } catch (\InvalidArgumentException $e) {
+            if ($estimate->client_status === Estimate::CLT_STATUS_ACCEPTED) {
+                return redirect()->back()->with('info', 'This estimate has already been accepted.');
             }
-
-            $estimate->update([
-                'status' => 'accepted',
-                'signature' => $request->signature,
-                'signed_at' => now(),
-                'signer_ip' => $request->ip(),
-                'signer_agent' => $request->userAgent(),
-                'signer_location' => $location,
-            ]);
-
-            // Auto-Sync to Perfex (Queue to avoid blocking client)
-            \App\Jobs\SyncEstimateToPerfex::dispatch($estimate);
-
-            // Notify Admins
-            $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
-            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'accepted'));
-
-            // Dispatch Event
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateAccepted($estimate, 0, 'client'));
-
-            return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. It has also been synced to our CRM.');
-        });
+            return redirect()->back()->with('error', "This estimate cannot be accepted: " . $e->getMessage());
+        } catch (\Exception $e) {
+            \Log::error("Failed to accept estimate #{$estimate->id}: " . $e->getMessage());
+            return redirect()->back()->with('error', 'An unexpected error occurred while processing your acceptance.');
+        }
     }
 
     /**
@@ -197,48 +242,44 @@ class PortalController extends Controller
      */
     public function decline(Request $request, Estimate $estimate)
     {
-        if (!$request->hasValidSignature()) {
-            abort(403);
-        }
+        $this->validateAccess($estimate, $request);
 
         $request->validate([
             'client_notes' => 'required|string|max:1000',
         ]);
 
-        return DB::transaction(function () use ($request, $estimate) {
-            // Lock
-            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
+        try {
+            return DB::transaction(function () use ($estimate, $request) {
+                $this->stateService->transitionClientStatus($estimate, Estimate::CLT_STATUS_DECLINED, false, [
+                    'client_notes' => $request->client_notes,
+                    'status' => Estimate::STATUS_DECLINED,
+                ]);
 
-            if (!$estimate->canTransitionTo(Estimate::STATUS_DECLINED)) {
-                if ($estimate->status === Estimate::STATUS_DECLINED) {
-                    return redirect()->back()->with('info', 'This estimate has already been declined.');
-                }
-                return redirect()->back()->with('error', "This estimate cannot be declined in its current state ({$estimate->status}).");
+                // Notify Admins
+                $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'admin'])->get();
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'declined', $request->client_notes));
+
+                // Dispatch Event
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, 0, $request->client_notes));
+
+                return redirect()->back()->with('success', 'You have declined the estimate. Thank you for your feedback.');
+            });
+        } catch (\InvalidArgumentException $e) {
+            if ($estimate->client_status === Estimate::CLT_STATUS_DECLINED) {
+                return redirect()->back()->with('info', 'This estimate has already been declined.');
             }
-
-            $estimate->update([
-                'status' => 'declined',
-                'client_notes' => $request->client_notes,
-            ]);
-
-            // Notify Admins
-            $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin'])->get();
-            \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusUpdated($estimate, 'declined'));
-
-            // Dispatch Event
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, 0, $request->client_notes));
-
-            return redirect()->back()->with('success', 'You have declined the estimate. Thank you for your feedback.');
-        });
+            return redirect()->back()->with('error', "This estimate cannot be declined: " . $e->getMessage());
+        } catch (\Exception $e) {
+            \Log::error("Failed to decline estimate #{$estimate->id}: " . $e->getMessage());
+            return redirect()->back()->with('error', 'An unexpected error occurred.');
+        }
     }
     /**
      * Store a comment from the client.
      */
     public function comment(Request $request, Estimate $estimate)
     {
-        if (!$request->hasValidSignature()) {
-            abort(403);
-        }
+        $this->validateAccess($estimate, $request);
 
         $request->validate([
             'comment' => 'required|string|max:1000',
@@ -307,9 +348,7 @@ class PortalController extends Controller
      */
     public function requestCall(Request $request, Estimate $estimate)
     {
-        if (!$request->hasValidSignature()) {
-            abort(403);
-        }
+        $this->validateAccess($estimate, $request);
 
         // Notify Creator and Followers
         $followers = $estimate->followers;
@@ -331,21 +370,7 @@ class PortalController extends Controller
      */
     public function download(Request $request, Estimate $estimate)
     {
-        if (!$request->hasValidSignature()) {
-            abort(403, 'Invalid or expired link.');
-        }
-
-        // Restrict access based on status (Consistency with show method)
-        $allowedStatuses = [
-            Estimate::STATUS_SENT,
-            Estimate::STATUS_ACCEPTED,
-            Estimate::STATUS_DECLINED,
-            Estimate::STATUS_EXPIRED
-        ];
-
-        if (!in_array($estimate->status, $allowedStatuses)) {
-            abort(403, 'This estimate is not available for download.');
-        }
+        $this->validateAccess($estimate, $request);
 
         // Reuse PDF Service
         $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first();
