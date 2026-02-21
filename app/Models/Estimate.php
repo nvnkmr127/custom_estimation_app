@@ -52,6 +52,19 @@ class Estimate extends Model
         });
 
         static::saving(function ($estimate) {
+            // Gracefully migrate legacy 'active' status on save
+            if ($estimate->estimate_status === 'active') {
+                $legacyMap = [
+                    'draft' => self::EST_STATUS_DRAFT,
+                    'waiting_approval' => self::EST_STATUS_PENDING_APPROVAL,
+                    'approved' => self::EST_STATUS_APPROVED,
+                    'sent' => self::EST_STATUS_SENT,
+                    'accepted' => self::EST_STATUS_ACCEPTED,
+                    'declined' => self::EST_STATUS_DECLINED,
+                ];
+                $estimate->estimate_status = $legacyMap[$estimate->status] ?? self::EST_STATUS_DRAFT;
+            }
+
             // Enum validation
             $valid_est = [
                 self::EST_STATUS_DRAFT,

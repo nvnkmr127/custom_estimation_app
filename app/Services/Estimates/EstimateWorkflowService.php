@@ -29,8 +29,13 @@ class EstimateWorkflowService
     public function submitForApproval(Estimate $estimate): Estimate
     {
         // 1. Validate State
+        // estimate_status must be 'draft' AND approval_status must be 'not_required' or 'changes_requested'
+        if ($estimate->estimate_status !== Estimate::EST_STATUS_DRAFT) {
+            throw new \Exception("Only estimates in draft status can be submitted for approval (current: {$estimate->estimate_status}).");
+        }
+
         if (!in_array($estimate->approval_status, [Estimate::APP_STATUS_NOT_REQUIRED, Estimate::APP_STATUS_CHANGES_REQUESTED])) {
-            throw new \Exception("Only draft or changes requested estimates can be submitted for approval.");
+            throw new \Exception("Estimate approval workflow is already active or completed (approval_status: {$estimate->approval_status}). Cannot re-submit.");
         }
 
         // 2. Validate Completeness (Must have items)
