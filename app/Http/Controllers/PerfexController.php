@@ -148,10 +148,6 @@ class PerfexController extends Controller
         }
 
         if (isset($results['error']) || (isset($results['status']) && $results['status'] === false)) {
-            \Illuminate\Support\Facades\Log::warning('Perfex Lead Search API Returned Error', [
-                'query' => $query,
-                'response' => $results
-            ]);
             // Return empty array to prevent client-side crash
             return response()->json([]);
         }

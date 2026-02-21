@@ -109,7 +109,6 @@ class PerfexApiService
                 return $this->getMockResponse($endpoint, $data, $method);
             }
 
-            Log::error('Perfex API Configuration Invalid');
             return ['status' => false, 'message' => 'API Configuration Missing. Please configure in Settings.'];
         }
 
