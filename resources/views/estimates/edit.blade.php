@@ -600,13 +600,26 @@
                                         </template>
                                     </tbody>
                                 </table>
-                                <div x-show="section.items.length === 0"
-                                    class="text-center py-6 border-2 border-dashed border-slate-200 rounded-lg">
-                                    <p class="text-sm text-slate-500">No items in this section.</p>
-                                    <button type="button" @click="openProductPicker(sectionIndex)"
-                                        class="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-500">Add first
-                                        item</button>
-                                </div>
+                            </div>
+
+                            <div x-show="section.items.length === 0 && section.section_type !== 'package'"
+                                class="text-center mx-4 mb-4 mt-2 py-6 border-2 border-dashed border-slate-200 rounded-lg">
+                                <p class="text-sm text-slate-500">No items in this section.</p>
+                                <button type="button" @click="openProductPicker(sectionIndex)"
+                                    class="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-500">Add first
+                                    item</button>
+                            </div>
+
+                            <div x-show="section.items.length > 0 && section.section_type !== 'package'"
+                                class="p-4 bg-white flex justify-center border-t border-slate-100">
+                                <button type="button" @click="openProductPicker(sectionIndex)"
+                                    class="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex items-center justify-center gap-2">
+                                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path
+                                            d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                                    </svg>
+                                    <span x-text="'Add Item to ' + (section.name || 'Room')"></span>
+                                </button>
                             </div>
 
                             <!-- PACKAGE LAYOUT TABLE (Simplified) -->
@@ -699,7 +712,7 @@
                                     </tbody>
                                 </table>
                                 <div x-show="section.items.length === 0"
-                                    class="text-center py-6 border-2 border-dashed border-slate-200 rounded-lg">
+                                    class="text-center py-6 mx-4 mb-4 mt-2 border-2 border-dashed border-slate-200 rounded-lg">
                                     <p class="text-sm text-slate-500">No items.</p>
                                 </div>
                             </div>
@@ -984,7 +997,7 @@
                             <path
                                 d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                         </svg>
-                        <span>Add Item</span>
+                        <span x-text="estimate.type === 'room_based' ? 'Add General Item' : 'Add Item'"></span>
                     </button>
 
                     <button type="button" @click="openRoomModal()" x-show="estimate.type === 'room_based'"

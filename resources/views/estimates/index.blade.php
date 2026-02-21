@@ -298,7 +298,7 @@
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                         <div>{{ $estimate->estimate_date->format('M d, Y') }}</div>
-                                        <div class="text-xs text-gray-400">{{ $estimate->estimate_date->diffForHumans() }}
+                                        <div class="text-xs text-gray-400">{{ $estimate->created_at->format('h:i A') }}
                                         </div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm">
