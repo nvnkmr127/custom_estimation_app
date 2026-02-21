@@ -67,7 +67,7 @@ class WebhookListener implements ShouldQueue
         $eventName = $event->getEventName();
         $webhookUrl = null;
 
-        if ($eventName === 'estimate.submitted_for_approval' || $eventName === 'estimate.approved') {
+        if ($eventName === 'estimate.submitted_for_approval' || $eventName === 'estimate.approved' || $eventName === 'estimate.accepted') {
             $webhookUrl = Setting::getCached('estimate_approval_webhook_url');
         } elseif ($eventName === 'estimate.sent' || $eventName === 'estimate.created') {
             $webhookUrl = Setting::getCached('estimate_client_webhook_url');

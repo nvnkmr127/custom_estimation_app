@@ -24,6 +24,7 @@ class EventServiceProvider extends ServiceProvider
             \App\Listeners\AutomationListener::class,
             \App\Listeners\EstimateIntelligenceListener::class,
             \App\Listeners\ConversionTrackingListener::class,
+            \App\Listeners\PerfexSyncListener::class,
         ],
     ];
 

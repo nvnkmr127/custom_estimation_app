@@ -32,12 +32,9 @@ class CheckEstimateExpiry extends Command
 
         // Query criteria:
         // 1. expires_at is past
-        // 2. Not already expired or voided
-        // 3. Not accepted or declined by the client (Accepted never expires)
+        // 2. Only strictly 'sent' estimates (Accepted/Declined never expire)
         $expiredEstimates = Estimate::where('expires_at', '<', $now)
-            ->where('estimate_status', '!=', Estimate::EST_STATUS_EXPIRED)
-            ->where('estimate_status', '!=', Estimate::EST_STATUS_VOID)
-            ->whereNotIn('client_status', [Estimate::CLT_STATUS_ACCEPTED, Estimate::CLT_STATUS_DECLINED])
+            ->where('estimate_status', Estimate::EST_STATUS_SENT)
             ->get();
 
         if ($expiredEstimates->isEmpty()) {
@@ -51,10 +48,8 @@ class CheckEstimateExpiry extends Command
             try {
                 \Illuminate\Support\Facades\DB::transaction(function () use ($estimate, $stateService, $dispatcher) {
                     // Perform state transition (Handles locking, logging, and database side effects)
-                    $stateService->transitionEstimateStatus($estimate, \App\Models\Estimate::EST_STATUS_EXPIRED);
-
-                    // Keep legacy status field in sync
-                    $estimate->update(['status' => \App\Models\Estimate::STATUS_EXPIRED]);
+                    // We transition client_status to expired, which auto-updates estimate_status as well via StateService
+                    $stateService->transitionClientStatus($estimate, \App\Models\Estimate::CLT_STATUS_EXPIRED, true);
 
                     // Dispatch Domain Event
                     $dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateExpired($estimate));

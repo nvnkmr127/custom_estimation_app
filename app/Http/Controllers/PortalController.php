@@ -46,8 +46,8 @@ class PortalController extends Controller
         }
 
         // 3. Status Verification (Internal Lifecycle)
-        if ($estimate->estimate_status === Estimate::EST_STATUS_VOID) {
-            abort(410, 'This estimate has been voided.');
+        if ($estimate->estimate_status === Estimate::EST_STATUS_DECLINED) {
+            abort(410, 'This estimate has been declined or voided.');
         }
 
         // 4. Client Lifecycle Status Verification
@@ -58,8 +58,8 @@ class PortalController extends Controller
             Estimate::CLT_STATUS_DECLINED,
         ];
 
-        // Legacy check fallback if new status not set
-        if (!$estimate->client_status && !in_array($estimate->status, [Estimate::STATUS_SENT, Estimate::STATUS_APPROVED, Estimate::STATUS_ACCEPTED, Estimate::STATUS_DECLINED])) {
+        // Check estimate_status if client_status is somehow not reliable
+        if (!$estimate->client_status && !in_array($estimate->estimate_status, [Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_APPROVED, Estimate::EST_STATUS_ACCEPTED, Estimate::EST_STATUS_DECLINED])) {
             abort(403, 'This estimate is not yet available for viewing.');
         }
 
@@ -181,6 +181,10 @@ class PortalController extends Controller
             'signature' => 'required|string',
         ]);
 
+        if (!$estimate->canBeAccepted()) {
+            return redirect()->back()->with('error', 'This estimate cannot be accepted. It may be expired, not yet sent, or already processed.');
+        }
+
         // Capture Location (Simple Lookup)
         $location = null;
         try {
@@ -210,11 +214,9 @@ class PortalController extends Controller
                     'signer_ip' => $request->ip(),
                     'signer_agent' => $request->userAgent(),
                     'signer_location' => $location,
-                    'status' => Estimate::STATUS_ACCEPTED, // Sync legacy status field too
                 ]);
 
-                // Auto-Sync to Perfex (Queue to avoid blocking client)
-                \App\Jobs\SyncEstimateToPerfex::dispatch($estimate);
+                // Sync will now happen via PerfexSyncListener on the EstimateAccepted event below
 
                 // Notify Admins
                 $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'admin'])->get();
@@ -252,7 +254,6 @@ class PortalController extends Controller
             return DB::transaction(function () use ($estimate, $request) {
                 $this->stateService->transitionClientStatus($estimate, Estimate::CLT_STATUS_DECLINED, false, [
                     'client_notes' => $request->client_notes,
-                    'status' => Estimate::STATUS_DECLINED,
                 ]);
 
                 // Notify Admins

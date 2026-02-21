@@ -29,7 +29,7 @@ class EstimateWorkflowService
     public function submitForApproval(Estimate $estimate): Estimate
     {
         // 1. Validate State
-        if (!in_array($estimate->approval_status, [Estimate::APP_STATUS_DRAFT, Estimate::APP_STATUS_CHANGES_REQUESTED])) {
+        if (!in_array($estimate->approval_status, [Estimate::APP_STATUS_NOT_REQUIRED, Estimate::APP_STATUS_CHANGES_REQUESTED])) {
             throw new \Exception("Only draft or changes requested estimates can be submitted for approval.");
         }
 
@@ -47,11 +47,8 @@ class EstimateWorkflowService
 
             if (!$chain) {
                 // AUTO-APPROVE
-                $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_ACTIVE);
+                $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_APPROVED);
                 $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_APPROVED);
-
-                // Sync legacy status
-                $estimate->update(['status' => Estimate::STATUS_APPROVED]);
 
                 // Dispatch Domain Event
                 $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id() ?? 0, 'internal'));
@@ -63,8 +60,8 @@ class EstimateWorkflowService
             $estimate->update(['approval_chain_id' => $chain->id]);
 
             // 5. Transition to Submitted & Active (Locked)
-            $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_ACTIVE);
-            $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_SUBMITTED);
+            $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_PENDING_APPROVAL);
+            $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_WAITING);
 
             // 6. Generate First Step Approvals
             $firstStepOrder = $chain->steps()->min('order');
@@ -72,11 +69,20 @@ class EstimateWorkflowService
                 $estimate->createApprovalsForOrder($firstStepOrder);
             }
 
-            // 7. Transition to Pending
-            $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_PENDING);
+            // 7. Transition to Waiting
+            $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_WAITING);
 
             // 8. Dispatch Domain Event (Atomic via transaction)
             $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSubmittedForApproval($estimate, auth()->id()));
+
+            // Dispatch individual approval requests
+            foreach ($estimate->approvals()->where('status', 'pending')->get() as $approval) {
+                $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRequested(
+                    $estimate->id,
+                    $approval,
+                    $approval->user_id
+                ));
+            }
 
             return $estimate;
         });
@@ -148,12 +154,10 @@ class EstimateWorkflowService
                 } else {
                     // Final Approval reached
                     $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_APPROVED);
+                    $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_APPROVED);
 
                     // 10. Dispatch Domain Event
                     $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, $userId, 'internal'));
-
-                    // Sync legacy status
-                    $estimate->update(['status' => Estimate::STATUS_APPROVED]);
                 }
             }
 
@@ -187,7 +191,7 @@ class EstimateWorkflowService
             $estimate->approvals()->where('status', 'pending')->delete();
 
             $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_REJECTED);
-            $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_VOID);
+            $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_DECLINED);
 
             return $estimate;
         });

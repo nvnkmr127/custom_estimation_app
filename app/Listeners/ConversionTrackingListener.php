@@ -14,8 +14,8 @@ class ConversionTrackingListener implements ShouldQueue
 
     public function handle(DomainEvent $event): void
     {
-        // We only care about "Accepted/Approved" events for conversion
-        if ($event->getEventName() !== 'estimate.approved') {
+        // We only care about "Accepted" (Final) events for conversion
+        if ($event->getEventName() !== 'estimate.accepted') {
             return;
         }
 

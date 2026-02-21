@@ -10,36 +10,39 @@ use Illuminate\Support\Facades\Auth;
 class EstimateStateService
 {
     /**
-     * Define internal lifecycle transitions.
+     * Define internal lifecycle transitions (Main Status).
      */
     protected array $estimateTransitions = [
-        Estimate::EST_STATUS_DRAFT => [Estimate::EST_STATUS_ACTIVE, Estimate::EST_STATUS_VOID],
-        Estimate::EST_STATUS_ACTIVE => [Estimate::EST_STATUS_EXPIRED, Estimate::EST_STATUS_VOID, Estimate::EST_STATUS_DRAFT],
-        Estimate::EST_STATUS_EXPIRED => [Estimate::EST_STATUS_ACTIVE, Estimate::EST_STATUS_VOID],
-        Estimate::EST_STATUS_VOID => [Estimate::EST_STATUS_DRAFT],
+        Estimate::EST_STATUS_DRAFT => [Estimate::EST_STATUS_PENDING_APPROVAL],
+        Estimate::EST_STATUS_PENDING_APPROVAL => [Estimate::EST_STATUS_APPROVED],
+        Estimate::EST_STATUS_APPROVED => [Estimate::EST_STATUS_SENT],
+        Estimate::EST_STATUS_SENT => [Estimate::EST_STATUS_ACCEPTED, Estimate::EST_STATUS_DECLINED, Estimate::EST_STATUS_EXPIRED],
+        Estimate::EST_STATUS_ACCEPTED => [],
+        Estimate::EST_STATUS_DECLINED => [],
+        Estimate::EST_STATUS_EXPIRED => [],
     ];
 
     /**
      * Define approval workflow transitions.
      */
     protected array $approvalTransitions = [
-        Estimate::APP_STATUS_DRAFT => [Estimate::APP_STATUS_SUBMITTED, Estimate::APP_STATUS_APPROVED],
-        Estimate::APP_STATUS_SUBMITTED => [Estimate::APP_STATUS_PENDING, Estimate::APP_STATUS_APPROVED, Estimate::APP_STATUS_REJECTED, Estimate::APP_STATUS_CHANGES_REQUESTED, Estimate::APP_STATUS_DRAFT],
-        Estimate::APP_STATUS_PENDING => [Estimate::APP_STATUS_APPROVED, Estimate::APP_STATUS_REJECTED, Estimate::APP_STATUS_CHANGES_REQUESTED, Estimate::APP_STATUS_DRAFT],
-        Estimate::APP_STATUS_APPROVED => [Estimate::APP_STATUS_DRAFT],
-        Estimate::APP_STATUS_REJECTED => [Estimate::APP_STATUS_DRAFT],
-        Estimate::APP_STATUS_CHANGES_REQUESTED => [Estimate::APP_STATUS_SUBMITTED, Estimate::APP_STATUS_DRAFT],
+        Estimate::APP_STATUS_NOT_REQUIRED => [Estimate::APP_STATUS_WAITING, Estimate::APP_STATUS_APPROVED],
+        Estimate::APP_STATUS_WAITING => [Estimate::APP_STATUS_APPROVED, Estimate::APP_STATUS_REJECTED, Estimate::APP_STATUS_CHANGES_REQUESTED, Estimate::APP_STATUS_NOT_REQUIRED],
+        Estimate::APP_STATUS_APPROVED => [Estimate::APP_STATUS_NOT_REQUIRED],
+        Estimate::APP_STATUS_REJECTED => [Estimate::APP_STATUS_NOT_REQUIRED],
+        Estimate::APP_STATUS_CHANGES_REQUESTED => [Estimate::APP_STATUS_WAITING, Estimate::APP_STATUS_NOT_REQUIRED],
     ];
 
     /**
      * Define client interaction transitions.
      */
     protected array $clientTransitions = [
-        Estimate::CLT_STATUS_DRAFT => [Estimate::CLT_STATUS_SENT],
-        Estimate::CLT_STATUS_SENT => [Estimate::CLT_STATUS_VIEWED, Estimate::CLT_STATUS_ACCEPTED, Estimate::CLT_STATUS_DECLINED, Estimate::CLT_STATUS_DRAFT],
-        Estimate::CLT_STATUS_VIEWED => [Estimate::CLT_STATUS_ACCEPTED, Estimate::CLT_STATUS_DECLINED, Estimate::CLT_STATUS_DRAFT],
-        Estimate::CLT_STATUS_ACCEPTED => [Estimate::CLT_STATUS_SENT, Estimate::CLT_STATUS_DRAFT],
-        Estimate::CLT_STATUS_DECLINED => [Estimate::CLT_STATUS_SENT, Estimate::CLT_STATUS_DRAFT],
+        Estimate::CLT_STATUS_NOT_SENT => [Estimate::CLT_STATUS_SENT],
+        Estimate::CLT_STATUS_SENT => [Estimate::CLT_STATUS_VIEWED, Estimate::CLT_STATUS_ACCEPTED, Estimate::CLT_STATUS_DECLINED, Estimate::CLT_STATUS_EXPIRED, Estimate::CLT_STATUS_NOT_SENT],
+        Estimate::CLT_STATUS_VIEWED => [Estimate::CLT_STATUS_ACCEPTED, Estimate::CLT_STATUS_DECLINED, Estimate::CLT_STATUS_NOT_SENT],
+        Estimate::CLT_STATUS_ACCEPTED => [Estimate::CLT_STATUS_NOT_SENT],
+        Estimate::CLT_STATUS_DECLINED => [Estimate::CLT_STATUS_NOT_SENT],
+        Estimate::CLT_STATUS_EXPIRED => [Estimate::CLT_STATUS_SENT, Estimate::CLT_STATUS_NOT_SENT],
     ];
 
     /**
@@ -78,16 +81,13 @@ class EstimateStateService
      */
     public function transitionClientStatus(Estimate $estimate, string $newStatus, bool $force = false, array $extraData = []): Estimate
     {
-        // Business Rule: Cannot send to client or mark as sent/viewed etc unless approved
+        // Business Rule: Cannot send to client or mark as sent/viewed etc unless explicitly approved
         if (
             in_array($newStatus, [Estimate::CLT_STATUS_SENT, Estimate::CLT_STATUS_VIEWED, Estimate::CLT_STATUS_ACCEPTED])
-            && $estimate->approval_status !== Estimate::APP_STATUS_APPROVED
+            && $estimate->estimate_status !== Estimate::EST_STATUS_APPROVED
+            && $estimate->estimate_status !== Estimate::EST_STATUS_SENT
         ) {
-
-            // Allow if user is admin (override)
-            if (!Auth::user()?->hasRole(['super_admin', 'admin'])) {
-                throw new \InvalidArgumentException("Cannot transition client status to '{$newStatus}' because the estimate is not yet approved.");
-            }
+            throw new \InvalidArgumentException("Cannot transition client status to '{$newStatus}' because the estimate is not in an approved state.");
         }
 
         return $this->performTransition($estimate, 'client_status', $newStatus, $this->clientTransitions, $force, $extraData);
@@ -125,6 +125,14 @@ class EstimateStateService
             if (!empty($extraData)) {
                 $lockedEstimate->fill($extraData);
             }
+
+            // Prevent direct status modification through fill/update if they ever try
+            unset($lockedEstimate->estimate_status);
+            unset($lockedEstimate->client_status);
+            unset($lockedEstimate->approval_status);
+
+            // Re-assign explicitly via the validated field
+            $lockedEstimate->{$field} = $newStatus;
 
             // Side Effects: Auto-update timestamps
             $this->applyTimestampSideEffects($lockedEstimate, $field, $newStatus);
@@ -170,12 +178,22 @@ class EstimateStateService
                 case Estimate::CLT_STATUS_SENT:
                     $estimate->sent_at = now();
                     $estimate->expires_at = now()->addDays(15);
+                    $estimate->estimate_status = Estimate::EST_STATUS_SENT;
+                    break;
+                case Estimate::CLT_STATUS_VIEWED:
+                    $estimate->estimate_status = Estimate::EST_STATUS_SENT; // Keep as sent
                     break;
                 case Estimate::CLT_STATUS_ACCEPTED:
                     $estimate->accepted_at = now();
+                    $estimate->estimate_status = Estimate::EST_STATUS_ACCEPTED;
                     break;
                 case Estimate::CLT_STATUS_DECLINED:
                     $estimate->declined_at = now();
+                    $estimate->estimate_status = Estimate::EST_STATUS_DECLINED;
+                    break;
+                case Estimate::CLT_STATUS_EXPIRED:
+                    $estimate->expires_at = now();
+                    $estimate->estimate_status = Estimate::EST_STATUS_EXPIRED;
                     break;
             }
         }
@@ -196,8 +214,7 @@ class EstimateStateService
             // Recovery Logic: If previously expired, move back to ACTIVE
             $movedBack = false;
             if ($lockedEstimate->estimate_status === Estimate::EST_STATUS_EXPIRED) {
-                $lockedEstimate->estimate_status = Estimate::EST_STATUS_ACTIVE;
-                $lockedEstimate->status = Estimate::STATUS_SENT; // Sync legacy
+                $lockedEstimate->estimate_status = Estimate::EST_STATUS_APPROVED; // Or SENT depending on flow, but APPROVED is safer as it might need re-sending
                 $movedBack = true;
             }
 
@@ -225,13 +242,12 @@ class EstimateStateService
     public function resetSafetyWorkflow(Estimate $estimate): void
     {
         $estimate->estimate_status = Estimate::EST_STATUS_DRAFT;
-        $estimate->approval_status = Estimate::APP_STATUS_DRAFT;
-        $estimate->client_status = Estimate::CLT_STATUS_DRAFT;
+        $estimate->approval_status = Estimate::APP_STATUS_NOT_REQUIRED;
+        $estimate->client_status = Estimate::CLT_STATUS_NOT_SENT;
 
         // Clear side effects
         $estimate->sent_at = null;
         $estimate->expires_at = null;
-        $estimate->status = Estimate::STATUS_DRAFT; // legacy sync
         $estimate->approval_chain_id = null;
 
         if ($estimate->exists) {

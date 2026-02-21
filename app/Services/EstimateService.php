@@ -132,12 +132,12 @@ class EstimateService
             $originalNumber = $estimate->estimate_number;
 
             // Strict State Locking & Forced Versioning Logic
-            $isFinalized = in_array($estimate->status, [
-                Estimate::STATUS_APPROVED,
-                Estimate::STATUS_SENT,
-                Estimate::STATUS_ACCEPTED,
-                Estimate::STATUS_DECLINED,
-                Estimate::STATUS_EXPIRED
+            $isFinalized = in_array($estimate->estimate_status, [
+                Estimate::EST_STATUS_APPROVED,
+                Estimate::EST_STATUS_SENT,
+                Estimate::EST_STATUS_ACCEPTED,
+                Estimate::EST_STATUS_DECLINED,
+                Estimate::EST_STATUS_EXPIRED
             ]);
 
             $needsBranching = $forceBranch || $isFinalized;
@@ -164,7 +164,7 @@ class EstimateService
             // MT-15: Edit After Send/Approval Guard
             // If editing an estimate that is NOT in draft, reset it to force re-approval.
             // (If finalized, it branched above, so this handles in-place edits like submitted/pending)
-            if (!$isBranched && $estimate->approval_status !== Estimate::APP_STATUS_DRAFT) {
+            if (!$isBranched && $estimate->approval_status !== Estimate::APP_STATUS_NOT_REQUIRED) {
                 $this->stateService->resetSafetyWorkflow($estimate);
             }
 
@@ -423,12 +423,7 @@ class EstimateService
         // 3. Persist Estimate Totals
         $updateData = $results['estimate_updates'];
 
-        // Logic Check: Auto-approve if no chain assigned?
-        if (!$updateData['approval_chain_id'] && $estimate->status === Estimate::STATUS_WAITING_APPROVAL) {
-            $updateData['status'] = Estimate::STATUS_APPROVED;
-            $updateData['approval_status'] = 'approved';
-        }
-
+        // NOTE: Status changes should be explicit via WorkflowService, not silent side-effects of calculation.
         $estimate->update($updateData);
     }
 
@@ -453,8 +448,8 @@ class EstimateService
             $updateData = ['is_current_version' => false];
 
             // If the old version was SENT, expire it so the client cannot accept it while we are working on a V2.
-            if ($estimate->status === Estimate::STATUS_SENT) {
-                $updateData['status'] = Estimate::STATUS_EXPIRED;
+            if ($estimate->estimate_status === Estimate::EST_STATUS_SENT) {
+                $updateData['estimate_status'] = Estimate::EST_STATUS_EXPIRED;
             }
 
             $estimate->update($updateData);
@@ -617,13 +612,8 @@ class EstimateService
         return DB::transaction(function () use ($estimate) {
             try {
                 // Business Rule: Ensure estimate is approved before sending
-                // We use the new structured approval_status field
-                if ($estimate->approval_status !== Estimate::APP_STATUS_APPROVED) {
-                    // If the old legacy status is 'approved', we might want to allow it once?
-                    // But safer to enforce new APP_STATUS_APPROVED.
-                    if ($estimate->status !== Estimate::STATUS_APPROVED) {
-                        throw new \Exception('Estimate must be approved before it can be sent to the client.');
-                    }
+                if ($estimate->estimate_status !== Estimate::EST_STATUS_APPROVED && $estimate->estimate_status !== Estimate::EST_STATUS_SENT) {
+                    throw new \Exception('Estimate must be approved before it can be sent to the client.');
                 }
 
                 // Perform Transition via StateService

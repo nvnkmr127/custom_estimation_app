@@ -51,22 +51,7 @@ class ApprovalController extends Controller
             \Log::info("ApprovalChain evaluation complete. Estimate status is now: {$estimate->approval_status}");
 
             if ($estimate->approval_status === Estimate::APP_STATUS_APPROVED) {
-                // Auto-approved
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id(), 'auto_skip'));
                 return redirect()->back()->with('success', 'Estimate approved automatically as it does not require additional authorization.');
-            }
-
-            // Dispatch events for the submitted estimate
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSubmittedForApproval($estimate, auth()->id()));
-
-
-            // Dispatch events for each pending approval
-            foreach ($estimate->approvals()->where('status', 'pending')->get() as $approval) {
-                $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalRequested(
-                    $estimate->id,
-                    $approval,
-                    $approval->user_id
-                ));
             }
 
             return redirect()->back()->with('success', 'Estimate submitted for approval successfully.');
@@ -84,16 +69,6 @@ class ApprovalController extends Controller
         try {
             $user = auth()->user();
             $estimate = $this->workflowService->approve($estimate, $user->id, $request->input('comments'));
-
-            // The state transitions are handled by the service and logged there.
-            // We just need to check if it's fully approved to dispatch the final event.
-            if ($estimate->approval_status === Estimate::APP_STATUS_APPROVED) {
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, $user->id, 'internal'));
-            } else {
-                // If new approvals were generated, we should dispatch requested events for them.
-                // This is a bit tricky since they were created inside the transaction.
-                // For now, the service handles creation.
-            }
 
             return redirect()->back()->with('success', 'Estimate approved successfully.');
         } catch (\Exception $e) {

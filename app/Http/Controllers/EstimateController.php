@@ -98,10 +98,10 @@ class EstimateController extends Controller
         $analyticsQuery = clone $query;
         $analyticsQuery->reorder(); // Remove ordering for aggregation
 
-        $aggregates = $analyticsQuery->selectRaw('status, count(*) as count, sum(grand_total) as value')
-            ->groupBy('status')
+        $aggregates = $analyticsQuery->selectRaw('estimate_status, count(*) as count, sum(grand_total) as value')
+            ->groupBy('estimate_status')
             ->get()
-            ->keyBy('status');
+            ->keyBy('estimate_status');
 
         $stats = [
             'total_count' => 0,
@@ -110,12 +110,12 @@ class EstimateController extends Controller
 
         // Initialize all statuses with 0
         $allStatuses = [
-            Estimate::STATUS_DRAFT,
-            Estimate::STATUS_WAITING_APPROVAL,
-            Estimate::STATUS_APPROVED,
-            Estimate::STATUS_SENT,
-            Estimate::STATUS_ACCEPTED,
-            Estimate::STATUS_DECLINED, // and Expired if exists
+            Estimate::EST_STATUS_DRAFT,
+            Estimate::EST_STATUS_PENDING_APPROVAL,
+            Estimate::EST_STATUS_APPROVED,
+            Estimate::EST_STATUS_SENT,
+            Estimate::EST_STATUS_ACCEPTED,
+            Estimate::EST_STATUS_DECLINED, // and Expired if exists
         ];
 
         foreach ($allStatuses as $status) {
@@ -156,12 +156,12 @@ class EstimateController extends Controller
 
         $counts = [
             'all' => (clone $scopeQuery)->count(),
-            'draft' => (clone $scopeQuery)->where('status', Estimate::STATUS_DRAFT)->count(),
-            'waiting_approval' => (clone $scopeQuery)->where('status', Estimate::STATUS_WAITING_APPROVAL)->count(),
-            'approved' => (clone $scopeQuery)->where('status', Estimate::STATUS_APPROVED)->count(),
-            'sent' => (clone $scopeQuery)->where('status', Estimate::STATUS_SENT)->count(),
-            'accepted' => (clone $scopeQuery)->where('status', Estimate::STATUS_ACCEPTED)->count(),
-            'declined' => (clone $scopeQuery)->where('status', Estimate::STATUS_DECLINED)->count(),
+            'draft' => (clone $scopeQuery)->where('estimate_status', Estimate::EST_STATUS_DRAFT)->count(),
+            'waiting_approval' => (clone $scopeQuery)->where('estimate_status', Estimate::EST_STATUS_PENDING_APPROVAL)->count(),
+            'approved' => (clone $scopeQuery)->where('estimate_status', Estimate::EST_STATUS_APPROVED)->count(),
+            'sent' => (clone $scopeQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->count(),
+            'accepted' => (clone $scopeQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count(),
+            'declined' => (clone $scopeQuery)->where('estimate_status', Estimate::EST_STATUS_DECLINED)->count(),
         ];
 
         $clients = Client::orderBy('name')->get(); // For filter dropdown
@@ -174,7 +174,7 @@ class EstimateController extends Controller
         $request->validate([
             'estimate_ids' => 'required|array',
             'estimate_ids.*' => 'exists:estimates,id',
-            'action' => 'required|in:delete,mark_sent,mark_accepted,mark_declined,mark_draft',
+            'action' => 'required|in:delete,mark_sent,mark_declined,mark_draft',
         ]);
 
         $count = 0;
@@ -191,35 +191,27 @@ class EstimateController extends Controller
                 }
             } else {
                 if (auth()->user()->can('update', $estimate)) {
-                    $statusMap = [
-                        'mark_sent' => Estimate::STATUS_SENT,
-                        'mark_accepted' => Estimate::STATUS_ACCEPTED,
-                        'mark_declined' => Estimate::STATUS_DECLINED,
-                        'mark_draft' => Estimate::STATUS_DRAFT,
-                    ];
+                    $stateService = app(\App\Services\Estimates\EstimateStateService::class);
 
-                    if (isset($statusMap[$request->action])) {
-                        $updateData = ['status' => $statusMap[$request->action]];
-                        if ($statusMap[$request->action] === Estimate::STATUS_SENT) {
-                            $updateData['expiry_date'] = now()->addDays(15);
-                        }
-                        $estimate->update($updateData);
-                        ActivityLog::log('status_updated', $estimate, "Bulk action: status changed to " . $statusMap[$request->action] . " by " . auth()->user()->name);
-
-                        // Dispatch Event based on action
+                    try {
                         switch ($request->action) {
                             case 'mark_sent':
+                                $stateService->transitionClientStatus($estimate, Estimate::CLT_STATUS_SENT, true);
                                 $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate, auth()->id(), 'bulk_action'));
                                 break;
-                            case 'mark_accepted':
-                                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateAccepted($estimate, auth()->id(), 'manual_bulk'));
-                                break;
                             case 'mark_declined':
+                                $stateService->transitionClientStatus($estimate, Estimate::CLT_STATUS_DECLINED, true);
                                 $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, auth()->id(), 'manual_bulk'));
+                                break;
+                            case 'mark_draft':
+                                $stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_DRAFT);
                                 break;
                         }
 
+                        ActivityLog::log('status_updated', $estimate, "Bulk action: status changed by " . auth()->user()->name);
                         $count++;
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to bulk update estimate {$estimate->id}: " . $e->getMessage());
                     }
                 }
             }
@@ -480,49 +472,50 @@ class EstimateController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        return DB::transaction(function () use ($estimate, $status) {
-            // Lock the record
-            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
+        try {
+            return DB::transaction(function () use ($estimate, $status) {
+                // Lock the record
+                $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
-            if (!$estimate->canTransitionTo($status)) {
-                return back()->with('error', "Cannot transition from {$estimate->status} to {$status}.");
-            }
-
-            // GUARD: Enforce Approval Chain for SENT status
-            if ($status === Estimate::STATUS_SENT && !auth()->user()->hasRole(['super_admin', 'admin'])) {
-                if ($estimate->approvalChain && !$estimate->isFullyApproved()) {
-                    return back()->with('error', "Cannot mark as SENT: This estimate has not completed its approval chain.");
+                if (!$estimate->canTransitionTo($status)) {
+                    throw new \InvalidArgumentException("Cannot transition from {$estimate->estimate_status} to {$status}.");
                 }
-            }
 
-            $oldStatus = $estimate->status;
+                $oldStatus = $estimate->estimate_status;
 
-            $updateData = ['status' => $status];
-            if ($status === Estimate::STATUS_SENT) {
-                $updateData['expiry_date'] = now()->addDays(15);
-            }
-            $estimate->update($updateData);
+                $stateService = app(\App\Services\Estimates\EstimateStateService::class);
 
-            ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} status manually changed from {$oldStatus} to {$status}.");
+                // Use State Service for Transition
+                if (in_array($status, [Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_DECLINED, Estimate::EST_STATUS_EXPIRED])) {
+                    // These are client lifecycle related
+                    $stateService->transitionClientStatus($estimate, $status, true);
+                } else {
+                    // Internal transitions
+                    $stateService->transitionEstimateStatus($estimate, $status);
+                }
 
-            // Dispatch specific status events
-            switch ($status) {
-                case Estimate::STATUS_SENT:
-                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate, auth()->id(), 'manual_mark'));
-                    break;
-                case Estimate::STATUS_ACCEPTED:
-                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateAccepted($estimate, auth()->id(), 'manual_mark'));
-                    break;
-                case Estimate::STATUS_DECLINED:
-                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, auth()->id(), 'manual_mark'));
-                    break;
-                case Estimate::STATUS_EXPIRED:
-                    $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateExpired($estimate));
-                    break;
-            }
+                ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} status manually changed from {$oldStatus} to {$status}.");
 
-            return back()->with('success', 'Estimate marked as ' . ucfirst($status) . '.');
-        });
+                // Dispatch specific status events
+                switch ($status) {
+                    case Estimate::EST_STATUS_SENT:
+                        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent($estimate, auth()->id(), 'manual_mark'));
+                        break;
+                    case Estimate::EST_STATUS_DECLINED:
+                        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, auth()->id(), 'manual_mark'));
+                        break;
+                    case Estimate::EST_STATUS_EXPIRED:
+                        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateExpired($estimate));
+                        break;
+                }
+
+                return back()->with('success', 'Estimate marked as ' . ucfirst($status) . '.');
+            });
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            return back()->with('error', "Failed to update estimate status: " . $e->getMessage());
+        }
     }
 
     /**
@@ -554,7 +547,8 @@ class EstimateController extends Controller
         return DB::transaction(function () use ($estimate) {
             $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
-            $estimate->update(['status' => Estimate::STATUS_DRAFT]);
+            $estimate->estimate_status = Estimate::EST_STATUS_DRAFT;
+            $estimate->save();
 
             ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} reverted to draft.");
 
@@ -569,17 +563,11 @@ class EstimateController extends Controller
     {
         $this->authorize('update', $estimate);
 
-        // GUARD: Enforce Approval Chain before Sending
-        if (!auth()->user()->hasRole(['super_admin', 'admin'])) {
-            if ($estimate->approvalChain && !$estimate->isFullyApproved()) {
-                return back()->with('error', 'Cannot send to client: Estimate approval chain is incomplete.');
-            }
-        }
-
         try {
             $this->estimateService->sendToClient($estimate);
-
             return back()->with('success', 'Estimate sent to client successfully.');
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (\Exception $e) {
             return back()->with('error', 'Error sending email: ' . $e->getMessage());
         }

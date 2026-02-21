@@ -79,7 +79,7 @@ class EstimateIntelligenceListener implements ShouldQueue
 
         if (
             $viewCount >= $nudgeThreshold
-            && !in_array($estimate->status, [Estimate::STATUS_ACCEPTED, Estimate::STATUS_DECLINED, Estimate::STATUS_EXPIRED])
+            && !in_array($estimate->estimate_status, [Estimate::EST_STATUS_ACCEPTED, Estimate::EST_STATUS_DECLINED, Estimate::EST_STATUS_EXPIRED])
             && !$estimate->nudge_task_created
             && $estimate->perfex_proposal_id
         ) {

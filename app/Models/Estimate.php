@@ -11,42 +11,30 @@ class Estimate extends Model
 {
     use HasFactory, SoftDeletes;
 
-    const STATUS_DRAFT = 'draft';
-
-    const STATUS_SENT = 'sent';
-
-    const STATUS_ACCEPTED = 'accepted';
-
-    const STATUS_DECLINED = 'declined';
-
-    const STATUS_EXPIRED = 'expired';
-
-    const STATUS_WAITING_APPROVAL = 'waiting_approval';
-
-    const STATUS_APPROVED = 'approved';
-
     // Structured Statuses
-    // Internal Estimate Lifecycle
+    // Internal Estimate Lifecycle (Main Status)
     const EST_STATUS_DRAFT = 'draft';
-    const EST_STATUS_ACTIVE = 'active';
+    const EST_STATUS_PENDING_APPROVAL = 'pending_approval';
+    const EST_STATUS_APPROVED = 'approved';
+    const EST_STATUS_SENT = 'sent';
+    const EST_STATUS_ACCEPTED = 'accepted';
+    const EST_STATUS_DECLINED = 'declined';
     const EST_STATUS_EXPIRED = 'expired';
-    const EST_STATUS_VOID = 'void';
 
     // Approval Workflow Status
-    const APP_STATUS_DRAFT = 'draft';
-    const APP_STATUS_SUBMITTED = 'submitted';
-    const APP_STATUS_PENDING = 'pending';
+    const APP_STATUS_NOT_REQUIRED = 'not_required';
+    const APP_STATUS_WAITING = 'waiting';
     const APP_STATUS_APPROVED = 'approved';
-    const APP_STATUS_REJECTED = 'rejected';
     const APP_STATUS_CHANGES_REQUESTED = 'changes_requested';
+    const APP_STATUS_REJECTED = 'rejected';
 
     // Client Interaction Status
-    const CLT_STATUS_DRAFT = 'draft';
+    const CLT_STATUS_NOT_SENT = 'not_sent';
     const CLT_STATUS_SENT = 'sent';
     const CLT_STATUS_VIEWED = 'viewed';
     const CLT_STATUS_ACCEPTED = 'accepted';
     const CLT_STATUS_DECLINED = 'declined';
-
+    const CLT_STATUS_EXPIRED = 'expired';
 
     protected static function boot()
     {
@@ -59,23 +47,44 @@ class Estimate extends Model
 
             // Apply defaults if not set
             $estimate->estimate_status = $estimate->estimate_status ?? self::EST_STATUS_DRAFT;
-            $estimate->approval_status = $estimate->approval_status ?? self::APP_STATUS_DRAFT;
-            $estimate->client_status = $estimate->client_status ?? self::CLT_STATUS_DRAFT;
+            $estimate->approval_status = $estimate->approval_status ?? self::APP_STATUS_NOT_REQUIRED;
+            $estimate->client_status = $estimate->client_status ?? self::CLT_STATUS_NOT_SENT;
         });
 
         static::saving(function ($estimate) {
             // Enum validation
-            $valid_est = [self::EST_STATUS_DRAFT, self::EST_STATUS_ACTIVE, self::EST_STATUS_EXPIRED, self::EST_STATUS_VOID];
+            $valid_est = [
+                self::EST_STATUS_DRAFT,
+                self::EST_STATUS_PENDING_APPROVAL,
+                self::EST_STATUS_APPROVED,
+                self::EST_STATUS_SENT,
+                self::EST_STATUS_ACCEPTED,
+                self::EST_STATUS_DECLINED,
+                self::EST_STATUS_EXPIRED
+            ];
             if ($estimate->estimate_status && !in_array($estimate->estimate_status, $valid_est)) {
                 throw new \InvalidArgumentException("Invalid estimate_status: {$estimate->estimate_status}");
             }
 
-            $valid_app = [self::APP_STATUS_DRAFT, self::APP_STATUS_SUBMITTED, self::APP_STATUS_PENDING, self::APP_STATUS_APPROVED, self::APP_STATUS_REJECTED, self::APP_STATUS_CHANGES_REQUESTED];
+            $valid_app = [
+                self::APP_STATUS_NOT_REQUIRED,
+                self::APP_STATUS_WAITING,
+                self::APP_STATUS_APPROVED,
+                self::APP_STATUS_CHANGES_REQUESTED,
+                self::APP_STATUS_REJECTED
+            ];
             if ($estimate->approval_status && !in_array($estimate->approval_status, $valid_app)) {
                 throw new \InvalidArgumentException("Invalid approval_status: {$estimate->approval_status}");
             }
 
-            $valid_clt = [self::CLT_STATUS_DRAFT, self::CLT_STATUS_SENT, self::CLT_STATUS_VIEWED, self::CLT_STATUS_ACCEPTED, self::CLT_STATUS_DECLINED];
+            $valid_clt = [
+                self::CLT_STATUS_NOT_SENT,
+                self::CLT_STATUS_SENT,
+                self::CLT_STATUS_VIEWED,
+                self::CLT_STATUS_ACCEPTED,
+                self::CLT_STATUS_DECLINED,
+                self::CLT_STATUS_EXPIRED
+            ];
             if ($estimate->client_status && !in_array($estimate->client_status, $valid_clt)) {
                 throw new \InvalidArgumentException("Invalid client_status: {$estimate->client_status}");
             }
@@ -104,7 +113,6 @@ class Estimate extends Model
         'estimate_date',
         'expiry_date',
         'currency',
-        'status',
         'type',
         'subtotal',
         'tax_1',
@@ -257,7 +265,7 @@ class Estimate extends Model
      */
     public function isExpired(): bool
     {
-        if ($this->status === self::STATUS_EXPIRED || $this->estimate_status === self::EST_STATUS_EXPIRED) {
+        if ($this->estimate_status === self::EST_STATUS_EXPIRED) {
             return true;
         }
 
@@ -266,6 +274,17 @@ class Estimate extends Model
         }
 
         return false;
+    }
+
+    /**
+     * Check if the estimate can be accepted by the client.
+     */
+    public function canBeAccepted(): bool
+    {
+        return $this->estimate_status === self::EST_STATUS_SENT
+            && $this->client_status === self::CLT_STATUS_SENT
+            && is_null($this->accepted_at)
+            && ($this->expires_at ? now()->lt($this->expires_at) : true);
     }
 
     /**
@@ -624,26 +643,29 @@ class Estimate extends Model
 
     public function validStatusTransitions()
     {
-        switch ($this->status) {
-            case self::STATUS_DRAFT:
-                return [self::STATUS_WAITING_APPROVAL, self::STATUS_DRAFT];
-            case self::STATUS_WAITING_APPROVAL:
-                return [self::STATUS_APPROVED, self::STATUS_DECLINED, self::STATUS_DRAFT];
-            case self::STATUS_APPROVED:
-                return [self::STATUS_SENT, self::STATUS_DRAFT];
-            case self::STATUS_SENT:
-                return [self::STATUS_ACCEPTED, self::STATUS_DECLINED, self::STATUS_DRAFT]; // Can negotiate/update
-            case self::STATUS_ACCEPTED:
-                return [self::STATUS_SENT, self::STATUS_DRAFT]; // Reopen?
+        switch ($this->estimate_status) {
+            case self::EST_STATUS_DRAFT:
+                return [self::EST_STATUS_PENDING_APPROVAL];
+            case self::EST_STATUS_PENDING_APPROVAL:
+                return [self::EST_STATUS_APPROVED];
+            case self::EST_STATUS_APPROVED:
+                return [self::EST_STATUS_SENT];
+            case self::EST_STATUS_SENT:
+                return [self::EST_STATUS_ACCEPTED, self::EST_STATUS_DECLINED, self::EST_STATUS_EXPIRED];
+            case self::EST_STATUS_ACCEPTED:
+            case self::EST_STATUS_DECLINED:
+            case self::EST_STATUS_EXPIRED:
+                return [];
             default:
-                return [self::STATUS_DRAFT];
+                return [];
         }
     }
 
     public function canTransitionTo($newStatus, $user = null)
     {
-        if ($newStatus === $this->status)
+        if ($newStatus === $this->estimate_status)
             return true;
+
         $user = $user ?? auth()->user();
 
         // Admin override

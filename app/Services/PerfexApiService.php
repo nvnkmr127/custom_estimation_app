@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class PerfexApiService
 {
@@ -444,5 +445,40 @@ class PerfexApiService
         Log::info("Perfex Sync: Successfully synced Client {$client->id} (Perfex #{$client->perfex_id})");
 
         return true;
+    }
+    /**
+     * Synchronize an estimate to Perfex CRM as a proposal.
+     */
+    public function syncEstimate(\App\Models\Estimate $estimate): array
+    {
+        $payload = [
+            'subject' => $estimate->estimate_number . ': ' . $estimate->title,
+            'rel_id' => $estimate->client->perfex_id ?? null,
+            'rel_type' => 'lead',
+            'date' => $estimate->estimate_date ? Carbon::parse($estimate->estimate_date)->toDateString() : now()->toDateString(),
+            'open_till' => $estimate->expiry_date ? Carbon::parse($estimate->expiry_date)->toDateString() : now()->addDays(30)->toDateString(),
+            'currency' => 1, // Default currency ID in Perfex, should ideally be mapped
+            'subtotal' => $estimate->subtotal,
+            'total' => $estimate->grand_total,
+            'discount_percent' => $estimate->discount_type === 'percentage' ? $estimate->discount_value : 0,
+            'content' => $estimate->client_note ?? 'Estimate generated from Custom App.',
+        ];
+
+        if ($estimate->perfex_proposal_id) {
+            // Update existing
+            $result = $this->request('put', 'proposals/' . $estimate->perfex_proposal_id, $payload);
+            if (isset($result['status']) && $result['status']) {
+                return ['status' => true, 'id' => $estimate->perfex_proposal_id, 'message' => 'Updated existing proposal.'];
+            }
+            return $result;
+        } else {
+            // Create new
+            $result = $this->request('post', 'proposals', $payload);
+            if (isset($result['id'])) {
+                $estimate->update(['perfex_proposal_id' => $result['id']]);
+                return ['status' => true, 'id' => $result['id'], 'message' => 'Created new proposal.'];
+            }
+            return $result;
+        }
     }
 }
