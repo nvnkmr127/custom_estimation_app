@@ -67,4 +67,29 @@ class PdfLogicTest extends TestCase
         $this->assertStringContainsString('NO_TERMS', $output);
         $this->assertStringNotContainsString('NO_NUM', $output);
     }
+
+    public function test_inline_css_variables_are_replaced_correctly()
+    {
+        $estimate = new Estimate([
+            'estimate_number' => 'EST-124',
+        ]);
+
+        $template = new PdfTemplate([
+            'html_content' => '<div style="color: var(--primary-color); border: 1px solid var(--secondary-color); font-family: var(--font-body);">Test</div>',
+            'primary_color' => '#123456',
+            'secondary_color' => '#654321',
+            'font_family' => 'Arial',
+        ]);
+
+        $service = new PdfRenderingService;
+        $output = $service->render($template, $estimate);
+
+        $this->assertStringContainsString('color: #123456', $output);
+        $this->assertStringContainsString('border: 1px solid #654321', $output);
+        $this->assertStringContainsString("font-family: 'Arial'", $output);
+        // Verify the var() syntax was removed
+        $this->assertStringNotContainsString('var(--primary-color)', $output);
+        $this->assertStringNotContainsString('var(--secondary-color)', $output);
+        $this->assertStringNotContainsString('var(--font-body)', $output);
+    }
 }
