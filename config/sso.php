@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'enabled' => env('AUTH_SSO_ENABLED', false),
+    'enabled' => env('APP_ENV') === 'local' ? false : env('AUTH_SSO_ENABLED', false),
 
     /*
     |--------------------------------------------------------------------------
