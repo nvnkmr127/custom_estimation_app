@@ -48,13 +48,19 @@ class EstimateViewModel
             ? $this->estimate->expiry_date
             : $estimateDate->copy()->addDays(30);
 
+        $currency = $this->estimate->currency_symbol ?? '$';
+        // Wrap custom symbols like Rupee (₹) in DejaVu Sans because DOMPDF does not do character fallback
+        if (mb_strlen($currency) > 0 && mb_ord($currency) > 127) {
+            $currency = '<span style="font-family: \'DejaVu Sans\', sans-serif;">' . $currency . '</span>';
+        }
+
         return [
             'estimate_number' => $this->estimate->estimate_number,
             'estimate_title' => $this->estimate->title ?? 'Estimate',
             'estimate_date' => $estimateDate->format('M d, Y'),
             'expiry_date' => $expiryDate->format('M d, Y'),
             'status' => ucfirst($this->estimate->status),
-            'currency' => $this->estimate->currency_symbol ?? '$',
+            'currency' => $currency,
         ];
     }
 

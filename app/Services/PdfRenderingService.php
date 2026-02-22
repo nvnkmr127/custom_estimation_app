@@ -37,7 +37,11 @@ class PdfRenderingService
 
         $html = $template->html_content;
 
-        // 1. Handle Loops First
+        // 1. Handle Hardcoded Symbols
+        // DOMPDF character fallback is weak; wrap `₹` universally in DejaVu Sans so it never hits generic font failure.
+        $html = str_replace('₹', '<span style="font-family: \'DejaVu Sans\', sans-serif;">₹</span>', $html);
+
+        // 2. Handle Loops First
         // This expands the content and evaluates loop-specific conditionals (item_is_package, has_width, etc.)
         $html = $this->parseSections($html);
         $html = $this->parseLoops($html);
