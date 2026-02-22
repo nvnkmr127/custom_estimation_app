@@ -712,8 +712,15 @@ class EstimateController extends Controller
 
         // 1. General Estimate Comments & Replies
         foreach ($estimate->comments as $comment) {
+            if ($comment->type === 'internal') {
+                continue;
+            }
+
             $commentData->push($transform($comment, null, null));
             foreach ($comment->replies as $reply) {
+                if ($reply->type === 'internal') {
+                    continue;
+                }
                 // Pass parent so reply inherits context
                 $commentData->push($transform($reply, null, $comment));
             }
@@ -724,9 +731,17 @@ class EstimateController extends Controller
         foreach ($estimate->sections as $section) {
             foreach ($section->items as $item) {
                 foreach ($item->comments as $comment) {
+                    if ($comment->type === 'internal') {
+                        continue;
+                    }
+
                     $itemName = $item->name;
                     $commentData->push($transform($comment, $itemName, null));
                     foreach ($comment->replies as $reply) {
+                        if ($reply->type === 'internal') {
+                            continue;
+                        }
+
                         // Pass parent and item name
                         $commentData->push($transform($reply, $itemName, $comment));
                     }
@@ -735,7 +750,7 @@ class EstimateController extends Controller
             }
         }
 
-        $comments = $commentData->unique('id')->sortBy('created_at')->values();
+        $comments = $commentData->filter()->unique('id')->sortBy('created_at')->values();
 
         return view('portal.estimates.show', compact('estimate', 'htmlContent', 'comments'));
     }
