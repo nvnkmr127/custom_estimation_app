@@ -11,10 +11,11 @@ class EstimateAccepted extends BaseEvent
     public function __construct(
         public readonly \App\Models\Estimate $estimate,
         public readonly int $accepterId,
-        public readonly string $source = 'client' // 'client' or 'manual'
+        string $source = 'client' // 'client' or 'manual'
     ) {
-        $this->snapshot = $estimate->toArray();
         parent::__construct();
+        $this->snapshot = $estimate->toArray();
+        $this->source = $source;
     }
 
     public function getEventName(): string
