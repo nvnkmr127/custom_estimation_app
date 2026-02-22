@@ -66,7 +66,8 @@ class PdfRenderingService
             $fontCss = "@import url('https://fonts.googleapis.com/css?family=" . urlencode($template->font_family) . ":400,700&display=swap');";
         }
 
-        $cssVars = $fontCss . " :root { --primary-color: {$template->primary_color}; --secondary-color: {$template->secondary_color}; --font-body: {$template->font_family}; } body { font-family: '{$template->font_family}', sans-serif !important; width: 100%; overflow-x: hidden; word-wrap: break-word; } table { width: 100%; border-collapse: collapse; table-layout: fixed; } table td { word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; } tr { page-break-inside: avoid; } .page-break-before { page-break-before: always; } .page-break-after { page-break-after: always; } .avoid-break { page-break-inside: avoid; }";
+        // Added 'DejaVu Sans' to font fallbacks to support Rupee (₹) symbol properly without question marks. Removed table layout hacks that broke column alignments.
+        $cssVars = $fontCss . " :root { --primary-color: {$template->primary_color}; --secondary-color: {$template->secondary_color}; --font-body: {$template->font_family}; } body { font-family: '{$template->font_family}', 'DejaVu Sans', sans-serif !important; width: 100%; overflow-x: hidden; } table { width: 100%; border-collapse: collapse; } tr { page-break-inside: avoid; } .page-break-before { page-break-before: always; } .page-break-after { page-break-after: always; } .avoid-break { page-break-inside: avoid; }";
 
         // Add default styles for comments (aligned with Web View Slate-500 #64748b and Green-500 #22c55e)
         $cssVars .= " .item-comments { margin-top: 5px; font-size: 0.9em; color: #64748b; } .comment-row { margin-bottom: 2px; } .clarified-status { color: #22c55e; font-weight: bold; } .item-image { max-width: 50px; max-height: 50px; object-fit: contain; page-break-inside: avoid; }";
@@ -706,23 +707,8 @@ class PdfRenderingService
         $renderedItems = '';
         foreach ($items as $item) {
 
-            // Format Comments
+            // Format Comments (Disabled per user request)
             $commentsHtml = '';
-            if ($item->comments->isNotEmpty()) {
-                $commentsHtml = '<div class="item-comments">';
-                foreach ($item->comments as $comment) {
-                    // Only show comments relevant to client (or all if desired? Defaulting to all for now as 'client' usually sees the PDF)
-                    $statusLabel = $comment->status === 'clarified' ? '<span class="clarified-status">[Clarified]</span> ' : '';
-                    $author = $comment->isClientComment() ? ($comment->client_name ?: 'Client') : ($comment->user->name ?? 'Staff');
-
-                    $commentsHtml .= '<div class="comment-row">'
-                        . $statusLabel
-                        . '<strong>' . htmlspecialchars($author) . ':</strong> '
-                        . nl2br(htmlspecialchars($comment->comment))
-                        . '</div>';
-                }
-                $commentsHtml .= '</div>';
-            }
 
             // Process Item Image
             $itemImageHtml = '';
