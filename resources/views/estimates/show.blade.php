@@ -1,4 +1,45 @@
 <x-app-layout>
+    <script>
+        // Defensive initialization to prevent ReferenceErrors - Moved to top
+        window.estimate = @json($estimate);
+        window.totals = {
+            subtotal: {{ $estimate->subtotal ?? 0 }},
+            totalTax: {{ $estimate->total_tax ?? 0 }},
+            discount: {{ $estimate->discount_total ?? 0 }},
+            grandTotal: {{ $estimate->grand_total ?? 0 }} 
+        };
+
+        const defaults = {
+            hasCustomItems: () => false,
+            isSubmitting: false,
+            couponValid: false,
+            couponMessage: '',
+            couponInput: '',
+            appliedCouponCode: '',
+            productPicker: { isOpen: false, search: '', sectionIndex: null, categoryId: '' },
+            internalNoteModal: { isOpen: false, activeItem: null },
+            configModal: { isOpen: false, product: null, options: {}, basePrice: 0 }
+        };
+
+        for (const [key, value] of Object.entries(defaults)) {
+            if (typeof window[key] === 'undefined') {
+                window[key] = value;
+            }
+        }
+
+        if (!window.openItemComments) {
+            window.openItemComments = function (id, name, comments) {
+                window.dispatchEvent(new CustomEvent('open-item-comments', { detail: { id, name, comments } }));
+            };
+        }
+
+        window.closeInternalNoteModal = function() { 
+            if (window.internalNoteModal) window.internalNoteModal.isOpen = false; 
+        };
+        window.closeConfigModal = function() { 
+            if (window.configModal) window.configModal.isOpen = false; 
+        };
+    </script>
     <!-- Version Warning -->
     @if(!$estimate->is_current_version)
         <div class="mb-6 rounded-md bg-yellow-50 p-4 ring-1 ring-yellow-200">
@@ -466,37 +507,4 @@
 
         <!-- Item Comments Modal -->
         <x-estimates.item-comments-modal :estimate="$estimate" />
-        @push('scripts')
-            <script>
-                // Defensive initialization to prevent ReferenceErrors
-                window.estimate = @json($estimate);
-                window.totals = {
-                    subtotal: {{ $estimate->subtotal ?? 0 }},
-                    totalTax: {{ $estimate->total_tax ?? 0 }},
-                    discount: {{ $estimate->discount_total ?? 0 }},
-                    grandTotal: {{ $estimate->grand_total ?? 0 }} 
-                                                            };
-
-                const defaults = {
-                    hasCustomItems: () => false,
-                    isSubmitting: false,
-                    couponValid: false,
-                    couponMessage: '',
-                    couponInput: '',
-                    appliedCouponCode: '',
-                    productPicker: { isOpen: false, search: '', sectionIndex: null },
-                    internalNoteModal: { isOpen: false, activeItem: null },
-                    configModal: { isOpen: false, product: null, options: {}, basePrice: 0 }
-                };
-
-                for (const [key, value] of Object.entries(defaults)) {
-                    if (typeof window[key] === 'undefined') {
-                        window[key] = value;
-                    }
-                }
-
-
-
-            </script>
-        @endpush
 </x-app-layout>

@@ -57,14 +57,23 @@
             <h1 class="text-2xl font-bold tracking-tight text-slate-900">Estimate {{ $estimate->estimate_number }}
             </h1>
             <x-estimate-status-badge :status="$estimate->status" />
-            @if($estimate->approval_status)
+            @if($estimate->approval_status && $estimate->approval_status !== 'not_required')
+                @php
+                    $approvalLabels = [
+                        'waiting' => 'Pending Approval',
+                        'approved' => 'Internally Approved',
+                        'rejected' => 'Rejected',
+                        'changes_requested' => 'Changes Requested',
+                    ];
+                @endphp
                 <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                            @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
-                                                                            @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
-                                                                            @elseif($estimate->approval_status === 'submitted') bg-yellow-50 text-yellow-700 ring-yellow-700/10
-                                                                            @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                                            @endif">
-                    {{ ucfirst($estimate->approval_status) }}
+                            @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
+                            @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
+                            @elseif($estimate->approval_status === 'waiting') bg-yellow-50 text-yellow-700 ring-yellow-700/10
+                            @elseif($estimate->approval_status === 'changes_requested') bg-amber-50 text-amber-700 ring-amber-600/20
+                            @else bg-gray-50 text-gray-600 ring-gray-500/10
+                            @endif">
+                    {{ $approvalLabels[$estimate->approval_status] ?? ucfirst(str_replace('_', ' ', $estimate->approval_status)) }}
                 </span>
             @endif
         </div>
@@ -73,7 +82,14 @@
 
     <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">
         <!-- Primary Actions -->
-        @if($estimate->status === 'draft' || $estimate->status === 'declined' || (auth()->user()->hasRole('super_admin')))
+        @php
+            // Condition: True if we haven't sent it to the client yet, or if they declined and we are fixing it.
+            // Also restrict super_admin from illegally editing an "in-flight" document.
+            $canEditOrSubmit = in_array($estimate->status, ['draft', 'declined']) || 
+                               (in_array($estimate->status, ['waiting_approval', 'approved']) && $estimate->client_status !== 'sent');
+        @endphp
+
+        @if($canEditOrSubmit)
             @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole('super_admin'))
                 <a href="{{ route('estimates.edit', $estimate) }}"
                     class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
@@ -81,7 +97,7 @@
                 </a>
             @endif
 
-            @if($estimate->approval_status === 'draft')
+            @if($estimate->approval_status === 'not_required')
                 <form action="{{ route('estimates.submit', $estimate) }}" method="POST" class="inline">
                     @csrf
                     <button type="submit"
@@ -121,24 +137,24 @@
         @endif
 
         <!-- Pending Approval Actions (For Approver) -->
-        @if(in_array($estimate->approval_status, ['submitted', 'pending']) && $userApproval)
+        @if(in_array($estimate->approval_status, ['waiting']) && $userApproval)
             @if($estimate->status === 'waiting_approval')
                 <!-- Checklist Logic embedded in Approve -->
                 <div x-data="{ 
-                                                                                                            checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
-                                                                                                            requiredCount: {{ $checklists->where('is_required', true)->count() }},
-                                                                                                            requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
-                                                                                                            toggleChecklist(id, checked) {
-                                                                                                                if (checked) this.checks.push(parseInt(id));
-                                                                                                                else this.checks = this.checks.filter(c => c !== parseInt(id));
-                                                                                                                fetch('{{ route('estimates.toggle-checklist', $estimate) }}', {
-                                                                                                                    method: 'POST',
-                                                                                                                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                                                                                                                    body: JSON.stringify({ checklist_id: id, completed: checked })
-                                                                                                                });
-                                                                                                            },
-                                                                                                            get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
-                                                                                                        }"
+                                                                                                                            checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')) }}, 
+                                                                                                                            requiredCount: {{ $checklists->where('is_required', true)->count() }},
+                                                                                                                            requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')) }},
+                                                                                                                            toggleChecklist(id, checked) {
+                                                                                                                                if (checked) this.checks.push(parseInt(id));
+                                                                                                                                else this.checks = this.checks.filter(c => c !== parseInt(id));
+                                                                                                                                fetch('{{ route('estimates.toggle-checklist', $estimate) }}', {
+                                                                                                                                    method: 'POST',
+                                                                                                                                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                                                                                                                                    body: JSON.stringify({ checklist_id: id, completed: checked })
+                                                                                                                                });
+                                                                                                                            },
+                                                                                                                            get canApprove() { return this.requiredIds.every(id => this.checks.includes(id)); }
+                                                                                                                        }"
                     class="flex gap-2 relative">
                     <!-- Approve Dropdown -->
                     <div x-data="{ open: false }" class="relative">

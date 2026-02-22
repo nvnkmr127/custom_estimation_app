@@ -21,7 +21,7 @@
             </div>
         @endif
 
-        @if($estimate->status === 'accepted')
+        @if($estimate->client_status === 'accepted' || $estimate->estimate_status === 'accepted')
             <div
                 class="mb-6 rounded-lg bg-emerald-50 p-6 border border-emerald-100 text-center shadow-sm">
                     <p class="text-xl font-bold text-emerald-800 mb-1">🎉 Estimate Accepted</p>
@@ -40,7 +40,7 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center relative z-10 gap-6">
-                    @if($estimate->status === 'accepted')
+                    @if($estimate->client_status === 'accepted' || $estimate->estimate_status === 'accepted')
                         <!-- Corner Seal of Approval -->
                         <div class="absolute -top-12 -right-12 sm:-top-16 sm:-right-16 w-56 h-56 sm:w-72 sm:h-72 opacity-30 sm:opacity-50 pointer-events-none rotate-[15deg] select-none z-0">
                             <svg viewBox="0 0 200 200" class="w-full h-full text-emerald-500 fill-current">
@@ -437,7 +437,7 @@
         </div>
 
         <!-- Sticky Mobile Actions -->
-        @if(!in_array($estimate->status, ['accepted', 'declined']) && !$estimate->isExpired())
+        @if(!in_array($estimate->client_status, ['accepted', 'declined']) && !in_array($estimate->estimate_status, ['accepted', 'declined']) && !$estimate->isExpired())
             <div
                 class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-3 z-30 sm:hidden">
                 <button @click="showDeclineModal = true"
@@ -467,7 +467,7 @@
                     Estimate</button>
                 @endif
             </div>
-        @elseif($estimate->status === 'accepted')
+        @elseif($estimate->client_status === 'accepted' || $estimate->estimate_status === 'accepted')
             <!-- Execution Details Card -->
             <div class="mb-12 bg-white rounded-[2.5rem] p-8 sm:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 animate-fade-in relative overflow-hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

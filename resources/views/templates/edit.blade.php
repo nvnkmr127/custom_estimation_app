@@ -112,7 +112,7 @@
                         <p class="text-[13px] text-slate-400 font-bold mt-1.5 uppercase tracking-wide">Manage products
                             and configurations for this room</p>
                     </div>
-                    <button type="button" @click="openProductPicker()"
+                    <button type="button" @click.stop="openProductPicker()"
                         class="inline-flex items-center px-10 py-3.5 rounded-2xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 group">
                         <svg class="mr-3 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             stroke-width="4">
@@ -217,320 +217,223 @@
                                         </div>
                                     </td>
 
-                <td class="px-6 py-10 text-center align-middle">
-                    <div class="inline-flex">
-                        <input type="number" step="0.01" :name="`items[${index}][quantity]`" x-model="item.quantity"
-                            class="w-24 rounded-2xl border-slate-100 bg-white py-4 text-center text-sm font-bold text-slate-900 focus:ring-4 focus:ring-blue-50 shadow-sm transition-all border">
-                    </div>
-                </td>
-
-                <td class="px-6 py-10 align-middle">
-                    <div class="flex justify-center">
-                        <div
-                            class="inline-flex flex-col gap-3 p-5 rounded-[2rem] bg-slate-50/50 border border-slate-100 shadow-inner">
-                            <div class="flex items-center gap-4">
-                                <span class="text-[9px] font-bold text-slate-300 w-3 text-center">L</span>
-                                <input type="number" step="0.01" :name="`items[${index}][length]`" x-model="item.length"
-                                    @input="calculateQuantity(item)"
-                                    class="w-16 rounded-xl border-slate-100 py-2 px-2 text-center text-xs font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 shadow-sm">
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <span class="text-[9px] font-bold text-slate-300 w-3 text-center">W</span>
-                                <input type="number" step="0.01" :name="`items[${index}][width]`" x-model="item.width"
-                                    @input="calculateQuantity(item)"
-                                    class="w-16 rounded-xl border-slate-100 py-2 px-2 text-center text-xs font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 shadow-sm">
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <span class="text-[9px] font-bold text-slate-300 w-3 text-center">H</span>
-                                <input type="number" step="0.01" :name="`items[${index}][height]`" x-model="item.height"
-                                    @input="calculateQuantity(item)"
-                                    class="w-16 rounded-xl border-slate-100 py-2 px-2 text-center text-xs font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 shadow-sm">
-                            </div>
-                        </div>
-                    </div>
-                </td>
-
-                <td class="px-6 py-10 align-middle">
-                    <div class="flex flex-col items-center gap-3">
-                        <!-- Unit Classification Dropdown -->
-                        <div class="relative w-full">
-                            <select x-model="item.unit_type_id" @change="onUnitTypeChange(item)"
-                                :name="`items[${index}][unit_type_id]`"
-                                :class="item.unit_type_id ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-slate-100 bg-white text-slate-400'"
-                                class="w-full rounded-2xl py-2.5 pl-4 pr-10 text-[11px] font-bold shadow-sm focus:ring-4 focus:ring-blue-50 appearance-none cursor-pointer border transition-all">
-                                <option value="">Manual Entry</option>
-                                @foreach($unitTypes as $ut)
-                                    <option value="{{ (string) $ut->id }}">{{ $ut->name }}</option>
-                                @endforeach
-                            </select>
-                            <div
-                                class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-300">
-                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                    stroke-width="4">
-                                    <path d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-                        </div>
-
-                        <!-- Primary Unit Selection -->
-                        <div class="w-full">
-                            <!-- Dynamic Select (Always present, reactive to unit_type_id) -->
-                            <div class="relative" x-show="item.unit_type_id">
-                                <select :value="item.unit_type" @change="item.unit_type = $event.target.value"
-                                    :name="`items[${index}][unit_type]`"
-                                    class="w-full rounded-2xl py-2.5 pl-4 pr-10 text-[12px] font-bold border-blue-100 bg-blue-50/40 text-blue-600 shadow-sm focus:ring-4 focus:ring-blue-50 appearance-none cursor-pointer border transition-all">
-                                    <template x-for="u in getAvailableUnits(item.unit_type_id)"
-                                        :key="item.unit_type_id + '-' + u">
-                                        <option :value="u" x-text="u" :selected="item.unit_type === u"></option>
-                                    </template>
-                                </select>
-                                <div
-                                    class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-blue-400">
-                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                        stroke-width="4">
-                                        <path d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            <!-- Manual Input (Only if manual entry) -->
-                            <div class="flex justify-center" x-show="!item.unit_type_id">
-                                <input type="text" x-model="item.unit_type" :name="`items[${index}][unit_type]`"
-                                    class="border-b-2 border-slate-100 p-0 text-center w-24 bg-transparent text-[10px] font-bold text-slate-400 uppercase tracking-widest focus:ring-0 focus:border-blue-400 transition-all"
-                                    placeholder="ENTER UNIT">
-                            </div>
-                        </div>
-                    </div>
-                </td>
-
-                <td class="px-6 py-10 align-middle">
-                    <div class="flex flex-col items-center">
-                        <div class="flex items-center text-2xl font-bold text-slate-950 tracking-tight">
-                            <span class="text-sm mr-1 font-bold text-slate-400">₹</span>
-                            <input type="number" step="0.01" :name="`items[${index}][unit_price]`"
-                                x-model="item.unit_price"
-                                class="border-0 p-0 w-32 text-center bg-transparent focus:ring-0 font-bold tabular-nums">
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-1.5 whitespace-nowrap">Base
-                            Cost</span>
-                    </div>
-                </td>
-
-                <td class="px-12 py-10 text-right align-middle">
-                    <button type="button" @click="items.splice(index, 1)"
-                        class="p-3 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all active:scale-90">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                </td>
-                </tr>
-                </template>
-
-                <!-- Empty State -->
-                <tr x-show="items.length === 0">
-                    <td colspan="6" class="px-10 py-32 text-center">
-                        <div class="max-w-xs mx-auto flex flex-col items-center">
-                            <div
-                                class="h-24 w-24 rounded-full bg-slate-50 flex items-center justify-center text-slate-200 mb-8 border border-slate-100 italic">
-                                <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path
-                                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                                </svg>
-                            </div>
-                            <h4 class="text-xl font-bold text-slate-900 mb-2">Build your template</h4>
-                            <p class="text-sm text-slate-400 font-medium mb-10 leading-relaxed">Add products
-                                from your library to configure this room template.</p>
-                            <button type="button" @click="openProductPicker()"
-                                class="px-10 py-3 rounded-xl bg-blue-600 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
-                                Open Library
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                </tbody>
-                </table>
-            </div>
-
-            <div class="px-12 py-10 bg-slate-50/20 border-t border-slate-50 text-center group/browse">
-                <button type="button" @click="openProductPicker()"
-                    class="text-[11px] font-black text-slate-400 hover:text-blue-600 transition-all uppercase tracking-[0.3em] flex items-center justify-center gap-3 mx-auto">
-                    <span class="h-px w-8 bg-slate-200 group-hover/browse:bg-blue-100 transition-colors"></span>
-                    Click to browse product library
-                    <span class="h-px w-8 bg-slate-200 group-hover/browse:bg-blue-100 transition-colors"></span>
-                </button>
-            </div>
-    </div>
-
-    <!-- Sticky Footer -->
-    <div
-        class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.12)] z-40">
-        <div class="max-w-[1400px] mx-auto px-12 py-8 flex items-center justify-between">
-            <div class="flex items-center gap-20">
-                <div class="flex flex-col">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Total
-                        SKUs</span>
-                    <div class="text-2xl font-black text-slate-950 tabular-nums leading-none flex items-baseline gap-2">
-                        <span x-text="items.length < 10 ? '0' + items.length : items.length"></span>
-                        <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">items</span>
-                    </div>
-                </div>
-
-                <div class="h-10 w-px bg-slate-100"></div>
-
-                <div class="flex flex-col">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Estimated
-                        Total</span>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-xl font-black text-slate-950">₹</span>
-                        <span class="text-4xl font-black text-slate-950 tabular-nums tracking-tighter leading-none"
-                            x-text="number_format(totalAmount)">0.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <button type="submit"
-                class="px-16 py-4 rounded-xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
-                Save Template
-            </button>
-        </div>
-    </div>
-    </form>
-
-    <!-- Product Library Modal -->
-    <div x-show="productPicker.isOpen" class="relative z-50 shadow-2xl" style="display: none;">
-        <div x-show="productPicker.isOpen" x-transition:enter="ease-out duration-300"
-            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-            class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40"></div>
-
-        <div class="fixed inset-0 z-50 overflow-y-auto">
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div x-show="productPicker.isOpen" x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    @click.away="productPicker.isOpen = false"
-                    class="relative transform overflow-hidden rounded-[2.5rem] bg-white text-left shadow-2xl transition-all w-full max-w-2xl border border-slate-100">
-
-                    <div class="p-8 pb-4 flex items-center justify-between border-b border-slate-50">
-                        <div>
-                            <h3 class="text-2xl font-bold text-slate-800 tracking-tight">Product Library</h3>
-                            <p class="text-sm text-slate-500 font-medium">Search and select products for your
-                                template.</p>
-                        </div>
-                        <button @click="productPicker.isOpen = false"
-                            class="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                stroke-width="2.5">
-                                <path d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div class="p-8">
-                        <!-- Search -->
-                        <div class="relative mb-8">
-                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                <svg class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
-                                </svg>
-                            </div>
-                            <input type="text" x-model="productPicker.search"
-                                class="block w-full rounded-2xl border-slate-200 bg-slate-50/50 py-4 pl-12 pr-4 text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm shadow-inner"
-                                placeholder="Type name or SKU to filter...">
-                        </div>
-
-                        <!-- Product List -->
-                        <div class="max-h-[50vh] overflow-y-auto space-y-3 pr-2 scrollbar-none">
-                            <template x-for="product in filteredProducts" :key="product.id">
-                                <button type="button" @click="selectProduct(product)"
-                                    class="w-full text-left p-4 rounded-3xl bg-white border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all flex justify-between items-center group">
-                                    <div class="flex items-center gap-4">
-                                        <div
-                                            class="h-16 w-16 rounded-2xl bg-slate-100 border border-slate-100 flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
-                                            <template x-if="product.images && product.images.length > 0">
-                                                <img :src="product.images[0].image_path.startsWith('http') ? product.images[0].image_path : '/storage/' + product.images[0].image_path"
-                                                    class="h-full w-full object-cover">
-                                            </template>
-                                            <template x-if="!product.images || product.images.length === 0">
-                                                <div
-                                                    class="h-full w-full flex items-center justify-center text-slate-300">
-                                                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                                                        stroke="currentColor" stroke-width="1.5">
-                                                        <path
-                                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                </div>
-                                            </template>
+                                    <td class="px-6 py-10 text-center align-middle">
+                                        <div class="inline-flex">
+                                            <input type="number" step="0.01" :name="`items[${index}][quantity]`"
+                                                x-model="item.quantity"
+                                                class="w-24 rounded-2xl border-slate-100 bg-white py-4 text-center text-sm font-bold text-slate-900 focus:ring-4 focus:ring-blue-50 shadow-sm transition-all border">
                                         </div>
-                                        <div>
-                                            <div class="font-bold text-slate-800 group-hover:text-slate-600 transition-colors"
-                                                x-text="product.name"></div>
-                                            <div class="flex items-center gap-2 mt-1">
-                                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
-                                                    x-text="product.sku || 'NO SKU CODE'"></div>
-                                                <template x-if="product.options?.length > 0">
-                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 text-[8px] font-black text-blue-500 uppercase tracking-tighter border border-blue-100/50">
-                                                        Variations Available
-                                                    </span>
-                                                </template>
+                                    </td>
+
+                                    <td class="px-6 py-10 align-middle">
+                                        <div class="flex justify-center">
+                                            <div
+                                                class="inline-flex flex-col gap-3 p-5 rounded-[2rem] bg-slate-50/50 border border-slate-100 shadow-inner">
+                                                <div class="flex items-center gap-4">
+                                                    <span
+                                                        class="text-[9px] font-bold text-slate-300 w-3 text-center">L</span>
+                                                    <input type="number" step="0.01" :name="`items[${index}][length]`"
+                                                        x-model="item.length" @input="calculateQuantity(item)"
+                                                        class="w-16 rounded-xl border-slate-100 py-2 px-2 text-center text-xs font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                                </div>
+                                                <div class="flex items-center gap-4">
+                                                    <span
+                                                        class="text-[9px] font-bold text-slate-300 w-3 text-center">W</span>
+                                                    <input type="number" step="0.01" :name="`items[${index}][width]`"
+                                                        x-model="item.width" @input="calculateQuantity(item)"
+                                                        class="w-16 rounded-xl border-slate-100 py-2 px-2 text-center text-xs font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                                </div>
+                                                <div class="flex items-center gap-4">
+                                                    <span
+                                                        class="text-[9px] font-bold text-slate-300 w-3 text-center">H</span>
+                                                    <input type="number" step="0.01" :name="`items[${index}][height]`"
+                                                        x-model="item.height" @input="calculateQuantity(item)"
+                                                        class="w-16 rounded-xl border-slate-100 py-2 px-2 text-center text-xs font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 shadow-sm">
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-lg font-bold text-slate-800">₹<span
-                                                x-text="number_format(product.unit_price)"></span></div>
-                                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
-                                            x-text="getUnitTypeName(product.unit_type_id) + ' / ' + (product.unit_type || 'nos')">
+                                    </td>
+
+                                    <td class="px-6 py-10 align-middle">
+                                        <div class="flex flex-col items-center gap-3">
+                                            <!-- Unit Classification Dropdown -->
+                                            <div class="relative w-full">
+                                                <select x-model="item.unit_type_id" @change="onUnitTypeChange(item)"
+                                                    :name="`items[${index}][unit_type_id]`"
+                                                    :class="item.unit_type_id ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-slate-100 bg-white text-slate-400'"
+                                                    class="w-full rounded-2xl py-2.5 pl-4 pr-10 text-[11px] font-bold shadow-sm focus:ring-4 focus:ring-blue-50 appearance-none cursor-pointer border transition-all">
+                                                    <option value="">Manual Entry</option>
+                                                    @foreach($unitTypes as $ut)
+                                                        <option value="{{ (string) $ut->id }}">{{ $ut->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <div
+                                                    class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-300">
+                                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                                        stroke="currentColor" stroke-width="4">
+                                                        <path d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+
+                                            <!-- Primary Unit Selection -->
+                                            <div class="w-full">
+                                                <!-- Dynamic Select (Always present, reactive to unit_type_id) -->
+                                                <div class="relative" x-show="item.unit_type_id">
+                                                    <select :value="item.unit_type"
+                                                        @change="item.unit_type = $event.target.value"
+                                                        :name="`items[${index}][unit_type]`"
+                                                        class="w-full rounded-2xl py-2.5 pl-4 pr-10 text-[12px] font-bold border-blue-100 bg-blue-50/40 text-blue-600 shadow-sm focus:ring-4 focus:ring-blue-50 appearance-none cursor-pointer border transition-all">
+                                                        <template x-for="u in getAvailableUnits(item.unit_type_id)"
+                                                            :key="item.unit_type_id + '-' + u">
+                                                            <option :value="u" x-text="u"
+                                                                :selected="item.unit_type === u"></option>
+                                                        </template>
+                                                    </select>
+                                                    <div
+                                                        class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-blue-400">
+                                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor" stroke-width="4">
+                                                            <path d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Manual Input (Only if manual entry) -->
+                                                <div class="flex justify-center" x-show="!item.unit_type_id">
+                                                    <input type="text" x-model="item.unit_type"
+                                                        :name="`items[${index}][unit_type]`"
+                                                        class="border-b-2 border-slate-100 p-0 text-center w-24 bg-transparent text-[10px] font-bold text-slate-400 uppercase tracking-widest focus:ring-0 focus:border-blue-400 transition-all"
+                                                        placeholder="ENTER UNIT">
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
+                                    </td>
+
+                                    <td class="px-6 py-10 align-middle">
+                                        <div class="flex flex-col items-center">
+                                            <div
+                                                class="flex items-center text-2xl font-bold text-slate-950 tracking-tight">
+                                                <span class="text-sm mr-1 font-bold text-slate-400">₹</span>
+                                                <input type="number" step="0.01" :name="`items[${index}][unit_price]`"
+                                                    x-model="item.unit_price"
+                                                    class="border-0 p-0 w-32 text-center bg-transparent focus:ring-0 font-bold tabular-nums">
+                                            </div>
+                                            <span
+                                                class="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-1.5 whitespace-nowrap">Base
+                                                Cost</span>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-12 py-10 text-right align-middle">
+                                        <button type="button" @click="items.splice(index, 1)"
+                                            class="p-3 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all active:scale-90">
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                stroke-width="2.5">
+                                                <path
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
                             </template>
-                            <div x-show="filteredProducts.length === 0"
-                                class="flex flex-col items-center py-12 text-slate-300">
-                                <svg class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                    stroke-width="1">
-                                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                <p class="font-bold text-xs uppercase tracking-widest">No matching products</p>
+
+                            <!-- Empty State -->
+                            <tr x-show="items.length === 0">
+                                <td colspan="6" class="px-10 py-32 text-center">
+                                    <div class="max-w-xs mx-auto flex flex-col items-center">
+                                        <div
+                                            class="h-24 w-24 rounded-full bg-slate-50 flex items-center justify-center text-slate-200 mb-8 border border-slate-100 italic">
+                                            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24"
+                                                stroke="currentColor">
+                                                <path
+                                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                            </svg>
+                                        </div>
+                                        <h4 class="text-xl font-bold text-slate-900 mb-2">Build your template</h4>
+                                        <p class="text-sm text-slate-400 font-medium mb-10 leading-relaxed">Add products
+                                            from your library to configure this room template.</p>
+                                        <button type="button" @click.stop="openProductPicker()"
+                                            class="px-10 py-3 rounded-xl bg-blue-600 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                                            Open Library
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="px-12 py-10 bg-slate-50/20 border-t border-slate-50 text-center group/browse">
+                    <button type="button" @click.stop="openProductPicker()"
+                        class="text-[11px] font-black text-slate-400 hover:text-blue-600 transition-all uppercase tracking-[0.3em] flex items-center justify-center gap-3 mx-auto">
+                        <span class="h-px w-8 bg-slate-200 group-hover/browse:bg-blue-100 transition-colors"></span>
+                        Click to browse product library
+                        <span class="h-px w-8 bg-slate-200 group-hover/browse:bg-blue-100 transition-colors"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sticky Footer -->
+            <div
+                class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.12)] z-40">
+                <div class="max-w-[1400px] mx-auto px-12 py-8 flex items-center justify-between">
+                    <div class="flex items-center gap-20">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Total
+                                SKUs</span>
+                            <div
+                                class="text-2xl font-black text-slate-950 tabular-nums leading-none flex items-baseline gap-2">
+                                <span x-text="items.length < 10 ? '0' + items.length : items.length"></span>
+                                <span
+                                    class="text-[10px] font-black text-slate-300 uppercase tracking-widest">items</span>
+                            </div>
+                        </div>
+
+                        <div class="h-10 w-px bg-slate-100"></div>
+
+                        <div class="flex flex-col">
+                            <span
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Estimated
+                                Total</span>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-xl font-black text-slate-950">₹</span>
+                                <span
+                                    class="text-4xl font-black text-slate-950 tabular-nums tracking-tighter leading-none"
+                                    x-text="number_format(totalAmount)">0.00</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="p-8 pt-4 bg-slate-50/50 flex flex-col gap-3">
-                        <button type="button" @click="addCustomItem()"
-                            class="w-full flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-widest hover:bg-slate-100 border border-slate-200 transition-all shadow-sm active:scale-[0.98]">
-                            <svg class="h-4 w-4 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path
-                                    d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                            </svg>
-                            Manual Custom Item
-                        </button>
-                    </div>
+                    <button type="submit"
+                        class="px-16 py-4 rounded-xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                        Save Template
+                    </button>
                 </div>
             </div>
-        </div>
-    </div>
+        </form>
 
-    <!-- Configuration Modal -->
-    <div x-show="configModal.isOpen" class="relative z-[60]" style="display: none;">
-        <div x-show="configModal.isOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-40"></div>
+        <!-- Product Library Modal -->
+        <div x-show="productPicker.isOpen" class="relative z-50 shadow-2xl" style="display: none;">
+            <div x-show="productPicker.isOpen" x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40"></div>
 
-        <div class="fixed inset-0 z-50 overflow-y-auto">
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div x-show="configModal.isOpen" x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" @click.away="closeConfigModal()"
-                    class="relative transform overflow-hidden rounded-[2.5rem] bg-white text-left shadow-2xl transition-all w-full max-w-lg border border-slate-100">
+            <div class="fixed inset-0 z-50 overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div x-show="productPicker.isOpen" x-transition:enter="ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                        @click.away="productPicker.isOpen = false"
+                        class="relative transform overflow-hidden rounded-[2.5rem] bg-white text-left shadow-2xl transition-all w-full max-w-2xl border border-slate-100">
 
-                    <div x-show="configModal.product">
                         <div class="p-8 pb-4 flex items-center justify-between border-b border-slate-50">
-                            <h3 class="text-xl font-bold text-slate-800 tracking-tight"
-                                x-text="'Select Variations for ' + configModal.product?.name"></h3>
-                            <button type="button" @click="closeConfigModal()"
+                            <div>
+                                <h3 class="text-2xl font-bold text-slate-800 tracking-tight">Product Library</h3>
+                                <p class="text-sm text-slate-500 font-medium">Search and select products for your
+                                    template.</p>
+                            </div>
+                            <button @click="productPicker.isOpen = false"
                                 class="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all">
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                     stroke-width="2.5">
@@ -539,108 +442,224 @@
                             </button>
                         </div>
 
-                        <div class="p-8 space-y-8 max-h-[60vh] overflow-y-auto">
-                            <template x-for="option in configModal.product?.options" :key="'cfg-'+option.id">
-                                <div>
-                                    <label
-                                        class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4"
-                                        x-text="option.name"></label>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <template x-for="value in option.values" :key="'val-'+value.id">
-                                            <div @click="configModal.options[option.id] = value.id"
-                                                :class="{'ring-2 ring-indigo-600 border-transparent bg-indigo-50/50 shadow-indigo-100': configModal.options[option.id] === value.id, 'border-slate-200 hover:border-indigo-400 bg-white shadow-sm': configModal.options[option.id] !== value.id}"
-                                                class="cursor-pointer relative flex flex-col items-center justify-center rounded-2xl border p-4 transition-all hover:shadow-md group">
+                        <div class="p-8">
+                            <!-- Search -->
+                            <div class="relative mb-8">
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                    <svg class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
+                                    </svg>
+                                </div>
+                                <input type="text" x-model="productPicker.search"
+                                    class="block w-full rounded-2xl border-slate-200 bg-slate-50/50 py-4 pl-12 pr-4 text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm shadow-inner"
+                                    placeholder="Type name or SKU to filter...">
+                            </div>
 
-                                                <span class="text-sm font-bold text-slate-800 transition-colors"
-                                                    :class="{'text-indigo-700': configModal.options[option.id] === value.id}"
-                                                    x-text="value.value"></span>
-
-                                                <span x-show="value.price_adjustment != 0"
-                                                    class="mt-1 text-[10px] font-bold uppercase tracking-tighter transition-colors"
-                                                    :class="configModal.options[option.id] === value.id ? 'text-indigo-500' : 'text-slate-400'"
-                                                    x-text="(value.price_adjustment > 0 ? '+ ₹' : '- ₹') + Math.abs(value.price_adjustment)">
-                                                </span>
-
-                                                <div x-show="configModal.options[option.id] === value.id"
-                                                    class="absolute top-2 right-2 h-4 w-4 text-indigo-600">
-                                                    <svg fill="currentColor" viewBox="0 0 20 20">
-                                                        <path
-                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
-                                                    </svg>
+                            <!-- Product List -->
+                            <div class="max-h-[50vh] overflow-y-auto space-y-3 pr-2 scrollbar-none">
+                                <template x-for="product in filteredProducts" :key="product.id">
+                                    <button type="button" @click="selectProduct(product)"
+                                        class="w-full text-left p-4 rounded-3xl bg-white border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all flex justify-between items-center group">
+                                        <div class="flex items-center gap-4">
+                                            <div
+                                                class="h-16 w-16 rounded-2xl bg-slate-100 border border-slate-100 flex-shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
+                                                <template x-if="product.images && product.images.length > 0">
+                                                    <img :src="product.images[0].image_path.startsWith('http') ? product.images[0].image_path : '/storage/' + product.images[0].image_path"
+                                                        class="h-full w-full object-cover">
+                                                </template>
+                                                <template x-if="!product.images || product.images.length === 0">
+                                                    <div
+                                                        class="h-full w-full flex items-center justify-center text-slate-300">
+                                                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                                                            stroke="currentColor" stroke-width="1.5">
+                                                            <path
+                                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-800 group-hover:text-slate-600 transition-colors"
+                                                    x-text="product.name"></div>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                                                        x-text="product.sku || 'NO SKU CODE'"></div>
+                                                    <template x-if="product.options?.length > 0">
+                                                        <span
+                                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-blue-50 text-[8px] font-black text-blue-500 uppercase tracking-tighter border border-blue-100/50">
+                                                            Variations Available
+                                                        </span>
+                                                    </template>
                                                 </div>
                                             </div>
-                                        </template>
-                                    </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-lg font-bold text-slate-800">₹<span
+                                                    x-text="number_format(product.unit_price)"></span></div>
+                                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                                                x-text="getUnitTypeName(product.unit_type_id) + ' / ' + (product.unit_type || 'nos')">
+                                            </div>
+                                        </div>
+                                    </button>
+                                </template>
+                                <div x-show="filteredProducts.length === 0"
+                                    class="flex flex-col items-center py-12 text-slate-300">
+                                    <svg class="h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="1">
+                                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <p class="font-bold text-xs uppercase tracking-widest">No matching products</p>
                                 </div>
-                            </template>
+                            </div>
                         </div>
 
-                        <div class="p-8 bg-slate-50 border-t border-slate-100">
-                            <button type="button" @click="confirmConfig()"
-                                class="w-full py-4 rounded-2xl bg-slate-950 text-white text-sm font-black shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-3">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                    stroke-width="2.5">
-                                    <path d="M5 13l4 4L19 7" />
+                        <div class="p-8 pt-4 bg-slate-50/50 flex flex-col gap-3">
+                            <button type="button" @click="addCustomItem()"
+                                class="w-full flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-widest hover:bg-slate-100 border border-slate-200 transition-all shadow-sm active:scale-[0.98]">
+                                <svg class="h-4 w-4 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                                 </svg>
-                                Add this Configuration
+                                Manual Custom Item
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Description Viewer Modal -->
-    <div x-show="descriptionModal.isOpen" class="relative z-[70]" style="display: none;">
-        <div x-show="descriptionModal.isOpen" x-transition:enter="ease-out duration-300"
-            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-            class="fixed inset-0 bg-slate-950/40 backdrop-blur-md z-40"></div>
 
-        <div class="fixed inset-0 z-50 overflow-y-auto">
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div x-show="descriptionModal.isOpen" x-transition:enter="ease-out duration-300"
-                    x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
-                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                    @click.away="descriptionModal.isOpen = false"
-                    class="relative transform overflow-hidden rounded-[2.5rem] bg-white text-left shadow-2xl transition-all w-full max-w-lg border border-slate-100">
+        <!-- Configuration Modal -->
+        <div x-show="configModal.isOpen" class="relative z-[60]" style="display: none;">
+            <div x-show="configModal.isOpen" x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-40"></div>
 
-                    <div class="p-8 pb-4 flex items-center justify-between border-b border-slate-50">
-                        <h3 class="text-xl font-black text-slate-950 tracking-tight" x-text="descriptionModal.title">
-                        </h3>
-                        <button type="button" @click="descriptionModal.isOpen = false"
-                            class="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                stroke-width="2.5">
-                                <path d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
+            <div class="fixed inset-0 z-50 overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div x-show="configModal.isOpen" x-transition:enter="ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" @click.away="closeConfigModal()"
+                        class="relative transform overflow-hidden rounded-[2.5rem] bg-white text-left shadow-2xl transition-all w-full max-w-lg border border-slate-100">
 
-                    <div class="p-8">
-                        <label class="block text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4">Edit
-                            Description</label>
-                        <textarea x-model="descriptionModal.text" rows="8"
-                            class="block w-full rounded-[1.5rem] border-slate-200 bg-slate-50/50 py-4 px-5 text-slate-600 text-sm leading-relaxed font-medium focus:ring-2 focus:ring-slate-950 focus:bg-white transition-all shadow-inner placeholder:text-slate-300"
-                            placeholder="Enter detailed specifications..."></textarea>
-                    </div>
+                        <div x-show="configModal.product">
+                            <div class="p-8 pb-4 flex items-center justify-between border-b border-slate-50">
+                                <h3 class="text-xl font-bold text-slate-800 tracking-tight"
+                                    x-text="'Select Variations for ' + configModal.product?.name"></h3>
+                                <button type="button" @click="closeConfigModal()"
+                                    class="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all">
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2.5">
+                                        <path d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
 
-                    <div class="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
-                        <button type="button" @click="descriptionModal.isOpen = false"
-                            class="px-6 py-3 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">
-                            Cancel
-                        </button>
-                        <button type="button" @click="saveModalDescription()"
-                            class="px-10 py-3 rounded-2xl bg-slate-950 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 flex items-center gap-2">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                <path d="M5 13l4 4L19 7" />
-                            </svg>
-                            Save Changes
-                        </button>
+                            <div class="p-8 space-y-8 max-h-[60vh] overflow-y-auto">
+                                <template x-for="option in configModal.product?.options" :key="'cfg-'+option.id">
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4"
+                                            x-text="option.name"></label>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <template x-for="value in option.values" :key="'val-'+value.id">
+                                                <div @click="configModal.options[option.id] = value.id"
+                                                    :class="{'ring-2 ring-indigo-600 border-transparent bg-indigo-50/50 shadow-indigo-100': configModal.options[option.id] === value.id, 'border-slate-200 hover:border-indigo-400 bg-white shadow-sm': configModal.options[option.id] !== value.id}"
+                                                    class="cursor-pointer relative flex flex-col items-center justify-center rounded-2xl border p-4 transition-all hover:shadow-md group">
+
+                                                    <span class="text-sm font-bold text-slate-800 transition-colors"
+                                                        :class="{'text-indigo-700': configModal.options[option.id] === value.id}"
+                                                        x-text="value.value"></span>
+
+                                                    <span x-show="value.price_adjustment != 0"
+                                                        class="mt-1 text-[10px] font-bold uppercase tracking-tighter transition-colors"
+                                                        :class="configModal.options[option.id] === value.id ? 'text-indigo-500' : 'text-slate-400'"
+                                                        x-text="(value.price_adjustment > 0 ? '+ ₹' : '- ₹') + Math.abs(value.price_adjustment)">
+                                                    </span>
+
+                                                    <div x-show="configModal.options[option.id] === value.id"
+                                                        class="absolute top-2 right-2 h-4 w-4 text-indigo-600">
+                                                        <svg fill="currentColor" viewBox="0 0 20 20">
+                                                            <path
+                                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div class="p-8 bg-slate-50 border-t border-slate-100">
+                                <button type="button" @click="confirmConfig()"
+                                    class="w-full py-4 rounded-2xl bg-slate-950 text-white text-sm font-black shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-3">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2.5">
+                                        <path d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Add this Configuration
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+        <!-- Description Viewer Modal -->
+        <div x-show="descriptionModal.isOpen" class="relative z-[70]" style="display: none;">
+            <div x-show="descriptionModal.isOpen" x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                class="fixed inset-0 bg-slate-950/40 backdrop-blur-md z-40"></div>
+
+            <div class="fixed inset-0 z-50 overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4">
+                    <div x-show="descriptionModal.isOpen" x-transition:enter="ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                        @click.away="descriptionModal.isOpen = false"
+                        class="relative transform overflow-hidden rounded-[2.5rem] bg-white text-left shadow-2xl transition-all w-full max-w-lg border border-slate-100">
+
+                        <div class="p-8 pb-4 flex items-center justify-between border-b border-slate-50">
+                            <h3 class="text-xl font-black text-slate-950 tracking-tight"
+                                x-text="descriptionModal.title">
+                            </h3>
+                            <button type="button" @click="descriptionModal.isOpen = false"
+                                class="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <path d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="p-8">
+                            <label
+                                class="block text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4">Edit
+                                Description</label>
+                            <textarea x-model="descriptionModal.text" rows="8"
+                                class="block w-full rounded-[1.5rem] border-slate-200 bg-slate-50/50 py-4 px-5 text-slate-600 text-sm leading-relaxed font-medium focus:ring-2 focus:ring-slate-950 focus:bg-white transition-all shadow-inner placeholder:text-slate-300"
+                                placeholder="Enter detailed specifications..."></textarea>
+                        </div>
+
+                        <div class="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
+                            <button type="button" @click="descriptionModal.isOpen = false"
+                                class="px-6 py-3 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">
+                                Cancel
+                            </button>
+                            <button type="button" @click="saveModalDescription()"
+                                class="px-10 py-3 rounded-2xl bg-slate-950 text-white text-xs font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 flex items-center gap-2">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="3">
+                                    <path d="M5 13l4 4L19 7" />
+                                </svg>
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Script copy of logic with small enhancements -->
@@ -799,8 +818,12 @@
                 },
 
                 get filteredProducts() {
-                    const s = this.productPicker.search.toLowerCase();
-                    return s === '' ? this.products : this.products.filter(p => p.name.toLowerCase().includes(s) || (p.sku && p.sku.toLowerCase().includes(s)));
+                    if (!this.products) return [];
+                    const s = (this.productPicker.search || '').toLowerCase();
+                    return s === '' ? this.products : this.products.filter(p => 
+                        (p.name && p.name.toLowerCase().includes(s)) || 
+                        (p.sku && String(p.sku).toLowerCase().includes(s))
+                    );
                 },
 
                 openProductPicker() { this.productPicker.isOpen = true; this.productPicker.search = ''; },

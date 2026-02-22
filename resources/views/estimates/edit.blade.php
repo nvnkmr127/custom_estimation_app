@@ -260,7 +260,8 @@
                     </h2>
 
                     <div class="flex gap-3">
-                        <button type="button" @click="openProductPicker(null)" x-show="estimate.type === 'standard'"
+                        <button type="button" @click.stop="openProductPicker(null)"
+                            x-show="estimate.type === 'standard'"
                             class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                             <svg class="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path
@@ -329,7 +330,7 @@
                                     </template>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <button type="button" @click="openProductPicker(sectionIndex)"
+                                    <button type="button" @click.stop="openProductPicker(sectionIndex)"
                                         x-show="section.section_type === 'room'"
                                         class="text-sm font-medium text-slate-600 hover:text-indigo-600">
                                         + Add Item
@@ -605,14 +606,14 @@
                             <div x-show="section.items.length === 0 && section.section_type !== 'package'"
                                 class="text-center mx-4 mb-4 mt-2 py-6 border-2 border-dashed border-slate-200 rounded-lg">
                                 <p class="text-sm text-slate-500">No items in this section.</p>
-                                <button type="button" @click="openProductPicker(sectionIndex)"
+                                <button type="button" @click.stop="openProductPicker(sectionIndex)"
                                     class="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-500">Add first
                                     item</button>
                             </div>
 
                             <div x-show="section.items.length > 0 && section.section_type !== 'package'"
                                 class="p-4 bg-white flex justify-center border-t border-slate-100">
-                                <button type="button" @click="openProductPicker(sectionIndex)"
+                                <button type="button" @click.stop="openProductPicker(sectionIndex)"
                                     class="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex items-center justify-center gap-2">
                                     <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path
@@ -990,7 +991,7 @@
                     </table>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    <button type="button" @click="openProductPicker(null)" x-show="estimate.type === 'standard'"
+                    <button type="button" @click.stop="openProductPicker(null)" x-show="estimate.type === 'standard'"
                         class="h-full min-h-[160px] border-2 border-dashed border-slate-300 rounded-xl text-slate-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
                         <svg class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
                             <path

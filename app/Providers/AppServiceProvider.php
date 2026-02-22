@@ -80,7 +80,7 @@ class AppServiceProvider extends ServiceProvider
                 $pendingApprovals = 0;
 
                 if ($user) {
-                    $pendingApprovals = \App\Models\Estimate::where('approval_status', 'submitted')
+                    $pendingApprovals = \App\Models\Estimate::where('approval_status', \App\Models\Estimate::APP_STATUS_WAITING)
                         ->whereHas('approvals', function ($query) use ($user) {
                             $query->where('user_id', $user->id)
                                 ->where('status', 'pending');

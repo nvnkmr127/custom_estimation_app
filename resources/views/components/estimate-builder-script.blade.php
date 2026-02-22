@@ -125,19 +125,20 @@
             },
 
             filteredProducts() {
-                let filtered = this.products;
+                let filtered = Array.isArray(this.products) ? this.products : [];
 
                 // Filter by Category
                 if (this.productPicker.categoryId) {
-                    filtered = filtered.filter(p => p.category_id == this.productPicker.categoryId);
+                    filtered = filtered.filter(p => p && p.category_id == this.productPicker.categoryId);
                 }
 
                 // Filter by Search Query
                 if (this.productPicker.search) {
                     const q = this.productPicker.search.toLowerCase();
                     filtered = filtered.filter(p =>
-                        p.name.toLowerCase().includes(q) ||
-                        (p.sku && p.sku.toLowerCase().includes(q))
+                        (p.name && p.name.toLowerCase().includes(q)) ||
+                        (p.sku && String(p.sku).toLowerCase().includes(q)) ||
+                        (p.description && p.description.toLowerCase().includes(q))
                     );
                 }
 
@@ -471,8 +472,9 @@
 
 
             selectProduct(product) {
+                if (!product) return;
                 // Check for options
-                if (product.options && product.options.length > 0) {
+                if (product.options && Array.isArray(product.options) && product.options.length > 0) {
                     this.productPicker.isOpen = false; // Close picker to prevent overlap
                     this.openConfigModal(product);
                     return;

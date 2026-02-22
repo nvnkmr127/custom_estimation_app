@@ -53,16 +53,26 @@ class Estimate extends Model
 
         static::saving(function ($estimate) {
             // Gracefully migrate legacy 'active' status on save
-            if ($estimate->estimate_status === 'active') {
-                $legacyMap = [
-                    'draft' => self::EST_STATUS_DRAFT,
-                    'waiting_approval' => self::EST_STATUS_PENDING_APPROVAL,
-                    'approved' => self::EST_STATUS_APPROVED,
-                    'sent' => self::EST_STATUS_SENT,
-                    'accepted' => self::EST_STATUS_ACCEPTED,
-                    'declined' => self::EST_STATUS_DECLINED,
-                ];
+            $legacyMap = [
+                'draft' => self::EST_STATUS_DRAFT,
+                'sent' => self::EST_STATUS_SENT,
+                'accepted' => self::EST_STATUS_ACCEPTED,
+                'declined' => self::EST_STATUS_DECLINED,
+                'expired' => self::EST_STATUS_EXPIRED,
+            ];
+
+            if ($estimate->status && in_array($estimate->status, array_keys($legacyMap))) {
                 $estimate->estimate_status = $legacyMap[$estimate->status] ?? self::EST_STATUS_DRAFT;
+            }
+
+            // Ensure client_status is NEVER 'draft' (DB default is 'draft' which is wrong for the enum)
+            if ($estimate->client_status === 'draft' || !$estimate->client_status) {
+                $estimate->client_status = self::CLT_STATUS_NOT_SENT;
+            }
+
+            // Ensure approval_status is NEVER 'draft'
+            if ($estimate->approval_status === 'draft' || !$estimate->approval_status) {
+                $estimate->approval_status = self::APP_STATUS_NOT_REQUIRED;
             }
 
             // Enum validation
@@ -200,6 +210,34 @@ class Estimate extends Model
     public function getHasTransportationAttribute()
     {
         return $this->transportation_charges > 0;
+    }
+
+    /**
+     * Virtual "status" accessor for backward-compatibility.
+     *
+     * Derives a single unified status string from the new structured fields
+     * so that all legacy views using $estimate->status continue to work.
+     *
+     * Priority:
+     *  1. client terminal states (accepted / declined) override everything
+     *  2. estimate_status maps 'pending_approval' → 'waiting_approval'
+     *  3. all other estimate_status values are returned as-is
+     */
+    public function getStatusAttribute(): string
+    {
+        // Client has already responded — this is the most important state
+        if ($this->client_status === self::CLT_STATUS_ACCEPTED) {
+            return 'accepted';
+        }
+        if ($this->client_status === self::CLT_STATUS_DECLINED) {
+            return 'declined';
+        }
+
+        // Map new internal statuses to old "display" values
+        return match ($this->estimate_status) {
+            self::EST_STATUS_PENDING_APPROVAL => 'waiting_approval',
+            default => $this->estimate_status ?? 'draft',
+        };
     }
 
     public function getHasClientNoteAttribute()
@@ -412,7 +450,10 @@ class Estimate extends Model
             throw new \Exception('No approval chain assigned to this estimate');
         }
 
-        $this->update(['approval_status' => 'submitted']);
+        $this->update([
+            'approval_status' => self::APP_STATUS_WAITING,
+            'estimate_status' => self::EST_STATUS_PENDING_APPROVAL,
+        ]);
 
         // Get the first order
         $firstStep = $this->approvalChain->steps()->orderBy('order')->first();

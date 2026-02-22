@@ -204,6 +204,7 @@ class ShowEstimate extends Component
 
     public function createVersion(\App\Services\EstimateService $estimateService)
     {
+        \Illuminate\Support\Facades\Log::info('createVersion triggered', ['estimate_id' => $this->estimate->id]);
         try {
             DB::beginTransaction();
 
@@ -293,11 +294,9 @@ class ShowEstimate extends Component
     public function duplicate()
     {
         try {
-            $response = app()->call([app(\App\Http\Controllers\EstimateController::class), 'copy'], ['estimate' => $this->estimate]);
-            if ($response instanceof RedirectResponse)
-                return $response;
-            $this->refreshEstimate();
-            session()->flash('success', 'Estimate duplicated.');
+            $newEstimate = app(\App\Services\EstimateService::class)->copy($this->estimate);
+            return redirect()->route('estimates.edit', ['estimate' => $newEstimate->id, 'duplicate' => 1])
+                ->with('success', 'Estimate duplicated successfully.');
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to duplicate: ' . $e->getMessage());
         }
