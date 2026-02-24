@@ -61,13 +61,14 @@
                         <p class="text-sm font-bold text-gray-900">{{ $event->occurred_at->format('M d, Y - H:i:s') }}
                         </p>
                         <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">
-                            {{ $event->occurred_at->diffForHumans() }}</p>
+                            {{ $event->occurred_at->diffForHumans() }}
+                        </p>
                     </div>
                     <div class="md:col-span-1 lg:col-span-2">
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Trace ID</p>
                         <p
                             class="text-sm font-mono text-gray-900 break-all bg-gray-50 p-2 rounded-xl border border-gray-100">
-                            {{ $event->payload['meta']['trace_id'] ?? 'N/A' }}
+                            {{ $event->payload['metadata']['trace_id'] ?? 'N/A' }}
                         </p>
                     </div>
                     <div>
@@ -119,6 +120,44 @@
                     </span>
                 </h3>
 
+                <!-- Matching Info -->
+                @if($matchingSubscribers->isEmpty() && $potentialSubscribers->isNotEmpty())
+                    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 pt-0.5">
+                                <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-xs font-bold text-amber-800 uppercase tracking-tight">Delivery Inactive</h3>
+                                <p class="mt-1 text-xs text-amber-700">Matched {{ $potentialSubscribers->count() }}
+                                    endpoint(s), but they are currently inactive. Activate them to resume delivery.</p>
+                                <button wire:click="forceReplayEvent" class="mt-2 text-[10px] font-black uppercase text-amber-900 bg-amber-200/50 hover:bg-amber-200 px-2 py-1 rounded-lg transition-colors">
+                                    Force Send to Inactive Endpoints &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @elseif($matchingSubscribers->isEmpty())
+                    <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 pt-0.5">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-xs font-bold text-gray-800 uppercase tracking-tight">No Consumers</h3>
+                                <p class="mt-1 text-xs text-gray-500 italic">No outbound endpoints are currently subscribed
+                                    to this event type ({{ $event->event_type }}).</p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="relative space-y-6">
                     @forelse($event->deliveries->sortByDesc('created_at') as $delivery)
                         <div class="relative pl-8 group cursor-pointer" wire:click="selectDelivery('{{ $delivery->id }}')">
@@ -131,7 +170,7 @@
                             <!-- Node icon -->
                             <div
                                 class="absolute left-0 top-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 z-10 
-                                    {{ $delivery->status === 'success' ? 'bg-green-100 text-green-600 group-hover:bg-green-600 group-hover:text-white' : ($delivery->status === 'failed' ? 'bg-red-100 text-red-600 group-hover:bg-red-600 group-hover:text-white' : 'bg-amber-100 text-amber-600 group-hover:bg-amber-600 group-hover:text-white') }}">
+                                            {{ $delivery->status === 'success' ? 'bg-green-100 text-green-600 group-hover:bg-green-600 group-hover:text-white' : ($delivery->status === 'failed' ? 'bg-red-100 text-red-600 group-hover:bg-red-600 group-hover:text-white' : 'bg-amber-100 text-amber-600 group-hover:bg-amber-600 group-hover:text-white') }}">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     @if($delivery->status === 'success')
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
@@ -157,7 +196,8 @@
                                 </div>
                                 @if($delivery->error_message)
                                     <p class="text-[10px] text-red-500 font-bold mt-0.5 truncate uppercase tracking-tighter">
-                                        {{ Str::limit($delivery->error_message, 30) }}</p>
+                                        {{ Str::limit($delivery->error_message, 30) }}
+                                    </p>
                                 @endif
                                 <div class="mt-2 flex items-center gap-x-3">
                                     <div
@@ -200,7 +240,7 @@
                     <div class="flex items-center space-x-4">
                         <div
                             class="w-12 h-12 rounded-2xl flex items-center justify-center 
-                                {{ $selectedDelivery->status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600' }}">
+                                        {{ $selectedDelivery->status === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600' }}">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 @if($selectedDelivery->status === 'success')
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -214,7 +254,8 @@
                             <h3 class="text-lg font-bold text-gray-900 leading-tight">Delivery Attempt
                                 #{{ $selectedDelivery->attempt }}</h3>
                             <p class="text-sm font-medium text-gray-500 truncate max-w-sm">
-                                {{ $selectedDelivery->webhook->url ?? 'No URL' }}</p>
+                                {{ $selectedDelivery->webhook->url ?? 'No URL' }}
+                            </p>
                         </div>
                     </div>
                     <div class="text-right">

@@ -50,17 +50,58 @@ class Show extends Component
 
     public function replayEvent()
     {
-        $dispatcher = app(\App\Webhooks\WebhookEventDispatcher::class);
-        $dispatcher->dispatchExisting($this->event);
+        $service = app(\App\Webhooks\WebhookReplayService::class);
+        $count = $service->replayEvent($this->event);
 
-        $this->dispatch('notify', ['message' => 'Event scheduled for replay to all active subscribers', 'type' => 'success']);
+        if ($count > 0) {
+            $this->dispatch('notify', ['message' => "Event scheduled for replay to {$count} active subscribers", 'type' => 'success']);
+        } else {
+            $this->dispatch('notify', ['message' => 'No active subscribers found for this event type.', 'type' => 'warning']);
+        }
+
         $this->event->load('deliveries.webhook'); // Refresh
+    }
+
+    public function forceReplayEvent()
+    {
+        $service = app(\App\Webhooks\WebhookReplayService::class);
+        $count = $service->replayEvent($this->event, null, true);
+
+        if ($count > 0) {
+            $this->dispatch('notify', ['message' => "Event FORCE-scheduled for replay to {$count} matched subscribers (including inactive)", 'type' => 'success']);
+        } else {
+            $this->dispatch('notify', ['message' => 'No matching subscribers found at all.', 'type' => 'error']);
+        }
+
+        $this->event->load('deliveries.webhook'); // Refresh
+    }
+
+    public function getMatchingSubscribersProperty()
+    {
+        return app(\App\Webhooks\WebhookEventDispatcher::class)->resolveSubscribers($this->event->event_type);
+    }
+
+    public function getPotentialSubscribersProperty()
+    {
+        // All webhooks that match pattern but might be inactive
+        return \App\Models\WebhookConfig::all()
+            ->filter(function ($config) {
+                if (empty($config->events))
+                    return false;
+                foreach ($config->events as $pattern) {
+                    if (fnmatch($pattern, $this->event->event_type))
+                        return true;
+                }
+                return false;
+            });
     }
 
     public function render()
     {
         return view('livewire.admin.webhooks.events.show', [
             'selectedDelivery' => $this->selectedDelivery,
+            'matchingSubscribers' => $this->matchingSubscribers,
+            'potentialSubscribers' => $this->potentialSubscribers,
         ]);
     }
 }

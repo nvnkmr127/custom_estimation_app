@@ -178,11 +178,17 @@ class WebhookEventDispatcher
         return Str::uuid()->toString();
     }
 
-    protected function resolveSubscribers(string $eventName): \Illuminate\Database\Eloquent\Collection
+    /**
+     * Resolve subscribers for an event.
+     */
+    public function resolveSubscribers(string $eventName, bool $includeInactive = false): \Illuminate\Database\Eloquent\Collection
     {
-        // This logic mimics the listener's matching but optimized
-        return WebhookConfig::where('status', 'active')
-            ->get()
+        $query = WebhookConfig::query();
+        if (!$includeInactive) {
+            $query->where('status', 'active');
+        }
+
+        return $query->get()
             ->filter(function ($config) use ($eventName) {
                 if (empty($config->events))
                     return false;
@@ -197,13 +203,14 @@ class WebhookEventDispatcher
     /**
      * Dispatch an existing (already persisted) WebhookEvent model.
      */
-    public function dispatchExisting(WebhookEvent $webhookEvent): void
+    public function dispatchExisting(WebhookEvent $webhookEvent, bool $includeInactive = false): int
     {
         $eventName = $webhookEvent->event_type;
-        $subscribers = $this->resolveSubscribers($eventName);
+        $subscribers = $this->resolveSubscribers($eventName, $includeInactive);
 
         Log::info("WebhookEventDispatcher: Replaying {$eventName} ({$webhookEvent->id}) to " . $subscribers->count() . " subscribers.");
 
+        $count = 0;
         foreach ($subscribers as $config) {
             $job = \App\Jobs\WebhookDeliveryJob::dispatch($config, $webhookEvent)
                 ->onQueue('webhooks');
@@ -211,6 +218,9 @@ class WebhookEventDispatcher
             if ($config->delay > 0) {
                 $job->delay($config->delay);
             }
+            $count++;
         }
+
+        return $count;
     }
 }

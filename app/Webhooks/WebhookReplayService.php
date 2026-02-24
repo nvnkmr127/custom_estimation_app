@@ -24,9 +24,10 @@ class WebhookReplayService
      * 
      * @param WebhookEvent $originalEvent
      * @param array|null $payloadOverride
-     * @return WebhookEvent The event that was actually sent (original or new clone)
+     * @param bool $includeInactive
+     * @return int Number of deliveries dispatched
      */
-    public function replayEvent(WebhookEvent $originalEvent, ?array $payloadOverride = null): WebhookEvent
+    public function replayEvent(WebhookEvent $originalEvent, ?array $payloadOverride = null, bool $includeInactive = false): int
     {
         $this->ensureSafeReplay($originalEvent);
 
@@ -41,9 +42,7 @@ class WebhookReplayService
         // OR add `dispatchExisting(WebhookEvent $event)` to Dispatcher.
         // Adding method to Dispatcher is cleaner.
 
-        $this->dispatcher->dispatchExisting($eventToDispatch);
-
-        return $eventToDispatch;
+        return $this->dispatcher->dispatchExisting($eventToDispatch, $includeInactive);
     }
 
     /**
