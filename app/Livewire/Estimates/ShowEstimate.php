@@ -84,7 +84,7 @@ class ShowEstimate extends Component
         }
 
         // Load checklists if in approval workflow
-        if ($this->estimate->status === 'waiting_approval' && $this->estimate->approvalChain) {
+        if ($this->estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL && $this->estimate->approvalChain) {
             // Load all checklists - they are global
             $this->checklists = \App\Models\ApprovalChecklist::all();
         } else {
