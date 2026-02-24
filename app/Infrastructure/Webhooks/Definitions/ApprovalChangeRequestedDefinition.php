@@ -30,7 +30,9 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
             'estimate_number' => $resource->estimate->estimate_number,
             'user' => [
                 'id' => $resource->user_id,
-                'name' => $resource->user->name,
+                'name' => $resource->user?->name,
+                'email' => $resource->user?->email,
+                'mobile_number' => $resource->user?->mobile_number,
             ],
             'comments' => $resource->comments,
             'requested_at' => $resource->updated_at->toIso8601String(),
@@ -46,6 +48,8 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
             'user' => [
                 'id' => 5,
                 'name' => 'Sarah Manager',
+                'email' => 'sarah@example.com',
+                'mobile_number' => '8688771397',
             ],
             'comments' => 'Please adjust the quantity of Item A.',
             'requested_at' => now()->toIso8601String(),

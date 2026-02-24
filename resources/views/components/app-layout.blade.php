@@ -18,6 +18,12 @@
     @if(isset($app_settings['app_favicon']))
         <link rel="icon" type="image/x-icon" href="{{ $app_settings['app_favicon'] }}">
     @endif
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
 </head>
 
 <body class="h-full bg-slate-50 font-sans antialiased text-slate-900">

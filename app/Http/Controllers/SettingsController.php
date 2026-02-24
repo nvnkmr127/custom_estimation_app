@@ -268,10 +268,33 @@ class SettingsController extends Controller
     {
         try {
             $request->validate([
-                'email' => 'required|email|max:255'
+                'email' => 'required|email|max:255',
+                // Optional SMTP settings to test before saving
+                'smtp_host' => 'nullable|string',
+                'smtp_port' => 'nullable|numeric',
+                'smtp_username' => 'nullable|string',
+                'smtp_password' => 'nullable|string',
+                'smtp_encryption' => 'nullable|string',
+                'smtp_from_address' => 'nullable|email',
+                'smtp_from_name' => 'nullable|string',
             ]);
 
             $recipient = $request->input('email');
+
+            // If any SMTP settings are provided in request, override them temporarily for this send
+            if ($request->filled('smtp_host')) {
+                config([
+                    'mail.mailers.smtp.host' => $request->input('smtp_host'),
+                    'mail.mailers.smtp.port' => $request->input('smtp_port', 587),
+                    'mail.mailers.smtp.encryption' => $request->input('smtp_encryption', 'tls'),
+                    'mail.mailers.smtp.username' => $request->input('smtp_username'),
+                    'mail.mailers.smtp.password' => $request->input('smtp_password'),
+                    'mail.from.address' => $request->input('smtp_from_address', config('mail.from.address')),
+                    'mail.from.name' => $request->input('smtp_from_name', config('mail.from.name')),
+                ]);
+                \Illuminate\Support\Facades\Mail::purge('smtp');
+            }
+
             $appName = Setting::where('key', 'app_name')->value('value') ?? config('app.name');
 
             $subject = "Test Email from {$appName}";
@@ -288,13 +311,14 @@ class SettingsController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'SMTP Failed to send email. Please check your logs for details and verify your SMTP credentials.'
+                'message' => 'SMTP Failed to send email. Please check your credentials and verify your SMTP server allows connections from this IP.'
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Settings Test Email Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Connection Error: ' . $e->getMessage()
             ]);
         }
     }

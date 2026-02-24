@@ -152,18 +152,12 @@
                         <div class="mt-2 text-slate-900">
                             <select id="client-search" x-ref="clientSearch" name="client_id" required
                                 class="mt-2 block w-full rounded-lg border-slate-300 py-1.5 text-slate-900 shadow-sm focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                @if(request()->has('duplicate'))
-                                    <option value="">Select a client...</option>
-                                    @foreach($clients as $client)
-                                        <option value="{{ $client->id }}" {{ $estimate->client_id == $client->id ? 'selected' : '' }}>
-                                            {{ $client->name }}
-                                        </option>
-                                    @endforeach
-                                @else
-                                    <option value="{{ $estimate->client_id }}" selected>
-                                        {{ $estimate->client->name ?? 'Search for a client or lead...' }}
+                                <option value="">Select a client...</option>
+                                @foreach($clients as $client)
+                                    <option value="{{ $client->id }}" {{ $estimate->client_id == $client->id ? 'selected' : '' }}>
+                                        {{ $client->name }}
                                     </option>
-                                @endif
+                                @endforeach
                             </select>
                         </div>
 

@@ -25,7 +25,14 @@ class ApprovalRequestedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'estimate_id' => $resource->estimate_id,
-            'chain_id' => $resource->approval_chain_id,
+            'estimate_number' => $resource->estimate->estimate_number,
+            'chain_id' => $resource->estimate->approval_chain_id,
+            'user' => [
+                'id' => $resource->user_id,
+                'name' => $resource->user?->name,
+                'email' => $resource->user?->email,
+                'mobile_number' => $resource->user?->mobile_number,
+            ],
             'status' => $resource->status,
             'created_at' => $resource->created_at->toIso8601String(),
         ];
@@ -36,7 +43,14 @@ class ApprovalRequestedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 1,
             'estimate_id' => 123,
+            'estimate_number' => 'EST-2024-001',
             'chain_id' => 2,
+            'user' => [
+                'id' => 1,
+                'name' => 'John Doe',
+                'email' => 'john@example.com',
+                'mobile_number' => '8688771397',
+            ],
             'status' => 'pending',
             'created_at' => now()->toIso8601String(),
         ];

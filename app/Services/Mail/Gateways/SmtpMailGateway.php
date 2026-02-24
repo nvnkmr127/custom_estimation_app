@@ -34,16 +34,15 @@ class SmtpMailGateway implements MailGatewayInterface
                     'mail.from.name' => \App\Models\Setting::getCached('smtp_from_name', config('mail.from.name')),
                 ]);
 
-                // Force detailed debug logging for SMTP if needed (optional)
-                // Log::info('Using Custom SMTP Config', config('mail.mailers.smtp'));
-
                 // Purge the 'smtp' driver to ensure a fresh instance with new config is created
                 Mail::purge('smtp');
             }
 
-            Mail::html($body, function ($message) use ($to, $subject, $attachments) {
+            // Always use the 'smtp' mailer specifically, so we don't accidentally use 'log'
+            Mail::mailer('smtp')->send([], [], function ($message) use ($to, $subject, $body, $attachments) {
                 $message->to($to)
-                    ->subject($subject);
+                    ->subject($subject)
+                    ->html($body);
 
                 foreach ($attachments as $path => $name) {
                     $message->attach($path, ['as' => $name]);

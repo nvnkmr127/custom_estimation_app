@@ -7,7 +7,7 @@
         </div>
     </div>
 
-    <div class="mt-8">
+    <div class="mt-8 pb-12">
         <form action="{{ route('settings.update') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
             @csrf
 
@@ -127,7 +127,7 @@
             </div>
 
             <!-- Section 2: Contact & Address -->
-            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
+            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
                 <div class="px-4 sm:px-0">
                     <h2 class="text-base font-semibold leading-7 text-slate-900">Contact Details</h2>
                     <p class="mt-1 text-sm leading-6 text-slate-600">Where clients can reach you and where you ship
@@ -202,7 +202,7 @@
             </div>
 
             <!-- Section 3: Financial Standards -->
-            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
+            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
                 <div class="px-4 sm:px-0">
                     <h2 class="text-base font-semibold leading-7 text-slate-900">Financial Standards</h2>
                     <p class="mt-1 text-sm leading-6 text-slate-600">Define your base currency and tax rules. Critical
@@ -334,7 +334,7 @@
                             </div>
 
                             <div class="col-span-full" x-data="{
-                                terms: `{{ old('estimate_terms', $settings['estimate_terms'] ?? '') }}`,
+                                terms: @js(old('estimate_terms', $settings['estimate_terms'] ?? '')),
                                 standardTerms: `<div class='space-y-8'>
     <!-- Price Promise -->
     <div class='bg-slate-50 p-5 rounded-lg border border-slate-100'>
@@ -407,9 +407,9 @@
                                         Load Standard Terms
                                     </button>
                                 </div>
-                                <div class="mt-2 text-password-container">
+                                <div class="mt-2">
                                     <textarea id="estimate_terms" name="estimate_terms" rows="12" x-model="terms"
-                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xs font-mono"></textarea>
+                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm font-mono"></textarea>
                                 </div>
                                 <p class="mt-2 text-xs text-slate-500 italic">This content will be pre-filled as the
                                     base for all new estimates.</p>
@@ -475,7 +475,7 @@
                                 <label for="portal_company_video_url"
                                     class="block text-sm font-medium leading-6 text-slate-900">Promo Video URL (Direct
                                     MP4)</label>
-                                <div class="mt-2 text-password-container">
+                                <div class="mt-2">
                                     <input type="url" name="portal_company_video_url" id="portal_company_video_url"
                                         value="{{ old('portal_company_video_url', $settings['portal_company_video_url'] ?? '') }}"
                                         placeholder="https://example.com/video.mp4"
@@ -512,7 +512,7 @@
                             <div class="col-span-full">
                                 <label for="portal_company_youtube_url"
                                     class="block text-sm font-medium leading-6 text-slate-900">YouTube Video URL</label>
-                                <div class="mt-2 text-password-container">
+                                <div class="mt-2">
                                     <input type="url" name="portal_company_youtube_url" id="portal_company_youtube_url"
                                         value="{{ old('portal_company_youtube_url', $settings['portal_company_youtube_url'] ?? '') }}"
                                         placeholder="https://www.youtube.com/watch?v=..."
@@ -568,29 +568,29 @@
                                 @if(isset($settings['portal_company_showcase_images']))
                                     @php $savedImages = json_decode($settings['portal_company_showcase_images'], true); @endphp
                                     @if($savedImages && count($savedImages) > 0)
-                                        <div class="mt-4 grid grid-cols-4 gap-4" x-data="{
-                                                                            images: {{ json_encode($savedImages) }},
-                                                                            deleteImage(index, url) {
-                                                                                if (!confirm('Remove this image from showcase?')) return;
+                                        <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4" x-data="{
+                                                                                            images: @js($savedImages),
+                                                                                            deleteImage(index, url) {
+                                                                                                if (!confirm('Remove this image from showcase?')) return;
 
-                                                                                fetch(url, {
-                                                                                    method: 'DELETE',
-                                                                                    headers: {
-                                                                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                                                                        'X-Requested-With': 'XMLHttpRequest',
-                                                                                        'Accept': 'application/json'
-                                                                                    }
-                                                                                })
-                                                                                .then(response => response.json())
-                                                                                .then(data => {
-                                                                                    if (data.success) {
-                                                                                        // Remove from local array to update UI
-                                                                                        this.images = this.images.filter((_, i) => i !== index);
-                                                                                    }
-                                                                                })
-                                                                                .catch(error => console.error('Error:', error));
-                                                                            }
-                                                                        }">
+                                                                                                fetch(url, {
+                                                                                                    method: 'DELETE',
+                                                                                                    headers: {
+                                                                                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                                                                        'X-Requested-With': 'XMLHttpRequest',
+                                                                                                        'Accept': 'application/json'
+                                                                                                    }
+                                                                                                })
+                                                                                                .then(response => response.json())
+                                                                                                .then(data => {
+                                                                                                    if (data.success) {
+                                                                                                        // Remove from local array to update UI
+                                                                                                        this.images = this.images.filter((_, i) => i !== index);
+                                                                                                    }
+                                                                                                })
+                                                                                                .catch(error => console.error('Error:', error));
+                                                                                            }
+                                                                                        }">
                                             <template x-for="(img, index) in images" :key="index">
                                                 <div
                                                     class="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
@@ -618,7 +618,7 @@
                 </div>
             </div>
 
-            <!-- Section 5: Email Configuration -->
+            <!-- Section 6: Email Configuration -->
             <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
                 <div class="px-4 sm:px-0">
                     <h2 class="text-base font-semibold leading-7 text-slate-900">Email Configuration (SMTP)</h2>
@@ -672,9 +672,19 @@
                                             value="{{ old('smtp_password', $settings['smtp_password'] ?? '') }}"
                                             class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                                         <button type="button" @click="show = !show"
-                                            class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600">
-                                            <span x-show="!show" class="text-xs">Show</span>
-                                            <span x-show="show" class="text-xs">Hide</span>
+                                            class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                                            <svg x-show="!show" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M2.036 12.322a1.012 1.012 0 010-.644C3.399 8.049 7.21 5 12 5c4.791 0 8.601 3.049 9.964 6.322a1.012 1.012 0 010 .644C20.601 15.951 16.791 19 12 19c-4.791 0-8.601-3.049-9.964-6.322z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            <svg x-show="show" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                                stroke="currentColor" x-cloak>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M15 15l-3-3m0 0l-3-3m3 3L9 15m3-3l3-3M3 3l18 18" />
+                                            </svg>
                                         </button>
                                     </div>
                                 </div>
@@ -729,13 +739,26 @@
                                         if(!this.email) return alert('Please enter a recipient email');
                                         this.testing = true;
                                         this.result = null;
+                                        
+                                        // Gather current form values to test without saving
+                                        const payload = {
+                                            email: this.email,
+                                            smtp_host: document.getElementById('smtp_host').value,
+                                            smtp_port: document.getElementById('smtp_port').value,
+                                            smtp_username: document.getElementById('smtp_username').value,
+                                            smtp_password: document.getElementById('smtp_password').value,
+                                            smtp_encryption: document.getElementById('smtp_encryption').value,
+                                            smtp_from_address: document.getElementById('smtp_from_address').value,
+                                            smtp_from_name: document.getElementById('smtp_from_name').value,
+                                        };
+
                                         fetch('{{ route('settings.test-email') }}', {
                                             method: 'POST',
                                             headers: {
                                                 'Content-Type': 'application/json',
                                                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
                                             },
-                                            body: JSON.stringify({ email: this.email })
+                                            body: JSON.stringify(payload)
                                         })
                                         .then(r => r.json())
                                         .then(d => {
@@ -805,7 +828,7 @@
                     </div>
                 </div>
 
-                <!-- Section 6: Integrations -->
+                <!-- Section 7: Integrations -->
                 <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
                     <div class="px-4 sm:px-0">
                         <h2 class="text-base font-semibold leading-7 text-slate-900">Integrations</h2>
@@ -922,7 +945,7 @@
                                             <label for="perfex_api_token"
                                                 class="block text-sm font-medium leading-6 text-slate-900">API
                                                 Token</label>
-                                            <div class="mt-2 text-password-container" x-data="{ show: false }">
+                                            <div class="mt-2" x-data="{ show: false }">
                                                 <div class="relative">
                                                     <input :type="show ? 'text' : 'password'" name="perfex_api_token"
                                                         id="perfex_api_token"
@@ -940,8 +963,7 @@
                                                                 d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         </svg>
                                                         <svg x-show="show" class="h-5 w-5" fill="none"
-                                                            viewBox="0 0 24 24" stroke="currentColor"
-                                                            style="display: none;">
+                                                            viewBox="0 0 24 24" stroke="currentColor" x-cloak>
                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                 stroke-width="1.5"
                                                                 d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M15 15l-3-3m0 0l-3-3m3 3L9 15m3-3l3-3M3 3l18 18" />
@@ -971,11 +993,15 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-x-6 border-t border-slate-900/10 pt-4 px-4 sm:px-0">
-                    <button type="button" class="text-sm font-semibold leading-6 text-slate-900">Cancel</button>
-                    <button type="submit"
-                        class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save
-                        All Settings</button>
+                <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
+                    <div class="md:col-start-2 md:col-span-2">
+                        <div class="flex items-center justify-end gap-x-6 px-4 py-4 sm:px-0">
+                            <button type="button" class="text-sm font-semibold leading-6 text-slate-900">Cancel</button>
+                            <button type="submit"
+                                class="rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all active:scale-95">Save
+                                All Settings</button>
+                        </div>
+                    </div>
                 </div>
         </form>
     </div>

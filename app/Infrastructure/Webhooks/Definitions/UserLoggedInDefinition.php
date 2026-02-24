@@ -28,6 +28,7 @@ class UserLoggedInDefinition implements WebhookEventDefinitionInterface
             'id' => $resource->id,
             'name' => $resource->name,
             'email' => $resource->email,
+            'mobile_number' => $resource->mobile_number,
             'role' => $resource->role,
             'logged_in_at' => now()->toIso8601String(),
         ];
@@ -39,6 +40,7 @@ class UserLoggedInDefinition implements WebhookEventDefinitionInterface
             'id' => 1,
             'name' => 'John Doe',
             'email' => 'john@example.com',
+            'mobile_number' => '8688771397',
             'role' => 'estimator',
             'logged_in_at' => now()->toIso8601String(),
         ];

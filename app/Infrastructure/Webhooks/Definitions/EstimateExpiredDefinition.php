@@ -26,7 +26,13 @@ class EstimateExpiredDefinition implements WebhookEventDefinitionInterface
         /** @var Estimate $resource */
         return [
             'id' => $resource->id,
-            'reference' => $resource->reference_number,
+            'estimate_number' => $resource->estimate_number,
+            'user' => [
+                'id' => $resource->created_by,
+                'name' => $resource->creator?->name,
+                'email' => $resource->creator?->email,
+                'mobile_number' => $resource->creator?->mobile_number,
+            ],
             'expired_at' => $resource->expires_at ? $resource->expires_at->toIso8601String() : now()->toIso8601String(),
         ];
     }
@@ -35,7 +41,13 @@ class EstimateExpiredDefinition implements WebhookEventDefinitionInterface
     {
         return [
             'id' => 123,
-            'reference' => 'EST-2024-001',
+            'estimate_number' => 'EST-2024-001',
+            'user' => [
+                'id' => 1,
+                'name' => 'John Doe',
+                'email' => 'john@example.com',
+                'mobile_number' => '8688771397',
+            ],
             'expired_at' => now()->toIso8601String(),
         ];
     }

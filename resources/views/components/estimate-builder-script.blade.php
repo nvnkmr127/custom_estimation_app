@@ -279,19 +279,12 @@
                 // Prevent double initialization
                 if (!el || el._choices) return;
 
-                // Cache original options before Choices.js modifies the DOM
-                const originalChoices = Array.from(el.options).map(opt => ({
-                    value: opt.value,
-                    label: opt.text,
-                    selected: opt.selected,
-                    disabled: opt.disabled
-                }));
-
                 const choices = new Choices(el, {
                     searchEnabled: true,
-                    searchPlaceholderValue: 'Type to search Perfex CRM...',
+                    searchPlaceholderValue: 'Search clients...',
                     noResultsText: 'No clients found',
                     itemSelectText: '',
+                    shouldSort: true,
                 });
 
                 // Save instance
@@ -301,35 +294,6 @@
                 if (this.estimate.client_id) {
                     choices.setChoiceByValue(String(this.estimate.client_id));
                 }
-
-                el.addEventListener('search', (event) => {
-                    const query = event.detail.value;
-                    if (query.length < 3) {
-                        // Restore original local clients if query is short
-                        choices.setChoices(originalChoices, 'value', 'label', true);
-                        return;
-                    }
-
-                    fetch(`{{ route('perfex.search') }}?q=${query}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            let formattedData = [];
-                            if (Array.isArray(data)) {
-                                formattedData = data.map(client => ({
-                                    value: String(client.id),
-                                    label: client.name + (client.email ? ` (${client.email})` : '')
-                                }));
-                            }
-
-                            // Replace choices with original + new fetched data
-                            // Filter out duplicates (if perfex API returns a local client)
-                            const existingValues = new Set(originalChoices.map(c => String(c.value)));
-                            const newUniqueData = formattedData.filter(d => !existingValues.has(String(d.value)));
-
-                            choices.setChoices([...originalChoices, ...newUniqueData], 'value', 'label', true);
-                        })
-                        .catch(err => console.error('Client search error', err));
-                });
 
                 el.addEventListener('change', (event) => {
                     const clientId = event.detail.value;
