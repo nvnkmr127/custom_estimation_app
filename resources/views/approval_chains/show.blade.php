@@ -138,13 +138,14 @@
                                             class="ml-6 flex-1 bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                                             <div class="flex items-start justify-between">
                                                 <div>
-                                                    <h4 class="text-base font-bold text-gray-900">{{ $step->user->name }}
+                                                    <h4 class="text-base font-bold text-gray-900">
+                                                        {{ optional($step->user)->name ?? 'Unknown User' }}
                                                     </h4>
                                                     <p class="text-sm text-indigo-600 font-medium mt-0.5 capitalize">
                                                         {{ str_replace('_', ' ', $step->role) }}
                                                     </p>
                                                     <p class="text-xs text-gray-400 mt-2">
-                                                        {{ $step->user->email }}
+                                                        {{ optional($step->user)->email ?? 'No Email' }}
                                                     </p>
                                                 </div>
                                                 <div
