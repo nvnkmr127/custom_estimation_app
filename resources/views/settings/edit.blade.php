@@ -569,28 +569,28 @@
                                     @php $savedImages = json_decode($settings['portal_company_showcase_images'], true); @endphp
                                     @if($savedImages && count($savedImages) > 0)
                                         <div class="mt-4 grid grid-cols-4 gap-4" x-data="{
-                                                                    images: {{ json_encode($savedImages) }},
-                                                                    deleteImage(index, url) {
-                                                                        if (!confirm('Remove this image from showcase?')) return;
+                                                                            images: {{ json_encode($savedImages) }},
+                                                                            deleteImage(index, url) {
+                                                                                if (!confirm('Remove this image from showcase?')) return;
 
-                                                                        fetch(url, {
-                                                                            method: 'DELETE',
-                                                                            headers: {
-                                                                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                                                                'X-Requested-With': 'XMLHttpRequest',
-                                                                                'Accept': 'application/json'
+                                                                                fetch(url, {
+                                                                                    method: 'DELETE',
+                                                                                    headers: {
+                                                                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                                                        'X-Requested-With': 'XMLHttpRequest',
+                                                                                        'Accept': 'application/json'
+                                                                                    }
+                                                                                })
+                                                                                .then(response => response.json())
+                                                                                .then(data => {
+                                                                                    if (data.success) {
+                                                                                        // Remove from local array to update UI
+                                                                                        this.images = this.images.filter((_, i) => i !== index);
+                                                                                    }
+                                                                                })
+                                                                                .catch(error => console.error('Error:', error));
                                                                             }
-                                                                        })
-                                                                        .then(response => response.json())
-                                                                        .then(data => {
-                                                                            if (data.success) {
-                                                                                // Remove from local array to update UI
-                                                                                this.images = this.images.filter((_, i) => i !== index);
-                                                                            }
-                                                                        })
-                                                                        .catch(error => console.error('Error:', error));
-                                                                    }
-                                                                }">
+                                                                        }">
                                             <template x-for="(img, index) in images" :key="index">
                                                 <div
                                                     class="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
@@ -713,29 +713,114 @@
                                             class="mt-1 block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 sm:text-sm">
                                     </div>
                                 </div>
-                            </div>
+                                <div class="col-span-full border-t border-gray-100 pt-6 mt-6">
+                                    <h3 class="text-sm font-medium text-slate-900 mb-2">Email Testing</h3>
+                                    <p class="text-xs text-slate-500 mb-4">Send a test email to verify your SMTP
+                                        configuration
+                                        is working correctly. <span class="text-indigo-600 font-semibold">Note:</span>
+                                        Save
+                                        settings first if you've made changes above.</p>
 
+                                    <div x-data="{ 
+                                    testing: false, 
+                                    result: null,
+                                    email: '{{ auth()->user()->email }}',
+                                    sendTest() {
+                                        if(!this.email) return alert('Please enter a recipient email');
+                                        this.testing = true;
+                                        this.result = null;
+                                        fetch('{{ route('settings.test-email') }}', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                            },
+                                            body: JSON.stringify({ email: this.email })
+                                        })
+                                        .then(r => r.json())
+                                        .then(d => {
+                                            this.result = d;
+                                            this.testing = false;
+                                        })
+                                        .catch(e => {
+                                            this.result = { success: false, message: 'JS Error: ' + e.message };
+                                            this.testing = false;
+                                        });
+                                    }
+                                }">
+                                        <div class="flex items-end gap-4">
+                                            <div class="flex-grow max-w-xs">
+                                                <label
+                                                    class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Recipient
+                                                    Email</label>
+                                                <input type="email" x-model="email"
+                                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                                            </div>
+                                            <button type="button" @click="sendTest" :disabled="testing"
+                                                class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:opacity-50">
+                                                <svg x-show="!testing" class="-ml-0.5 h-4 w-4 text-indigo-500"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                                <svg x-show="testing"
+                                                    class="animate-spin -ml-0.5 h-4 w-4 text-slate-400" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                <span x-text="testing ? 'Sending...' : 'Send Test Mail'"></span>
+                                            </button>
+                                        </div>
+
+                                        <div x-show="result" x-transition class="mt-4">
+                                            <div :class="result.success ? 'bg-emerald-50 text-emerald-800 ring-emerald-600/20' : 'bg-rose-50 text-rose-800 ring-rose-600/20'"
+                                                class="rounded-lg p-3 text-xs ring-1 ring-inset flex gap-2 items-start">
+                                                <template x-if="result.success">
+                                                    <svg class="h-4 w-4 mt-0.5 shrink-0" fill="currentColor"
+                                                        viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                </template>
+                                                <template x-if="!result.success">
+                                                    <svg class="h-4 w-4 mt-0.5 shrink-0" fill="currentColor"
+                                                        viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                </template>
+                                                <span x-text="result.message"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Section 6: Integrations -->
-            <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
-                <div class="px-4 sm:px-0">
-                    <h2 class="text-base font-semibold leading-7 text-slate-900">Integrations</h2>
-                    <p class="mt-1 text-sm leading-6 text-slate-600">Connect your CRM and external tools to
-                        synchronize
-                        data.</p>
-                </div>
+                <!-- Section 6: Integrations -->
+                <div class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3 pt-8 border-t border-slate-200">
+                    <div class="px-4 sm:px-0">
+                        <h2 class="text-base font-semibold leading-7 text-slate-900">Integrations</h2>
+                        <p class="mt-1 text-sm leading-6 text-slate-600">Connect your CRM and external tools to
+                            synchronize
+                            data.</p>
+                    </div>
 
-                <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl md:col-span-2">
-                    <div class="px-4 py-6 sm:p-8">
-                        <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                            <div class="col-span-full">
-                                <h3 class="text-sm font-medium text-slate-900 mb-4">Perfex CRM</h3>
-                                <div class="grid grid-cols-1 gap-y-6">
-                                    <div x-data="{ 
+                    <div class="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl md:col-span-2">
+                        <div class="px-4 py-6 sm:p-8">
+                            <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                                <div class="col-span-full">
+                                    <h3 class="text-sm font-medium text-slate-900 mb-4">Perfex CRM</h3>
+                                    <div class="grid grid-cols-1 gap-y-6">
+                                        <div x-data="{ 
                                         testing: false, 
                                         result: null,
                                         testConnection() {
@@ -753,141 +838,145 @@
                                                 });
                                         }
                                     }">
-                                        <div class="flex items-center gap-4 mb-4">
-                                            <button type="button" @click="testConnection" :disabled="testing"
-                                                class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:opacity-50">
-                                                <svg x-show="!testing" class="-ml-0.5 h-4 w-4 text-slate-400"
-                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                </svg>
-                                                <svg x-show="testing"
-                                                    class="animate-spin -ml-0.5 h-4 w-4 text-slate-400" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                </svg>
-                                                <span x-text="testing ? 'Testing...' : 'Test Data Pull'"></span>
-                                            </button>
-                                        </div>
-
-                                        <template x-if="result">
-                                            <div :class="result.success ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'"
-                                                class="rounded-lg p-4 text-sm mb-6">
-                                                <p class="font-bold flex items-center gap-2">
-                                                    <template x-if="result.success">
-                                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd"
-                                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                                                clip-rule="evenodd" />
-                                                        </svg>
-                                                    </template>
-                                                    <span x-text="result.message"></span>
-                                                </p>
-
-                                                <template x-if="result.success && result.mapped_data">
-                                                    <div
-                                                        class="mt-3 border-t border-emerald-200 pt-3 grid grid-cols-2 gap-x-4 gap-y-2">
-                                                        <div>
-                                                            <span
-                                                                class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Mapped
-                                                                Name</span>
-                                                            <span class="font-medium"
-                                                                x-text="result.mapped_data.name || 'N/A'"></span>
-                                                        </div>
-                                                        <div>
-                                                            <span
-                                                                class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Mapped
-                                                                Email</span>
-                                                            <span class="font-medium"
-                                                                x-text="result.mapped_data.email || 'N/A'"></span>
-                                                        </div>
-                                                        <div class="col-span-2">
-                                                            <span
-                                                                class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Property
-                                                                Details</span>
-                                                            <span class="font-medium"
-                                                                x-text="result.mapped_data.property_name || 'No property mapped'"></span>
-                                                            <span class="block text-xs opacity-80"
-                                                                x-text="result.mapped_data.property_address || ''"></span>
-                                                        </div>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                        </template>
-                                    </div>
-
-                                    <div>
-                                        <label for="perfex_api_url"
-                                            class="block text-sm font-medium leading-6 text-slate-900">API
-                                            URL</label>
-                                        <div class="mt-2">
-                                            <input type="url" name="perfex_api_url" id="perfex_api_url"
-                                                value="{{ old('perfex_api_url', $settings['perfex_api_url'] ?? '') }}"
-                                                placeholder="https://your-perfex-install.com/api/"
-                                                class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                        </div>
-                                        <p class="mt-1 text-xs text-slate-500">Must end with /api/ and use
-                                            HTTPS.</p>
-                                    </div>
-
-                                    <div>
-                                        <label for="perfex_api_token"
-                                            class="block text-sm font-medium leading-6 text-slate-900">API
-                                            Token</label>
-                                        <div class="mt-2 text-password-container" x-data="{ show: false }">
-                                            <div class="relative">
-                                                <input :type="show ? 'text' : 'password'" name="perfex_api_token"
-                                                    id="perfex_api_token"
-                                                    value="{{ old('perfex_api_token', $settings['perfex_api_token'] ?? '') }}"
-                                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                                <button type="button" @click="show = !show"
-                                                    class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600">
-                                                    <svg x-show="!show" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                                        stroke="currentColor">
+                                            <div class="flex items-center gap-4 mb-4">
+                                                <button type="button" @click="testConnection" :disabled="testing"
+                                                    class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:opacity-50">
+                                                    <svg x-show="!testing" class="-ml-0.5 h-4 w-4 text-slate-400"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="1.5"
-                                                            d="M2.036 12.322a1.012 1.012 0 010-.644C3.399 8.049 7.21 5 12 5c4.791 0 8.601 3.049 9.964 6.322a1.012 1.012 0 010 .644C20.601 15.951 16.791 19 12 19c-4.791 0-8.601-3.049-9.964-6.322z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                                     </svg>
-                                                    <svg x-show="show" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                                        stroke="currentColor" style="display: none;">
+                                                    <svg x-show="testing"
+                                                        class="animate-spin -ml-0.5 h-4 w-4 text-slate-400" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="1.5"
-                                                            d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M15 15l-3-3m0 0l-3-3m3 3L9 15m3-3l3-3M3 3l18 18" />
+                                                            stroke-width="2"
+                                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                                     </svg>
+                                                    <span x-text="testing ? 'Testing...' : 'Test Data Pull'"></span>
                                                 </button>
                                             </div>
+
+                                            <template x-if="result">
+                                                <div :class="result.success ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'"
+                                                    class="rounded-lg p-4 text-sm mb-6">
+                                                    <p class="font-bold flex items-center gap-2">
+                                                        <template x-if="result.success">
+                                                            <svg class="h-4 w-4" fill="currentColor"
+                                                                viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd"
+                                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                                    clip-rule="evenodd" />
+                                                            </svg>
+                                                        </template>
+                                                        <span x-text="result.message"></span>
+                                                    </p>
+
+                                                    <template x-if="result.success && result.mapped_data">
+                                                        <div
+                                                            class="mt-3 border-t border-emerald-200 pt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                                                            <div>
+                                                                <span
+                                                                    class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Mapped
+                                                                    Name</span>
+                                                                <span class="font-medium"
+                                                                    x-text="result.mapped_data.name || 'N/A'"></span>
+                                                            </div>
+                                                            <div>
+                                                                <span
+                                                                    class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Mapped
+                                                                    Email</span>
+                                                                <span class="font-medium"
+                                                                    x-text="result.mapped_data.email || 'N/A'"></span>
+                                                            </div>
+                                                            <div class="col-span-2">
+                                                                <span
+                                                                    class="block text-[10px] uppercase tracking-wider font-bold opacity-70">Property
+                                                                    Details</span>
+                                                                <span class="font-medium"
+                                                                    x-text="result.mapped_data.property_name || 'No property mapped'"></span>
+                                                                <span class="block text-xs opacity-80"
+                                                                    x-text="result.mapped_data.property_address || ''"></span>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
                                         </div>
-                                        <p class="mt-1 text-xs text-slate-500">API key from Perfex Setup -> API.
-                                        </p>
+
+                                        <div>
+                                            <label for="perfex_api_url"
+                                                class="block text-sm font-medium leading-6 text-slate-900">API
+                                                URL</label>
+                                            <div class="mt-2">
+                                                <input type="url" name="perfex_api_url" id="perfex_api_url"
+                                                    value="{{ old('perfex_api_url', $settings['perfex_api_url'] ?? '') }}"
+                                                    placeholder="https://your-perfex-install.com/api/"
+                                                    class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                            </div>
+                                            <p class="mt-1 text-xs text-slate-500">Must end with /api/ and use
+                                                HTTPS.</p>
+                                        </div>
+
+                                        <div>
+                                            <label for="perfex_api_token"
+                                                class="block text-sm font-medium leading-6 text-slate-900">API
+                                                Token</label>
+                                            <div class="mt-2 text-password-container" x-data="{ show: false }">
+                                                <div class="relative">
+                                                    <input :type="show ? 'text' : 'password'" name="perfex_api_token"
+                                                        id="perfex_api_token"
+                                                        value="{{ old('perfex_api_token', $settings['perfex_api_token'] ?? '') }}"
+                                                        class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                                    <button type="button" @click="show = !show"
+                                                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600">
+                                                        <svg x-show="!show" class="h-5 w-5" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="1.5"
+                                                                d="M2.036 12.322a1.012 1.012 0 010-.644C3.399 8.049 7.21 5 12 5c4.791 0 8.601 3.049 9.964 6.322a1.012 1.012 0 010 .644C20.601 15.951 16.791 19 12 19c-4.791 0-8.601-3.049-9.964-6.322z" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="1.5"
+                                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                        <svg x-show="show" class="h-5 w-5" fill="none"
+                                                            viewBox="0 0 24 24" stroke="currentColor"
+                                                            style="display: none;">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                stroke-width="1.5"
+                                                                d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M15 15l-3-3m0 0l-3-3m3 3L9 15m3-3l3-3M3 3l18 18" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <p class="mt-1 text-xs text-slate-500">API key from Perfex Setup -> API.
+                                            </p>
+                                        </div>
+
+                                        <div class="mt-4">
+                                            <a href="{{ route('settings.perfex.mapping') }}"
+                                                class="text-sm font-semibold text-indigo-600 hover:text-indigo-900">
+                                                Configure Field Mapping &rarr;
+                                            </a>
+                                            <p class="text-xs text-slate-500 mt-1">Map Perfex CRM fields and custom
+                                                fields
+                                                to your system columns.</p>
+                                        </div>
+
+
                                     </div>
-
-                                    <div class="mt-4">
-                                        <a href="{{ route('settings.perfex.mapping') }}"
-                                            class="text-sm font-semibold text-indigo-600 hover:text-indigo-900">
-                                            Configure Field Mapping &rarr;
-                                        </a>
-                                        <p class="text-xs text-slate-500 mt-1">Map Perfex CRM fields and custom fields
-                                            to your system columns.</p>
-                                    </div>
-
-
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="flex items-center justify-end gap-x-6 border-t border-slate-900/10 pt-4 px-4 sm:px-0">
-                <button type="button" class="text-sm font-semibold leading-6 text-slate-900">Cancel</button>
-                <button type="submit"
-                    class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save
-                    All Settings</button>
-            </div>
+                <div class="flex items-center justify-end gap-x-6 border-t border-slate-900/10 pt-4 px-4 sm:px-0">
+                    <button type="button" class="text-sm font-semibold leading-6 text-slate-900">Cancel</button>
+                    <button type="submit"
+                        class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Save
+                        All Settings</button>
+                </div>
         </form>
     </div>
 </x-app-layout>

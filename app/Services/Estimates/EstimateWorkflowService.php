@@ -106,14 +106,25 @@ class EstimateWorkflowService
                 ->where('status', 'pending')
                 ->first();
 
-            if (!$approval) {
+            $isAdmin = \App\Models\User::find($userId)?->hasRole(['super_admin', 'admin']);
+
+            if (!$approval && !$isAdmin) {
                 throw new \Exception("No pending approval found for this user.");
             }
 
-            $approval->update([
-                'status' => 'approved',
-                'comments' => $comments,
-            ]);
+            if ($approval) {
+                $approval->update([
+                    'status' => 'approved',
+                    'comments' => $comments,
+                ]);
+            } elseif ($isAdmin) {
+                // Force Approve: Create an approval record for the admin to track the action
+                $estimate->approvals()->create([
+                    'user_id' => $userId,
+                    'status' => 'approved',
+                    'comments' => $comments . ' (Force Approved by Admin)',
+                ]);
+            }
 
             // PARALLEL LOGIC: Determine if we should move to the next step
             $shouldAdvance = false;

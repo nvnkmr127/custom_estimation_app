@@ -123,10 +123,8 @@ class EstimateService
     {
         DB::beginTransaction();
         try {
-            // 1. History Integrity Check: Prevent editing of archived versions
-            if (!$estimate->is_current_version) {
-                throw new \Exception("You cannot edit an archived version of an estimate. Create a new version instead.");
-            }
+            // 1. History Integrity Check: Seamlessly allow editing by branching 
+            // (Previously this threw an exception, now we handle it via $needsBranching below)
 
             $isBranched = false;
             $originalNumber = $estimate->estimate_number;
@@ -140,7 +138,11 @@ class EstimateService
                 Estimate::EST_STATUS_EXPIRED
             ]);
 
-            $needsBranching = $forceBranch || $isFinalized;
+            // Automatically branch if:
+            // 1. Explicitly requested ($forceBranch)
+            // 2. Original estimate is finalized (to preserve audit trail)
+            // 3. User is editing an archived/historical version (seamlessly pull history forward)
+            $needsBranching = $forceBranch || $isFinalized || !$estimate->is_current_version;
 
             // Also apply existing collaborator logic
             if ($estimate->is_current_version && auth()->id() !== $estimate->created_by && !auth()->user()->hasRole(['admin', 'super_admin', 'super-admin'])) {
@@ -444,15 +446,16 @@ class EstimateService
                 ->get(['id']);
 
             // 1. Handle is_current_version
-            // Always mark the old version as not current to ensure the new draft is visible (The "Active" version)
-            $updateData = ['is_current_version' => false];
+            // We ensure that NO other version in this family remains marked as "current"
+            // This is critical if we are branching from a historical version (e.g. V1) while V3 exists.
+            Estimate::where('id', $rootId)
+                ->orWhere('parent_id', $rootId)
+                ->update(['is_current_version' => false]);
 
             // If the old version was SENT, expire it so the client cannot accept it while we are working on a V2.
             if ($estimate->estimate_status === Estimate::EST_STATUS_SENT) {
-                $updateData['estimate_status'] = Estimate::EST_STATUS_EXPIRED;
+                $estimate->update(['estimate_status' => Estimate::EST_STATUS_EXPIRED]);
             }
-
-            $estimate->update($updateData);
 
             // 2. Replicate Estimate
             $newEstimate = $estimate->replicate();

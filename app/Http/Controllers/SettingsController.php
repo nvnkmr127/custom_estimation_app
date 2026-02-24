@@ -264,6 +264,41 @@ class SettingsController extends Controller
         }
     }
 
+    public function testEmail(Request $request, \App\Services\Mail\Contracts\MailGatewayInterface $mailService)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email|max:255'
+            ]);
+
+            $recipient = $request->input('email');
+            $appName = Setting::where('key', 'app_name')->value('value') ?? config('app.name');
+
+            $subject = "Test Email from {$appName}";
+            $body = "<h1>Test Email Successful!</h1><p>This is a test email sent from your <strong>{$appName}</strong> settings page to verify SMTP configuration.</p><p>Sent on: " . now()->format('Y-m-d H:i:s') . "</p>";
+
+            $success = $mailService->send($recipient, $subject, $body);
+
+            if ($success) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Test email has been sent successfully to {$recipient}. Please check your inbox (and spam folder)."
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'SMTP Failed to send email. Please check your logs for details and verify your SMTP credentials.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function editPerfexMapping()
     {
         // Get existing mapping or default

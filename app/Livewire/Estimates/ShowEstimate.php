@@ -83,12 +83,19 @@ class ShowEstimate extends Component
             }
         }
 
-        // Load checklists if in approval workflow
-        if ($this->estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL && $this->estimate->approvalChain) {
+        // Load checklists if in approval workflow or waiting
+        $isInApprovalFlow = in_array($this->estimate->approval_status, [Estimate::APP_STATUS_WAITING, Estimate::APP_STATUS_CHANGES_REQUESTED]);
+
+        if ($isInApprovalFlow && $this->estimate->approvalChain) {
             // Load all checklists - they are global
             $this->checklists = \App\Models\ApprovalChecklist::all();
         } else {
-            $this->checklists = collect();
+            // Always load checklists if there is at least one completed item (for view mode)
+            if ($this->estimate->checklistItems()->exists()) {
+                $this->checklists = \App\Models\ApprovalChecklist::all();
+            } else {
+                $this->checklists = collect();
+            }
         }
 
         // Load decline reasons
@@ -99,6 +106,13 @@ class ShowEstimate extends Component
             ->where('user_id', Auth::id())
             ->where('status', 'pending')
             ->first();
+
+        // Admin Override: If user is admin and estimate is waiting, 
+        // they should see approval actions even if it's not their "turn" in the chain.
+        // We'll signal this to the blade but won't create a DB record here.
+        if (!$this->userApproval && Auth::user()->hasRole(['super_admin', 'admin']) && $this->estimate->approval_status === Estimate::APP_STATUS_WAITING) {
+            $this->userApproval = true; // Temporary flag for Blade
+        }
 
         // Load activity logs
         $this->activityLogs = ActivityLog::where('subject_type', Estimate::class)
