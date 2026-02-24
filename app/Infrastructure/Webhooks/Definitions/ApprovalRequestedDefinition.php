@@ -23,36 +23,24 @@ class ApprovalRequestedDefinition implements WebhookEventDefinitionInterface
     {
         /** @var \App\Models\EstimateApproval $resource */
         return [
-            'id' => $resource->id,
             'estimate_id' => $resource->estimate_id,
-            'estimate_number' => $resource->estimate->estimate_number,
-            'chain_id' => $resource->estimate->approval_chain_id,
-            'user' => [
-                'id' => $resource->user_id,
-                'name' => $resource->user?->name,
-                'email' => $resource->user?->email,
-                'mobile_number' => $resource->user?->mobile_number,
-            ],
-            'status' => $resource->status,
-            'created_at' => $resource->created_at->toIso8601String(),
+            'approval_id' => $resource->id,
+            'approver_id' => $resource->user_id,
+            'approver_name' => $resource->user?->name,
+            'message' => 'You have a new estimate approval request.',
+            'link' => route('approvals.index'),
         ];
     }
 
     public function samplePayload(): array
     {
         return [
-            'id' => 1,
-            'estimate_id' => 123,
-            'estimate_number' => 'EST-2024-001',
-            'chain_id' => 2,
-            'user' => [
-                'id' => 1,
-                'name' => 'John Doe',
-                'email' => 'john@example.com',
-                'mobile_number' => '8688771397',
-            ],
-            'status' => 'pending',
-            'created_at' => now()->toIso8601String(),
+            'estimate_id' => 100,
+            'approval_id' => 49,
+            'approver_id' => 15,
+            'approver_name' => 'Rakesh',
+            'message' => 'You have a new estimate approval request.',
+            'link' => 'https://estimator.onestudio.co.in/approvals',
         ];
     }
 }

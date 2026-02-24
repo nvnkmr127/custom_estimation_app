@@ -25,34 +25,26 @@ class ApprovalChangeRequestedDefinition implements WebhookEventDefinitionInterfa
     {
         /** @var EstimateApproval $resource */
         return [
-            'id' => $resource->id,
             'estimate_id' => $resource->estimate_id,
-            'estimate_number' => $resource->estimate->estimate_number,
-            'user' => [
-                'id' => $resource->user_id,
-                'name' => $resource->user?->name,
-                'email' => $resource->user?->email,
-                'mobile_number' => $resource->user?->mobile_number,
-            ],
+            'approval_id' => $resource->id,
+            'approver_id' => $resource->user_id,
+            'approver_name' => $resource->user?->name,
             'comments' => $resource->comments,
-            'requested_at' => $resource->updated_at->toIso8601String(),
+            'message' => 'Changes have been requested for this estimate.',
+            'link' => route('estimates.show', $resource->estimate_id),
         ];
     }
 
     public function samplePayload(): array
     {
         return [
-            'id' => 46,
             'estimate_id' => 124,
-            'estimate_number' => 'EST-2024-002',
-            'user' => [
-                'id' => 5,
-                'name' => 'Sarah Manager',
-                'email' => 'sarah@example.com',
-                'mobile_number' => '8688771397',
-            ],
+            'approval_id' => 46,
+            'approver_id' => 5,
+            'approver_name' => 'Sarah Manager',
             'comments' => 'Please adjust the quantity of Item A.',
-            'requested_at' => now()->toIso8601String(),
+            'message' => 'Changes have been requested for this estimate.',
+            'link' => 'https://estimator.onestudio.co.in/estimates/124',
         ];
     }
 }

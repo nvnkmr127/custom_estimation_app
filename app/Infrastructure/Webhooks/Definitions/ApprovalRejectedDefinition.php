@@ -25,34 +25,26 @@ class ApprovalRejectedDefinition implements WebhookEventDefinitionInterface
     {
         /** @var EstimateApproval $resource */
         return [
-            'id' => $resource->id,
             'estimate_id' => $resource->estimate_id,
-            'estimate_number' => $resource->estimate->estimate_number,
-            'user' => [
-                'id' => $resource->user_id,
-                'name' => $resource->user?->name,
-                'email' => $resource->user?->email,
-                'mobile_number' => $resource->user?->mobile_number,
-            ],
+            'approval_id' => $resource->id,
+            'approver_id' => $resource->user_id,
+            'approver_name' => $resource->user?->name,
             'comments' => $resource->comments,
-            'rejected_at' => $resource->updated_at->toIso8601String(),
+            'message' => 'An estimate has been rejected during the approval process.',
+            'link' => route('estimates.show', $resource->estimate_id),
         ];
     }
 
     public function samplePayload(): array
     {
         return [
-            'id' => 45,
             'estimate_id' => 123,
-            'estimate_number' => 'EST-2024-001',
-            'user' => [
-                'id' => 5,
-                'name' => 'Sarah Manager',
-                'email' => 'sarah@example.com',
-                'mobile_number' => '8688771397',
-            ],
+            'approval_id' => 45,
+            'approver_id' => 5,
+            'approver_name' => 'Sarah Manager',
             'comments' => 'Budget exceeds quarterly allocation.',
-            'rejected_at' => now()->toIso8601String(),
+            'message' => 'An estimate has been rejected during the approval process.',
+            'link' => 'https://estimator.onestudio.co.in/estimates/123',
         ];
     }
 }

@@ -23,34 +23,24 @@ class ApprovalApprovedDefinition implements WebhookEventDefinitionInterface
     {
         /** @var \App\Models\EstimateApproval $resource */
         return [
-            'id' => $resource->id,
             'estimate_id' => $resource->estimate_id,
-            'estimate_number' => $resource->estimate->estimate_number,
-            'user' => [
-                'id' => $resource->user_id,
-                'name' => $resource->user?->name,
-                'email' => $resource->user?->email,
-                'mobile_number' => $resource->user?->mobile_number,
-            ],
-            'status' => 'approved',
-            'approved_at' => now()->toIso8601String(),
+            'approval_id' => $resource->id,
+            'approver_id' => $resource->user_id,
+            'approver_name' => $resource->user?->name,
+            'message' => 'An estimate approval step has been approved.',
+            'link' => route('estimates.show', $resource->estimate_id),
         ];
     }
 
     public function samplePayload(): array
     {
         return [
-            'id' => 1,
             'estimate_id' => 123,
-            'estimate_number' => 'EST-2024-001',
-            'user' => [
-                'id' => 45,
-                'name' => 'Jane Smith',
-                'email' => 'jane@example.com',
-                'mobile_number' => '8688771397',
-            ],
-            'status' => 'approved',
-            'approved_at' => now()->toIso8601String(),
+            'approval_id' => 1,
+            'approver_id' => 45,
+            'approver_name' => 'Jane Smith',
+            'message' => 'An estimate approval step has been approved.',
+            'link' => 'https://estimator.onestudio.co.in/estimates/123',
         ];
     }
 }
