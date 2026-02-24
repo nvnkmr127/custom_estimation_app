@@ -146,7 +146,7 @@
                                             </button>
                                         </span>
                                         <span class="text-[10px] font-mono text-gray-400 uppercase tracking-tighter">Trace:
-                                            {{ $event->payload['meta']['trace_id'] ?? '-' }}</span>
+                                            {{ $event->payload['metadata']['trace_id'] ?? '-' }}</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
@@ -170,6 +170,14 @@
                                             <span class="flex h-2 w-2 rounded-full bg-green-500"></span>
                                             <span
                                                 class="text-xs font-bold text-green-700 uppercase tracking-tight">Delivered</span>
+                                        @elseif($status === 'no_subscribers')
+                                            <span class="flex h-2 w-2 rounded-full bg-gray-300"></span>
+                                            <span class="text-xs font-bold text-gray-500 uppercase tracking-tight">No
+                                                Match</span>
+                                        @elseif($status === 'inactive')
+                                            <span class="flex h-2 w-2 rounded-full bg-amber-300 animate-pulse"></span>
+                                            <span
+                                                class="text-xs font-bold text-amber-600 uppercase tracking-tight">Inactive</span>
                                         @elseif($status === 'failed')
                                             <span class="flex h-2 w-2 rounded-full bg-red-500"></span>
                                             <span class="text-xs font-bold text-red-700 uppercase tracking-tight">Failed</span>
@@ -178,9 +186,9 @@
                                             <span
                                                 class="text-xs font-bold text-amber-700 uppercase tracking-tight">Partial</span>
                                         @else
-                                            <span class="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+                                            <span class="flex h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
                                             <span
-                                                class="text-xs font-bold text-blue-700 uppercase tracking-tight">Processing</span>
+                                                class="text-xs font-bold text-blue-700 uppercase tracking-tight">Pending</span>
                                         @endif
                                         <span
                                             class="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 font-mono">
