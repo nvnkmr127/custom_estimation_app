@@ -425,8 +425,22 @@ class EstimateController extends Controller
             $updatedEstimate = $this->estimateService->updateEstimate($estimate, $estimateData, $itemsOrSections, $request->type);
 
             $msg = 'Estimate updated successfully.';
-            if ($updatedEstimate->id !== $estimate->id) {
+            $isBranched = $updatedEstimate->id !== $estimate->id;
+
+            if ($isBranched) {
                 $msg = "A new version ({$updatedEstimate->estimate_number}) was created because the original was locked or shared.";
+            }
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                    'estimate_id' => $updatedEstimate->id,
+                    'estimate_number' => $updatedEstimate->estimate_number,
+                    'is_branched' => $isBranched,
+                    'redirect_url' => route('estimates.edit', $updatedEstimate),
+                    'last_update_timestamp' => $updatedEstimate->updated_at->toDateTimeString()
+                ]);
             }
 
             return redirect()->route('estimates.show', $updatedEstimate)->with('success', $msg);

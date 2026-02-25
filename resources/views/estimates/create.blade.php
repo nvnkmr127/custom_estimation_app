@@ -48,15 +48,7 @@
             </div>
             <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
                 <div class="flex items-center gap-4">
-                    <!-- Autosave Indicator -->
-                    <div x-cloak x-show="autosaveStatus"
-                        class="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-white border border-slate-200 px-2 py-1.5 rounded-md shadow-sm">
-                        <svg x-show="autosaveStatus.startsWith('Saved')" class="h-3.5 w-3.5 text-emerald-500"
-                            fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                        <span x-text="autosaveStatus" class="leading-none mt-px"></span>
-                    </div>
+
                     <a href="{{ route('estimates.index') }}"
                         class="block rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200">
                         Cancel
