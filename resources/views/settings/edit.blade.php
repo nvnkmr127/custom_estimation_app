@@ -569,28 +569,28 @@
                                     @php $savedImages = json_decode($settings['portal_company_showcase_images'], true); @endphp
                                     @if($savedImages && count($savedImages) > 0)
                                         <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4" x-data="{
-                                                                                            images: @js($savedImages),
-                                                                                            deleteImage(index, url) {
-                                                                                                if (!confirm('Remove this image from showcase?')) return;
+                                                                                                    images: @js($savedImages),
+                                                                                                    deleteImage(index, url) {
+                                                                                                        if (!confirm('Remove this image from showcase?')) return;
 
-                                                                                                fetch(url, {
-                                                                                                    method: 'DELETE',
-                                                                                                    headers: {
-                                                                                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                                                                                        'X-Requested-With': 'XMLHttpRequest',
-                                                                                                        'Accept': 'application/json'
+                                                                                                        fetch(url, {
+                                                                                                            method: 'DELETE',
+                                                                                                            headers: {
+                                                                                                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                                                                                'X-Requested-With': 'XMLHttpRequest',
+                                                                                                                'Accept': 'application/json'
+                                                                                                            }
+                                                                                                        })
+                                                                                                        .then(response => response.json())
+                                                                                                        .then(data => {
+                                                                                                            if (data.success) {
+                                                                                                                // Remove from local array to update UI
+                                                                                                                this.images = this.images.filter((_, i) => i !== index);
+                                                                                                            }
+                                                                                                        })
+                                                                                                        .catch(error => console.error('Error:', error));
                                                                                                     }
-                                                                                                })
-                                                                                                .then(response => response.json())
-                                                                                                .then(data => {
-                                                                                                    if (data.success) {
-                                                                                                        // Remove from local array to update UI
-                                                                                                        this.images = this.images.filter((_, i) => i !== index);
-                                                                                                    }
-                                                                                                })
-                                                                                                .catch(error => console.error('Error:', error));
-                                                                                            }
-                                                                                        }">
+                                                                                                }">
                                             <template x-for="(img, index) in images" :key="index">
                                                 <div
                                                     class="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
@@ -799,9 +799,9 @@
                                         </div>
 
                                         <div x-show="result" x-transition class="mt-4">
-                                            <div :class="result.success ? 'bg-emerald-50 text-emerald-800 ring-emerald-600/20' : 'bg-rose-50 text-rose-800 ring-rose-600/20'"
+                                            <div :class="result?.success ? 'bg-emerald-50 text-emerald-800 ring-emerald-600/20' : 'bg-rose-50 text-rose-800 ring-rose-600/20'"
                                                 class="rounded-lg p-3 text-xs ring-1 ring-inset flex gap-2 items-start">
-                                                <template x-if="result.success">
+                                                <template x-if="result?.success">
                                                     <svg class="h-4 w-4 mt-0.5 shrink-0" fill="currentColor"
                                                         viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd"
@@ -809,7 +809,7 @@
                                                             clip-rule="evenodd" />
                                                     </svg>
                                                 </template>
-                                                <template x-if="!result.success">
+                                                <template x-if="!result?.success">
                                                     <svg class="h-4 w-4 mt-0.5 shrink-0" fill="currentColor"
                                                         viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd"
@@ -817,7 +817,7 @@
                                                             clip-rule="evenodd" />
                                                     </svg>
                                                 </template>
-                                                <span x-text="result.message"></span>
+                                                <span x-text="result?.message"></span>
                                             </div>
                                         </div>
                                     </div>
@@ -881,10 +881,10 @@
                                             </div>
 
                                             <template x-if="result">
-                                                <div :class="result.success ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'"
+                                                <div :class="result?.success ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'"
                                                     class="rounded-lg p-4 text-sm mb-6">
                                                     <p class="font-bold flex items-center gap-2">
-                                                        <template x-if="result.success">
+                                                        <template x-if="result?.success">
                                                             <svg class="h-4 w-4" fill="currentColor"
                                                                 viewBox="0 0 20 20">
                                                                 <path fill-rule="evenodd"
@@ -892,10 +892,10 @@
                                                                     clip-rule="evenodd" />
                                                             </svg>
                                                         </template>
-                                                        <span x-text="result.message"></span>
+                                                        <span x-text="result?.message"></span>
                                                     </p>
 
-                                                    <template x-if="result.success && result.mapped_data">
+                                                    <template x-if="result?.success && result?.mapped_data">
                                                         <div
                                                             class="mt-3 border-t border-emerald-200 pt-3 grid grid-cols-2 gap-x-4 gap-y-2">
                                                             <div>

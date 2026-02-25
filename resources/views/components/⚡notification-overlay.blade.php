@@ -64,7 +64,7 @@ x-init="setInterval(() => { $wire.$refresh() }, 30000)">
         <!-- Floating Bell Icon -->
         <div class="fixed bottom-6 right-6 z-[100]">
             <button 
-                @click="togglePanel()"
+                @click="panelOpen = !panelOpen"
                 type="button"
                 :class="{ 'shake-animation': !panelOpen && {{ $unreadCount > 0 ? 'true' : 'false' }} }"
                 class="group relative flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)] transition-all hover:bg-slate-800 hover:scale-110 focus:outline-none focus:ring-4 focus:ring-slate-300 active:scale-95"
