@@ -27,14 +27,29 @@ class EstimateSubmittedForApproval extends BaseEvent
 
     public function getPayload(): array
     {
+        $sender = $this->estimate->creator;
+        $client = $this->estimate->client;
+
         return [
+            'id' => $this->estimate->id,
             'estimate_id' => $this->estimate->id,
+            'reference' => $this->estimate->estimate_number,
             'estimate_number' => $this->estimate->estimate_number,
-            'client_name' => $this->estimate->client ? $this->estimate->client->name : 'N/A',
-            'grand_total' => $this->estimate->grand_total,
-            'currency' => $this->estimate->currency,
-            'submitted_by' => $this->getTriggeredBy(),
             'submitted_at' => $this->getOccurredOn()->format('c'),
+            'total' => $this->estimate->grand_total,
+            'currency' => $this->estimate->currency,
+
+            // Sender Details
+            'sender_id' => $sender?->id,
+            'sender_name' => $sender?->name ?? 'N/A',
+            'sender_email' => $sender?->email ?? 'N/A',
+            'sender_contact' => $sender?->mobile_number ?? 'N/A',
+
+            // Client Details
+            'name' => $client?->name ?? 'N/A',
+            'contact_number' => $client?->phone ?? 'N/A',
+            'client_name' => $client?->name ?? 'N/A',
+
             'snapshot' => $this->snapshot,
         ];
     }

@@ -19,9 +19,15 @@ class EstimateExpired extends BaseEvent
 
     public function getPayload(): array
     {
+        $client = $this->estimate->client;
+
         return [
             'estimate_id' => $this->estimate->id,
             'estimate_number' => $this->estimate->estimate_number,
+
+            // Client Details
+            'name' => $client?->name ?? 'N/A',
+            'contact_number' => $client?->phone ?? 'N/A',
         ];
     }
 

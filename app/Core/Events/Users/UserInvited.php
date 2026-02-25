@@ -20,9 +20,19 @@ class UserInvited extends BaseEvent
 
     public function getPayload(): array
     {
+        $inviter = \App\Models\User::find($this->inviterId);
+        $user = \App\Models\User::find($this->userId);
+
         return [
             'user_id' => $this->userId,
+            'user_name' => $user?->name ?? 'N/A',
+            'user_email' => $user?->email ?? 'N/A',
             'inviter_id' => $this->inviterId,
+
+            // Inviter Details
+            'inviter_name' => $inviter?->name ?? 'N/A',
+            'inviter_email' => $inviter?->email ?? 'N/A',
+            'inviter_contact' => $inviter?->mobile_number ?? 'N/A',
         ];
     }
     public function getEntityType(): string

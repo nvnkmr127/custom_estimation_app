@@ -22,11 +22,34 @@ class ApprovalRejected extends BaseEvent
 
     public function getPayload(): array
     {
+        $estimate = $this->approval->estimate;
+        $client = $estimate?->client;
+        $sender = $estimate?->creator;
+        $approver = $this->approval->user;
+
         return [
             'estimate_id' => $this->estimateId,
             'approval_id' => $this->approval->id,
-            'rejector_user_id' => $this->rejectorUserId,
+
+            // Approver/Rejector Details
+            'approver_id' => $this->rejectorUserId,
+            'approver_name' => $approver?->name ?? 'N/A',
+            'approver_email' => $approver?->email ?? 'N/A',
+            'approver_contact' => $approver?->mobile_number ?? 'N/A',
+
+            // Sender Details (Who created/sent for approval)
+            'sender_id' => $sender?->id,
+            'sender_name' => $sender?->name ?? 'N/A',
+            'sender_email' => $sender?->email ?? 'N/A',
+            'sender_contact' => $sender?->mobile_number ?? 'N/A',
+
+            // Client Details
+            'name' => $client?->name ?? 'N/A',
+            'contact_number' => $client?->phone ?? 'N/A',
+
             'reason' => $this->reason,
+            'message' => 'An estimate has been rejected during the approval process.',
+            'link' => route('estimates.show', $this->estimateId),
         ];
     }
     public function getEntityType(): string

@@ -23,11 +23,26 @@ class CommentAdded extends BaseEvent
 
     public function getPayload(): array
     {
+        $comment = \App\Models\EstimateComment::find($this->commentId);
+        $estimate = \App\Models\Estimate::find($this->estimateId);
+        $sender = $comment?->user;
+        $client = $estimate?->client;
+
         return [
             'comment_id' => $this->commentId,
             'estimate_id' => $this->estimateId,
             'author_user_id' => $this->authorUserId,
             'content_snippet' => $this->contentSnippet,
+
+            // Author/Sender Details
+            'sender_id' => $this->authorUserId,
+            'sender_name' => $sender?->name ?? ($this->authorUserId ? 'N/A' : 'Client'),
+            'sender_email' => $sender?->email ?? 'N/A',
+            'sender_contact' => $sender?->mobile_number ?? 'N/A',
+
+            // Client Details
+            'name' => $client?->name ?? 'N/A',
+            'contact_number' => $client?->phone ?? 'N/A',
         ];
     }
     public function getEntityType(): string

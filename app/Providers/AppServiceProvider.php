@@ -74,7 +74,7 @@ class AppServiceProvider extends ServiceProvider
 
             // View Composer for Layout
             view()->composer('components.app-layout', function ($view) {
-                $unreadCount = auth()->check() ? auth()->user()->unreadNotifications->count() : 0;
+                $unreadCount = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
                 // Personalized Pending Approvals Count
                 $user = auth()->user();
                 $pendingApprovals = 0;

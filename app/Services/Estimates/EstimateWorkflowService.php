@@ -209,6 +209,9 @@ class EstimateWorkflowService
             $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_REJECTED);
             $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_DECLINED);
 
+            // Dispatch Domain Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateRejected($estimate, $userId, $comments));
+
             return $estimate;
         });
     }
@@ -240,6 +243,9 @@ class EstimateWorkflowService
 
             $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_CHANGES_REQUESTED);
             $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_DRAFT);
+
+            // Dispatch Domain Event
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateRejected($estimate, $userId, 'Changes Requested: ' . $comments));
 
             return $estimate;
         });

@@ -21,11 +21,22 @@ class EstimateViewed extends BaseEvent
 
     public function getPayload(): array
     {
+        $client = $this->estimate->client;
+        $viewer = $this->viewerId ? \App\Models\User::find($this->viewerId) : null;
+
         return [
             'estimate_id' => $this->estimate->id,
             'viewer_id' => $this->viewerId,
             'ip_address' => $this->ipAddress,
             'estimate_number' => $this->estimate->estimate_number,
+
+            // Viewer Details (if internal)
+            'viewer_name' => $viewer?->name ?? ($this->viewerId ? 'N/A' : 'Client/Guest'),
+            'viewer_email' => $viewer?->email ?? 'N/A',
+
+            // Client Details
+            'name' => $client?->name ?? 'N/A',
+            'contact_number' => $client?->phone ?? 'N/A',
         ];
     }
     public function getEntityType(): string

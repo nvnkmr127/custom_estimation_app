@@ -82,6 +82,8 @@ class NotificationListener implements ShouldQueue
     {
         return match ($event->getEventName()) {
             'approval.requested' => 'New Approval Request',
+            'estimate.approved' => 'Estimate Approved',
+            'estimate.rejected' => 'Estimate Rejected/Changes Requested',
             'comment.added' => 'New Comment on Estimate',
             'estimate.viewed' => 'Estimate Viewed by Client',
             'user.registered' => 'Welcome to the Platform',
@@ -107,6 +109,19 @@ class NotificationListener implements ShouldQueue
                 if ($estimate && $estimate->creator) {
                     $recipients[] = $estimate->creator;
                 }
+            }
+        } elseif ($event instanceof \App\Core\Events\Estimates\EstimateApproved) {
+            if ($event->approvalType === 'internal') {
+                $estimate = $event->estimate;
+                if ($estimate && $estimate->creator) {
+                    $recipients[] = $estimate->creator;
+                }
+            }
+        } elseif ($eventName === 'estimate.rejected' || $eventName === 'estimate.request_changes') {
+            $estimateId = $event->getEntityId();
+            $estimate = \App\Models\Estimate::find($estimateId);
+            if ($estimate && $estimate->creator) {
+                $recipients[] = $estimate->creator;
             }
         }
 

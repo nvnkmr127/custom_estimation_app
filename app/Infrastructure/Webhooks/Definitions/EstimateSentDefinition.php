@@ -31,6 +31,8 @@ class EstimateSentDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'reference' => $resource->reference_number,
+            'name' => $resource->client?->name ?? 'N/A',
+            'contact_number' => $resource->client?->phone ?? 'N/A',
             'sent_at' => now()->toIso8601String(),
             'client_email' => $resource->client ? $resource->client->email : null,
             'url' => $resource->public_url,
@@ -43,6 +45,8 @@ class EstimateSentDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 123,
             'reference' => 'EST-2024-001',
+            'name' => 'John Doe',
+            'contact_number' => '+91 98765 43210',
             'sent_at' => now()->toIso8601String(),
             'client_email' => 'client@example.com',
             'url' => 'https://example.com/portal/estimates/123?signature=...',

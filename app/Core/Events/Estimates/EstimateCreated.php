@@ -30,11 +30,25 @@ class EstimateCreated extends BaseEvent
 
     public function getPayload(): array
     {
+        $sender = $this->estimate->creator;
+        $client = $this->estimate->client;
+
         return [
             'estimate_id' => $this->estimate->id,
             'creator_id' => $this->creatorId,
             'online_view_url' => $this->estimate->public_url,
             'pdf_download_url' => route('estimates.pdf', $this->estimate->id),
+
+            // Sender Details
+            'sender_id' => $sender?->id,
+            'sender_name' => $sender?->name ?? 'N/A',
+            'sender_email' => $sender?->email ?? 'N/A',
+            'sender_contact' => $sender?->mobile_number ?? 'N/A',
+
+            // Client Details
+            'name' => $client?->name ?? 'N/A',
+            'contact_number' => $client?->phone ?? 'N/A',
+
             'snapshot' => $this->snapshot,
         ];
     }

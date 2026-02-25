@@ -24,10 +24,24 @@ class EstimateUpdated extends BaseEvent
 
     public function getPayload(): array
     {
+        $sender = \App\Models\User::find($this->modifierId);
+        $client = $this->estimate->client;
+
         return [
             'estimate_id' => $this->estimate->id,
             'modifier_id' => $this->modifierId,
             'changes' => $this->changes,
+
+            // Modifier/Sender Details
+            'sender_id' => $this->modifierId,
+            'sender_name' => $sender?->name ?? 'N/A',
+            'sender_email' => $sender?->email ?? 'N/A',
+            'sender_contact' => $sender?->mobile_number ?? 'N/A',
+
+            // Client Details
+            'name' => $client?->name ?? 'N/A',
+            'contact_number' => $client?->phone ?? 'N/A',
+
             'snapshot' => $this->snapshot,
         ];
     }
