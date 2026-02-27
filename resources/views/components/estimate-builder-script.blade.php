@@ -161,6 +161,44 @@
                 return price;
             },
 
+            getProduct(productId) {
+                if (!productId) return null;
+                return this.products.find(p => p.id == productId);
+            },
+
+            updateItemOption(item, optionId, valueId) {
+                const product = this.getProduct(item.product_id);
+                if (!product) return;
+
+                if (!item.selected_options) item.selected_options = {};
+                item.selected_options[optionId] = valueId;
+
+                // Recalculate price and update display options
+                let newPrice = parseFloat(product.unit_price || 0);
+                const newOptionsDetails = [];
+
+                if (product.options) {
+                    product.options.forEach(opt => {
+                        const valId = item.selected_options[opt.id];
+                        if (valId) {
+                            const val = opt.values.find(v => v.id == valId);
+                            if (val) {
+                                newPrice += parseFloat(val.price_adjustment || 0);
+                                newOptionsDetails.push({
+                                    name: opt.name,
+                                    value: val.value,
+                                    price_adjustment: val.price_adjustment
+                                });
+                            }
+                        }
+                    });
+                }
+
+                item.unit_price = newPrice;
+                item.options = newOptionsDetails;
+                this.calculateTotals();
+            },
+
             init() {
                 // Initialize sections if room_based and empty
                 if (this.estimate.type === 'room_based' && this.estimate.sections.length === 0) {
@@ -216,6 +254,23 @@
                         item.image_url = '/storage/' + item.product.images[0].image_path;
                     }
                     if (!item.options) item.options = [];
+                    if (!item.selected_options) item.selected_options = {};
+
+                    // Reconstruct selected_options from display options if missing (for legacy data)
+                    if (Object.keys(item.selected_options).length === 0 && item.options.length > 0 && item.product_id) {
+                        const product = this.getProduct(item.product_id);
+                        if (product && product.options) {
+                            item.options.forEach(displayOpt => {
+                                const matchedOpt = product.options.find(o => o.name === displayOpt.name);
+                                if (matchedOpt) {
+                                    const matchedVal = matchedOpt.values.find(v => v.value === displayOpt.value);
+                                    if (matchedVal) {
+                                        item.selected_options[matchedOpt.id] = matchedVal.id;
+                                    }
+                                }
+                            });
+                        }
+                    }
 
                     item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
                 };
@@ -475,6 +530,7 @@
                     showCalculator: showCalc,
                     _showTypePicker: false,
                     options: [],
+                    selected_options: {},
                     is_package: false,
                     _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                 };
@@ -565,6 +621,7 @@
                     showCalculator: showCalc,
                     _showTypePicker: false,
                     options: selectedOptionsList,
+                    selected_options: { ...this.configModal.options },
                     is_package: false,
                     _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                 };

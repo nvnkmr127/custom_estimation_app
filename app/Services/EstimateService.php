@@ -333,6 +333,7 @@ class EstimateService
             'internal_note' => $itemData['internal_note'] ?? null,
             'unit_type_id' => $itemData['unit_type_id'] ?? null,
             'options' => $itemData['options'] ?? null,
+            'selected_options' => $itemData['selected_options'] ?? null,
             'is_package' => $itemData['is_package'] ?? false,
             'original_item_id' => $itemData['original_item_id'] ?? null,
         ]);
@@ -386,6 +387,7 @@ class EstimateService
             'internal_note' => $itemData['internal_note'] ?? null,
             'unit_type_id' => $itemData['unit_type_id'] ?? null,
             'options' => $itemData['options'] ?? null,
+            'selected_options' => $itemData['selected_options'] ?? null,
             'is_package' => $itemData['is_package'] ?? false,
             'original_item_id' => $itemData['original_item_id'] ?? $item->original_item_id,
         ]);

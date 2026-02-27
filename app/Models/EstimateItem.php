@@ -33,12 +33,14 @@ class EstimateItem extends Model
         'formula',
         'internal_note',
         'options',
+        'selected_options',
         'is_package',
         'original_item_id',
     ];
 
     protected $casts = [
         'options' => 'array',
+        'selected_options' => 'array',
     ];
 
     /**
