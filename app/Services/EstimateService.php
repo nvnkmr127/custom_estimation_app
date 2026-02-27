@@ -181,10 +181,7 @@ class EstimateService
                     // Sanitize IDs if branched
                     if ($isBranched) {
                         $sectionData['id'] = null;
-                        if (isset($sectionData['items'])) {
-                            foreach ($sectionData['items'] as &$i)
-                                $i['id'] = null;
-                        }
+                        // DO NOT nullify item IDs here, we need them for lineage in createEstimateItem
                     }
 
                     if (!empty($sectionData['id'])) {
@@ -239,9 +236,8 @@ class EstimateService
                 // Standard Type
                 $itemsToProcess = $itemsOrSections;
                 if ($isBranched) {
-                    // Clean IDs
-                    foreach ($itemsToProcess as &$i)
-                        $i['id'] = null;
+                    // Clean Section IDs (Standard has no sections)
+                    // We DO NOT nullify item IDs here yet, as createEstimateItem needs them for lineage
                 }
 
                 if (!$isBranched) {
@@ -310,6 +306,13 @@ class EstimateService
         $itemSubtotal = round($unitPrice * $itemData['quantity'] * $sizeMultiplier, 2);
         $total = $itemSubtotal;
 
+        // Track lineage: If we have an existing item ID but no original_item_id,
+        // this is the FIRST branch from the original item.
+        $originalItemId = !empty($itemData['original_item_id']) ? $itemData['original_item_id'] : null;
+        if (!$originalItemId && !empty($itemData['id'])) {
+            $originalItemId = $itemData['id'];
+        }
+
         return $estimate->items()->create([
             'estimate_section_id' => $sectionId,
             'product_id' => $itemData['product_id'] ?? null,
@@ -335,7 +338,7 @@ class EstimateService
             'options' => $itemData['options'] ?? null,
             'selected_options' => $itemData['selected_options'] ?? null,
             'is_package' => $itemData['is_package'] ?? false,
-            'original_item_id' => $itemData['original_item_id'] ?? null,
+            'original_item_id' => $originalItemId,
         ]);
     }
 
@@ -389,7 +392,7 @@ class EstimateService
             'options' => $itemData['options'] ?? null,
             'selected_options' => $itemData['selected_options'] ?? null,
             'is_package' => $itemData['is_package'] ?? false,
-            'original_item_id' => $itemData['original_item_id'] ?? $item->original_item_id,
+            'original_item_id' => !empty($itemData['original_item_id']) ? $itemData['original_item_id'] : $item->original_item_id,
         ]);
     }
 
