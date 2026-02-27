@@ -96,6 +96,15 @@
                                 {{ number_format($estimate->grand_total, 2) }}
                             </div>
 
+                            @if($estimate->discount_total > 0)
+                                <div class="inline-flex mt-2 items-center px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase tracking-widest border border-amber-500/30 animate-pulse-slow">
+                                    <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                    </svg>
+                                    Exclusive Savings: {{ $estimate->currency_symbol }}{{ number_format($estimate->discount_total, 0) }}
+                                </div>
+                            @endif
+
                             @if($estimate->expiry_date)
                                 <div class="mt-3 pt-3 border-t border-white/10">
                                     <div class="flex flex-col items-end">
@@ -205,18 +214,18 @@
                         </div>
 
                         <!-- Card 4: Savings/Value (Part 3) -->
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                        <div class="p-4 rounded-xl shadow-sm border flex flex-col justify-center transition-all duration-500 {{ $estimate->discount_total > 0 ? 'bg-amber-50 border-amber-200 shadow-amber-100/50 ring-2 ring-amber-500/5' : 'bg-white border-slate-100' }}">
                             <div class="flex items-center gap-2 mb-1">
-                                <div class="h-6 w-6 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                                <div class="h-6 w-6 rounded-full {{ $estimate->discount_total > 0 ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600' }} flex items-center justify-center">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                 </div>
-                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Financial Value</div>
+                                <div class="text-[10px] {{ $estimate->discount_total > 0 ? 'text-amber-800' : 'text-slate-500' }} font-bold uppercase tracking-wider">Financial Value</div>
                             </div>
-                            <div class="text-sm font-bold text-slate-900">
+                            <div class="text-sm font-bold {{ $estimate->discount_total > 0 ? 'text-amber-900' : 'text-slate-900' }}">
                                 @if($estimate->discount_total > 0)
-                                    {{ $estimate->currency_symbol }} {{ number_format($estimate->discount_total, 2) }} Savings
+                                    {{ $estimate->currency_symbol }} {{ number_format($estimate->discount_total, 2) }} Savings Applied
                                 @else
                                     Price Protection Lock
                                 @endif
