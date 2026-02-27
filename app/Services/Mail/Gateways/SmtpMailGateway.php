@@ -23,6 +23,9 @@ class SmtpMailGateway implements MailGatewayInterface
         try {
             // override config from DB settings if available
             $host = \App\Models\Setting::getCached('smtp_host');
+            $fromAddress = \App\Models\Setting::getCached('smtp_from_address', config('mail.from.address'));
+            $fromName = \App\Models\Setting::getCached('smtp_from_name', config('mail.from.name'));
+
             if ($host) {
                 config([
                     'mail.mailers.smtp.host' => $host,
@@ -30,8 +33,8 @@ class SmtpMailGateway implements MailGatewayInterface
                     'mail.mailers.smtp.encryption' => \App\Models\Setting::getCached('smtp_encryption', 'tls'),
                     'mail.mailers.smtp.username' => \App\Models\Setting::getCached('smtp_username'),
                     'mail.mailers.smtp.password' => \App\Models\Setting::getCached('smtp_password'),
-                    'mail.from.address' => \App\Models\Setting::getCached('smtp_from_address', config('mail.from.address')),
-                    'mail.from.name' => \App\Models\Setting::getCached('smtp_from_name', config('mail.from.name')),
+                    'mail.from.address' => $fromAddress,
+                    'mail.from.name' => $fromName,
                 ]);
 
                 // Purge the 'smtp' driver to ensure a fresh instance with new config is created
@@ -39,8 +42,9 @@ class SmtpMailGateway implements MailGatewayInterface
             }
 
             // Always use the 'smtp' mailer specifically, so we don't accidentally use 'log'
-            Mail::mailer('smtp')->send([], [], function ($message) use ($to, $subject, $body, $attachments) {
+            Mail::mailer('smtp')->send([], [], function ($message) use ($to, $subject, $body, $attachments, $fromAddress, $fromName) {
                 $message->to($to)
+                    ->from($fromAddress, $fromName)
                     ->subject($subject)
                     ->html($body);
 
@@ -53,6 +57,7 @@ class SmtpMailGateway implements MailGatewayInterface
         } catch (\Exception $e) {
             Log::error('SMTP Mail Gateway Error: ' . $e->getMessage(), [
                 'to' => $to,
+                'from' => $fromAddress ?? 'not-set',
                 'subject' => $subject,
                 'exception' => $e
             ]);
