@@ -53,9 +53,16 @@
                             </template>
                         </div>
 
-                        <div class="mt-8 border-t border-slate-100 pt-6 flex justify-end">
+                        <div class="mt-8 border-t border-slate-100 pt-6 flex items-center justify-between">
+                            <div class="flex flex-col">
+                                <span
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Total
+                                    Price</span>
+                                <span class="text-xl font-bold text-indigo-600"
+                                    x-text="estimate.currency_symbol + ' ' + currentConfigPrice.toFixed(2)"></span>
+                            </div>
                             <button type="button" @click="confirmConfig()"
-                                class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                                class="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-indigo-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all active:scale-95">
                                 Add to Estimate
                             </button>
                         </div>

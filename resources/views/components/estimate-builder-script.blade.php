@@ -143,6 +143,24 @@
                 return filtered;
             },
 
+            get currentConfigPrice() {
+                if (!this.configModal.product) return 0;
+                let price = parseFloat(this.configModal.basePrice || 0);
+
+                if (this.configModal.product.options) {
+                    this.configModal.product.options.forEach(opt => {
+                        const valId = this.configModal.options[opt.id];
+                        if (valId && opt.values) {
+                            const val = opt.values.find(v => v.id == valId);
+                            if (val) {
+                                price += parseFloat(val.price_adjustment || 0);
+                            }
+                        }
+                    });
+                }
+                return price;
+            },
+
             init() {
                 // Initialize sections if room_based and empty
                 if (this.estimate.type === 'room_based' && this.estimate.sections.length === 0) {
