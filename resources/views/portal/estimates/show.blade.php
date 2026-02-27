@@ -1,4 +1,35 @@
 <x-portal-layout>
+    <style>
+        @keyframes firework {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+            }
+
+            30% {
+                transform: scale(1.3);
+                box-shadow: 0 0 0 20px rgba(79, 70, 229, 0.2);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 40px rgba(79, 70, 229, 0);
+            }
+        }
+
+        .firework-animation {
+            animation: firework 1s ease-out infinite;
+        }
+
+        .step-transition {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .roadmap-line-fill {
+            transition: width 1s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+    </style>
+
     <div class="max-w-4xl mx-auto" x-data="portalShow()" wire:ignore>
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -58,7 +89,8 @@
                                 <path d="M 40,100 A 60,60 0 1,0 160,100" fill="none" id="curve2" />
                                 <text class="text-[12px] font-bold uppercase tracking-widest">
                                     <textPath href="#curve2" startOffset="50%" text-anchor="middle">
-                                        {{ $estimate->signed_at ? $estimate->signed_at->format('Y-M-d') : '' }}</textPath>
+                                        {{ $estimate->signed_at ? $estimate->signed_at->format('Y-M-d') : '' }}
+                                    </textPath>
                                 </text>
                             </svg>
                         </div>
@@ -97,11 +129,15 @@
                             </div>
 
                             @if($estimate->discount_total > 0)
-                                <div class="inline-flex mt-2 items-center px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase tracking-widest border border-amber-500/30 animate-pulse-slow">
+                                <div
+                                    class="inline-flex mt-2 items-center px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-black uppercase tracking-widest border border-amber-500/30 animate-pulse-slow">
                                     <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                                        <path
+                                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z">
+                                        </path>
                                     </svg>
-                                    Exclusive Savings: {{ $estimate->currency_symbol }}{{ number_format($estimate->discount_total, 0) }}
+                                    Exclusive Savings:
+                                    {{ $estimate->currency_symbol }}{{ number_format($estimate->discount_total, 0) }}
                                 </div>
                             @endif
 
@@ -111,7 +147,8 @@
                                         <div class="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold mb-1">
                                             Est. Expiry</div>
                                         <div class="text-xs font-bold text-rose-400 mb-2">
-                                            {{ $estimate->expiry_date->format('M d, Y') }}</div>
+                                            {{ $estimate->expiry_date->format('M d, Y') }}
+                                        </div>
 
                                         <div class="flex gap-1.5" x-show="!countdown.expired">
                                             <div class="flex flex-col items-center">
@@ -169,14 +206,18 @@
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <!-- Card 1: Timeline (Part 2) -->
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                        <div
+                            class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
                             <div class="flex items-center gap-2 mb-1">
-                                <div class="h-6 w-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                <div
+                                    class="h-6 w-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                 </div>
-                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Est. Timeline</div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Est. Timeline
+                                </div>
                             </div>
                             <div class="text-sm font-bold text-slate-900">
                                 {{ \App\Models\Setting::getCached('portal_timeline', '6-8 Weeks') }}
@@ -184,14 +225,19 @@
                         </div>
 
                         <!-- Card 2: Quality (Part 2) -->
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                        <div
+                            class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
                             <div class="flex items-center gap-2 mb-1">
-                                <div class="h-6 w-6 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                <div
+                                    class="h-6 w-6 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                                        </path>
                                     </svg>
                                 </div>
-                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Quality Standard</div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Quality
+                                    Standard</div>
                             </div>
                             <div class="text-sm font-bold text-slate-900">
                                 {{ \App\Models\Setting::getCached('portal_quality_badge', 'Premium Grade') }}
@@ -199,14 +245,19 @@
                         </div>
 
                         <!-- Card 3: Project Scale (Part 3) -->
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                        <div
+                            class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
                             <div class="flex items-center gap-2 mb-1">
-                                <div class="h-6 w-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                <div
+                                    class="h-6 w-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                                        </path>
                                     </svg>
                                 </div>
-                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Project Scale</div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Project Scale
+                                </div>
                             </div>
                             <div class="text-sm font-bold text-slate-900">
                                 {{ $estimate->sections->count() }} Areas / {{ $estimate->items->count() }} Items
@@ -214,18 +265,26 @@
                         </div>
 
                         <!-- Card 4: Savings/Value (Part 3) -->
-                        <div class="p-4 rounded-xl shadow-sm border flex flex-col justify-center transition-all duration-500 {{ $estimate->discount_total > 0 ? 'bg-amber-50 border-amber-200 shadow-amber-100/50 ring-2 ring-amber-500/5' : 'bg-white border-slate-100' }}">
+                        <div
+                            class="p-4 rounded-xl shadow-sm border flex flex-col justify-center transition-all duration-500 {{ $estimate->discount_total > 0 ? 'bg-amber-50 border-amber-200 shadow-amber-100/50 ring-2 ring-amber-500/5' : 'bg-white border-slate-100' }}">
                             <div class="flex items-center gap-2 mb-1">
-                                <div class="h-6 w-6 rounded-full {{ $estimate->discount_total > 0 ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600' }} flex items-center justify-center">
+                                <div
+                                    class="h-6 w-6 rounded-full {{ $estimate->discount_total > 0 ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600' }} flex items-center justify-center">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                        </path>
                                     </svg>
                                 </div>
-                                <div class="text-[10px] {{ $estimate->discount_total > 0 ? 'text-amber-800' : 'text-slate-500' }} font-bold uppercase tracking-wider">Financial Value</div>
+                                <div
+                                    class="text-[10px] {{ $estimate->discount_total > 0 ? 'text-amber-800' : 'text-slate-500' }} font-bold uppercase tracking-wider">
+                                    Financial Value</div>
                             </div>
-                            <div class="text-sm font-bold {{ $estimate->discount_total > 0 ? 'text-amber-900' : 'text-slate-900' }}">
+                            <div
+                                class="text-sm font-bold {{ $estimate->discount_total > 0 ? 'text-amber-900' : 'text-slate-900' }}">
                                 @if($estimate->discount_total > 0)
-                                    {{ $estimate->currency_symbol }} {{ number_format($estimate->discount_total, 2) }} Savings Applied
+                                    {{ $estimate->currency_symbol }} {{ number_format($estimate->discount_total, 2) }}
+                                    Savings Applied
                                 @else
                                     Price Protection Lock
                                 @endif
@@ -298,7 +357,8 @@
                                     <strong>{{ config('app.name', 'Our Company') }}</strong>, we believe in transforming
                                     spaces into living experiences. This estimate outlines our proposed scope of work,
                                     carefully curated to meet your unique needs and style. We look forward to the
-                                    possibility of working together.</p>
+                                    possibility of working together.
+                                </p>
                             @endif
                         </div>
 
@@ -355,6 +415,112 @@
                 </div>
             </div>
 
+            <!-- Project Roadmap / Journey -->
+            <div class="px-6 sm:px-8 py-8 bg-white overflow-x-auto no-scrollbar">
+                <div class="min-w-[600px]">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-8 text-center">Your
+                        Project Journey (Preview)</h3>
+
+                    <div class="relative flex justify-between">
+                        <!-- Connecting Line -->
+                        <div class="absolute top-5 left-10 right-10 h-0.5 bg-slate-100 z-0">
+                            <div class="h-full bg-indigo-600 roadmap-line-fill"
+                                :style="'width: ' + (roadmapStep * 25) + '%'"></div>
+                        </div>
+
+                        <!-- Step 1: Selection -->
+                        <div class="relative z-10 flex flex-col items-center w-32">
+                            <div class="w-10 h-10 rounded-full step-transition flex items-center justify-center shadow-lg"
+                                :class="roadmapStep >= 0 ? 'bg-indigo-600 text-white ring-8 ring-indigo-50' : 'bg-white border-2 border-slate-100 text-slate-300'">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <span
+                                class="mt-4 text-[10px] font-black transition-colors duration-500 uppercase tracking-widest text-center"
+                                :class="roadmapStep === 0 ? 'text-indigo-600' : (roadmapStep > 0 ? 'text-slate-900' : 'text-slate-400')">Selection</span>
+                            <span class="mt-1 text-[9px] font-bold text-center h-3"
+                                :class="roadmapStep === 0 ? 'text-indigo-500' : 'text-transparent'"
+                                x-text="roadmapStep === 0 ? 'Current Phase' : ''"></span>
+                        </div>
+
+                        <!-- Step 2: Design -->
+                        <div class="relative z-10 flex flex-col items-center w-32">
+                            <div class="w-10 h-10 rounded-full step-transition flex items-center justify-center transition-all duration-700 shadow-sm"
+                                :class="roadmapStep >= 1 ? 'bg-indigo-600 text-white ring-8 ring-indigo-50 shadow-lg' : 'bg-white border-2 border-slate-100 text-slate-300'">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <span
+                                class="mt-4 text-[10px] font-black transition-colors duration-500 uppercase tracking-widest text-center"
+                                :class="roadmapStep === 1 ? 'text-indigo-600' : (roadmapStep > 1 ? 'text-slate-900' : 'text-slate-400')">3D
+                                Design</span>
+                            <span class="mt-1 text-[9px] font-bold text-center h-3"
+                                :class="roadmapStep === 1 ? 'text-indigo-500' : 'text-transparent'"
+                                x-text="roadmapStep === 1 ? 'Active Phase' : ''"></span>
+                        </div>
+
+                        <!-- Step 3: Production -->
+                        <div class="relative z-10 flex flex-col items-center w-32">
+                            <div class="w-10 h-10 rounded-full step-transition flex items-center justify-center transition-all duration-700 shadow-sm"
+                                :class="roadmapStep >= 2 ? 'bg-indigo-600 text-white ring-8 ring-indigo-50 shadow-lg' : 'bg-white border-2 border-slate-100 text-slate-300'">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                                    </path>
+                                </svg>
+                            </div>
+                            <span
+                                class="mt-4 text-[10px] font-black transition-colors duration-500 uppercase tracking-widest text-center"
+                                :class="roadmapStep === 2 ? 'text-indigo-600' : (roadmapStep > 2 ? 'text-slate-900' : 'text-slate-400')">Production</span>
+                            <span class="mt-1 text-[9px] font-bold text-center h-3"
+                                :class="roadmapStep === 2 ? 'text-indigo-500' : 'text-transparent'"
+                                x-text="roadmapStep === 2 ? 'In Manufacturing' : ''"></span>
+                        </div>
+
+                        <!-- Step 4: Installation -->
+                        <div class="relative z-10 flex flex-col items-center w-32">
+                            <div class="w-10 h-10 rounded-full step-transition flex items-center justify-center transition-all duration-700 shadow-sm"
+                                :class="roadmapStep >= 3 ? 'bg-indigo-600 text-white ring-8 ring-indigo-50 shadow-lg' : 'bg-white border-2 border-slate-100 text-slate-300'">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 001-1V4z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <span
+                                class="mt-4 text-[10px] font-black transition-colors duration-500 uppercase tracking-widest text-center"
+                                :class="roadmapStep === 3 ? 'text-indigo-600' : (roadmapStep > 3 ? 'text-slate-900' : 'text-slate-400')">Fitting</span>
+                            <span class="mt-1 text-[9px] font-bold text-center h-3"
+                                :class="roadmapStep === 3 ? 'text-indigo-500' : 'text-transparent'"
+                                x-text="roadmapStep === 3 ? 'On-Site Execution' : ''"></span>
+                        </div>
+
+                        <!-- Step 5: Handover -->
+                        <div class="relative z-10 flex flex-col items-center w-32">
+                            <div class="w-10 h-10 rounded-full step-transition flex items-center justify-center transition-all duration-700 shadow-sm"
+                                :class="roadmapStep === 4 ? 'bg-emerald-500 text-white ring-8 ring-emerald-50 firework-animation' : (roadmapStep > 4 ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white border-2 border-slate-100 text-slate-300')">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <span
+                                class="mt-4 text-[10px] font-black transition-colors duration-500 uppercase tracking-widest text-center"
+                                :class="roadmapStep === 4 ? 'text-emerald-600 scale-110' : 'text-slate-400'">Handover</span>
+                            <span class="mt-1 text-[9px] font-bold text-center h-3"
+                                :class="roadmapStep === 4 ? 'text-emerald-500' : 'text-transparent'"
+                                x-text="roadmapStep === 4 ? 'Project Completed!' : ''"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Interactive Sections -->
             <div class="p-6 sm:p-8 space-y-4">
                 <h2 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
@@ -388,7 +554,8 @@
                             </div>
                             <div class="text-right">
                                 <div class="font-bold text-slate-900">{{ $estimate->currency_symbol }}
-                                    {{ number_format($section->total, 2) }}</div>
+                                    {{ number_format($section->total, 2) }}
+                                </div>
                             </div>
                         </button>
 
@@ -680,13 +847,15 @@
                                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Date
                                             Signed</p>
                                         <p class="text-sm font-bold text-slate-900 leading-tight">
-                                            {{ $estimate->signed_at ? $estimate->signed_at->format('H:i T') : 'N/A' }}</p>
+                                            {{ $estimate->signed_at ? $estimate->signed_at->format('H:i T') : 'N/A' }}
+                                        </p>
                                     </div>
                                     <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">IP
                                             Address</p>
                                         <p class="text-sm font-bold text-slate-900 leading-tight">
-                                            {{ $estimate->signer_ip ?? '127.0.0.1' }}</p>
+                                            {{ $estimate->signer_ip ?? '127.0.0.1' }}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -1082,6 +1251,7 @@
                     showImageModal: false,
                     activeSection: null,
                     agreedToTerms: false,
+                    roadmapStep: 0,
 
                     // Library Instances
                     signaturePad: null,
@@ -1114,11 +1284,16 @@
                             this.projectImages = {!! json_encode($showcaseImages) !!};
                         }
 
-                        // Initialize Charts & Countdown
+                        // Initialize Charts, Countdown & Roadmap Animation
                         this.$nextTick(() => {
                             this.renderChart();
                             this.updateCountdown();
                             setInterval(() => this.updateCountdown(), 1000);
+
+                            // Roadmap Simulation
+                            setInterval(() => {
+                                this.roadmapStep = (this.roadmapStep + 1) % 5;
+                            }, 1500);
                         });
 
                         // Watch for Acceptance Modal to init Signature Pad
