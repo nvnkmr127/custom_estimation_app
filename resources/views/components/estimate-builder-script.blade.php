@@ -1134,7 +1134,7 @@
                 this.submitHiddenForm('{{ route("estimates.preview") }}', true);
             },
 
-            submitForm() {
+            submitForm(forceVersion = false) {
                 // Automatically remove empty rooms before saving
                 if (this.estimate.type === 'room_based') {
                     this.estimate.sections = this.estimate.sections.filter(s => s.items && s.items.length > 0);
@@ -1151,12 +1151,10 @@
                     ? `{{ route('estimates.update', ':id') }}`.replace(':id', this.estimate.id)
                     : `{{ route('estimates.store') }}`;
 
-
-
-                this.submitHiddenForm(actionUrl, false, this.estimate.id ? 'PUT' : 'POST');
+                this.submitHiddenForm(actionUrl, false, this.estimate.id ? 'PUT' : 'POST', forceVersion);
             },
 
-            submitHiddenForm(url, isNewTab = false, method = 'POST') {
+            submitHiddenForm(url, isNewTab = false, method = 'POST', forceVersion = false) {
                 if (!isNewTab) this.isSubmitting = true;
 
                 const form = document.createElement('form');
@@ -1184,6 +1182,10 @@
                     }
                     app(f, val ?? '');
                 });
+
+                if (forceVersion) {
+                    app('force_version', 1);
+                }
 
                 // Sections/Items
                 if (this.estimate.type === 'room_based') {

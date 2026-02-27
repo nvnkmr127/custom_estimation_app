@@ -130,13 +130,8 @@ class EstimateService
             $originalNumber = $estimate->estimate_number;
 
             // Strict State Locking & Forced Versioning Logic
-            $isFinalized = in_array($estimate->estimate_status, [
-                Estimate::EST_STATUS_APPROVED,
-                Estimate::EST_STATUS_SENT,
-                Estimate::EST_STATUS_ACCEPTED,
-                Estimate::EST_STATUS_DECLINED,
-                Estimate::EST_STATUS_EXPIRED
-            ]);
+            $isFinalized = !in_array($estimate->estimate_status, [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_PENDING_APPROVAL]);
+            $forceBranch = $forceBranch || ($data['force_version'] ?? false) == true;
 
             // Automatically branch if:
             // 1. Explicitly requested ($forceBranch)
@@ -339,6 +334,7 @@ class EstimateService
             'unit_type_id' => $itemData['unit_type_id'] ?? null,
             'options' => $itemData['options'] ?? null,
             'is_package' => $itemData['is_package'] ?? false,
+            'original_item_id' => $itemData['original_item_id'] ?? null,
         ]);
     }
 
@@ -391,6 +387,7 @@ class EstimateService
             'unit_type_id' => $itemData['unit_type_id'] ?? null,
             'options' => $itemData['options'] ?? null,
             'is_package' => $itemData['is_package'] ?? false,
+            'original_item_id' => $itemData['original_item_id'] ?? $item->original_item_id,
         ]);
     }
 
@@ -500,6 +497,8 @@ class EstimateService
             // 3. Replicate Sections and Items
             if ($replicateItems) {
                 $this->duplicateEstimateItems($estimate, $newEstimate);
+                // Ensure totals are fresh in the new version
+                $this->recalculateTotals($newEstimate);
             }
 
             // 4. Replicate Manual Followers

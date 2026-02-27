@@ -1211,8 +1211,19 @@
                 <div class="h-6 w-px bg-slate-200 mx-2"></div>
                 <button type="button" @click="window.history.back()"
                     class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors px-4">Cancel</button>
-                <x-primary-button type="submit" class="px-8 py-2.5" x-bind:disabled="isSubmitting"
+                <button type="button" @click="submitForm(true)"
+                    class="inline-flex items-center gap-x-2 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all"
+                    x-bind:disabled="isSubmitting" x-show="estimate.id"
                     x-bind:class="{ 'opacity-75 cursor-not-allowed': isSubmitting }">
+                    <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                    </svg>
+                    Save as New Version
+                </button>
+
+                <x-primary-button type="button" @click="submitForm(false)" class="px-8 py-2.5"
+                    x-bind:disabled="isSubmitting" x-bind:class="{ 'opacity-75 cursor-not-allowed': isSubmitting }">
                     <div class="flex items-center">
                         <div x-show="isSubmitting" class="mr-2" style="display: none;">
                             <x-loading-spinner size="5" />

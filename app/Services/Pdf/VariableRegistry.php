@@ -263,6 +263,21 @@ class VariableRegistry
                 'description' => 'Formula and dimensions.',
                 'example' => 'Area (L: 10 x W: 5)'
             ],
+            'item_length' => [
+                'category' => 'Item Context',
+                'description' => 'Length of the item.',
+                'example' => '10'
+            ],
+            'item_width' => [
+                'category' => 'Item Context',
+                'description' => 'Width of the item.',
+                'example' => '5'
+            ],
+            'item_height' => [
+                'category' => 'Item Context',
+                'description' => 'Height of the item.',
+                'example' => '2'
+            ],
             'item_quantity' => [
                 'category' => 'Item Context',
                 'description' => 'Quantity.',

@@ -48,7 +48,11 @@ class EstimateViewModel
             ? $this->estimate->expiry_date
             : $estimateDate->copy()->addDays(30);
 
-        $currency = $this->estimate->currency_symbol ?? '$';
+        $currency = $this->estimate->currency_symbol;
+        if (empty($currency)) {
+            $currency = '$';
+        }
+
         // Wrap custom symbols like Rupee (₹) in DejaVu Sans because DOMPDF does not do character fallback
         if (mb_strlen($currency) > 0 && mb_ord($currency) > 127) {
             $currency = '<span style="font-family: \'DejaVu Sans\', sans-serif;">' . $currency . '</span>';
@@ -192,7 +196,6 @@ class EstimateViewModel
         }
 
         // 2. Fallback to default common logo paths if generic setting is missing
-        reset:
         $defaults = ['/logo.png', '/images/logo.png', '/storage/logo.png'];
         foreach ($defaults as $d) {
             $path = public_path($d);
