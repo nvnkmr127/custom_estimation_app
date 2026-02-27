@@ -158,41 +158,70 @@
                             <canvas id="costBreakdownChart"></canvas>
                         </div>
                     </div>
-                    <div class="space-y-4">
-                        <div
-                            class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
-                            <div>
-                                <div class="text-xs text-slate-500 font-bold uppercase">Subtotal</div>
-                                <div class="text-lg font-bold text-slate-900">
-                                    {{ $estimate->currency_symbol }} {{ number_format($estimate->subtotal, 2) }}
-                                </div>
-                            </div>
-                            <div class="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                            </div>
-                        </div>
-                        @if($estimate->total_tax > 0)
-                            <div
-                                class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
-                                <div>
-                                    <div class="text-xs text-slate-500 font-bold uppercase">Total Tax</div>
-                                    <div class="text-lg font-bold text-slate-900">
-                                        {{ $estimate->currency_symbol }} {{ number_format($estimate->total_tax, 2) }}
-                                    </div>
-                                </div>
-                                <div
-                                    class="h-8 w-8 rounded-full bg-green-50 flex items-center justify-center text-green-600">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Card 1: Timeline (Part 2) -->
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="h-6 w-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                 </div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Est. Timeline</div>
                             </div>
-                        @endif
+                            <div class="text-sm font-bold text-slate-900">
+                                {{ \App\Models\Setting::getCached('portal_timeline', '6-8 Weeks') }}
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Quality (Part 2) -->
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="h-6 w-6 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Quality Standard</div>
+                            </div>
+                            <div class="text-sm font-bold text-slate-900">
+                                {{ \App\Models\Setting::getCached('portal_quality_badge', 'Premium Grade') }}
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Project Scale (Part 3) -->
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="h-6 w-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Project Scale</div>
+                            </div>
+                            <div class="text-sm font-bold text-slate-900">
+                                {{ $estimate->sections->count() }} Areas / {{ $estimate->items->count() }} Items
+                            </div>
+                        </div>
+
+                        <!-- Card 4: Savings/Value (Part 3) -->
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
+                            <div class="flex items-center gap-2 mb-1">
+                                <div class="h-6 w-6 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Financial Value</div>
+                            </div>
+                            <div class="text-sm font-bold text-slate-900">
+                                @if($estimate->discount_total > 0)
+                                    {{ $estimate->currency_symbol }} {{ number_format($estimate->discount_total, 2) }} Savings
+                                @else
+                                    Price Protection Lock
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1149,7 +1178,7 @@
                         let labels = this.chartLabels;
                         let data = this.chartTotals;
 
-                        if (labels.length <= 1) {
+                        if (labels.length === 0) {
                             labels = ['Subtotal', 'Tax'];
                             data = [{{ $estimate->subtotal }}, {{ $estimate->total_tax }}];
                         }
