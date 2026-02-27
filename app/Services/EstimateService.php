@@ -158,13 +158,6 @@ class EstimateService
                 }
             }
 
-            \Illuminate\Support\Facades\Log::info('Updating Estimate', [
-                'id' => $estimate->id,
-                'type' => $type,
-                'needsBranching' => $needsBranching,
-                'items_count' => count($itemsOrSections)
-            ]);
-
             // MT-15: Edit After Send/Approval Guard
             // If editing an estimate that is NOT in draft, reset it to force re-approval.
             // (If finalized, it branched above, so this handles in-place edits like submitted/pending)
@@ -228,16 +221,13 @@ class EstimateService
                         foreach ($itemsToProcess as $itemIndex => $itemData) {
                             $oi = $itemData['order_index'] ?? $itemIndex;
                             if (!empty($itemData['id']) && !$isBranched) {
-                                \Illuminate\Support\Facades\Log::info('Processing existing item', ['item_id' => $itemData['id']]);
                                 $item = $estimate->items()->where('id', $itemData['id'])->first();
                                 if ($item) {
                                     $this->updateEstimateItem($item, $section->id, $itemData, $oi);
                                 } else {
-                                    \Illuminate\Support\Facades\Log::info('Item not found, creating new', ['item_name' => $itemData['name']]);
                                     $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                                 }
                             } else {
-                                \Illuminate\Support\Facades\Log::info('Creating new item in section', ['item_name' => $itemData['name']]);
                                 $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                             }
                         }
@@ -409,6 +399,7 @@ class EstimateService
      */
     public function recalculateTotals(Estimate $estimate): void
     {
+        $estimate->unsetRelation('items'); // Force refresh items from DB to include new/updated ones
         $calculator = new \App\Services\Calculations\PriceCalculator();
         $results = $calculator->calculate($estimate);
 

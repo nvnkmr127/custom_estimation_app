@@ -178,6 +178,7 @@ class Estimate extends Model
         'transportation_charges',
         'estimate_status',
         'client_status',
+        'status', // Legacy support for mass-assignment
         'sent_at',
         'expires_at',
         'accepted_at',
