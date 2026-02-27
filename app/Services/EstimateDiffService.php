@@ -79,12 +79,17 @@ class EstimateDiffService
         // Priority 1: original_item_id (Perfect Match)
         // Priority 2: Fallback to [Section|ProductID|Name] for legacy items
         $getKey = function (EstimateItem $item) {
-            if ($item->original_item_id) {
-                return 'ID:' . $item->original_item_id;
+            // An item without an original_item_id is the root item of its lineage.
+            // Using (original_item_id ?? id) ensures that V1 (with ID 101) matches V2 (with original_item_id 101).
+            $lineageId = $item->original_item_id ?? $item->id;
+
+            if ($lineageId) {
+                return 'ID:' . $lineageId;
             }
-            // Fallback key
+
+            // Fallback for unsaved/temporary items if they ever hit this service
             $sectionName = $item->section ? $item->section->name : 'General';
-            return "LEGACY:{$sectionName}|" . ($item->product_id ?? 'custom') . "|{$item->name}";
+            return "TEMP:{$sectionName}|" . ($item->product_id ?? 'custom') . "|{$item->name}";
         };
 
         $oldItems = $old->items->keyBy($getKey);
