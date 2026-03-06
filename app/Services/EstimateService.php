@@ -171,10 +171,20 @@ class EstimateService
             if ($type === 'room_based') {
                 $inputSectionIds = array_filter(array_column($itemsOrSections, 'id'));
 
-                // If branched, we don't delete from old estimate, but new estimate is empty anyway.
+                // Collect all item IDs from all sections to prevent accidental deletion 
+                // when an item is moved between sections.
+                $allInputItemIds = [];
+                foreach ($itemsOrSections as $section) {
+                    if (isset($section['items'])) {
+                        $allInputItemIds = array_merge($allInputItemIds, array_filter(array_column($section['items'], 'id')));
+                    }
+                }
+
                 // If NOT branched, we verify deletes.
                 if (!$isBranched) {
                     $estimate->sections()->whereNotIn('id', $inputSectionIds)->delete();
+                    // Global item deletion for the estimate: remove items that are not in ANY input section
+                    $estimate->items()->whereNotNull('estimate_section_id')->whereNotIn('id', $allInputItemIds)->delete();
                 }
 
                 foreach ($itemsOrSections as $sectionIndex => $sectionData) {
@@ -210,14 +220,13 @@ class EstimateService
                     // Sync Items
                     if (isset($sectionData['items'])) {
                         $itemsToProcess = $sectionData['items'];
-                        if (!$isBranched) {
-                            $inputItemIds = array_filter(array_column($itemsToProcess, 'id'));
-                            $section->items()->whereNotIn('id', $inputItemIds)->delete();
-                        }
+                        // Individual item deletion within section is NO LONGER needed here 
+                        // because we handled it globally above. This allows moving items between sections.
 
                         foreach ($itemsToProcess as $itemIndex => $itemData) {
                             $oi = $itemData['order_index'] ?? $itemIndex;
                             if (!empty($itemData['id']) && !$isBranched) {
+                                // Search item in the WHOLE estimate, because it might have moved sections
                                 $item = $estimate->items()->where('id', $itemData['id'])->first();
                                 if ($item) {
                                     $this->updateEstimateItem($item, $section->id, $itemData, $oi);
@@ -228,8 +237,6 @@ class EstimateService
                                 $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                             }
                         }
-                    } else {
-                        $section->items()->delete();
                     }
                 }
             } else {

@@ -16,15 +16,10 @@ class UpdateEstimateRequest extends FormRequest
 
     public function rules()
     {
-        // Allowed statuses for Update:
-        // Generally, we shouldn't change status to 'sent'/'accepted' via update form unless Admin.
-        // If current is Draft, can stay Draft.
-        // Use 'markAs' for transitions.
-
+        // Allowed statuses for Update
         $statusRules = [Estimate::EST_STATUS_DRAFT];
 
         if ($this->user()->hasRole(['super_admin', 'admin'])) {
-            // Admin can do anything
             $statusRules = [
                 Estimate::EST_STATUS_DRAFT,
                 Estimate::EST_STATUS_SENT,
@@ -35,10 +30,6 @@ class UpdateEstimateRequest extends FormRequest
                 Estimate::EST_STATUS_APPROVED,
             ];
         } else {
-            // Regular User
-            // If currently Sent/Approved/Accepted, editing will Trigger Branching (Service logic).
-            // Ideally, we shouldn't even validate status here because Service overrides it to 'draft' on branch.
-            // But if NOT branching (editing Draft), we can keep Draft or 'Waiting Approval'.
             $statusRules = [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_PENDING_APPROVAL];
         }
 
@@ -59,9 +50,9 @@ class UpdateEstimateRequest extends FormRequest
             'layout_type' => 'nullable|string|in:modern,classic,simple',
             'coupon_code_id' => 'nullable|exists:coupon_codes,id',
             'type' => 'required|in:standard,room_based',
-            'last_update_timestamp' => 'nullable|date', // For Optimistic Lock
+            'last_update_timestamp' => 'nullable|date',
 
-            // Item Validation (Same as Store)
+            // Standard Items
             'items' => 'nullable|array|required_if:type,standard',
             'items.*.id' => 'nullable|integer',
             'items.*.product_id' => 'nullable|integer',
@@ -85,6 +76,7 @@ class UpdateEstimateRequest extends FormRequest
             'items.*.options.*.value' => 'nullable|string',
             'items.*.options.*.price_adjustment' => 'nullable|numeric',
 
+            // Room Based Sections
             'sections' => 'nullable|array|required_if:type,room_based',
             'sections.*.id' => 'nullable|integer',
             'sections.*.name' => 'required_with:sections|string',
@@ -105,7 +97,7 @@ class UpdateEstimateRequest extends FormRequest
             'sections.*.items.*.width' => 'nullable|numeric',
             'sections.*.items.*.height' => 'nullable|numeric',
             'sections.*.items.*.unit_type_id' => 'nullable|exists:unit_types,id',
-            'sections.*.items.*.unit_type' => 'nullable|string',
+            'sections.*.items.*.unit_type' => 'required_with:sections.*.items.*.unit_type_id|nullable|string',
             'sections.*.items.*.tax_1' => 'nullable|numeric|min:0',
             'sections.*.items.*.tax_2' => 'nullable|numeric|min:0',
             'sections.*.items.*.options' => 'nullable|array',
@@ -123,11 +115,11 @@ class UpdateEstimateRequest extends FormRequest
         $validator->after(function ($validator) {
             $data = $this->all();
 
-            // Unit Consistency
+            // Unit/Unit Type Consistency
             if (($data['type'] ?? '') === 'standard' && !empty($data['items'])) {
                 foreach ($data['items'] as $index => $item) {
                     if (!empty($item['unit_type_id']) && empty($item['unit_type'])) {
-                        $validator->errors()->add("items.{$index}.unit_type", "Unit is required.");
+                        $validator->errors()->add("items.{$index}.unit_type", "A specific unit (e.g. sqft) is required when a Unit Type is selected.");
                     }
                 }
             }
@@ -136,7 +128,7 @@ class UpdateEstimateRequest extends FormRequest
                     if (!empty($section['items'])) {
                         foreach ($section['items'] as $iIndex => $item) {
                             if (!empty($item['unit_type_id']) && empty($item['unit_type'])) {
-                                $validator->errors()->add("sections.{$sIndex}.items.{$iIndex}.unit_type", "Unit is required.");
+                                $validator->errors()->add("sections.{$sIndex}.items.{$iIndex}.unit_type", "A specific unit (e.g. sqft) is required for '{$item['name']}' in '{$section['name']}'.");
                             }
                         }
                     }
