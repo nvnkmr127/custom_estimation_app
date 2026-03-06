@@ -1,11 +1,11 @@
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('estimateBuilder', (initialData) => ({
-            products: initialData.products || @json($products),
-            templates: initialData.templates || @json($templates),
-            packages: initialData.packages || @json($packages),
-            unitTypes: initialData.unitTypes || @json($unitTypes ?? []),
-            categories: initialData.categories || @json($categories ?? []),
+            products: (initialData.products && initialData.products.length > 0) ? initialData.products : @json($products),
+            templates: (initialData.templates && initialData.templates.length > 0) ? initialData.templates : @json($templates),
+            packages: (initialData.packages && initialData.packages.length > 0) ? initialData.packages : @json($packages),
+            unitTypes: (initialData.unitTypes && initialData.unitTypes.length > 0) ? initialData.unitTypes : @json($unitTypes ?? []),
+            categories: (initialData.categories && initialData.categories.length > 0) ? initialData.categories : @json($categories ?? []),
             defaults: initialData.defaults || @json($defaults ?? []),
 
 
@@ -200,6 +200,10 @@
             },
 
             init() {
+                console.log('EstimateBuilder Init');
+                console.log('Unit Types Available:', JSON.parse(JSON.stringify(this.unitTypes)));
+                console.log('Initial Estimate Data:', JSON.parse(JSON.stringify(this.estimate)));
+
                 // Initialize sections if room_based and empty
                 if (this.estimate.type === 'room_based' && this.estimate.sections.length === 0) {
                     this.estimate.sections.push({ name: 'Room 1', items: [] });
@@ -208,6 +212,12 @@
                 // Hydrate items (fix images, numbers)
                 // Hydrate items (fix images, numbers)
                 const hydrateItem = (item) => {
+                    console.log('Hydrating Item:', item.name, {
+                        original_id: item.id,
+                        unit_type_id: item.unit_type_id,
+                        unit_type: item.unit_type
+                    });
+
                     // 1. Resolve Product ID first
                     if (!item.product_id && item.product) {
                         item.product_id = item.product.id;
@@ -318,6 +328,7 @@
                 }
 
                 this.calculateTotals();
+                console.log('Hydration Complete. Final Estimate State:', JSON.parse(JSON.stringify(this.estimate)));
                 this.$nextTick(() => {
                     this.initSortable();
                     this.initClientSearch();
@@ -461,11 +472,18 @@
 
             getUnitsByTypeId(typeId) {
                 if (!typeId) return [];
+                console.log('getUnitsByTypeId called for ID:', typeId);
                 const type = this.unitTypes.find(t => t.id == typeId);
+                if (!type) {
+                    console.warn('Unit Type not found for ID:', typeId, 'Available:', this.unitTypes);
+                    return [];
+                }
+                console.log('Found Unit Type:', type.name, 'Units:', type.units);
                 return type ? type.units : [];
             },
 
             onUnitTypeChange(item) {
+                console.log('onUnitTypeChange called for item:', item.name, 'New Type ID:', item.unit_type_id);
                 const units = this.getUnitsByTypeId(item.unit_type_id);
                 if (units.length > 0) {
                     item.unit_type = units[0];
