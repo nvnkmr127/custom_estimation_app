@@ -124,8 +124,18 @@
                                 @foreach($logs as $log)
                                     @php $badge = $log->status_badge; @endphp
                                     <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-4 py-3 font-mono text-xs text-slate-700 max-w-[200px] truncate" title="{{ $log->filename }}">
-                                            {{ $log->filename }}
+                                        <td class="px-4 py-3 font-mono text-xs text-slate-700 max-w-[200px] truncate">
+                                             <div class="flex items-center gap-2">
+                                                 <span class="text-sm font-medium text-slate-700 truncate max-w-[200px]" title="{{ $log->filename }}">
+                                                     {{ $log->filename }}
+                                                 </span>
+                                                 @if($log->is_incremental)
+                                                     <span class="px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-700 rounded uppercase tracking-wider">Incremental</span>
+                                                 @endif
+                                                 @if(!$log->is_incremental && $log->backup_type === 'final')
+                                                     <span class="px-1.5 py-0.5 text-[9px] font-bold bg-indigo-100 text-indigo-700 rounded uppercase tracking-wider">Zero-Downtime</span>
+                                                 @endif
+                                             </div>
                                         </td>
                                         <td class="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">
                                             {{ $log->formatted_size }}
@@ -186,6 +196,19 @@
                                                         </button>
                                                     </form>
                                                 @endif
+
+                                                 {{-- Restore --}}
+                                                 <form action="{{ route('backup.restore', $log) }}" method="POST" class="inline"
+                                                     onsubmit="return confirm('ATOMIC RESTORE: This will overwrite your current database and storage with this backup state. The app will be temporarily unavailable during restoration. Continue?')">
+                                                     @csrf
+                                                     <button type="submit" title="Restore this backup"
+                                                         class="inline-flex items-center justify-center h-7 w-7 rounded-md text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors">
+                                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                         </svg>
+                                                     </button>
+                                                 </form>
 
                                                 {{-- Delete --}}
                                                 <form action="{{ route('backup.destroy', $log) }}" method="POST" class="inline"
@@ -336,6 +359,18 @@
                             placeholder="admin@yourcompany.com"
                             class="block w-full rounded-lg border-0 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 text-sm">
                         <p class="mt-1 text-[11px] text-slate-400">Receive an email after every backup completes.</p>
+                    </div>
+
+                    {{-- Heartbeat URL --}}
+                    <div>
+                        <label for="backup_heartbeat_url" class="block text-xs font-medium text-slate-700 mb-1.5">
+                            Heartbeat URL <span class="text-slate-400 font-normal">(optional)</span>
+                        </label>
+                        <input type="url" name="backup_heartbeat_url" id="backup_heartbeat_url"
+                            value="{{ $settings->get('backup_heartbeat_url', '') }}"
+                            placeholder="https://hc-ping.com/your-uuid"
+                            class="block w-full rounded-lg border-0 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 text-sm">
+                        <p class="mt-1 text-[11px] text-slate-400">Pings this URL after a successful <b>consolidation</b> backup.</p>
                     </div>
 
                     <button type="submit"

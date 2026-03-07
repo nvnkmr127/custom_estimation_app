@@ -37,6 +37,10 @@ class CreateBackup extends Command
 
         $this->info('🗄️  Starting backup…');
 
+        // Raise memory limit for this process — large backup files need headroom
+        // even with chunked Drive upload (ZIP creation itself can be memory-hungry)
+        ini_set('memory_limit', '512M');
+
         try {
             $log = $this->backupService->runBackup($this->option('source') ?? 'schedule');
 

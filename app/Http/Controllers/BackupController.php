@@ -118,6 +118,26 @@ class BackupController extends Controller
     }
 
     // -------------------------------------------------------------------------
+    // Restore a backup
+    // -------------------------------------------------------------------------
+
+    public function restore(BackupLog $backup)
+    {
+        try {
+            $this->backupService->restore($backup);
+
+            // Revert status from 'restoring' back to whatever it was
+            $backup->update(['status' => $backup->google_drive_id ? 'drive_uploaded' : 'completed']);
+
+            return back()->with('success', 'Backup restored successfully!');
+        } catch (\Exception $e) {
+            Log::error('Restore failed: ' . $e->getMessage());
+            $backup->update(['status' => 'failed', 'error_message' => 'Restore failed: ' . $e->getMessage()]);
+            return back()->with('error', 'Restore failed: ' . $e->getMessage());
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Delete a backup
     // -------------------------------------------------------------------------
 
@@ -154,6 +174,7 @@ class BackupController extends Controller
             'backup_keep_count' => 'required|integer|min:1|max:100',
             'backup_google_drive_enabled' => 'nullable|boolean',
             'backup_notify_email' => 'nullable|email|max:255',
+            'backup_heartbeat_url' => 'nullable|url|max:255',
         ]);
 
         $keys = [
@@ -162,6 +183,7 @@ class BackupController extends Controller
             'backup_keep_count',
             'backup_google_drive_enabled',
             'backup_notify_email',
+            'backup_heartbeat_url',
         ];
 
         foreach ($keys as $key) {

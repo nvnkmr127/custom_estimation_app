@@ -263,6 +263,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/backup/settings', [App\Http\Controllers\BackupController::class, 'saveSettings'])->name('backup.settings');
         Route::get('/backup/{backup}/download', [App\Http\Controllers\BackupController::class, 'download'])->name('backup.download');
         Route::post('/backup/{backup}/drive', [App\Http\Controllers\BackupController::class, 'uploadToDrive'])->name('backup.drive');
+        Route::post('/backup/{backup}/restore', [App\Http\Controllers\BackupController::class, 'restore'])->name('backup.restore');
         Route::delete('/backup/{backup}', [App\Http\Controllers\BackupController::class, 'destroy'])->name('backup.destroy');
         Route::get('/backup/test-drive', [App\Http\Controllers\BackupController::class, 'testDrive'])->name('backup.test-drive');
     });
