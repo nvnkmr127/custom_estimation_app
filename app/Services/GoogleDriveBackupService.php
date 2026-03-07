@@ -51,6 +51,48 @@ class GoogleDriveBackupService
         return $this->accessToken = $response->json('access_token');
     }
 
+    /**
+     * Get or create a subfolder within the main backup folder.
+     */
+    protected function getOrCreateSubfolder(string $name): string
+    {
+        $token = $this->getAccessToken();
+        $parentFolderId = config('services.google_drive.folder_id');
+
+        // Search if folder exists
+        $query = "name = '" . str_replace("'", "\\'", $name) . "' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+        if ($parentFolderId) {
+            $query .= " and '{$parentFolderId}' in parents";
+        }
+
+        $search = Http::withToken($token)->get($this->filesUrl, [
+            'q' => $query,
+            'fields' => 'files(id)',
+        ]);
+
+        $files = $search->json('files', []);
+        if (!empty($files)) {
+            return $files[0]['id'];
+        }
+
+        // Create it
+        $metadata = [
+            'name' => $name,
+            'mimeType' => 'application/vnd.google-apps.folder',
+        ];
+        if ($parentFolderId) {
+            $metadata['parents'] = [$parentFolderId];
+        }
+
+        $create = Http::withToken($token)->post($this->filesUrl, $metadata);
+
+        if ($create->failed()) {
+            throw new \RuntimeException("Failed to create folder '{$name}': " . $create->body());
+        }
+
+        return $create->json('id');
+    }
+
     public function upload(BackupLog $log): array
     {
         $token = $this->getAccessToken();
@@ -59,7 +101,18 @@ class GoogleDriveBackupService
             throw new \RuntimeException("File missing: {$localPath}");
 
         $fileSize = filesize($localPath);
-        $folderId = config('services.google_drive.folder_id');
+
+        // Determine subfolder based on filename prefix or log properties
+        $subfolderName = 'Database Backups';
+        if (str_starts_with($log->filename, 'full_')) {
+            $subfolderName = 'Full Code Backups';
+        } elseif ($log->is_incremental || str_starts_with($log->filename, 'inc_')) {
+            $subfolderName = 'Incremental Backups';
+        } elseif (str_starts_with($log->filename, 'checkpoint_')) {
+            $subfolderName = 'Checkpoints';
+        }
+
+        $folderId = $this->getOrCreateSubfolder($subfolderName);
 
         $metadata = ['name' => $log->filename, 'mimeType' => 'application/zip'];
         if ($folderId)
@@ -115,11 +168,11 @@ class GoogleDriveBackupService
     }
 
     /**
-     * Delete backups older than 90 days (3 months).
+     * Delete backups older than 90 days (3 months) looking in all subfolders.
      */
     public function rotate(): int
     {
-        $files = $this->listFiles(100);
+        $files = $this->listFiles(500); // Higher limit to see all types
         if (empty($files))
             return 0;
 
@@ -128,11 +181,10 @@ class GoogleDriveBackupService
             $created = Carbon::parse($file['createdTime']);
             $ageDays = $created->diffInDays(now());
 
-            // User requested: Auto delete more than 3 months data (locally and drive)
             if ($ageDays > 90) {
                 if ($this->deleteFile($file['id'])) {
                     $deleted++;
-                    Log::info("[GoogleDriveBackupService] Deleted 3-month+ old backup: " . $file['name']);
+                    Log::info("[GoogleDriveBackupService] Purged: " . $file['name']);
                 }
             }
         }
@@ -142,10 +194,18 @@ class GoogleDriveBackupService
     public function listFiles(int $limit = 20): array
     {
         $token = $this->getAccessToken();
-        $folderId = config('services.google_drive.folder_id');
+        $parentFolderId = config('services.google_drive.folder_id');
+
+        // Find zip files. If parent is specified, we might want to search recursively.
+        // Google Drive API 'q' supports finding files by parent, but searching the whole tree
+        // is easier by omitting 'in parents' if we trust our naming convention or just listing all zips
+        // that our app owns.
+
         $query = "mimeType='application/zip' and trashed=false";
-        if ($folderId)
-            $query .= " and '{$folderId}' in parents";
+
+        // If we want to stay within the app's root folder only:
+        // We'd have to find all subfolders first or use 'root' if configured that way.
+        // For simplicity, we search for all Zips.
 
         $response = Http::withToken($token)->get($this->filesUrl, [
             'q' => $query,
