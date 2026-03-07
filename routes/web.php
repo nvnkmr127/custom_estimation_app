@@ -256,6 +256,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::resource('approval-checklists', App\Http\Controllers\ApprovalChecklistController::class);
         Route::resource('approval-checklists', App\Http\Controllers\ApprovalChecklistController::class);
+
+        // ── Backup Management ───────────────────────────────────────────────────
+        Route::get('/backup', [App\Http\Controllers\BackupController::class, 'index'])->name('backup.index');
+        Route::post('/backup/run', [App\Http\Controllers\BackupController::class, 'runNow'])->name('backup.run');
+        Route::post('/backup/settings', [App\Http\Controllers\BackupController::class, 'saveSettings'])->name('backup.settings');
+        Route::get('/backup/{backup}/download', [App\Http\Controllers\BackupController::class, 'download'])->name('backup.download');
+        Route::post('/backup/{backup}/drive', [App\Http\Controllers\BackupController::class, 'uploadToDrive'])->name('backup.drive');
+        Route::delete('/backup/{backup}', [App\Http\Controllers\BackupController::class, 'destroy'])->name('backup.destroy');
+        Route::get('/backup/test-drive', [App\Http\Controllers\BackupController::class, 'testDrive'])->name('backup.test-drive');
     });
 
     // Webhook Management (Super Admin)

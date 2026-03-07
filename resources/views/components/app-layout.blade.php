@@ -484,6 +484,19 @@
                                         Global Settings
                                     </a>
                                 </li>
+                                @if(auth()->user()->hasRole('super_admin'))
+                                    <li>
+                                        <a href="{{ route('backup.index') }}"
+                                            class="{{ request()->routeIs('backup.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/50' }} group flex gap-x-3 rounded-lg p-2 text-sm leading-6 font-medium transition-all">
+                                            <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                                stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                            </svg>
+                                            Backup & Restore
+                                        </a>
+                                    </li>
+                                @endif
                             </ul>
                         </li>
                     @endif
