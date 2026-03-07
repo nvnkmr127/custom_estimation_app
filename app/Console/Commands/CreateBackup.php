@@ -13,7 +13,7 @@ class CreateBackup extends Command
 {
     protected $signature = 'backup:run
                             {--drive : Also upload to Google Drive}
-                            {--source=schedule : Who triggered (schedule|manual)}';
+                            {--source=manual : Who triggered (schedule|manual)}';
 
     protected $description = 'Create a full application backup (database + storage files)';
 

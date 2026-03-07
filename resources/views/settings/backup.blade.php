@@ -13,18 +13,22 @@
         </div>
 
         <div class="mt-4 sm:mt-0 flex items-center gap-3">
-            {{-- Run Now Button --}}
-            <form action="{{ route('backup.run') }}" method="POST" id="backup-run-form">
+            {{-- Run Now Button with Alpine spinner --}}
+            <form action="{{ route('backup.run') }}" method="POST" x-data="{ busy: false }" @submit="busy = true">
                 @csrf
-                <button type="submit"
-                    id="backup-run-btn"
-                    onclick="this.disabled=true; this.innerHTML='<svg class=\'animate-spin h-4 w-4 mr-2 inline\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15\' /></svg> Creating Backup…'; this.form.submit();"
-                    class="inline-flex items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all">
-                    <svg class="-ml-0.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button type="submit" :disabled="busy"
+                    class="inline-flex items-center gap-x-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-60 transition-all">
+                    {{-- Spinner shown while busy --}}
+                    <svg x-show="busy" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {{-- Upload icon shown when idle --}}
+                    <svg x-show="!busy" class="-ml-0.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
-                    Create Backup Now
+                    <span x-text="busy ? 'Creating Backup…' : 'Create Backup Now'"></span>
                 </button>
             </form>
 
@@ -364,11 +368,20 @@
                 </div>
 
                 <div class="px-5 py-5">
-                    {{-- Enable toggle --}}
+                    {{-- Enable Drive toggle --}}
+                    {{-- NOTE: We pass ALL settings as hidden fields so toggling Drive --}}
+                    {{-- does not accidentally reset backup_enabled or other settings. --}}
                     <form action="{{ route('backup.settings') }}" method="POST">
                         @csrf
-                        <input type="hidden" name="backup_frequency" value="{{ $settings->get('backup_frequency', 'daily') }}">
-                        <input type="hidden" name="backup_keep_count" value="{{ $settings->get('backup_keep_count', 10) }}">
+                        <input type="hidden" name="backup_frequency"
+                            value="{{ $settings->get('backup_frequency', 'daily') }}">
+                        <input type="hidden" name="backup_keep_count"
+                            value="{{ $settings->get('backup_keep_count', 10) }}">
+                        <input type="hidden" name="backup_notify_email"
+                            value="{{ $settings->get('backup_notify_email', '') }}">
+                        {{-- Carry backup_enabled so toggling Drive doesn't zero it out --}}
+                        <input type="hidden" name="backup_enabled"
+                            value="{{ $settings->get('backup_enabled', '0') }}">
 
                         <div class="flex items-center justify-between mb-4">
                             <div>
@@ -376,7 +389,8 @@
                                 <p class="text-xs text-slate-500 mt-0.5">Auto-upload backups to Google Drive</p>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="backup_google_drive_enabled" value="1" class="sr-only peer"
+                                <input type="checkbox" name="backup_google_drive_enabled" value="1"
+                                    class="sr-only peer"
                                     {{ ($settings->get('backup_google_drive_enabled', '0') === '1') ? 'checked' : '' }}
                                     onchange="this.form.submit()">
                                 <div class="w-10 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>

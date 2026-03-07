@@ -6,27 +6,25 @@ use App\Models\BackupLog;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Google Drive Backup Service
  *
- * Uses Google OAuth2 with a refresh token (service-account style via user OAuth).
- * You must set up a Google Cloud project with Drive API enabled, and store:
+ * Uses Google OAuth2 with a refresh token.
+ * Required .env keys:
  *   GOOGLE_DRIVE_CLIENT_ID
  *   GOOGLE_DRIVE_CLIENT_SECRET
  *   GOOGLE_DRIVE_REFRESH_TOKEN
- *   GOOGLE_DRIVE_FOLDER_ID   (optional — uploads to root if unset)
+ *   GOOGLE_DRIVE_FOLDER_ID   (optional — uploads to Drive root if unset)
  *
- * To obtain a refresh token, use Google's OAuth 2.0 Playground:
- * https://developers.google.com/oauthplayground/
+ * Obtain a refresh token via https://developers.google.com/oauthplayground/
  * Scope: https://www.googleapis.com/auth/drive.file
  */
 class GoogleDriveBackupService
 {
     protected string $tokenUrl = 'https://oauth2.googleapis.com/token';
-    protected string $uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
     protected string $filesUrl = 'https://www.googleapis.com/drive/v3/files';
+    protected string $uploadBase = 'https://www.googleapis.com/upload/drive/v3/files';
 
     protected ?string $accessToken = null;
 
@@ -36,16 +34,14 @@ class GoogleDriveBackupService
 
     public function isConfigured(): bool
     {
-        $clientId = config('services.google_drive.client_id');
-        $clientSecret = config('services.google_drive.client_secret');
-        $refreshToken = config('services.google_drive.refresh_token');
-
-        return !empty($clientId) && !empty($clientSecret) && !empty($refreshToken);
+        return !empty(config('services.google_drive.client_id'))
+            && !empty(config('services.google_drive.client_secret'))
+            && !empty(config('services.google_drive.refresh_token'));
     }
 
     public function isEnabled(): bool
     {
-        return (bool) (Setting::where('key', 'backup_google_drive_enabled')->value('value') ?? false);
+        return (Setting::where('key', 'backup_google_drive_enabled')->value('value') ?? '0') === '1';
     }
 
     // -------------------------------------------------------------------------
@@ -74,12 +70,16 @@ class GoogleDriveBackupService
     }
 
     // -------------------------------------------------------------------------
-    // Upload
+    // Upload — uses multipart/related (required by Drive API)
     // -------------------------------------------------------------------------
 
     /**
      * Upload a backup ZIP to Google Drive.
-     * Returns the file ID on success.
+     * Returns ['id' => ..., 'url' => ...] on success.
+     *
+     * IMPORTANT: Google Drive multipart upload requires Content-Type:
+     * multipart/related — NOT multipart/form-data.
+     * We build the raw body manually.
      */
     public function upload(BackupLog $log): array
     {
@@ -92,19 +92,34 @@ class GoogleDriveBackupService
 
         $folderId = config('services.google_drive.folder_id');
 
-        // Build metadata
+        // JSON metadata part
         $metadata = ['name' => $log->filename, 'mimeType' => 'application/zip'];
         if ($folderId) {
             $metadata['parents'] = [$folderId];
         }
+        $metaJson = json_encode($metadata);
 
-        // Multipart upload
-        $response = Http::withToken($token)
-            ->attach('metadata', json_encode($metadata), null, ['Content-Type' => 'application/json'])
-            ->attach('file', file_get_contents($localPath), $log->filename, ['Content-Type' => 'application/zip'])
-            ->post($this->uploadUrl . '&fields=id,webViewLink');
+        // Build multipart/related body
+        $boundary = 'BackupBoundary' . uniqid();
+        $fileData = file_get_contents($localPath);
+
+        $body = "--{$boundary}\r\n";
+        $body .= "Content-Type: application/json; charset=UTF-8\r\n\r\n";
+        $body .= $metaJson . "\r\n";
+        $body .= "--{$boundary}\r\n";
+        $body .= "Content-Type: application/zip\r\n\r\n";
+        $body .= $fileData . "\r\n";
+        $body .= "--{$boundary}--";
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'multipart/related; boundary="' . $boundary . '"',
+            'Content-Length' => strlen($body),
+        ])->withBody($body, 'multipart/related')
+            ->post($this->uploadBase . '?uploadType=multipart&fields=id,webViewLink');
 
         if ($response->failed()) {
+            Log::error('[GoogleDriveBackupService] Upload failed: ' . $response->body());
             throw new \RuntimeException('Google Drive upload failed: ' . $response->body());
         }
 
@@ -115,7 +130,7 @@ class GoogleDriveBackupService
     }
 
     // -------------------------------------------------------------------------
-    // List files in backup folder
+    // List files in the configured backup folder
     // -------------------------------------------------------------------------
 
     public function listFiles(int $limit = 20): array
@@ -128,13 +143,12 @@ class GoogleDriveBackupService
             $query .= " and '{$folderId}' in parents";
         }
 
-        $response = Http::withToken($token)
-            ->get($this->filesUrl, [
-                'q' => $query,
-                'orderBy' => 'createdTime desc',
-                'pageSize' => $limit,
-                'fields' => 'files(id,name,size,createdTime,webViewLink)',
-            ]);
+        $response = Http::withToken($token)->get($this->filesUrl, [
+            'q' => $query,
+            'orderBy' => 'createdTime desc',
+            'pageSize' => $limit,
+            'fields' => 'files(id,name,size,createdTime,webViewLink)',
+        ]);
 
         if ($response->failed()) {
             Log::error('[GoogleDriveBackupService] listFiles failed: ' . $response->body());
@@ -151,28 +165,31 @@ class GoogleDriveBackupService
     public function deleteFile(string $fileId): bool
     {
         $token = $this->getAccessToken();
-
         $response = Http::withToken($token)->delete("{$this->filesUrl}/{$fileId}");
-
         return $response->successful();
     }
 
     // -------------------------------------------------------------------------
-    // Verify credentials (used by test button)
+    // Test connection
     // -------------------------------------------------------------------------
 
     public function testConnection(): array
     {
         try {
             if (!$this->isConfigured()) {
-                return ['success' => false, 'message' => 'Google Drive credentials are not configured. Please set GOOGLE_DRIVE_CLIENT_ID, GOOGLE_DRIVE_CLIENT_SECRET, and GOOGLE_DRIVE_REFRESH_TOKEN.'];
+                return [
+                    'success' => false,
+                    'message' => 'Google Drive credentials are not configured. Add GOOGLE_DRIVE_CLIENT_ID, GOOGLE_DRIVE_CLIENT_SECRET, and GOOGLE_DRIVE_REFRESH_TOKEN to your .env file.',
+                ];
             }
 
             $token = $this->getAccessToken();
 
-            // Try a simple files list to verify scopes
-            $response = Http::withToken($token)
-                ->get($this->filesUrl, ['pageSize' => 1, 'fields' => 'files(id,name)']);
+            // List 1 file — enough to verify auth + scope
+            $response = Http::withToken($token)->get($this->filesUrl, [
+                'pageSize' => 1,
+                'fields' => 'files(id,name)',
+            ]);
 
             if ($response->successful()) {
                 return ['success' => true, 'message' => 'Google Drive connected successfully!'];
