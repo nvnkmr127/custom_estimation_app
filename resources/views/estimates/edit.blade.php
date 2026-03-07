@@ -794,7 +794,7 @@
                                         class="block w-full rounded-lg border-slate-200 bg-white py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-slate-50 shadow-sm">
                                         <option value="">Manual Unit Type</option>
                                         <template x-for="type in unitTypes" :key="type.id">
-                                            <option :value="String(type.id)" x-text="type.name"></option>
+                                            <option :value="type.id" x-text="type.name" :selected="item.unit_type_id == type.id"></option>
                                         </template>
                                     </select>
                                     <div
