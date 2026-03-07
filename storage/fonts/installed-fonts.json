@@ -1,7 +1,7 @@
 {
     "helvetica": {
-        "normal": "\/Users\/naveenadicharla\/Documents\/custom_estimation_app\/storage\/fonts\/helvetica_normal_9fe4fe3d1985ab4094682f8629d4388f",
-        "bold": "helvetica_bold_eb0d89f0cd2ed4e8e65afd4b07929fd5",
+        "normal": "\/Users\/naveenadicharla\/Documents\/custom_estimation_app\/storage\/fonts\/helvetica_normal_5dfe0f53772b37725441d9a4370a00eb",
+        "bold": "helvetica_bold_d893ffd1432adb8c6ed1a3ca4437b618",
         "italic": "\/Users\/naveenadicharla\/Documents\/custom_estimation_app\/vendor\/dompdf\/dompdf\/lib\/fonts\/Helvetica-Oblique",
         "bold_italic": "\/Users\/naveenadicharla\/Documents\/custom_estimation_app\/vendor\/dompdf\/dompdf\/lib\/fonts\/Helvetica-BoldOblique"
     }
