@@ -790,13 +790,12 @@
                         <td class="px-3 py-4">
                             <div class="flex flex-col gap-2" x-show="!item.is_package">
                                 <div class="relative group">
-                                    <select @change="item.unit_type_id = $event.target.value; onUnitTypeChange(item)"
+                                    <select :value="item.unit_type_id"
+                                        @change="item.unit_type_id = $event.target.value; onUnitTypeChange(item)"
                                         class="block w-full rounded-lg border-slate-200 bg-white py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-slate-50 shadow-sm">
                                         <option value="">Manual Unit Type</option>
                                         @foreach($unitTypes as $type)
-                                            <option value="{{ $type->id }}"
-                                                :selected="item.unit_type_id == '{{ $type->id }}'">{{ $type->name }}
-                                            </option>
+                                            <option value="{{ $type->id }}">{{ $type->name }}</option>
                                         @endforeach
                                     </select>
                                     <div
