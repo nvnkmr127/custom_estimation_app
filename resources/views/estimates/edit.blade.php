@@ -790,13 +790,11 @@
                         <td class="px-3 py-4">
                             <div class="flex flex-col gap-2" x-show="!item.is_package">
                                 <div class="relative group">
-                                    <select :value="item.unit_type_id"
-                                        @change="item.unit_type_id = $event.target.value; onUnitTypeChange(item)"
+                                    <select x-model="item.unit_type_id" @change="onUnitTypeChange(item)"
                                         class="block w-full rounded-lg border-slate-200 bg-white py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-slate-50 shadow-sm">
                                         <option value="">Manual Unit Type</option>
-                                        <template x-for="type in unitTypes" :key="type.id">
-                                            <option :value="type.id" x-text="type.name"
-                                                :selected="item.unit_type_id == type.id"></option>
+                                        <template x-for="type in unitTypes" :key="String(type.id)">
+                                            <option :value="String(type.id)" x-text="type.name"></option>
                                         </template>
                                     </select>
                                     <div
@@ -809,10 +807,10 @@
                                 </div>
                                 <div class="relative">
                                     <template x-if="item.unit_type_id">
-                                        <select :value="item.unit_type" @change="item.unit_type = $event.target.value"
+                                        <select x-model="item.unit_type"
                                             class="block w-full rounded-lg border-indigo-200 bg-indigo-50/30 py-1 px-2 text-[10px] font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-indigo-50/50 shadow-sm text-center">
                                             <template x-for="u in getUnitsByTypeId(item.unit_type_id)" :key="u">
-                                                <option :value="u" x-text="u" :selected="u === item.unit_type"></option>
+                                                <option :value="String(u)" x-text="u"></option>
                                             </template>
                                         </select>
                                     </template>
