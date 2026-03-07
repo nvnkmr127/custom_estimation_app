@@ -793,9 +793,9 @@
                                     <select x-model="item.unit_type_id" @change="onUnitTypeChange(item)"
                                         class="block w-full rounded-lg border-slate-200 bg-white py-1.5 px-2 text-[10px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-600 transition-all appearance-none cursor-pointer hover:bg-slate-50 shadow-sm">
                                         <option value="">Manual Unit Type</option>
-                                        <template x-for="type in unitTypes" :key="String(type.id)">
-                                            <option :value="String(type.id)" x-text="type.name"></option>
-                                        </template>
+                                        @foreach($unitTypes as $type)
+                                            <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                        @endforeach
                                     </select>
                                     <div
                                         class="absolute inset-y-0 right-2 flex items-center pointer-events-none text-slate-400">
