@@ -14,7 +14,7 @@
 </head>
 
 <body class="h-full font-sans antialiased text-slate-900">
-    <div class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="min-h-full flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
         {{ $slot }}
     </div>
     <livewire:notification-overlay />

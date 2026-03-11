@@ -56,9 +56,6 @@ class SettingsController extends Controller
             'estimate_terms' => 'nullable|string',
             'estimate_client_note' => 'nullable|string',
 
-            // Perfex CRM
-            'perfex_api_url' => 'nullable|url|max:255',
-            'perfex_api_token' => 'nullable|string|max:255',
 
             // SMTP Settings
             'smtp_host' => 'nullable|string|max:255',
@@ -108,8 +105,6 @@ class SettingsController extends Controller
             'tax_2_rate',
             'estimate_terms',
             'estimate_client_note',
-            'perfex_api_url',
-            'perfex_api_token',
             // SMTP
             'smtp_host',
             'smtp_port',
@@ -194,75 +189,6 @@ class SettingsController extends Controller
 
         return redirect()->route('settings.edit')->with('success', 'Settings updated successfully.');
     }
-    public function testPerfex(Request $request, \App\Services\PerfexApiService $api)
-    {
-        try {
-            // Attempt 1: Fetch Lead (Skip Mock)
-            $response = $api->getLeads(1, true);
-
-            // Handle API Error Response - Try Fallback if 500/Timeout
-            if (isset($response['error']) || (isset($response['status']) && $response['status'] === false)) {
-                Log::warning("Test Perfex: Main leads list failed (500/Timeout), searching for 'naveen' to verify connection and fetch sample data...");
-
-                // Step 2: Try Search (Specific term) - Searching for 'naveen' as requested
-                $searchResponse = $api->searchLeads('naveen');
-
-                // If the message contains "No data" or "status":false but NO "error" key (except for 404), it's a success
-                $responseString = json_encode($searchResponse);
-                $isAuthOk = str_contains($responseString, 'No data') || !isset($searchResponse['error']);
-
-                if ($isAuthOk) {
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'API Connected Successfully! We verified your URL and Token using the Search endpoint (since the main Leads list is currently timing out on your server).',
-                        'raw_sample' => $searchResponse
-                    ]);
-                }
-
-                // Step 3: Try Single Lead Fetch (ID 1) as final fallback
-                $singleLeadResponse = $api->getLead(1);
-                if (!isset($singleLeadResponse['error'])) {
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'API Connected Successfully! Verified via Single Lead Fetch.',
-                        'raw_sample' => $singleLeadResponse
-                    ]);
-                }
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Connection Failed: All attempts (List, Search, Single) failed. Please check your Token and URL. Error: ' . ($searchResponse['message'] ?? $searchResponse['error'] ?? 'Unknown Auth Error')
-                ]);
-            }
-
-            // Getting the first item if List actually worked
-            $sample = $response[0] ?? $response['data'][0] ?? null;
-
-            // Attempt 2: If no leads, try fetching Customers (maybe they assume they are leads)
-            if (!$sample) {
-                // We don't have a getCustomers method exposed, let's use searchLeads or similar, 
-                // OR assuming if no leads, we just return message.
-                // Actually, let's just return the raw response if it's empty so they see it's empty.
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Connected successfully, but no Leads found (Array is empty).',
-                    'raw_sample' => $response
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Data fetched successfully (REAL DATA)',
-                'raw_sample' => $sample
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Exception: ' . $e->getMessage()
-            ]);
-        }
-    }
 
     public function testEmail(Request $request, \App\Services\Mail\Contracts\MailGatewayInterface $mailService)
     {
@@ -323,65 +249,6 @@ class SettingsController extends Controller
         }
     }
 
-    public function editPerfexMapping()
-    {
-        // Get existing mapping or default
-        $rawMapping = Setting::where('key', 'perfex_field_mapping')->value('value');
-        $mapping = $rawMapping ? json_decode($rawMapping, true) : [
-            ['perfex_field' => 'phonenumber', 'local_field' => 'phone'],
-            ['perfex_field' => 'address', 'local_field' => 'address'],
-            ['perfex_field' => 'Location', 'local_field' => 'city'],
-            ['perfex_field' => 'Property Name', 'local_field' => 'property_name'],
-            ['perfex_field' => 'Type of property', 'local_field' => 'property_type'],
-            ['perfex_field' => 'Alternative Number', 'local_field' => 'secondary_phone'],
-            ['perfex_field' => 'Alternative Email', 'local_field' => 'secondary_email'],
-        ];
-
-        // Define available Client columns (Reduced list per user request)
-        $clientColumns = [
-            'name' => 'Name',
-            'company' => 'Company',
-            'email' => 'Email',
-            'phone' => 'Phone',
-            'address' => 'Address',
-            'city' => 'City',
-            // 'state' => 'State', // Removed as requested
-            // 'zip' => 'Zip Code',    // Removed as requested
-            // 'country' => 'Country', // Removed as requested
-            'property_name' => 'Property Name',
-            'property_address' => 'Property Address',
-            'property_type' => 'Property Type',
-            'property_notes' => 'Property Notes', // User didn't strictly ask to remove this, but based on "clients create" view removal, maybe? I'll keep it as it's useful for mapping 'notes'.
-            'secondary_email' => 'Alternative Email',
-            'secondary_phone' => 'Alternative Phone',
-        ];
-
-        return view('settings.perfex_mapping', compact('mapping', 'clientColumns'));
-    }
-
-    public function updatePerfexMapping(Request $request)
-    {
-        $mappings = $request->input('mappings', []);
-
-        // Filter out empty rows
-        $cleanMappings = [];
-        foreach ($mappings as $map) {
-            if (!empty($map['perfex_field']) && !empty($map['local_field'])) {
-                $cleanMappings[] = [
-                    'perfex_field' => trim($map['perfex_field']),
-                    'local_field' => $map['local_field'],
-                    'strategy' => $map['strategy'] ?? 'direct' // direct, append
-                ];
-            }
-        }
-
-        Setting::updateOrCreate(
-            ['key' => 'perfex_field_mapping'],
-            ['value' => json_encode($cleanMappings)]
-        );
-
-        return redirect()->route('settings.perfex.mapping')->with('success', 'Perfex mapping updated successfully.');
-    }
 
     public function deleteGalleryImage($index)
     {

@@ -29,6 +29,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Force HTTPS in production to prevent Livewire from generating HTTP urls behind proxies
+        if ($this->app->environment('production') || \Illuminate\Support\Str::contains(config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         try {
             // Register the global event logger
             // Note: LogDomainEvent logic is now handled by LaravelEventDispatcher dispatching LogEvent job directly.

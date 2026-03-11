@@ -201,7 +201,7 @@
 
             init() {
                 console.log('EstimateBuilder Init');
-                console.log('Unit Types Available:', JSON.parse(JSON.stringify(this.unitTypes)));
+                console.log('Unit Types Available:', JSON.parse(JSON.stringify(this.unitTypes)), 'Count:', this.unitTypes.length);
                 console.log('Initial Estimate Data:', JSON.parse(JSON.stringify(this.estimate)));
 
                 // Initialize sections if room_based and empty
@@ -211,92 +211,111 @@
 
                 // Hydrate items (fix images, numbers)
                 // Hydrate items (fix images, numbers)
-                const hydrateItem = (item) => {
-                    console.log('Hydrating Item:', item.name, {
-                        original_id: item.id,
-                        unit_type_id: item.unit_type_id,
-                        unit_type: item.unit_type
+            },
+
+            hydrateItem(item) {
+                console.log('Hydrating Item [DEBUG]:', item.name || item.item_name, {
+                    product_id: item.product_id,
+                    input_unit_type_id: item.unit_type_id,
+                    input_unit_type: item.unit_type,
+                    has_product_obj: !!item.product
+                });
+
+                // 1. Resolve Product ID first
+                if (!item.product_id && item.product) {
+                    item.product_id = item.product.id;
+                }
+
+                // 2. Check for forced formula from product
+                let forcedMethod = null;
+                if (item.product_id && this.products) {
+                    const product = this.products.find(p => p.id == item.product_id);
+                    if (product && ['formula', 'area', 'volume', 'area_lh'].includes(product.calculation_method)) {
+                        forcedMethod = product.calculation_method;
+                    }
+                }
+
+                // 3. Basic Field Hydration
+                item.unit_price = parseFloat(item.unit_price || 0);
+                item.quantity = parseFloat(item.quantity || 1);
+                item.tax_1 = parseFloat(item.tax_1 || 0);
+                item.tax_2 = 0; // Use one tax only (GST)
+                // Fallback to product defaults for Unit Type if missing on the item
+                if ((item.unit_type_id === null || item.unit_type_id === undefined || item.unit_type_id === 'null' || item.unit_type_id === '') && item.product && item.product.unit_type_id) {
+                    item.unit_type_id = item.product.unit_type_id;
+                }
+                item.unit_type_id = (item.unit_type_id && item.unit_type_id !== 'null') ? String(item.unit_type_id) : '';
+
+                if (!item.unit_type_id) {
+                    console.log(`[DEBUG] Item ${item.name || item.item_name} has no unit_type_id. Attempting product lookup.`, {
+                        product_id: item.product_id,
+                        has_product_obj: !!item.product
                     });
+                } else {
+                    console.log(`[DEBUG] Item ${item.name || item.item_name} has unit_type_id: ${item.unit_type_id}`);
+                }
 
-                    // 1. Resolve Product ID first
-                    if (!item.product_id && item.product) {
-                        item.product_id = item.product.id;
-                    }
-
-                    // 2. Check for forced formula from product
-                    let forcedMethod = null;
-                    if (item.product_id && this.products) {
-                        const product = this.products.find(p => p.id == item.product_id);
-                        if (product && ['formula', 'area', 'volume', 'area_lh'].includes(product.calculation_method)) {
-                            forcedMethod = product.calculation_method;
-                        }
-                    }
-
-                    // 3. Basic Field Hydration
-                    item.unit_price = parseFloat(item.unit_price || 0);
-                    item.quantity = parseFloat(item.quantity || 1);
-                    item.tax_1 = parseFloat(item.tax_1 || 0);
-                    item.tax_2 = 0; // Use one tax only (GST)
-                    // Fallback to product defaults for Unit Type if missing on the item
-                    if ((item.unit_type_id === null || item.unit_type_id === undefined) && item.product && item.product.unit_type_id) {
-                        item.unit_type_id = item.product.unit_type_id;
-                    }
-                    item.unit_type_id = item.unit_type_id ? String(item.unit_type_id) : '';
-
-                    // MT-16: Ensure unit_type is synchronized with unit_type_id if missing
-                    if (item.unit_type_id && !item.unit_type) {
-                        const units = this.getUnitsByTypeId(item.unit_type_id);
-                        if (units && units.length > 0) {
+                // Ensure unit_type is synchronized with unit_type_id if missing
+                if (item.unit_type_id && (!item.unit_type || item.unit_type === 'nos')) {
+                    const units = this.getUnitsByTypeId(item.unit_type_id);
+                    console.log('Syncing Units for Type ID:', item.unit_type_id, 'Units Found:', units);
+                    if (units && units.length > 0) {
+                        // If current unit is not in the allowed units for this type, default to first
+                        const currentUnit = (item.unit_type || '').toLowerCase();
+                        const isValid = units.some(u => u.toLowerCase() === currentUnit);
+                        console.log('Current Unit:', item.unit_type, 'Is Valid:', isValid);
+                        if (!isValid) {
                             item.unit_type = units[0];
+                            console.log('New Unit Set:', item.unit_type);
                         }
                     }
+                }
 
-                    item.tax_1 = parseFloat(item.tax_1 || 0);
-                    item.tax_2 = 0; // Use one tax only (GST)
-                    item._showTypePicker = false;
-                    item.size = item.size || '';
-                    item.length = item.length || '';
-                    item.width = item.width || '';
-                    item.height = item.height || '';
+                item.tax_1 = parseFloat(item.tax_1 || 0);
+                item.tax_2 = 0; // Use one tax only (GST)
+                item._showTypePicker = !!item.unit_type_id;
+                item.size = item.size || '';
+                item.length = item.length || '';
+                item.width = item.width || '';
+                item.height = item.height || '';
 
-                    // 4. Set Formula and ShowCalculator
-                    if (forcedMethod) {
-                        item.formula = forcedMethod;
-                    } else {
-                        item.formula = item.formula || '';
-                    }
+                // 4. Set Formula and ShowCalculator
+                if (forcedMethod) {
+                    item.formula = forcedMethod;
+                } else {
+                    item.formula = item.formula || '';
+                }
 
-                    item.showCalculator = !!(item.length || item.width || item.height) || ['formula', 'area', 'volume', 'area_lh'].includes(item.formula);
+                item.showCalculator = !!(item.length || item.width || item.height) || ['formula', 'area', 'volume', 'area_lh'].includes(item.formula);
 
-                    if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
-                        item.image_url = '/storage/' + item.product.images[0].image_path;
-                    }
-                    if (!item.options) item.options = [];
-                    if (!item.selected_options) item.selected_options = {};
+                if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
+                    item.image_url = '/storage/' + item.product.images[0].image_path;
+                }
+                if (!item.options) item.options = [];
+                if (!item.selected_options) item.selected_options = {};
 
-                    // Reconstruct selected_options from display options if missing (for legacy data)
-                    if (Object.keys(item.selected_options).length === 0 && item.options.length > 0 && item.product_id) {
-                        const product = this.getProduct(item.product_id);
-                        if (product && product.options) {
-                            item.options.forEach(displayOpt => {
-                                const matchedOpt = product.options.find(o => o.name === displayOpt.name);
-                                if (matchedOpt) {
-                                    const matchedVal = matchedOpt.values.find(v => v.value === displayOpt.value);
-                                    if (matchedVal) {
-                                        item.selected_options[matchedOpt.id] = matchedVal.id;
-                                    }
+                // Reconstruct selected_options from display options if missing (for legacy data)
+                if (Object.keys(item.selected_options).length === 0 && item.options.length > 0 && item.product_id) {
+                    const product = this.getProduct(item.product_id);
+                    if (product && product.options) {
+                        item.options.forEach(displayOpt => {
+                            const matchedOpt = product.options.find(o => o.name === displayOpt.name);
+                            if (matchedOpt) {
+                                const matchedVal = matchedOpt.values.find(v => v.value === displayOpt.value);
+                                if (matchedVal) {
+                                    item.selected_options[matchedOpt.id] = matchedVal.id;
                                 }
-                            });
-                        }
+                            }
+                        });
                     }
+                }
 
-                    item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
-                };
+                item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
 
                 if (this.estimate.type === 'room_based') {
                     this.estimate.sections.forEach(s => {
                         s.items.forEach(i => {
-                            hydrateItem(i);
+                            this.hydrateItem(i);
                             if (!i._uid) i._uid = 'item-' + Math.random().toString(36).substr(2, 9);
                         });
                         // Robust Section Type Initialization
@@ -312,7 +331,7 @@
                     });
                 } else {
                     this.estimate.items.forEach(i => {
-                        hydrateItem(i);
+                        this.hydrateItem(i);
                         if (!i._uid) i._uid = 'item-' + Math.random().toString(36).substr(2, 9);
                     });
                 }
@@ -483,12 +502,13 @@
             },
 
             onUnitTypeChange(item) {
-                console.log('onUnitTypeChange called for item:', item.name, 'New Type ID:', item.unit_type_id);
+                console.log('onUnitTypeChange called for item:', item.name || item.item_name, 'Selected ID:', item.unit_type_id);
                 const units = this.getUnitsByTypeId(item.unit_type_id);
+                console.log('Units for selected ID:', units);
                 if (units.length > 0) {
                     item.unit_type = units[0];
                 } else {
-                    item.unit_type = 'nos';
+                    item.unit_type = '';
                 }
             },
 
@@ -764,6 +784,8 @@
 
             // --- Importers ---
             applyTemplate(template) {
+                console.log('Apply Template [DEBUG]:', template.name, 'Items Count:', template.items?.length);
+                console.log('Template Data:', JSON.parse(JSON.stringify(template)));
                 // Check if room with template name exists
                 const isDuplicate = this.estimate.sections.some(section =>
                     section.name.trim().toLowerCase() === template.name.trim().toLowerCase()
@@ -812,7 +834,7 @@
                             }
                         }
 
-                        return {
+                        const newItem = {
                             id: null,
                             name: i.item_name || i.name || '',
                             product_id: productId,
@@ -823,10 +845,10 @@
                             unit_type_id: unitTypeIdString,
                             description: desc,
                             image_url: imageUrl,
+                            product: i.product || null,
                             tax_1: 0,
                             tax_2: 0,
-                            length: '', width: '', height: '', formula: '', showCalculator: false,
-                            _showTypePicker: !!unitTypeIdString, // Show picker if unit type is set
+                            length: i.length || '', width: i.width || '', height: i.height || '', formula: '', showCalculator: false,
                             options: (() => {
                                 if (i.options && i.options.length > 0) return JSON.parse(JSON.stringify(i.options));
                                 // Fallback: If no options in template but product has them, use defaults (first value)
@@ -849,6 +871,9 @@
                             is_locked: true,
                             _uid: 'item-' + Math.random().toString(36).substr(2, 9)
                         };
+
+                        this.hydrateItem(newItem);
+                        return newItem;
                     });
                 }
                 this.estimate.sections.push(newSection);

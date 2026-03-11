@@ -37,10 +37,6 @@ class PdfRenderingService
 
         $html = $template->html_content;
 
-        // 1. Handle Hardcoded Symbols
-        // DOMPDF character fallback is weak; wrap `₹` universally in DejaVu Sans so it never hits generic font failure.
-        $html = str_replace('₹', '<span style="font-family: \'DejaVu Sans\', sans-serif;">₹</span>', $html);
-
         // 2. Handle Loops First
         // This expands the content and evaluates loop-specific conditionals (item_is_package, has_width, etc.)
         $html = $this->parseSections($html);
@@ -53,7 +49,11 @@ class PdfRenderingService
         // 4. Variable Replacement
         $html = $this->replaceVariables($html);
 
-        // 5. Final Cleanup (Remove any unrendered logic tags or empty tags to prevent them showing in PDF)
+        // 5. Handle Rupee Symbol AFTER all replacements
+        // DOMPDF character fallback is weak; wrap `₹` universally in DejaVu Sans so it never hits generic font failure.
+        $html = str_replace('₹', '<span style="font-family: \'DejaVu Sans\', sans-serif;">₹</span>', $html);
+
+        // 6. Final Cleanup (Remove any unrendered logic tags or empty tags to prevent them showing in PDF)
         $html = preg_replace('/\{(IF_|IF_NOT_|ENDIF|END_IF|LOOP_|END_LOOP_|%7BIF|%7BEND|%7BLOOP|%7BEND_LOOP)[^}]*\}/i', '', $html);
 
         // 6. Process Images

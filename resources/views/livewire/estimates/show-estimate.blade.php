@@ -359,19 +359,6 @@
                         </button>
                     </div>
 
-                    @if($estimate->status === 'approved' || $estimate->status === 'sent')
-                        <div class="py-1">
-                            @if(!$estimate->perfex_proposal_id)
-                                <button type="button" wire:click="perfexSync"
-                                    class="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-slate-50">
-                                    Push to Perfex
-                                </button>
-                            @else
-                                <span class="block px-4 py-2 text-xs text-slate-400">Synced to Perfex
-                                    (#{{ $estimate->perfex_proposal_id }})</span>
-                            @endif
-                        </div>
-                    @endif
                 </div>
 
                 <!-- Create Version Modal -->
@@ -1038,24 +1025,28 @@
 
 
             <!-- Comments Section -->
-            <div x-data="{ showCommentsModal: {{ $estimate->comments->where('is_read', false)->isNotEmpty() ? 'true' : 'false' }} }"
+            @php
+                $familyComments = $estimate->allFamilyComments()->get()->sortBy('created_at');
+                $unreadFamilyComments = $familyComments->where('is_read', false);
+            @endphp
+            <div x-data="{ showCommentsModal: {{ $unreadFamilyComments->isNotEmpty() ? 'true' : 'false' }} }"
                 class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mb-6">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-sm font-semibold text-slate-900">Comments</h3>
-                    @if($estimate->comments->isNotEmpty())
+                    @if($familyComments->isNotEmpty())
                         <span
                             class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800">
-                            {{ $estimate->comments->count() }}
+                            {{ $familyComments->count() }}
                         </span>
                     @endif
                 </div>
 
-                @if($estimate->comments->isEmpty())
+                @if($familyComments->isEmpty())
                     <p class="text-xs text-slate-500 italic mb-3">No comments yet.</p>
                 @else
                     <div class="mb-3">
                         <div class="flex -space-x-1 overflow-hidden">
-                            @foreach($estimate->comments->unique('user_id')->take(3) as $comment)
+                            @foreach($familyComments->unique('user_id')->take(3) as $comment)
                                 @if($comment->isClientComment())
                                     <div class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600"
                                         title="{{ $comment->client_name }}">
@@ -1073,17 +1064,17 @@
                                     @endif
                                 @endif
                             @endforeach
-                            @if($estimate->comments->unique('user_id')->count() > 3)
+                            @if($familyComments->unique('user_id')->count() > 3)
                                 <div
                                     class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-slate-50 flex items-center justify-center text-[10px] font-medium text-slate-500">
-                                    +{{ $estimate->comments->unique('user_id')->count() - 3 }}
+                                    +{{ $familyComments->unique('user_id')->count() - 3 }}
                                 </div>
                             @endif
                         </div>
                         <p class="text-xs text-slate-500 mt-2 line-clamp-2">
                             <span
-                                class="font-medium text-slate-700">{{ $estimate->comments->last()->isClientComment() ? ($estimate->comments->last()->client_name ?: 'Client') : 'Staff' }}:</span>
-                            {{ $estimate->comments->last()->comment }}
+                                class="font-medium text-slate-700">{{ $familyComments->last()->isClientComment() ? ($familyComments->last()->client_name ?: 'Client') : 'Staff' }}:</span>
+                            {{ $familyComments->last()->comment }}
                         </p>
                     </div>
                 @endif
@@ -1138,7 +1129,7 @@
                                     <div class="px-5 py-5 overflow-y-auto flex-1 bg-white space-y-6 min-h-[40vh]"
                                         id="comments-thread-body"
                                         x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
-                                        @if($estimate->comments->isEmpty())
+                                        @if($familyComments->isEmpty())
                                             <div class="text-center py-12">
                                                 <div
                                                     class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 mb-3">
@@ -1155,7 +1146,7 @@
                                                     client.</p>
                                             </div>
                                         @else
-                                            @foreach($estimate->comments as $comment)
+                                            @foreach($familyComments as $comment)
                                                 <div
                                                     class="flex {{ $comment->isClientComment() ? 'justify-start' : 'justify-end' }}">
                                                     <div

@@ -30,7 +30,7 @@
         }
     </style>
 
-    <div class="max-w-4xl mx-auto" x-data="portalShow()" wire:ignore>
+    <div class="max-w-4xl mx-auto pb-24 sm:pb-8" x-data="portalShow()" wire:ignore>
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -120,7 +120,7 @@
                             </p>
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="w-full sm:w-auto text-left sm:text-right">
                         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
                             <div class="text-xs text-slate-300 uppercase tracking-wider font-bold mb-1">Grand Total
                             </div>
@@ -565,7 +565,7 @@
                             <div class="p-4 space-y-4">
                                 @foreach($section->items as $item)
                                     <div
-                                        class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-row items-start gap-4 transition-all hover:shadow-md group/item">
+                                        class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-start gap-4 transition-all hover:shadow-md group/item">
 
                                         <!-- Image Column (Fixed Width) -->
                                         @php
@@ -573,7 +573,7 @@
                                         @endphp
                                         @if(!$section->is_package && $imageUrl)
                                             <div @click.stop="openItemImage('{{ $imageUrl }}')"
-                                                class="w-16 h-16 sm:w-24 sm:h-24 bg-slate-50 rounded-2xl shrink-0 overflow-hidden border border-slate-200 shadow-sm relative group-hover/item:shadow-md transition-all cursor-zoom-in">
+                                                class="w-full sm:w-24 h-48 sm:h-24 bg-slate-50 rounded-2xl shrink-0 overflow-hidden border border-slate-200 shadow-sm relative group-hover/item:shadow-md transition-all cursor-zoom-in">
                                                 <img src="{{ $imageUrl }}"
                                                     class="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110">
                                                 <div
@@ -1386,7 +1386,7 @@
                                 cutout: '75%',
                                 plugins: {
                                     legend: {
-                                        position: 'right',
+                                        position: window.innerWidth < 640 ? 'bottom' : 'right',
                                         labels: {
                                             usePointStyle: true,
                                             padding: 20,

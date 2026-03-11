@@ -127,9 +127,6 @@
                         <div>
                             <h5 class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Advanced
                             </h5>
-                            <a href="#integrations"
-                                class="block px-3 py-2 text-sm text-slate-600 rounded-md hover:bg-slate-50 hover:text-blue-600 transition-colors">Perfex
-                                Integration</a>
                             <a href="#admin-settings"
                                 class="block px-3 py-2 text-sm text-slate-600 rounded-md hover:bg-slate-50 hover:text-blue-600 transition-colors">Admin
                                 Settings</a>
@@ -321,7 +318,7 @@
                                     <h4 class="text-xl font-bold text-slate-900 mb-2">Initiate & Client Selection</h4>
                                     <p class="text-slate-600 mb-3">Click <span class="font-semibold text-slate-900">New
                                             Estimate</span>. In the client dropdown, search for the client. If
-                                        integrated with Perfex, this searches the CRM database live.</p>
+                                        this searches the client database live.</p>
                                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                                         <p class="text-sm text-yellow-700"><strong>Tip:</strong> If the client doesn't
                                             exist, you must create them in the CRM first or use the "Quick Add" feature
@@ -406,47 +403,6 @@
                         </div>
                     </div>
 
-                    <!-- Perfex Integration -->
-                    <div id="integrations" class="mb-16 scroll-mt-24">
-                        <section class="bg-slate-900 rounded-2xl p-8 text-slate-300">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="bg-red-500 p-2 rounded-lg">
-                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
-                                        </path>
-                                    </svg>
-                                </div>
-                                <h2 class="text-2xl font-bold text-white mt-0">Perfex CRM Integration</h2>
-                            </div>
-                            <p class="mb-6 leading-relaxed">
-                                Our system maintains a bi-directional sync with Perfex CRM. This ensures your sales team
-                                works with live customer data and accounting receives finalized contracts automatically.
-                            </p>
-
-                            <div class="space-y-4">
-                                <div class="flex items-start gap-4 p-4 bg-white/5 rounded-lg border border-white/10">
-                                    <div class="text-green-400 font-bold mt-1">IN</div>
-                                    <div>
-                                        <h4 class="text-white font-semibold mt-0">Leads & Clients</h4>
-                                        <p class="text-sm">When a new lead is added in Perfex, it appears in the
-                                            Estimator within 5 minutes. Use the "Sync Now" button in settings to force
-                                            an immediate update.</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-start gap-4 p-4 bg-white/5 rounded-lg border border-white/10">
-                                    <div class="text-blue-400 font-bold mt-1">OUT</div>
-                                    <div>
-                                        <h4 class="text-white font-semibold mt-0">Proposals & Invoices</h4>
-                                        <p class="text-sm">When a client digitally signs an estimate, a PDF copy is
-                                            pushed to the Client's profile in Perfex, and an Invoice (Draft) is
-                                            generated automatically.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
 
                     <!-- Troubleshooting / Footer -->
                     <div class="border-t border-slate-200 pt-12 mt-12 pb-24">

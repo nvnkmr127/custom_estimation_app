@@ -7,7 +7,6 @@ use App\Models\ActivityLog;
 use App\Models\Estimate;
 use App\Models\Setting;
 use App\Notifications\HotLeadAlert;
-use App\Services\PerfexApiService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Cache;
@@ -21,7 +20,7 @@ class EstimateIntelligenceListener implements ShouldQueue
     public $tries = 3;
     public $backoff = 60;
 
-    public function __construct(protected PerfexApiService $perfexApi)
+    public function __construct()
     {
     }
 
@@ -44,7 +43,6 @@ class EstimateIntelligenceListener implements ShouldQueue
         }
 
         $this->handleHotLeadDetection($estimate);
-        $this->handleSmartNudge($estimate);
     }
 
     protected function handleHotLeadDetection(Estimate $estimate): void
@@ -72,37 +70,4 @@ class EstimateIntelligenceListener implements ShouldQueue
         }
     }
 
-    protected function handleSmartNudge(Estimate $estimate): void
-    {
-        $viewCount = $estimate->view_count;
-        $nudgeThreshold = config('estimation.nudge_threshold', 3);
-
-        if (
-            $viewCount >= $nudgeThreshold
-            && !in_array($estimate->estimate_status, [Estimate::EST_STATUS_ACCEPTED, Estimate::EST_STATUS_DECLINED, Estimate::EST_STATUS_EXPIRED])
-            && !$estimate->nudge_task_created
-            && $estimate->perfex_proposal_id
-        ) {
-            try {
-                $description = "Smart Nudge: Client has viewed Estimate #{$estimate->estimate_number} {$viewCount} times on the portal but not accepted.";
-                $taskData = [
-                    'name' => 'Follow up on Estimate #' . $estimate->estimate_number,
-                    'description' => $description,
-                    'priority' => 3,
-                    'startdate' => now()->format('Y-m-d'),
-                    'rel_type' => 'proposal',
-                    'rel_id' => $estimate->perfex_proposal_id,
-                ];
-
-                $response = $this->perfexApi->createTask($taskData);
-
-                if (isset($response['id']) || (isset($response['status']) && $response['status'] == true)) {
-                    $estimate->update(['nudge_task_created' => true]);
-                    ActivityLog::log('system_action', $estimate, 'Smart Nudge: CRM Task Created for follow-up.');
-                }
-            } catch (\Exception $e) {
-                Log::error("Intelligence: Failed to create smart nudge task for Estimate #{$estimate->estimate_number}: " . $e->getMessage());
-            }
-        }
-    }
 }

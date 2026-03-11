@@ -164,7 +164,6 @@ class Estimate extends Model
         'coupon_discount',
         'item_discounts_total',
         'room_discounts_total',
-        'perfex_proposal_id',
         'pdf_theme',
         'pdf_template_id',
         'view_count',
@@ -429,6 +428,21 @@ class Estimate extends Model
     public function comments()
     {
         return $this->hasMany(EstimateComment::class);
+    }
+
+    /**
+     * Get all comments for the entire estimate family (all versions)
+     */
+    public function allFamilyComments()
+    {
+        $rootId = $this->parent_id ?? $this->id;
+        return EstimateComment::whereIn('estimate_id', function ($query) use ($rootId) {
+            $query->select('id')
+                ->from('estimates')
+                ->where('id', $rootId)
+                ->orWhere('parent_id', $rootId)
+                ->whereNull('deleted_at');
+        })->with(['user', 'commentable']);
     }
 
     public function unreadComments()

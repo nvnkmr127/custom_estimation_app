@@ -28,11 +28,6 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'perfex' => [
-        'url' => env('PERFEX_API_URL'),
-        'token' => env('PERFEX_API_TOKEN'),
-        'webhook_secret' => env('PERFEX_WEBHOOK_SECRET'),
-    ],
 
     'slack' => [
         'notifications' => [

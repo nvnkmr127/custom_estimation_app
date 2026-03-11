@@ -503,7 +503,6 @@ class EstimateService
             $newEstimate->signer_ip = null;
             $newEstimate->view_count = 0;
             $newEstimate->last_viewed_at = null;
-            $newEstimate->perfex_proposal_id = null; // Detach from previous Perfex proposal to create a new one
 
             $newEstimate->push();
 
@@ -550,7 +549,6 @@ class EstimateService
                 'declined_at',
                 'parent_id', // Copying creates a new family
                 'version',
-                'perfex_proposal_id',
             ]);
 
             // Generate new estimate number (Uses new V2 Logic automatically)

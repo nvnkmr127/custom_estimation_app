@@ -332,22 +332,6 @@
                     </form>
                 </div>
 
-                @if($estimate->status === 'approved' || $estimate->status === 'sent')
-                    <div class="py-1">
-                        @if(!$estimate->perfex_proposal_id)
-                            <form action="{{ route('estimates.sync', $estimate) }}" method="POST">
-                                @csrf
-                                <button type="submit"
-                                    class="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-slate-50">
-                                    Push to Perfex
-                                </button>
-                            </form>
-                        @else
-                            <span class="block px-4 py-2 text-xs text-slate-400">Synced to Perfex
-                                (#{{ $estimate->perfex_proposal_id }})</span>
-                        @endif
-                    </div>
-                @endif
             </div>
 
             <!-- Create Version Modal -->

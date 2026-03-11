@@ -11,6 +11,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'estimate.lock' => \App\Http\Middleware\CheckEstimateLock::class,
@@ -46,8 +48,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // Approval Management: Check for expiring/timeout approvals hourly
         $schedule->command('approval:check-timeouts')->hourly();
 
-        // CRM Sync: Ping the external Perfex CRM cron every 5 minutes
-        $schedule->command('perfex:cron-ping')->everyFiveMinutes();
 
         // Queue Processing: Process pending jobs every minute (for environments without a dedicated worker)
         // We include 'default' and 'webhooks' queues.

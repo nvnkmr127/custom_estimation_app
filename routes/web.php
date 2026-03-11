@@ -129,8 +129,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // System Features
     Route::get('search', App\Http\Controllers\SearchController::class)->name('search');
 
-    // Perfex CRM Search (Accessible to all authenticated users for estimate building)
-    Route::get('/perfex/search', [App\Http\Controllers\PerfexController::class, 'searchClients'])->name('perfex.search');
 
     Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
@@ -149,10 +147,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Settings
         Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'edit'])->name('settings.edit');
         Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
-        Route::get('/settings/perfex/test', [App\Http\Controllers\SettingsController::class, 'testPerfex'])->name('settings.perfex.test');
         Route::post('/settings/test-email', [App\Http\Controllers\SettingsController::class, 'testEmail'])->name('settings.test-email');
-        Route::get('/settings/perfex/mapping', [App\Http\Controllers\SettingsController::class, 'editPerfexMapping'])->name('settings.perfex.mapping');
-        Route::post('/settings/perfex/mapping', [App\Http\Controllers\SettingsController::class, 'updatePerfexMapping'])->name('settings.perfex.mapping.update');
         Route::delete('/settings/gallery/{index}', [App\Http\Controllers\SettingsController::class, 'deleteGalleryImage'])->name('settings.gallery.destroy');
 
         // Nurture Settings
@@ -192,11 +187,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 
-        // Perfex
-        Route::get('/perfex/leads', [App\Http\Controllers\PerfexController::class, 'index'])->name('perfex.index');
-
-        Route::post('/perfex/import', [App\Http\Controllers\PerfexController::class, 'import'])->name('perfex.import');
-        Route::post('/estimates/{estimate}/sync', [App\Http\Controllers\PerfexController::class, 'sync'])->name('estimates.sync');
 
         // PDF Custom Templates
         Route::post('/pdf-templates/preview', [App\Http\Controllers\PdfTemplateController::class, 'preview'])->name('pdf-templates.preview');
@@ -300,8 +290,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::any('/catch/{uuid}', [App\Http\Controllers\WebhookController::class, 'catch'])->name('webhooks.catch');
 Route::post('/webhooks/{provider}', [App\Http\Controllers\WebhookController::class, 'handle'])->name('webhooks.handle');
 
-// Legacy Webhook for Perfex (Keep for compatibility or redirect later)
-Route::post('/webhooks/perfex-legacy', [App\Http\Controllers\PerfexWebhookController::class, 'handle']);
 
 require __DIR__ . '/auth.php';
 

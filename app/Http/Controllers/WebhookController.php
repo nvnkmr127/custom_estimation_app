@@ -107,7 +107,6 @@ class WebhookController extends Controller
     protected function extractEventId(Request $request, string $provider): ?string
     {
         return match ($provider) {
-            'perfex' => $request->input('proposal_id') ?? $request->input('id') ?? $request->input('event_id'),
             default => $request->header('X-Event-Id') ?? $request->header('X-Request-Id') ?? (string) \Illuminate\Support\Str::uuid(),
         };
     }
@@ -118,12 +117,8 @@ class WebhookController extends Controller
         if (!$secret)
             return true; // Fail open for now or strictly? Let's stay safe.
 
-        $signature = $request->header('X-Webhook-Signature') ?? $request->header('X-Perfex-Token');
+        $signature = $request->header('X-Webhook-Signature');
 
-        // Simple comparison for Perfex (as seen in existing code)
-        if ($provider === 'perfex') {
-            return $signature === $secret;
-        }
 
         // HMAC comparison for others
         $computed = hash_hmac('sha256', $request->getContent(), $secret);

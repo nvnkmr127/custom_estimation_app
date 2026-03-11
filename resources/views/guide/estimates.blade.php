@@ -50,8 +50,7 @@
                         the client dropdown, search for the client.</p>
                     <div class="bg-slate-50 p-6 rounded-lg text-sm border border-slate-200">
                         <strong class="text-slate-800 block mb-2">Form Field: Client</strong>
-                        <span class="text-slate-600">This is a live search field. It queries both the local database and the
-                            connected Perfex CRM. Select the client to auto-fill their address.</span>
+                        <span class="text-slate-600">This is a live search field. It queries the local client database. Select the client to auto-fill their address.</span>
                     </div>
                 </div>
             </div>

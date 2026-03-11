@@ -114,10 +114,11 @@ class ShowEstimate extends Component
             $this->userApproval = true; // Temporary flag for Blade
         }
 
-        // Load activity logs
+        // Load activity logs for the entire estimate family
+        $familyIds = $this->allVersions->pluck('id')->toArray();
         $this->activityLogs = ActivityLog::where('subject_type', Estimate::class)
-            ->where('subject_id', $this->estimate->id)
-            ->with('user')
+            ->whereIn('subject_id', $familyIds)
+            ->with(['user', 'subject'])
             ->latest()
             ->get();
     }
@@ -316,18 +317,6 @@ class ShowEstimate extends Component
         }
     }
 
-    public function perfexSync()
-    {
-        try {
-            $response = app()->call([app(\App\Http\Controllers\PerfexController::class), 'sync'], ['estimate' => $this->estimate]);
-            if ($response instanceof RedirectResponse)
-                return $response;
-            $this->refreshEstimate();
-            session()->flash('success', 'Synced with Perfex.');
-        } catch (\Exception $e) {
-            session()->flash('error', 'Failed to sync with Perfex: ' . $e->getMessage());
-        }
-    }
 
     public function revertToDraft()
     {

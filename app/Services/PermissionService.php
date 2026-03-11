@@ -40,9 +40,6 @@ class PermissionService
         'view_reports' => 'Access reporting features',
         'export_reports' => 'Export reports',
 
-        // Perfex CRM
-        'sync_perfex' => 'Sync data with Perfex CRM',
-        'import_leads' => 'Import leads from Perfex',
 
         // Discounts
         'apply_discounts' => 'Apply discounts to estimates',
@@ -118,10 +115,6 @@ class PermissionService
                 'view_settings',
                 'view_reports',
                 'export_reports',
-            ],
-            'Integrations' => [
-                'sync_perfex',
-                'import_leads',
             ],
             'Pricing' => [
                 'apply_discounts',

@@ -118,7 +118,7 @@ class PortalController extends Controller
         // Prepare unified comments logic
         $commentData = collect();
 
-        \Log::info("Portal View: Processing Comments for Estimate #{$estimate->id}");
+        \Log::info("Portal View: Processing Family Comments for Estimate Family of #{$estimate->id}");
 
         $transform = function ($c, $itemName = null, $parent = null) {
             // Prioritize parent context effectively to group replies with their thread
@@ -127,12 +127,10 @@ class PortalController extends Controller
 
             $finalItemName = $itemName ?? (($type === 'App\Models\EstimateItem' && $c->commentable) ? ($c->commentable->name ?? optional(\App\Models\EstimateItem::find($id))->name) : null);
 
-            \Log::info("Processing Comment ID: {$c->id}, Type: {$c->type}, ParentID: " . ($parent ? $parent->id : 'NULL') . ", ItemName: {$finalItemName}, CommentableType: {$type}, CommentableID: {$id}");
-
             return [
                 'id' => $c->id,
                 'comment' => $c->comment,
-                'type' => $c->type,
+                'type' => $c->type, // 'client' or 'internal' (staff)
                 'created_at' => $c->created_at,
                 'commentable_type' => $type,
                 'commentable_id' => $id,
@@ -141,42 +139,15 @@ class PortalController extends Controller
             ];
         };
 
-        // 1. Item Comments & Replies (Process these first to ensure correct context wins)
-        foreach ($estimate->sections as $section) {
-            foreach ($section->items as $item) {
-                // We access the relationship loaded via eager loading
-                foreach ($item->comments as $comment) {
-                    if ($comment->type === 'internal') {
-                        continue;
-                    }
+        // Fetch all comments in the family
+        $familyComments = $estimate->allFamilyComments()->get();
 
-                    $itemName = $item->name;
-                    $commentData->push($transform($comment, $itemName, null));
-                    foreach ($comment->replies as $reply) {
-                        if ($reply->type === 'internal') {
-                            continue;
-                        }
-                        // Pass parent and item name
-                        $commentData->push($transform($reply, $itemName, $comment));
-                    }
-                }
-            }
-        }
-
-        // 2. General Estimate Comments & Replies
-        foreach ($estimate->comments as $comment) {
+        foreach ($familyComments as $comment) {
+            // Strictly exclude internal comments from the portal view
             if ($comment->type === 'internal') {
                 continue;
             }
-
             $commentData->push($transform($comment, null, null));
-            foreach ($comment->replies as $reply) {
-                if ($reply->type === 'internal') {
-                    continue;
-                }
-                // Pass parent so reply inherits context
-                $commentData->push($transform($reply, null, $comment));
-            }
         }
 
         $comments = $commentData->filter()->unique('id')->sortBy('created_at')->values();
@@ -294,6 +265,7 @@ class PortalController extends Controller
      */
     public function comment(Request $request, Estimate $estimate)
     {
+        \Log::info("PortalController: New comment attempt on Estimate #{$estimate->id}", $request->all());
         $this->validateAccess($estimate, $request);
 
         $request->validate([
@@ -338,9 +310,30 @@ class PortalController extends Controller
 
         // Notify Creator and Followers
         $followers = $estimate->followers;
+        
+        // Also ensure all admins are notified of client comments
+        $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'sales_manager'])->get();
+        $followers = $followers->merge($admins)->unique('id');
+
         foreach ($followers as $follower) {
-            $follower->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate));
+            try {
+                $follower->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate));
+            } catch (\Exception $e) {
+                \Log::error("Failed to notify user {$follower->id} of comment: " . $e->getMessage());
+            }
         }
+
+        // Log Activity
+        \App\Models\ActivityLog::log('client_commented', $estimate, "Client left a comment on Proposal #{$estimate->estimate_number}");
+
+        // Dispatch Event
+        $dispatcher = app(\App\Core\Events\EventDispatcherInterface::class);
+        $dispatcher->dispatch(new \App\Core\Events\Comments\CommentAdded(
+            $comment->id,
+            $estimate->id,
+            null, // user_id is null for clients
+            substr($comment->comment, 0, 100)
+        ));
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([

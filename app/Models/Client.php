@@ -19,7 +19,6 @@ class Client extends Model
         'state',
         'zip',
         'country',
-        'perfex_id',
         'property_name',
         'property_address',
         'property_notes',

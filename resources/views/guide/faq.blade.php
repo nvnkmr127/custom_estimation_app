@@ -88,13 +88,6 @@
                 </p>
             </div>
             <div class="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                <h4 class="font-bold text-slate-800 mb-2">My Perfex sync isn't working.</h4>
-                <p class="text-slate-600 text-sm">
-                    Check your internet connection first. If the issue persists, contact IT Support. Sync logs are available
-                    in the "Activity Logs" section for debugging.
-                </p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                 <h4 class="font-bold text-slate-800 mb-2">What happens if I reject an approval request?</h4>
                 <p class="text-slate-600 text-sm">
                     The estimate status changes to "Rejected". The estimator receives an email notification with your

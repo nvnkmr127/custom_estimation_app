@@ -15,15 +15,56 @@ class ClientController extends Controller
     /**
      * Display a listing of clients.
      */
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', Client::class);
 
-        $clients = Client::withCount('estimates')
-            ->orderBy('name')
-            ->paginate(20);
+        $query = Client::withCount('estimates');
 
-        return view('clients.index', compact('clients'));
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('company', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%");
+            });
+        }
+
+        // Filters
+        if ($request->filled('city')) {
+            $query->where('city', $request->input('city'));
+        }
+
+        if ($request->filled('has_estimates')) {
+            if ($request->input('has_estimates') === 'yes') {
+                $query->has('estimates');
+            } else {
+                $query->doesntHave('estimates');
+            }
+        }
+
+        $clients = $query->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
+
+        // Calculate Stats
+        $stats = [
+            'total' => Client::count(),
+            'with_estimates' => Client::has('estimates')->count(),
+            'recent' => Client::where('created_at', '>=', now()->subDays(30))->count(),
+        ];
+
+        // Get unique cities for filter dropdown
+        $cities = Client::whereNotNull('city')->where('city', '!=', '')->distinct()->orderBy('city')->pluck('city');
+
+        if ($request->ajax()) {
+            return view('clients._table', compact('clients'));
+        }
+
+        return view('clients.index', compact('clients', 'stats', 'cities'));
     }
 
     /**
@@ -70,12 +111,8 @@ class ClientController extends Controller
      */
     public function show($id)
     {
-        // Try to find by ID first, then by Perfex ID
-        $client = Client::where('id', $id)->orWhere('perfex_id', $id)->first();
+        $client = Client::findOrFail($id);
 
-        if (!$client) {
-            abort(404);
-        }
 
         $this->authorize('view', $client);
 
@@ -85,11 +122,19 @@ class ClientController extends Controller
 
         $client->load([
             'estimates' => function ($query) {
-                $query->latest()->limit(10);
+                $query->latest()->limit(20);
             },
         ]);
 
-        return view('clients.show', compact('client'));
+        // Calculate Client Stats
+        $stats = [
+            'total_estimates' => $client->estimates()->count(),
+            'accepted_estimates' => $client->estimates()->where('estimate_status', \App\Models\Estimate::EST_STATUS_ACCEPTED)->count(),
+            'total_value' => $client->estimates()->where('estimate_status', \App\Models\Estimate::EST_STATUS_ACCEPTED)->sum('grand_total'),
+            'last_engagement' => $client->estimates()->latest('updated_at')->first()?->updated_at ?? $client->created_at,
+        ];
+
+        return view('clients.show', compact('client', 'stats'));
     }
 
     /**
