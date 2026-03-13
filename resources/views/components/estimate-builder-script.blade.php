@@ -1380,7 +1380,6 @@
                         processItem(i, iIdx, 'items');
                     });
                 }
-                }
 
                 document.body.appendChild(form);
                 form.submit();
