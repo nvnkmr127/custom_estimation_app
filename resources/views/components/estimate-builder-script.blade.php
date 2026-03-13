@@ -201,27 +201,52 @@
 
             init() {
                 console.log('EstimateBuilder Init');
-                console.log('Unit Types Available:', JSON.parse(JSON.stringify(this.unitTypes)), 'Count:', this.unitTypes.length);
-                console.log('Initial Estimate Data:', JSON.parse(JSON.stringify(this.estimate)));
-
-                // Initialize sections if room_based and empty
+                
+                // Initialize default section if room_based and empty
                 if (this.estimate.type === 'room_based' && this.estimate.sections.length === 0) {
-                    this.estimate.sections.push({ name: 'Room 1', items: [] });
+                    this.estimate.sections.push({ name: 'Room 1', items: [], section_type: 'room' });
                 }
 
                 // Hydrate items (fix images, numbers)
-                // Hydrate items (fix images, numbers)
+                if (this.estimate.type === 'room_based') {
+                    this.estimate.sections.forEach(s => {
+                        // Robust Section Type Initialization
+                        if (!s.section_type) {
+                            s.section_type = s.is_package ? 'package' : 'room';
+                            if (!s.is_package && s.items && s.items.length > 0 && s.items.every(i => i.is_package)) {
+                                s.section_type = 'package';
+                            }
+                        }
+                        if (s.items) {
+                            s.items.forEach(i => this.hydrateItem(i));
+                        }
+                    });
+                } else {
+                    if (this.estimate.items) {
+                        this.estimate.items.forEach(i => this.hydrateItem(i));
+                    }
+                }
+
+                // If editing (has client_id), fetch full client details
+                if (this.estimate.client_id) {
+                    fetch(`/clients/${this.estimate.client_id}`, {
+                        headers: { 'Accept': 'application/json' }
+                    })
+                        .then(r => r.json())
+                        .then(data => { this.selectedClient = data; })
+                        .catch(err => console.error('Error fetching initial client', err));
+                }
+
+                this.calculateTotals();
+                
+                this.$nextTick(() => {
+                    this.initSortable();
+                    this.initClientSearch();
+                });
             },
 
             hydrateItem(item) {
-                console.log('Hydrating Item [DEBUG]:', item.name || item.item_name, {
-                    product_id: item.product_id,
-                    input_unit_type_id: item.unit_type_id,
-                    input_unit_type: item.unit_type,
-                    has_product_obj: !!item.product
-                });
-
-                // 1. Resolve Product ID first
+                // 1. Resolve Product ID
                 if (!item.product_id && item.product) {
                     item.product_id = item.product.id;
                 }
@@ -240,50 +265,33 @@
                 item.quantity = parseFloat(item.quantity || 1);
                 item.tax_1 = parseFloat(item.tax_1 || 0);
                 item.tax_2 = 0; // Use one tax only (GST)
+                
                 // Fallback to product defaults for Unit Type if missing on the item
                 if ((item.unit_type_id === null || item.unit_type_id === undefined || item.unit_type_id === 'null' || item.unit_type_id === '') && item.product && item.product.unit_type_id) {
                     item.unit_type_id = item.product.unit_type_id;
                 }
                 item.unit_type_id = (item.unit_type_id && item.unit_type_id !== 'null') ? String(item.unit_type_id) : '';
 
-                if (!item.unit_type_id) {
-                    console.log(`[DEBUG] Item ${item.name || item.item_name} has no unit_type_id. Attempting product lookup.`, {
-                        product_id: item.product_id,
-                        has_product_obj: !!item.product
-                    });
-                } else {
-                    console.log(`[DEBUG] Item ${item.name || item.item_name} has unit_type_id: ${item.unit_type_id}`);
-                }
-
                 // Ensure unit_type is synchronized with unit_type_id if missing
                 if (item.unit_type_id && (!item.unit_type || item.unit_type === 'nos')) {
                     const units = this.getUnitsByTypeId(item.unit_type_id);
-                    console.log('Syncing Units for Type ID:', item.unit_type_id, 'Units Found:', units);
                     if (units && units.length > 0) {
-                        // If current unit is not in the allowed units for this type, default to first
                         const currentUnit = (item.unit_type || '').toLowerCase();
                         const isValid = units.some(u => u.toLowerCase() === currentUnit);
-                        console.log('Current Unit:', item.unit_type, 'Is Valid:', isValid);
                         if (!isValid) {
                             item.unit_type = units[0];
-                            console.log('New Unit Set:', item.unit_type);
                         }
                     }
                 }
 
-                item.tax_1 = parseFloat(item.tax_1 || 0);
-                item.tax_2 = 0; // Use one tax only (GST)
                 item._showTypePicker = !!item.unit_type_id;
                 item.size = item.size || '';
                 item.length = item.length || '';
                 item.width = item.width || '';
                 item.height = item.height || '';
 
-                // 4. Set Formula and ShowCalculator
                 if (forcedMethod) {
                     item.formula = forcedMethod;
-                } else {
-                    item.formula = item.formula || '';
                 }
 
                 item.showCalculator = !!(item.length || item.width || item.height) || ['formula', 'area', 'volume', 'area_lh'].includes(item.formula);
@@ -291,71 +299,14 @@
                 if (!item.image_url && item.product && item.product.images && item.product.images.length > 0) {
                     item.image_url = '/storage/' + item.product.images[0].image_path;
                 }
+                
                 if (!item.options) item.options = [];
                 if (!item.selected_options) item.selected_options = {};
 
-                // Reconstruct selected_options from display options if missing (for legacy data)
-                if (Object.keys(item.selected_options).length === 0 && item.options.length > 0 && item.product_id) {
-                    const product = this.getProduct(item.product_id);
-                    if (product && product.options) {
-                        item.options.forEach(displayOpt => {
-                            const matchedOpt = product.options.find(o => o.name === displayOpt.name);
-                            if (matchedOpt) {
-                                const matchedVal = matchedOpt.values.find(v => v.value === displayOpt.value);
-                                if (matchedVal) {
-                                    item.selected_options[matchedOpt.id] = matchedVal.id;
-                                }
-                            }
-                        });
-                    }
-                }
+                // Generate UID if missing
+                if (!item._uid) item._uid = item.id ? 'item-' + item.id : 'item-' + Math.random().toString(36).substr(2, 9);
 
                 item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
-
-                if (this.estimate.type === 'room_based') {
-                    this.estimate.sections.forEach(s => {
-                        s.items.forEach(i => {
-                            this.hydrateItem(i);
-                            if (!i._uid) i._uid = 'item-' + Math.random().toString(36).substr(2, 9);
-                        });
-                        // Robust Section Type Initialization
-                        if (!s.section_type) {
-                            // If coming from legacy data, infer from is_package flag
-                            s.section_type = s.is_package ? 'package' : 'room';
-
-                            // Legacy backup: check items if is_package is missing/ambiguous
-                            if (!s.is_package && s.items.length > 0 && s.items.every(i => i.is_package)) {
-                                s.section_type = 'package';
-                            }
-                        }
-                    });
-                } else {
-                    this.estimate.items.forEach(i => {
-                        this.hydrateItem(i);
-                        if (!i._uid) i._uid = 'item-' + Math.random().toString(36).substr(2, 9);
-                    });
-                }
-
-                // If editing (has client_id), fetch full client details
-                if (this.estimate.client_id) {
-                    fetch(`/clients/${this.estimate.client_id}`, {
-                        headers: { 'Accept': 'application/json' }
-                    })
-                        .then(r => r.json())
-                        .then(data => { this.selectedClient = data; })
-                        .catch(err => console.error('Error fetching initial client', err));
-                }
-
-                this.calculateTotals();
-                console.log('Hydration Complete. Final Estimate State:', JSON.parse(JSON.stringify(this.estimate)));
-                this.$nextTick(() => {
-                    this.initSortable();
-                    this.initClientSearch();
-                });
-
-
-
-
             },
 
             isItemLocked(item) {

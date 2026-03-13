@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            --indigo-600: #4f46e5;
+            --indigo-50: #eef2ff;
+        }
+
+        @page {
+            margin: 60px;
+            size: A4;
+        }
+
+        * {
+            box-sizing: border-box;
+
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--slate-800);
+            background: #fff;
+            line-height: 1.5;
+            font-size: 12px;
+            max-width: 100%;
+            margin: 10px;
+        }
+
+        /* Header Section - Clean Brand Layout */
+        .portal-header {
+            background: #fff;
+            padding: 0 0 25px 0;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .header-content {
+            width: 100%;
+            display: table;
+        }
+
+        .header-left {
+            display: table-cell;
+            vertical-align: top;
+            width: 50%;
+        }
+
+        .header-right {
+            display: table-cell;
+            vertical-align: top;
+            width: 50%;
+            text-align: right;
+        }
+
+        .brand-name {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--slate-900);
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .estimate-number {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--slate-500);
+        }
+
+        .total-estimate-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--slate-500);
+            margin-bottom: 4px;
+        }
+
+        .total-estimate-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--slate-900);
+        }
+
+        .date-meta {
+            font-size: 10px;
+            color: var(--slate-500);
+            margin-top: 6px;
+        }
+
+        /* Client & Provider Cards with Box Shadow */
+        .summary-grid {
+            width: 100%;
+            margin-bottom: 30px;
+            border-collapse: separate;
+            border-spacing: 20px 0;
+        }
+
+        .summary-grid td {
+            padding: 0;
+        }
+
+        .info-card {
+            background: #fff;
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--slate-900);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .entity-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--slate-900);
+            margin-bottom: 4px;
+        }
+
+        .entity-details {
+            font-size: 11px;
+            color: var(--slate-600);
+            line-height: 1.5;
+        }
+
+        /* Room Section Header Strip - Dark Background */
+        .room-strip {
+            background: var(--slate-800);
+            border-radius: 6px;
+            padding: 14px 20px;
+            margin-bottom: 16px;
+            margin-top: 30px;
+        }
+
+        .room-strip-content {
+            width: 100%;
+            display: table;
+        }
+
+        .room-strip-left {
+            display: table-cell;
+            vertical-align: middle;
+            width: 70%;
+        }
+
+        .room-strip-right {
+            display: table-cell;
+            vertical-align: middle;
+            width: 30%;
+            text-align: right;
+        }
+
+        .room-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .room-total {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Section Headings for Non-Room Based */
+        .section-header-table {
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--slate-900);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            margin: 0;
+        }
+
+        .section-price {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--slate-600);
+            text-align: right;
+            margin: 0;
+        }
+
+        /* Tables */
+        .item-table-wrapper {
+            margin-bottom: 30px;
+            width: 100%;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            max-width: 100%;
+        }
+
+        /* Zebra Striping for Table Rows */
+        .data-table tbody tr:nth-child(odd) {
+            background-color: var(--slate-50);
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background-color: #fff;
+        }
+
+        .data-table.col-4 thead th:nth-child(1),
+        .data-table.col-4 tbody td:nth-child(1) {
+            width: 45%;
+        }
+
+        .data-table.col-4 thead th:nth-child(2),
+        .data-table.col-4 tbody td:nth-child(2) {
+            width: 20%;
+        }
+
+        .data-table.col-4 thead th:nth-child(3),
+        .data-table.col-4 tbody td:nth-child(3) {
+            width: 15%;
+        }
+
+        .data-table.col-4 thead th:nth-child(4),
+        .data-table.col-4 tbody td:nth-child(4) {
+            width: 20%;
+        }
+
+        .data-table thead th {
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--slate-500);
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--slate-200);
+            vertical-align: bottom;
+            background-color: #fff;
+        }
+
+        .data-table thead th:last-child {
+            text-align: right;
+        }
+
+        .data-table tbody td {
+            padding: 12px 16px;
+            vertical-align: top;
+            border-bottom: 1px solid var(--slate-100);
+            font-size: 11px;
+            word-wrap: break-word;
+        }
+
+        .data-table tbody td:last-child {
+            text-align: right;
+        }
+
+        .item-name {
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--slate-900);
+            margin-bottom: 3px;
+            line-height: 1.4;
+        }
+
+        .item-desc {
+            font-size: 10px;
+            color: var(--slate-500);
+            line-height: 1.4;
+            margin-bottom: 6px;
+            max-width: 95%;
+        }
+
+        .item-img {
+            margin: 6px 0;
+            display: block;
+        }
+
+        .item-img img,
+        .item-image {
+            max-width: 48px;
+            max-height: 48px;
+            border-radius: 4px;
+            border: 1px solid var(--slate-100);
+            object-fit: contain;
+            display: block;
+        }
+
+        .variant-pill {
+            display: inline-block;
+            background: #fff;
+            color: var(--slate-600);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 600;
+            border: 1px solid var(--slate-200);
+            margin-right: 4px;
+            margin-top: 4px;
+        }
+
+        .internal-note-box {
+            background: #fff7ed;
+            border: 1px solid #ffedd5;
+            color: #c2410c;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 9px;
+            margin-top: 6px;
+            display: inline-block;
+        }
+
+        .dim-detail {
+            display: block;
+            font-size: 10px;
+            color: var(--slate-500);
+            margin-bottom: 2px;
+        }
+
+        .dim-l {
+            font-weight: 700;
+            color: var(--slate-400);
+            margin-right: 2px;
+        }
+
+        .detail-label {
+            font-weight: 700;
+            font-size: 10px;
+            color: var(--slate-700);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .detail-category {
+            font-size: 9px;
+            color: var(--slate-500);
+            display: block;
+        }
+
+        .amount-main {
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--slate-900);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .amount-calc {
+            font-size: 9px;
+            color: var(--slate-500);
+            display: block;
+        }
+
+        /* Recap Section - Fixed Layout */
+        .recap-container {
+            margin-top: 40px;
+            margin-bottom: 40px;
+            width: 100%;
+        }
+
+        .recap-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .consultation-remarks {
+            padding-right: 30px;
+            vertical-align: top;
+            width: 55%;
+        }
+
+        .calculation-cell {
+            vertical-align: top;
+            width: 45%;
+        }
+
+        .remarks-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .client-note-text {
+            font-size: 10px;
+            color: var(--slate-600);
+            line-height: 1.5;
+            background: var(--slate-50);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--slate-100);
+        }
+
+        /* Calculation Card - Fixed to Stay Inside Box */
+        .calculation-card {
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: 8px;
+            padding: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .totals-table td {
+            padding: 4px 0;
+            font-size: 11px;
+            vertical-align: middle;
+        }
+
+        .totals-table td:first-child {
+            width: 60%;
+        }
+
+        .totals-table td:last-child {
+            width: 40%;
+            text-align: right;
+        }
+
+        .total-label {
+            color: var(--slate-500);
+            text-align: left;
+        }
+
+        .total-value {
+            font-weight: 600;
+            color: var(--slate-700);
+            text-align: right;
+        }
+
+        .investment-highlight td {
+            padding-top: 10px;
+            border-top: 1px solid var(--slate-200);
+        }
+
+        .final-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--slate-900);
+            text-align: left;
+        }
+
+        .final-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--slate-900);
+            text-align: right;
+            word-wrap: break-word;
+        }
+
+        /* Signatures */
+        .signature-grid {
+            margin-top: 40px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid var(--slate-300);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .footer-meta {
+            text-align: center;
+            font-size: 9px;
+            color: var(--slate-400);
+            margin-top: 40px;
+            padding-bottom: 20px;
+        }
+
+        /* Package table specific */
+        .package-table col:first-child {
+            width: 75%;
+        }
+
+        .package-table col:last-child {
+            width: 25%;
+        }
+
+        /* Non-room based table */
+        .simple-table col:first-child {
+            width: 50%;
+        }
+
+        .simple-table col:nth-child(2) {
+            width: 15%;
+        }
+
+        .simple-table col:nth-child(3) {
+            width: 15%;
+        }
+
+        .simple-table col:last-child {
+            width: 20%;
+        }
+
+        /* Terms Section */
+        .terms-section {
+            padding-top: 40px;
+            padding-bottom: 40px;
+            background: #fff;
+            border-top: 1px solid var(--slate-100);
+            page-break-before: always;
+        }
+
+        .terms-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: center;
+            border-bottom: 2px solid var(--slate-900);
+            display: inline-block;
+            padding-bottom: 4px;
+        }
+
+        .terms-content {
+            font-size: 9.5px;
+            color: var(--slate-600);
+            line-height: 1.7;
+            column-count: 2;
+            column-gap: 40px;
+            text-align: justify;
+        }
+
+        .terms-content p {
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+        }
+
+        .terms-content strong {
+            color: var(--slate-800);
+            font-weight: 700;
+        }
+
+        .terms-content ul,
+        .terms-content ol {
+            padding-left: 20px;
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+        }
+
+        .terms-content li {
+            margin-bottom: 6px;
+            padding-left: 4px;
+        }
+
+        .terms-content h1,
+        .terms-content h2,
+        .terms-content h3 {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--slate-900);
+            margin-top: 16px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header - Clean Brand Section -->
+    <div class="portal-header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="brand-name">Onestudio</div>
+                <div class="estimate-number">Estimate #{estimate_number}</div>
+            </div>
+            <div class="header-right">
+                <div class="total-estimate-label">Total Estimate</div>
+                <div class="total-estimate-value">&#8377;{grand_total}</div>
+                <div class="date-meta">
+                    Issued: {estimate_date} • Valid Until: {expiry_date}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Grid with Box Shadow Cards -->
+    <table class="summary-grid">
+        <tr>
+            <td width="50%" valign="top">
+                <div class="info-card">
+                    <span class="card-label">Client</span>
+                    <div class="entity-name">{client_name}</div>
+                    <div class="entity-details">
+                        {client_address}<br>
+                        {client_email} • {client_phone}
+                    </div>
+                </div>
+            </td>
+            <td width="50%" valign="top">
+                <div class="info-card">
+                    <span class="card-label">Provider</span>
+                    <div class="entity-name">Onestudio</div>
+                    <div class="entity-details">
+                        {company_address}, {company_city}<br>
+                        {company_email} • {company_phone}
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Main Logic -->
+    {IF_room_based}
+    {LOOP_SECTIONS}
+
+    <!-- Room Strip Header -->
+    <div class="room-strip">
+        <div class="room-strip-content">
+            <div class="room-strip-left">
+                <div class="room-name">{section_name}</div>
+            </div>
+            <div class="room-strip-right">
+                <div class="room-total">&#8377;{section_subtotal}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="item-table-wrapper">
+        {IF_section_is_package}
+        <table class="data-table package-table">
+            <thead>
+                <tr>
+                    <th>Package Description</th>
+                    <th align="right">Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {LOOP_ITEMS}
+                <tr>
+                    <td>
+                        <div class="item-name">{item_name}</div>
+                        <div class="item-desc">{item_description}</div>
+                        {IF_has_image}<div class="item-img">{item_image}</div>{ENDIF}
+                        {item_comments}
+                    </td>
+                    <td align="right">
+                        <span class="amount-main">&#8377;{item_total}</span>
+                    </td>
+                </tr>
+                {END_LOOP}
+            </tbody>
+        </table>
+        {ENDIF}
+
+        {IF_NOT_section_is_package}
+        <table class="data-table col-4">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Details</th>
+                    <th>L/W/H</th>
+                    <th align="right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {LOOP_ITEMS}
+                <tr>
+                    <td>
+                        <div class="item-name">{item_name}</div>
+                        <div class="item-desc">{item_description}</div>
+                        {IF_has_image}<div class="item-img">{item_image}</div>{ENDIF}
+                        {IF_item_options}<div class="variant-pill">{item_options}</div>{ENDIF}
+                        {IF_has_internal_note}
+                        <div class="internal-note-box"><strong>NOTE:</strong> {item_internal_note}</div>
+                        {ENDIF}
+                        {item_comments}
+                    </td>
+                    <td>
+                        <span class="detail-label">{item_unit}</span>
+                        <span class="detail-category">{item_unit_category}</span>
+                    </td>
+                    <td>
+                        {IF_has_length}<div class="dim-detail"><span class="dim-l">L</span>{item_length}</div>{ENDIF}
+                        {IF_has_width}<div class="dim-detail"><span class="dim-l">W</span>{item_width}</div>{ENDIF}
+                        {IF_has_height}<div class="dim-detail"><span class="dim-l">H</span>{item_height}</div>{ENDIF}
+                    </td>
+                    <td align="right">
+                        <span class="amount-main">&#8377;{item_total}</span>
+                    </td>
+                </tr>
+                {END_LOOP}
+            </tbody>
+        </table>
+        {ENDIF}
+    </div>
+    {END_LOOP_SECTIONS}
+    {ENDIF}
+
+    {IF_NOT_room_based}
+    <table class="section-header-table">
+        <tr>
+            <td align="left">
+                <div class="section-title">Project Items</div>
+            </td>
+            <td align="right">
+                <div class="section-price">&#8377;{project_subtotal}</div>
+            </td>
+        </tr>
+    </table>
+    <table class="data-table simple-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th align="right">Rate</th>
+                <th align="center">Qty</th>
+                <th align="right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {LOOP_ITEMS}
+            <tr>
+                <td>
+                    <div class="item-name">{item_name}</div>
+                    <div class="item-desc">{item_description}</div>
+                    {IF_has_image}<div class="item-img">{item_image}</div>{ENDIF}
+                    {item_comments}
+                </td>
+                <td align="right">&#8377;{item_price}</td>
+                <td align="center">{item_quantity} {item_unit}</td>
+                <td align="right"><span class="amount-main">&#8377;{item_total}</span></td>
+            </tr>
+            {END_LOOP}
+        </tbody>
+    </table>
+    {ENDIF}
+
+    <!-- Recap Section - Fixed Layout -->
+    <table class="recap-table">
+        <tr>
+            <td class="consultation-remarks">
+                <div class="remarks-label">Consultation Remarks</div>
+                <div class="client-note-text">
+                    {client_note}
+                </div>
+            </td>
+            <td class="calculation-cell">
+                <table class="totals-table">
+                    <tr>
+                        <td class="total-label">Subtotal</td>
+                        <td class="total-value">&#8377; {subtotal}</td>
+                    </tr>
+                    {IF_has_discount}
+                    <tr>
+                        <td class="total-label">Adjustment</td>
+                        <td class="total-value" style="color:#ef4444;">- &#8377;{discount_total}</td>
+                    </tr>
+                    {ENDIF}
+                    {IF_has_tax}
+                    <tr>
+                        <td class="total-label">Tax</td>
+                        <td class="total-value">&#8377; {tax_total}</td>
+                    </tr>
+                    {ENDIF}
+                    {IF_has_transportation}
+                    <tr>
+                        <td class="total-label">Shipping &amp; Logistics</td>
+                        <td class="total-value">&#8377;{transportation_charges}</td>
+                    </tr>
+                    {ENDIF}
+                    <tr class="investment-highlight">
+                        <td class="final-label">Grand Total</td>
+                        <td class="final-value">&#8377;{grand_total}</td>
+                    </tr>
+                </table>
+                <div style="margin-top:20px;text-align:center;">
+                    <div style="width:100px;height:100px;margin:0 auto;opacity:0.9;">{approval_stamp}</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Signatures -->
+    <table class="signature-grid">
+        <tr>
+            <td width="40%" valign="bottom">
+                <div class="sig-line"></div>
+                <span class="card-label">Authorized Signature (Onestudio)</span>
+            </td>
+            <td width="20%"></td>
+            <td width="40%" valign="bottom">
+                <div class="sig-line" style="border:none;padding-bottom:0;">
+                    <div style="height:50px;">{signature_image}</div>
+                </div>
+                <div style="border-bottom:1px solid #cbd5e1;margin-bottom:8px;"></div>
+                <span class="card-label">Client Approval</span>
+            </td>
+        </tr>
+    </table>
+
+    {IF_has_terms}
+    <div class="terms-section">
+        <center>
+            <div class="terms-title">Terms &amp; Conditions</div>
+        </center>
+        <div class="terms-content">
+            {terms}
+        </div>
+    </div>
+    {ENDIF}
+
+    <div class="footer-meta">
+        Estimate #{estimate_number} • Generated via Smart Estimation Cloud
+    </div>
+</body>
+
+</html>
