@@ -20,36 +20,52 @@ class SmtpMailGateway implements MailGatewayInterface
      */
     public function send(string $to, string $subject, string $body, array $attachments = []): bool
     {
+        $fromAddress = \App\Models\Setting::getCached('smtp_from_address', config('mail.from.address'));
+        $fromName = \App\Models\Setting::getCached('smtp_from_name', config('mail.from.name'));
+
         try {
             // override config from DB settings if available
             $host = \App\Models\Setting::getCached('smtp_host');
-            $fromAddress = \App\Models\Setting::getCached('smtp_from_address', config('mail.from.address'));
-            $fromName = \App\Models\Setting::getCached('smtp_from_name', config('mail.from.name'));
-
+            
             if ($host) {
+                $port = \App\Models\Setting::getCached('smtp_port', 587);
+                $encryption = \App\Models\Setting::getCached('smtp_encryption', 'tls');
+                $username = \App\Models\Setting::getCached('smtp_username');
+                $password = \App\Models\Setting::getCached('smtp_password');
+
                 config([
                     'mail.mailers.smtp.host' => $host,
-                    'mail.mailers.smtp.port' => \App\Models\Setting::getCached('smtp_port', 587),
-                    'mail.mailers.smtp.encryption' => \App\Models\Setting::getCached('smtp_encryption', 'tls'),
-                    'mail.mailers.smtp.username' => \App\Models\Setting::getCached('smtp_username'),
-                    'mail.mailers.smtp.password' => \App\Models\Setting::getCached('smtp_password'),
+                    'mail.mailers.smtp.port' => $port,
+                    'mail.mailers.smtp.encryption' => $encryption,
+                    'mail.mailers.smtp.username' => $username,
+                    'mail.mailers.smtp.password' => $password,
                     'mail.from.address' => $fromAddress,
                     'mail.from.name' => $fromName,
                 ]);
 
                 // Purge the 'smtp' driver to ensure a fresh instance with new config is created
                 Mail::purge('smtp');
+            } else {
+                 Log::info('SMTP Gateway: No custom SMTP host configured, using defaults.');
             }
 
-            // Always use the 'smtp' mailer specifically, so we don't accidentally use 'log'
+            // Use the 'smtp' mailer specifically
             Mail::mailer('smtp')->send([], [], function ($message) use ($to, $subject, $body, $attachments, $fromAddress, $fromName) {
-                $message->to($to)
-                    ->from($fromAddress, $fromName)
-                    ->subject($subject)
+                $message->to($to);
+                
+                if ($fromAddress) {
+                    $message->from($fromAddress, $fromName);
+                }
+                
+                $message->subject($subject)
                     ->html($body);
 
                 foreach ($attachments as $path => $name) {
-                    $message->attach($path, ['as' => $name]);
+                    if (is_file($path)) {
+                        $message->attach($path, ['as' => $name]);
+                    } else {
+                        Log::warning("SMTP Gateway: Attachment not found at $path");
+                    }
                 }
             });
 
@@ -59,7 +75,9 @@ class SmtpMailGateway implements MailGatewayInterface
                 'to' => $to,
                 'from' => $fromAddress ?? 'not-set',
                 'subject' => $subject,
-                'exception' => $e
+                'host' => $host ?? 'default',
+                'exception_class' => get_class($e),
+                'trace' => substr($e->getTraceAsString(), 0, 500)
             ]);
             return false;
         }

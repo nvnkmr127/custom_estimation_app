@@ -29,6 +29,7 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::post('/estimates/{estimate}/accept', [App\Http\Controllers\PortalController::class, 'accept'])->name('accept')->middleware('signed');
     Route::post('/estimates/{estimate}/decline', [App\Http\Controllers\PortalController::class, 'decline'])->name('decline')->middleware('signed');
     Route::post('/estimates/{estimate}/comments', [App\Http\Controllers\PortalController::class, 'comment'])->name('comment')->middleware('signed');
+    Route::post('/estimates/{estimate}/request-changes', [App\Http\Controllers\PortalController::class, 'requestChanges'])->name('request-changes')->middleware('signed');
     Route::post('/estimates/{estimate}/request-call', [App\Http\Controllers\PortalController::class, 'requestCall'])->name('request-call')->middleware('signed');
 });
 
@@ -245,7 +246,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('approval-chains/{approvalChain}/set-default', [App\Http\Controllers\ApprovalChainController::class, 'setDefault'])->name('approval-chains.set-default');
 
         Route::resource('approval-checklists', App\Http\Controllers\ApprovalChecklistController::class);
-        Route::resource('approval-checklists', App\Http\Controllers\ApprovalChecklistController::class);
+        Route::resource('change-request-checklists', App\Http\Controllers\ChangeRequestChecklistController::class);
 
         // ── Backup Management ───────────────────────────────────────────────────
         Route::get('/backup', [App\Http\Controllers\BackupController::class, 'index'])->name('backup.index');

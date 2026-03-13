@@ -739,17 +739,25 @@
         <!-- Sticky Mobile Actions -->
         @if(!in_array($estimate->client_status, ['accepted', 'declined']) && !in_array($estimate->estimate_status, ['accepted', 'declined']) && !$estimate->isExpired())
             <div
-                class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-3 z-30 sm:hidden">
+                class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-2 z-30 sm:hidden">
+                <a href="{{ URL::signedRoute('portal.download', $estimate) }}"
+                    class="flex-1 py-3 text-slate-700 font-bold text-xs bg-slate-50 border border-slate-200 rounded-xl text-center flex items-center justify-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    PDF
+                </a>
                 <button @click="showDeclineModal = true"
-                    class="flex-1 py-3 text-red-600 font-bold text-sm bg-red-50 rounded-xl">Decline</button>
-                <button @click="showCommentModal = true"
-                    class="flex-1 py-3 text-indigo-600 font-bold text-sm bg-indigo-50 rounded-xl">Comment</button>
+                    class="flex-1 py-3 text-red-600 font-bold text-xs bg-red-50 rounded-xl">Decline</button>
+                <button @click="showRequestChangesModal = true"
+                    class="flex-1 py-3 text-indigo-600 font-bold text-xs bg-indigo-50 rounded-xl">Request Change</button>
                 <button @click="showAcceptModal = true"
-                    class="flex-[2] py-3 bg-slate-900 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-500/30">Accept
+                    class="flex-[2] py-3 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/30">Accept
                     Estimate</button>
             </div>
 
-            <!-- Desktop Actions -->
+        <!-- Desktop Actions -->
             <div class="hidden sm:flex justify-end gap-3 mb-10">
                 @if(!$estimate->isExpired())
                     <a href="{{ URL::signedRoute('portal.download', $estimate) }}"
@@ -757,14 +765,14 @@
                         PDF</a>
                     <button @click="showDeclineModal = true"
                         class="px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-semibold transition-colors">Decline</button>
-                    <button @click="showCommentModal = true"
+                    <button @click="showRequestChangesModal = true"
                         class="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg font-bold hover:bg-indigo-100 transition-colors flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z">
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
                             </path>
                         </svg>
-                        Comments
+                        Request for Change
                     </button>
                     <button @click="showAcceptModal = true"
                         class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold shadow-lg transition-all transform hover:-translate-y-0.5">Accept
@@ -881,6 +889,64 @@
         @endif
 
         <!-- Modals -->
+        <!-- Request Changes Modal -->
+        <div x-show="showRequestChangesModal" class="relative z-50" style="display: none;">
+            <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" x-transition.opacity></div>
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div class="relative transform overflow-hidden rounded-2xl bg-white p-6 text-left shadow-xl transition-all sm:w-full sm:max-w-lg"
+                        @click.away="showRequestChangesModal = false">
+                        <form action="{{ URL::signedRoute('portal.request-changes', $estimate) }}" method="POST">
+                            @csrf
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Request Changes</h3>
+                            <p class="text-sm text-slate-500 mb-6 font-medium">Please select the areas that need revision and provide details below.</p>
+                            
+                            <div class="space-y-4 mb-6">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Revision Checklist</p>
+                                <div class="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    @foreach($checklists as $checklist)
+                                        <label class="flex items-start gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-slate-200 group">
+                                            <input type="checkbox" name="checklist[]" value="{{ $checklist->id }}" class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                            <span class="text-sm font-semibold text-slate-700 group-hover:text-slate-900">{{ $checklist->task }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Additional Feedback</p>
+                                <textarea name="comments" rows="4"
+                                    class="w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm shadow-sm"
+                                    placeholder="Describe the changes you would like to see..."
+                                    required></textarea>
+                            </div>
+
+                            <!-- Client Identity Capture -->
+                            <div class="grid grid-cols-2 gap-3 mt-4" x-show="!hasPostedComment && clientName === ''">
+                                <div>
+                                    <input type="text" name="client_name" x-model="clientName"
+                                        class="w-full rounded-lg border-slate-200 text-xs focus:ring-indigo-500 focus:border-indigo-500 p-2.5 bg-slate-50"
+                                        placeholder="Your Name">
+                                </div>
+                                <div>
+                                    <input type="email" name="client_email" x-model="clientEmail"
+                                        class="w-full rounded-lg border-slate-200 text-xs focus:ring-indigo-500 focus:border-indigo-500 p-2.5 bg-slate-50"
+                                        placeholder="Email Address">
+                                </div>
+                            </div>
+
+                            <div class="mt-8 flex gap-3">
+                                <button type="button" @click="showRequestChangesModal = false"
+                                    class="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl transition-all hover:bg-slate-200">Close</button>
+                                <button type="submit"
+                                    class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-700 transform hover:-translate-y-0.5 active:translate-y-0">Submit Request</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Decline Modal -->
         <div x-show="showDeclineModal" class="relative z-50" style="display: none;">
             <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" x-transition.opacity></div>
@@ -1244,6 +1310,7 @@
                 Alpine.data('portalShow', () => ({
                     // UI State
                     showCommentModal: false,
+                    showRequestChangesModal: false,
                     showDeclineModal: false,
                     showAcceptModal: false,
                     showVideoModal: false,

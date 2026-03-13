@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estimate;
+use App\Models\ChangeRequestChecklist;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class PortalController extends Controller
 {
@@ -151,8 +154,9 @@ class PortalController extends Controller
         }
 
         $comments = $commentData->filter()->unique('id')->sortBy('created_at')->values();
+        $checklists = ChangeRequestChecklist::getAllCached();
 
-        return view('portal.estimates.show', compact('estimate', 'htmlContent', 'comments'));
+        return view('portal.estimates.show', compact('estimate', 'htmlContent', 'comments', 'checklists'));
     }
 
     /**
@@ -350,6 +354,56 @@ class PortalController extends Controller
         }
 
         return back()->with('success', 'Thank you! Your comment has been sent to the team.');
+    }
+
+    /**
+     * Store a change request with a checklist from the client.
+     */
+    public function requestChanges(Request $request, Estimate $estimate)
+    {
+        $this->validateAccess($estimate, $request);
+
+        $request->validate([
+            'comments' => 'nullable|string|max:1000',
+            'checklist' => 'nullable|array',
+            'client_name' => 'nullable|string|max:255',
+            'client_email' => 'nullable|email|max:255',
+        ]);
+
+        $changeSummary = "";
+        if ($request->filled('checklist')) {
+            $tasks = ChangeRequestChecklist::whereIn('id', $request->checklist)->pluck('task')->toArray();
+            $changeSummary = "Change Request Checklist:\n- " . implode("\n- ", $tasks) . "\n\n";
+        }
+
+        $commentText = $changeSummary . ($request->comments ?? 'User requested changes via portal.');
+
+        $comment = $estimate->comments()->create([
+            'comment' => $commentText,
+            'client_name' => $request->client_name ?: 'Client',
+            'client_email' => $request->client_email,
+            'type' => 'client',
+            'is_read' => false,
+            'commentable_type' => Estimate::class,
+            'commentable_id' => $estimate->id,
+        ]);
+
+        // Notify followers/admins
+        $followers = $estimate->followers;
+        $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'sales_manager'])->get();
+        $followers = $followers->merge($admins)->unique('id');
+
+        foreach ($followers as $follower) {
+            try {
+                $follower->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate));
+            } catch (\Exception $e) {
+                \Log::error("Failed to notify user {$follower->id} of change request: " . $e->getMessage());
+            }
+        }
+
+        \App\Models\ActivityLog::log('client_requested_changes', $estimate, "Client requested changes on Proposal #{$estimate->estimate_number}");
+
+        return back()->with('success', 'Your change request has been received. Our team will review it and update the estimate accordingly.');
     }
     /**
      * Handle "Request Call" action from client.

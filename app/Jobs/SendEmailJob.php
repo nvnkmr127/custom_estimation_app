@@ -49,9 +49,12 @@ class SendEmailJob implements ShouldQueue
         $gateway = app(MailGatewayInterface::class);
 
         if (!$gateway->send($this->to, $this->subject, $this->body, $this->attachments)) {
-            // Check if we should retry or fail
-            // For now, throwing an exception triggers the queue retry mechanism
-            Log::error("SendEmailJob Failed: Gateway declined to send", ['to' => $this->to, 'subject' => $this->subject]);
+            $attempt = $this->attempts();
+            Log::error("SendEmailJob Failed (Attempt $attempt): Gateway declined to send", [
+                'to' => $this->to, 
+                'subject' => $this->subject,
+                'has_attachments' => !empty($this->attachments)
+            ]);
             throw new \Exception("Failed to send email to {$this->to}");
         }
     }

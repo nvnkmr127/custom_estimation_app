@@ -261,6 +261,7 @@
                 }
 
                 // 3. Basic Field Hydration
+                item.name = item.name || '';
                 item.unit_price = parseFloat(item.unit_price || 0);
                 item.quantity = parseFloat(item.quantity || 1);
                 item.tax_1 = parseFloat(item.tax_1 || 0);
@@ -834,34 +835,39 @@
 
             applyPackage(pkg, sIdx) {
                 if (!pkg.items) return;
-                const newItems = pkg.items.map(i => ({
-                    id: null,
-                    name: i.item_name,
-                    unit_price: parseFloat(i.unit_price || 0),
-                    quantity: parseFloat(i.quantity || 1),
-                    size: i.size || '',
-                    unit_type: i.unit_type || 'nos',
-                    unit_type_id: null, // Packages might not have specific unit type linked yet
-                    description: `Package: ${pkg.name}`,
-                    tax_1: 0,
-                    tax_2: 0,
-                    length: '', width: '', height: '', formula: '', showCalculator: false,
-                    options: [],
-                    is_package: true,
-                    _uid: this.generateUid() // Add UID for package items
-                }));
+                const newItems = pkg.items.map(i => {
+                    const newItem = {
+                        id: null,
+                        name: i.item_name || i.name || '',
+                        unit_price: parseFloat(i.unit_price || 0),
+                        quantity: parseFloat(i.quantity || 1),
+                        size: i.size || '',
+                        unit_type: i.unit_type || 'nos',
+                        unit_type_id: null,
+                        description: `Package: ${pkg.name}`,
+                        tax_1: 0,
+                        tax_2: 0,
+                        length: '', width: '', height: '', formula: '', showCalculator: false,
+                        options: [],
+                        is_package: true,
+                        _uid: this.generateUid()
+                    };
+                    this.hydrateItem(newItem);
+                    return newItem;
+                });
+
                 if (this.estimate.type === 'room_based') {
                     this.estimate.sections.push({
                         name: pkg.name,
                         items: newItems,
                         section_type: 'package',
-                        is_package: true // Keep for legacy checks if any
+                        is_package: true
                     });
-                    this.$nextTick(() => this.initSortable());
                 } else {
-                    this.estimate.items.push(...newItems);
+                    newItems.forEach(item => this.estimate.items.push(item));
                 }
                 this.calculateTotals();
+                this.$nextTick(() => this.initSortable());
             },
 
             // --- Calculations ---
@@ -1334,6 +1340,22 @@
                 }
 
                 // Sections/Items
+                const processItem = (i, iIdx, prefix) => {
+                    for (const [k, v] of Object.entries(i)) {
+                        if (v !== null && v !== undefined && k !== 'image_url' && k !== 'options' && !k.startsWith('_')) {
+                            let val = v;
+                            if (k === 'is_package') val = v ? 1 : 0;
+                            app(`${prefix}[${iIdx}][${k}]`, val);
+                        } else if (k === 'options' && Array.isArray(v)) {
+                            v.forEach((opt, oIdx) => {
+                                app(`${prefix}[${iIdx}][options][${oIdx}][name]`, opt.name);
+                                app(`${prefix}[${iIdx}][options][${oIdx}][value]`, opt.value);
+                                app(`${prefix}[${iIdx}][options][${oIdx}][price_adjustment]`, opt.price_adjustment);
+                            });
+                        }
+                    }
+                };
+
                 if (this.estimate.type === 'room_based') {
                     // Filter out empty rooms for submission only
                     const activeSections = this.estimate.sections.filter(s => s.items && s.items.length > 0);
@@ -1345,37 +1367,19 @@
                         app(`sections[${sIdx}][is_package]`, s.is_package ? 1 : 0);
 
                         s.items.forEach((i, iIdx) => {
-                            for (const [k, v] of Object.entries(i)) {
-                                if (v !== null && v !== undefined && k !== 'image_url' && k !== 'options' && !k.startsWith('_')) {
-                                    let val = v;
-                                    if (k === 'is_package') val = v ? 1 : 0;
-                                    app(`sections[${sIdx}][items][${iIdx}][${k}]`, val);
-                                } else if (k === 'options' && Array.isArray(v)) {
-                                    v.forEach((opt, oIdx) => {
-                                        app(`sections[${sIdx}][items][${iIdx}][options][${oIdx}][name]`, opt.name);
-                                        app(`sections[${sIdx}][items][${iIdx}][options][${oIdx}][value]`, opt.value);
-                                        app(`sections[${sIdx}][items][${iIdx}][options][${oIdx}][price_adjustment]`, opt.price_adjustment);
-                                    });
-                                }
-                            }
+                            processItem(i, iIdx, `sections[${sIdx}][items]`);
                         });
+                    });
+
+                    // Also include standalone items if any
+                    this.estimate.items.forEach((i, iIdx) => {
+                        processItem(i, iIdx, 'items');
                     });
                 } else {
                     this.estimate.items.forEach((i, iIdx) => {
-                        for (const [k, v] of Object.entries(i)) {
-                            if (v !== null && v !== undefined && k !== 'image_url' && k !== 'options' && !k.startsWith('_')) {
-                                let val = v;
-                                if (k === 'is_package') val = v ? 1 : 0;
-                                app(`items[${iIdx}][${k}]`, val);
-                            } else if (k === 'options' && Array.isArray(v)) {
-                                v.forEach((opt, oIdx) => {
-                                    app(`items[${iIdx}][options][${oIdx}][name]`, opt.name);
-                                    app(`items[${iIdx}][options][${oIdx}][value]`, opt.value);
-                                    app(`items[${iIdx}][options][${oIdx}][price_adjustment]`, opt.price_adjustment);
-                                });
-                            }
-                        }
+                        processItem(i, iIdx, 'items');
                     });
+                }
                 }
 
                 document.body.appendChild(form);

@@ -25,9 +25,14 @@ class Setting extends Model
 
     public static function getAllCached()
     {
-        return \Illuminate\Support\Facades\Cache::remember('app_settings', 86400, function () {
-            return static::pluck('value', 'key')->toArray();
-        });
+        try {
+            return \Illuminate\Support\Facades\Cache::remember('app_settings', 86400, function () {
+                return static::pluck('value', 'key')->toArray();
+            });
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("Settings Cache Failure: " . $e->getMessage());
+            return [];
+        }
     }
 
     public static function getCached($key, $default = null)

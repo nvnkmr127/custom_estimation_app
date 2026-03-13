@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\ApprovalChain;
+use App\Models\ChangeRequestChecklist;
 use App\Models\ApprovalChecklist;
 use App\Models\Client;
 use App\Models\DeclineReason;
@@ -776,8 +777,9 @@ class EstimateController extends Controller
         }
 
         $comments = $commentData->filter()->unique('id')->sortBy('created_at')->values();
+        $checklists = ChangeRequestChecklist::getAllCached();
 
-        return view('portal.estimates.show', compact('estimate', 'htmlContent', 'comments'));
+        return view('portal.estimates.show', compact('estimate', 'htmlContent', 'comments', 'checklists'));
     }
 
     /**
