@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ShortUrl;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class UrlShortenerService
@@ -79,21 +80,32 @@ class UrlShortenerService
      */
     public function resolve(string $code): ?string
     {
-        $shortUrl = ShortUrl::where('short_code', $code)
-            ->where(function ($query) {
-                $query->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
-            })
-            ->first();
+        // Try exact match first (case-sensitive)
+        $record = ShortUrl::where('short_code', $code)->first();
 
-        if (!$shortUrl) {
-            return null;
+        // Fallback to case-insensitive if not found (optional, helps with case-flattening)
+        if (!$record) {
+            $record = ShortUrl::whereRaw('LOWER(short_code) = LOWER(?)', [$code])->first();
         }
 
-        // Increment click count
-        $shortUrl->increment('clicks');
-        $shortUrl->update(['last_accessed_at' => now()]);
+        if ($record) {
+            if ($record->isExpired()) {
+                Log::warning("Short URL resolution failed: Code '{$code}' has expired.", [
+                    'short_code' => $record->short_code,
+                    'long_url' => $record->long_url,
+                    'expires_at' => $record->expires_at
+                ]);
+                return null;
+            }
 
-        return $shortUrl->long_url;
+            $record->increment('clicks');
+            $record->update(['last_accessed_at' => now()]);
+
+            return $record->long_url;
+        }
+
+        Log::warning("Short URL resolution failed: Code '{$code}' not found in database.");
+
+        return null;
     }
 }

@@ -616,13 +616,13 @@ class EstimateService
     /**
      * Send estimate to client via email.
      */
-    public function sendToClient(Estimate $estimate): bool
+    public function sendToClient(Estimate $estimate)
     {
         if (!$estimate->client || !$estimate->client->email) {
             throw new \Exception('Client does not have a valid email address.');
         }
 
-        return DB::transaction(function () use ($estimate) {
+        DB::transaction(function () use ($estimate) {
             try {
                 // Business Rule: Ensure estimate is approved before sending
                 if ($estimate->estimate_status !== Estimate::EST_STATUS_APPROVED && $estimate->estimate_status !== Estimate::EST_STATUS_SENT) {
@@ -632,15 +632,6 @@ class EstimateService
                 // Perform Transition via StateService
                 // Use 'force' to allow resending (which resets sent_at and expires_at)
                 $this->stateService->transitionClientStatus($estimate, Estimate::CLT_STATUS_SENT, true);
-
-                // Dispatch Event for Email/Notifications
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent(
-                    $estimate,
-                    auth()->id() ?? 0,
-                    'email'
-                ));
-
-                return true;
             } catch (\Exception $e) {
                 Log::error('Failed to send estimate to client', [
                     'estimate_id' => $estimate->id,
@@ -651,6 +642,16 @@ class EstimateService
                 throw $e;
             }
         });
+
+        // Dispatch Event OUTSIDE transaction to ensure all records (like ShortUrl) are committed
+        // and to avoid ghost links if transaction rolls back but webhook was sent.
+        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSent(
+            $estimate,
+            auth()->id() ?? 0,
+            'email'
+        ));
+
+        return true;
     }
 
     /**

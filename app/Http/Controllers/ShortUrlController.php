@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ShortUrl;
 use App\Services\UrlShortenerService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
 class ShortUrlController extends Controller
@@ -23,9 +25,23 @@ class ShortUrlController extends Controller
         $longUrl = $this->urlShortener->resolve($code);
 
         if (!$longUrl) {
-            abort(404, 'Short URL not found or has expired');
+            $record = ShortUrl::where('short_code', $code)->first();
+            if (!$record) {
+                // Try case-insensitive fallback for reporting
+                $record = ShortUrl::whereRaw('LOWER(short_code) = LOWER(?)', [$code])->first();
+            }
+
+            if ($record && $record->isExpired()) {
+                return response()->json([
+                    'error' => 'URL Expired',
+                    'message' => 'This link expired on ' . $record->expires_at->toDayDateTimeString(),
+                    'code' => $code
+                ], 410);
+            }
+
+            abort(404, 'URL not found or expired');
         }
 
-        return redirect($longUrl);
+        return redirect()->away($longUrl);
     }
 }

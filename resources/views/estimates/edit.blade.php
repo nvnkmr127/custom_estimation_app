@@ -1220,6 +1220,18 @@
         <div class="h-6 w-px bg-slate-200 mx-2"></div>
         <button type="button" @click="window.history.back()"
             class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors px-4">Cancel</button>
+
+        <button type="button" @click="saveAjax()"
+            class="inline-flex items-center gap-x-2 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all"
+            x-bind:disabled="isSubmitting"
+            x-bind:class="{ 'opacity-75 cursor-not-allowed': isSubmitting }">
+            <div class="flex items-center">
+                <div x-show="isSubmitting" class="mr-2" style="display: none;">
+                    <x-loading-spinner size="4" />
+                </div>
+                <span x-text="isSubmitting ? 'Saving...' : 'Save'"></span>
+            </div>
+        </button>
         <button type="button" @click="submitForm(true)"
             class="inline-flex items-center gap-x-2 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all"
             x-bind:disabled="isSubmitting" x-show="estimate.id"

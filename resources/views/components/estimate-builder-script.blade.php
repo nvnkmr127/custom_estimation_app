@@ -1222,6 +1222,84 @@
                 this.submitHiddenForm(actionUrl, false, this.estimate.id ? 'PUT' : 'POST', forceVersion);
             },
 
+            async saveAjax() {
+                if (this.isSubmitting) return;
+
+                if (!this.validateForm()) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+
+                this.isSubmitting = true;
+                
+                try {
+                    const method = this.estimate.id ? 'PUT' : 'POST';
+                    const url = this.estimate.id 
+                        ? `{{ route('estimates.update', ':id') }}`.replace(':id', this.estimate.id)
+                        : `{{ route('estimates.store') }}`;
+
+                    // Clean estimate object for sending
+                    const estimateCopy = JSON.parse(JSON.stringify(this.estimate));
+                    delete estimateCopy.items;
+                    delete estimateCopy.sections;
+
+                    const data = {
+                        _token: '{{ csrf_token() }}',
+                        _method: method,
+                        ...estimateCopy,
+                        sections: this.estimate.type === 'room_based' 
+                            ? this.estimate.sections.filter(s => s.items && s.items.length > 0)
+                            : undefined,
+                        items: this.estimate.type === 'standard' ? this.estimate.items : undefined,
+                        last_update_timestamp: this.estimate.updated_at
+                    };
+
+                    const response = await fetch(url, {
+                        method: 'POST', // Use POST with _method override for Laravel
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        // Success!
+                        if (!this.estimate.id && result.estimate_id) {
+                            // First time save (create -> edit transition)
+                            this.estimate.id = result.estimate_id;
+                            window.history.pushState({}, '', result.redirect_url);
+                        }
+                        
+                        if (result.last_update_timestamp) {
+                            this.estimate.updated_at = result.last_update_timestamp;
+                        }
+
+                        // Show success message (using native alert for now, or Toast if available)
+                        // In a real app, we'd use a nice Toast. 
+                        // Let's assume there might be a toast global or just use a temporary flag.
+                        alert(result.message || 'Saved successfully!');
+                    } else {
+                        // Handle validation errors or server errors
+                        if (result.errors) {
+                            // Map Laravel validation errors to our UI format if possible
+                            // For now, at least show the main error
+                            alert(result.message || 'Validation failed. Please check the form.');
+                        } else {
+                            alert(result.message || 'An error occurred while saving.');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Save failed:', error);
+                    alert('Failed to save estimate. Please check your connection.');
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+
             submitHiddenForm(url, isNewTab = false, method = 'POST', forceVersion = false) {
                 if (!isNewTab) this.isSubmitting = true;
 

@@ -273,6 +273,17 @@ class EstimateController extends Controller
 
             $estimate = $this->estimateService->createEstimate($estimateData, $itemsOrSections, $request->type);
 
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Estimate created successfully.',
+                    'estimate_id' => $estimate->id,
+                    'estimate_number' => $estimate->estimate_number,
+                    'redirect_url' => route('estimates.edit', $estimate),
+                    'last_update_timestamp' => $estimate->updated_at->toDateTimeString()
+                ]);
+            }
+
             return redirect()->route('estimates.show', $estimate)->with('success', 'Estimate created successfully.');
 
         } catch (\Exception $e) {
