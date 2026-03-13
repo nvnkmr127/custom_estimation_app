@@ -12,10 +12,10 @@ class UrlShortenerService
      * Shorten a URL and store it in the database
      *
      * @param string $longUrl The original long URL
-     * @param int|null $expiresInDays Number of days until the short URL expires (null for no expiration)
+     * @param int|\DateTimeInterface|null $expiry Expiration in days (int) or absolute date (DateTimeInterface)
      * @return string The shortened URL
      */
-    public function shorten(string $longUrl, ?int $expiresInDays = 30): string
+    public function shorten(string $longUrl, $expiry = 30): string
     {
         // Check if this URL has already been shortened recently
         $existing = ShortUrl::where('long_url', $longUrl)
@@ -25,15 +25,28 @@ class UrlShortenerService
             })
             ->first();
 
+        // Calculate target expiration
+        $expiresAt = null;
+        if ($expiry instanceof \DateTimeInterface) {
+            $expiresAt = $expiry;
+        } elseif (is_numeric($expiry)) {
+            $expiresAt = now()->addDays((int) $expiry);
+        }
+
         if ($existing) {
+            // If the new expiration is later (or null/forever), update the existing record
+            if ($expiresAt === null) {
+                if ($existing->expires_at !== null) {
+                    $existing->update(['expires_at' => null]);
+                }
+            } elseif ($existing->expires_at !== null && $expiresAt > $existing->expires_at) {
+                $existing->update(['expires_at' => $expiresAt]);
+            }
             return $this->buildShortUrl($existing->short_code);
         }
 
         // Generate a unique short code
         $shortCode = $this->generateUniqueCode();
-
-        // Calculate expiration
-        $expiresAt = $expiresInDays ? now()->addDays($expiresInDays) : null;
 
         // Store the short URL
         ShortUrl::create([

@@ -29,15 +29,17 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $estimate->id]);
 
         // Shorten URLs for cleaner webhook payloads
-        $expiryDays = $expiration->diffInDays(now());
-        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
-        $shortEstimateUrl = $this->shortenUrl($estimate->public_url, $expiryDays);
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiration);
+        $shortEstimateUrl = $this->shortenUrl($estimate->public_url, $expiration);
 
         return [
             'id' => $resource->id,
-            'content' => $resource->content,
+            'comment' => $resource->comment,
+            'type' => $resource->type,
             'total' => $estimate->grand_total,
             'mobile_number' => $estimate->client?->phone,
+            'client_email' => $estimate->client?->email,
+            'creator_email' => $estimate->creator?->email,
             'created_at' => $resource->created_at ? $resource->created_at->toIso8601String() : now()->toIso8601String(),
             'estimate' => [
                 'id' => $estimate->id,
@@ -57,11 +59,17 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
                 'phone' => $estimate->client->phone,
                 'secondary_phone' => $estimate->client->secondary_phone,
             ] : null,
-            'commenter' => $resource->user ? [
-                'name' => $resource->user->name,
-                'email' => $resource->user->email,
-                'phone' => $resource->user->mobile_number,
-            ] : null,
+            'commenter' => $resource->user_id ? [
+                'name' => $resource->user?->name,
+                'email' => $resource->user?->email,
+                'phone' => $resource->user?->mobile_number,
+                'type' => 'internal',
+            ] : [
+                'name' => $resource->client_name ?: 'Client',
+                'email' => $resource->client_email,
+                'phone' => $estimate->client?->phone,
+                'type' => 'client',
+            ],
         ];
     }
 
@@ -69,9 +77,12 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
     {
         return [
             'id' => 101,
-            'content' => 'Can we get a discount on the installation?',
+            'comment' => 'Can we get a discount on the installation?',
+            'type' => 'client',
             'total' => 1500.00,
             'mobile_number' => '8688771397',
+            'client_email' => 'wapmedia3@gmail.com',
+            'creator_email' => 'wapmedia3@gmail.com',
             'created_at' => now()->toIso8601String(),
             'estimate' => [
                 'id' => 123,
@@ -88,11 +99,13 @@ class CommentAddedDefinition implements WebhookEventDefinitionInterface
                 'name' => 'John Doe',
                 'email' => 'wapmedia3@gmail.com',
                 'phone' => '8688771397',
+                'secondary_phone' => '098-765-4321',
             ],
             'commenter' => [
                 'name' => 'John Doe',
                 'email' => 'wapmedia3@gmail.com',
                 'phone' => '8688771397',
+                'type' => 'client',
             ],
         ];
     }

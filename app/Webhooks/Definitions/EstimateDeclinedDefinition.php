@@ -30,9 +30,8 @@ class EstimateDeclinedDefinition implements WebhookEventDefinitionInterface
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $resource->id]);
 
         // Shorten URLs for cleaner webhook payloads
-        $expiryDays = $expiration->diffInDays(now());
-        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
-        $shortEstimateUrl = $this->shortenUrl($resource->public_url, $expiryDays);
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiration);
+        $shortEstimateUrl = $this->shortenUrl($resource->public_url, $expiration);
 
         return [
             'id' => $resource->id,

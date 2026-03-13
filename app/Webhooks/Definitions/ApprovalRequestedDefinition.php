@@ -29,9 +29,8 @@ class ApprovalRequestedDefinition implements WebhookEventDefinitionInterface
         $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute('portal.download', $expiration, ['estimate' => $estimate->id]);
 
         // Shorten URLs for cleaner webhook payloads
-        $expiryDays = $expiration->diffInDays(now());
-        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiryDays);
-        $shortEstimateUrl = $this->shortenUrl($estimate->public_url, $expiryDays);
+        $shortPdfUrl = $this->shortenUrl($pdfUrl, $expiration);
+        $shortEstimateUrl = $this->shortenUrl($estimate->public_url, $expiration);
 
         return [
             'id' => $resource->id,
