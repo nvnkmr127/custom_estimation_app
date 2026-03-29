@@ -268,6 +268,9 @@ class EstimateService
             $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateUpdated($estimate, auth()->id(), $estimate->getChanges()));
 
             return $estimate;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
         }
     }
 
