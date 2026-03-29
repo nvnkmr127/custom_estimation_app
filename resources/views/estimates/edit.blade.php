@@ -123,6 +123,16 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Restore Button in Top Bar -->
+                    <button type="button" @click="showDeletedModal = true"
+                        id="restore-button-top"
+                        class="inline-flex items-center gap-x-1.5 rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-600 shadow-sm ring-1 ring-inset ring-amber-200 hover:bg-amber-100 transition-all">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Restore (<span x-text="deletedItems.length + deletedSections.length"></span>)
+                    </button>
                 </div>
             </div>
 
@@ -1224,7 +1234,7 @@
         class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 p-4 sm:px-8 z-50 flex justify-end items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
 
         <button type="button" @click="showDeletedModal = true"
-            x-show="deletedItems.length > 0 || deletedSections.length > 0"
+            id="restore-button-sticky"
             class="inline-flex items-center gap-x-1.5 rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 shadow-sm ring-1 ring-inset ring-amber-200 hover:bg-amber-100 transition-all mr-auto">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
