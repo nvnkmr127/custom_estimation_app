@@ -424,10 +424,12 @@ class EstimateController extends Controller
         try {
             $sections = $validated['sections'] ?? [];
             $items = $validated['items'] ?? [];
+            $deletedSections = $request->input('deleted_sections', []);
+            $deletedItems = $request->input('deleted_items', []);
             $estimateData = \Illuminate\Support\Arr::except($validated, ['items', 'sections', 'last_update_timestamp']);
 
             // Service handles branching, transactions, logic
-            $updatedEstimate = $this->estimateService->updateEstimate($estimate, $estimateData, $sections, $items, $request->type);
+            $updatedEstimate = $this->estimateService->updateEstimate($estimate, $estimateData, $sections, $items, $request->type, false, $deletedSections, $deletedItems);
 
             $msg = 'Estimate updated successfully.';
             $isBranched = $updatedEstimate->id !== $estimate->id;
@@ -1011,5 +1013,89 @@ class EstimateController extends Controller
             }
             return $t;
         })->values();
+    }
+
+    /**
+     * Fetch the history of deleted sections/items for this estimate.
+     */
+    public function restoreHistory(Estimate $estimate)
+    {
+        $id = $estimate->id;
+        
+        $itemTimestamps = \App\Models\EstimateItem::onlyTrashed()
+            ->where('estimate_id', $id)
+            ->pluck('deleted_at')
+            ->map(fn($t) => $t ? $t->toDateTimeString() : null)
+            ->filter()
+            ->unique();
+
+        $sectionTimestamps = \App\Models\EstimateSection::onlyTrashed()
+            ->where('estimate_id', $id)
+            ->pluck('deleted_at')
+            ->map(fn($t) => $t ? $t->toDateTimeString() : null)
+            ->filter()
+            ->unique();
+        
+        $allTimestamps = $itemTimestamps->merge($sectionTimestamps)
+            ->unique()
+            ->values()
+            ->sortDesc()
+            ->values();
+
+        $sessions = $allTimestamps->map(function($timestamp, $index) use ($id) {
+            $sections = \App\Models\EstimateSection::onlyTrashed()
+                ->where('estimate_id', $id)
+                ->where('deleted_at', $timestamp)
+                ->get(['name']);
+            
+            $items = \App\Models\EstimateItem::onlyTrashed()
+                ->where('estimate_id', $id)
+                ->where('deleted_at', $timestamp)
+                ->get(['name']);
+
+            return [
+                'timestamp' => $timestamp,
+                'time_format' => \Carbon\Carbon::parse($timestamp)->diffForHumans() . " (" . \Carbon\Carbon::parse($timestamp)->format('M d, H:i') . ")",
+                'rooms' => $sections->pluck('name')->unique()->values(),
+                'room_count' => $sections->count(),
+                'item_preview' => $items->take(5)->pluck('name')->implode(', '),
+                'item_count' => $items->count(),
+                'label' => ($index === 0) ? "Most Recent" : (($index === 1) ? "Previous Version" : ""),
+            ];
+        });
+
+        return response()->json($sessions);
+    }
+
+    /**
+     * Restore data from a specific deletion session via UI.
+     */
+    public function restoreSession(\Illuminate\Http\Request $request, Estimate $estimate)
+    {
+        $timestamp = $request->input('timestamp');
+        if (!$timestamp) return response()->json(['error' => 'Missing timestamp'], 400);
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $restoredSections = \App\Models\EstimateSection::onlyTrashed()
+                ->where('estimate_id', $estimate->id)
+                ->where('deleted_at', $timestamp)
+                ->restore();
+
+            $restoredItems = \App\Models\EstimateItem::onlyTrashed()
+                ->where('estimate_id', $estimate->id)
+                ->where('deleted_at', $timestamp)
+                ->restore();
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Restored {$restoredSections} rooms and {$restoredItems} items."
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }

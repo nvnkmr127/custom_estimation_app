@@ -1014,6 +1014,14 @@
             </svg>
             <span>Add New Room</span>
         </button>
+
+        <button type="button" @click="fetchHistory()" x-show="estimate.type === 'room_based'"
+            class="h-full min-h-[160px] border-2 border-dashed border-rose-300 rounded-xl text-rose-400 hover:border-rose-500 hover:text-rose-600 hover:bg-rose-50 transition-all font-medium flex flex-col items-center justify-center gap-2">
+            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Recently Deleted</span>
+        </button>
     </div>
     </div>
 
@@ -1378,6 +1386,75 @@
             </div>
         </div>
     </div>
+
+        <!-- History Recovery Modal -->
+        <div x-show="historyModal.isOpen" class="fixed inset-0 z-[60] overflow-y-auto" x-cloak>
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div x-show="historyModal.isOpen" x-transition:enter="ease-out duration-300"
+                    x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave="ease-in duration-200"
+                    x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl px-6 pt-5 pb-6">
+                    
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-rose-100 rounded-lg">
+                                <svg class="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900">Restoration History</h3>
+                                <p class="text-sm text-slate-500">Recover rooms and items that were recently removed.</p>
+                            </div>
+                        </div>
+                        <button type="button" @click="historyModal.isOpen = false" class="text-slate-400 hover:text-slate-500">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+
+                    <div class="mt-4">
+                        <div x-show="historyModal.isLoading" class="flex justify-center py-10">
+                            <svg class="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </div>
+
+                        <div x-show="!historyModal.isLoading && historyModal.data.length === 0" class="text-center py-10">
+                            <p class="text-slate-500">No recent deletions found for this estimate.</p>
+                        </div>
+
+                        <div x-show="!historyModal.isLoading && historyModal.data.length > 0" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                            <template x-for="(session, index) in historyModal.data" :key="index">
+                                <div class="p-4 border border-slate-200 rounded-xl hover:border-indigo-200 transition-colors">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <span class="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 mb-1" x-text="session.label" x-show="session.label"></span>
+                                            <div class="text-sm font-bold text-slate-900" x-text="session.time_format"></div>
+                                        </div>
+                                        <button type="button" @click="restoreSession(session.timestamp)"
+                                            class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-500 transition-all">
+                                            Restore All
+                                        </button>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="flex gap-2 text-xs" x-show="session.room_count > 0">
+                                            <span class="font-bold text-slate-500 text-[10px] uppercase">Rooms:</span>
+                                            <span class="text-slate-700 font-medium" x-text="session.rooms.join(', ')"></span>
+                                        </div>
+                                        <div class="flex gap-2 text-xs" x-show="session.item_count > 0">
+                                            <span class="font-bold text-slate-500 text-[10px] uppercase">Items:</span>
+                                            <span class="text-slate-700 font-medium tracking-tight" x-text="session.item_preview + (session.item_count > 5 ? '...' : '')"></span>
+                                            <span class="text-slate-400 font-medium" x-text="'(' + session.item_count + ' total)'"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <!-- Shared Logic Component -->
     @include('components.estimate-builder-script', [

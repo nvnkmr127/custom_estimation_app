@@ -41,7 +41,6 @@ class RestoreEstimateData extends Command
         }
 
         // Get unique deletion timestamps, sorted most recent first
-        // We cast to string for reliable comparison
         $itemTimestamps = EstimateItem::onlyTrashed()
             ->where('estimate_id', $id)
             ->pluck('deleted_at')
@@ -63,36 +62,55 @@ class RestoreEstimateData extends Command
             ->values();
 
         if ($allTimestamps->isEmpty()) {
-            $this->error("No soft-deleted sections or items found for Estimate #{$estimate->estimate_number}.");
+            $this->error("No soft-deleted data found for Estimate #{$estimate->estimate_number} (ID: {$id}).");
             return Command::FAILURE;
         }
 
         $this->info("--------------------------------------------------");
         $this->info("ESTIMATE: #{$estimate->estimate_number} (ID: {$id})");
         $this->info("--------------------------------------------------");
-        $this->info("Identified deletion events (most recent first):");
+        $this->info("Identified Deletion Sessions (Most Recent First):");
+        $this->info("--------------------------------------------------");
         
         foreach ($allTimestamps as $index => $timestamp) {
-            $itemCount = EstimateItem::onlyTrashed()
+            $sections = EstimateSection::onlyTrashed()
                 ->where('estimate_id', $id)
                 ->where('deleted_at', $timestamp)
-                ->count();
+                ->get();
             
-            $sectionCount = EstimateSection::onlyTrashed()
+            $items = EstimateItem::onlyTrashed()
                 ->where('estimate_id', $id)
                 ->where('deleted_at', $timestamp)
-                ->count();
+                ->get();
             
             $label = ($index === 0) ? " [MOST RECENT]" : (($index === 1) ? " [LAST 2nd]" : "");
-            $this->line("[" . ($index + 1) . "] {$timestamp} -- {$sectionCount} rooms, {$itemCount} items {$label}");
-        }
-        $this->info("--------------------------------------------------");
+            
+            $this->warn("[" . ($index + 1) . "] TIMESTAMP: {$timestamp} {$label}");
+            
+            if ($sections->isNotEmpty()) {
+                $sectionNames = $sections->pluck('name')->unique()->implode(', ');
+                $this->line("    Rooms: {$sectionNames} (" . $sections->count() . " total)");
+            } else {
+                $this->line("    Rooms: (None)");
+            }
 
-        $choice = $this->ask("Which deletion event number do you want to restore?", 1);
+            if ($items->isNotEmpty()) {
+                // Show first few items and then a count for brevity
+                $itemNames = $items->take(5)->pluck('name')->implode(', ');
+                $totalItems = $items->count();
+                $itemSummary = $totalItems > 5 ? "{$itemNames}, and " . ($totalItems - 5) . " more..." : $itemNames;
+                $this->line("    Items: {$itemSummary} ({$totalItems} total)");
+            } else {
+                $this->line("    Items: (None)");
+            }
+            $this->info("--------------------------------------------------");
+        }
+
+        $choice = $this->ask("Which session # do you want to restore?", 1);
         $selectedIndex = (int)$choice - 1;
 
         if (!isset($allTimestamps[$selectedIndex])) {
-            $this->error("Invalid selection. Selection must be between 1 and " . count($allTimestamps));
+            $this->error("Invalid choice. Selection must be between 1 and " . count($allTimestamps));
             return Command::FAILURE;
         }
 
@@ -121,18 +139,18 @@ class RestoreEstimateData extends Command
             DB::commit();
 
             $this->info("--------------------------------------------------");
-            $this->info("SUCCESS!");
-            $this->info("- Restored Sections: {$restoredSections}");
+            $this->info("SUCCESSFULLY RESTORED!");
+            $this->info("- Restored Rooms: {$restoredSections}");
             $this->info("- Restored Items: {$restoredItems}");
             $this->info("--------------------------------------------------");
-            $this->warn("CRITICAL: You MUST REFRESH your browser page to see the");
+            $this->warn("IMPORTANT: You MUST REFRESH your browser page to see the");
             $this->warn("restored items before saving again.");
             $this->info("--------------------------------------------------");
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("FAILED: " . $e->getMessage());
+            $this->error("RESTORATION FAILED: " . $e->getMessage());
             return Command::FAILURE;
         }
     }

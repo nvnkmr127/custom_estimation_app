@@ -116,6 +116,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Version approval remains strict/admin mostly, but we can move it here and let Policy handle (Controller checks strictly anyway)
     Route::post('estimates/{estimate}/approve-version', [App\Http\Controllers\EstimateController::class, 'approveVersion'])->name('estimates.approve-version');
+    Route::get('estimates/{estimate}/restore-history', [App\Http\Controllers\EstimateController::class, 'restoreHistory'])->name('estimates.restore-history');
+    Route::post('estimates/{estimate}/restore-session', [App\Http\Controllers\EstimateController::class, 'restoreSession'])->name('estimates.restore-session');
 
     // Tasks
     Route::resource('tasks', App\Http\Controllers\TaskController::class);

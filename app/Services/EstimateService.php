@@ -118,9 +118,11 @@ class EstimateService
      * @param array $items Data for items (standalone or standard)
      * @param string $type
      * @param bool $forceBranch Force a new version creation
+     * @param array $deletedSections IDs of sections to explicitly delete
+     * @param array $deletedItems IDs of items to explicitly delete
      * @return Estimate The updated or new estimate (if branched)
      */
-    public function updateEstimate(Estimate $estimate, array $data, array $sections, array $items, string $type, bool $forceBranch = false): Estimate
+    public function updateEstimate(Estimate $estimate, array $data, array $sections, array $items, string $type, bool $forceBranch = false, array $deletedSections = [], array $deletedItems = []): Estimate
     {
         DB::beginTransaction();
         try {
@@ -168,27 +170,15 @@ class EstimateService
 
             $estimate->update($data);
 
-            // Deletion logic: only perform if we are updating the record in-place (not branched)
+            // Explicit Deletion logic: only perform if we are updating the record in-place (not branched)
             if (!$isBranched) {
-                // Identify all IDs being sent to prevent accidental deletion
-                $inputSectionIds = array_filter(array_column($sections, 'id'));
-                $inputStandaloneItemIds = array_filter(array_column($items, 'id'));
-                
-                $inputSectionItemIds = [];
-                foreach ($sections as $sectionData) {
-                    if (isset($sectionData['items'])) {
-                        $itemIds = array_filter(array_column($sectionData['items'], 'id'));
-                        $inputSectionItemIds = array_merge($inputSectionItemIds, $itemIds);
-                    }
+                if (!empty($deletedSections)) {
+                    $estimate->sections()->whereIn('id', $deletedSections)->delete();
                 }
 
-                $allInputItemIds = array_unique(array_merge($inputStandaloneItemIds, $inputSectionItemIds));
-
-                // 1. Delete sections no longer in the list
-                $estimate->sections()->whereNotIn('id', $inputSectionIds)->delete();
-
-                // 2. Global item deletion: remove items that are not in ANY input section AND not in standalone items
-                $estimate->items()->whereNotIn('id', $allInputItemIds)->delete();
+                if (!empty($deletedItems)) {
+                    $estimate->items()->whereIn('id', $deletedItems)->delete();
+                }
             }
 
             // Sync Sections and their items

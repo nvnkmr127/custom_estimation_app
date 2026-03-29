@@ -79,6 +79,11 @@
             validationErrors: [],
             deletedItems: [],
             deletedSections: [],
+            historyModal: {
+                isOpen: false,
+                isLoading: false,
+                data: []
+            },
             showDeletedModal: false,
 
             generateUid() {
@@ -1299,6 +1304,8 @@
                         ...this.estimate,
                         sections: this.estimate.sections,
                         items: this.estimate.items,
+                        deleted_sections: this.deletedSections.map(s => s.id).filter(id => id),
+                        deleted_items: this.deletedItems.map(i => i.id).filter(id => id),
                         force_version: forceVersion,
                         last_update_timestamp: this.estimate.updated_at
                     };
@@ -1421,6 +1428,45 @@
 
                 document.body.appendChild(form);
                 form.submit();
+            }
+            async fetchHistory() {
+                this.historyModal.isLoading = true;
+                this.historyModal.isOpen = true;
+                try {
+                    const response = await fetch(`/estimates/${this.estimate.id}/restore-history`);
+                    this.historyModal.data = await response.json();
+                } catch (err) {
+                    console.error('Error fetching history', err);
+                    alert('Could not load deletion history.');
+                } finally {
+                    this.historyModal.isLoading = false;
+                }
+            },
+
+            async restoreSession(timestamp) {
+                if (!confirm('This will restore all rooms and items deleted at this time. The page will reload to show the changes. Continue?')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/estimates/${this.estimate.id}/restore-session`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ timestamp })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                    }
+                } catch (err) {
+                    console.error('Error restoring session', err);
+                    alert('Restoration failed.');
+                }
             }
         }));
     });
