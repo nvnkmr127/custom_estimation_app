@@ -311,8 +311,8 @@
             },
 
             isItemLocked(item) {
-                // An item is considered locked if it came from a product, package, or has a defined unit_type_id (admin configuration)
-                return !!item.product_id || !!item.is_package || !!item.unit_type_id;
+                // An item is considered locked if it came from a product or is explicitly a package item
+                return !!item.product_id || !!item.is_package || !!item.is_locked;
             },
 
             initClientSearch() {

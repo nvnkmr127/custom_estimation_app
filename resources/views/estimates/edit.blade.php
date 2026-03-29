@@ -430,12 +430,12 @@
                                                 <!-- Column 4: Item Details -->
                                                 <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
-                                                        :readonly="!!item.product_id || item.is_locked"
-                                                        :class="(!!item.product_id || item.is_locked) ? 'cursor-default text-slate-500' : ''"
+                                                        :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : ''"
                                                         class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
                                                     <textarea x-model="item.description" placeholder="Description"
-                                                        rows="2" :readonly="!!item.product_id || item.is_locked"
-                                                        :class="(!!item.product_id || item.is_locked) ? 'cursor-default text-slate-500' : ''"
+                                                        rows="2" :readonly="isItemLocked(item)"
+                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : ''"
                                                         class="block w-full border-0 p-0 text-xs text-slate-500 focus:ring-0 placeholder:text-slate-400 bg-transparent resize-none leading-relaxed"></textarea>
 
                                                     <!-- Variant Dropdowns placed exactly below description -->
@@ -542,8 +542,10 @@
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
                                     x-text="estimate.currency_symbol"></span>
-                                <input type="number" step="0.01" x-model="item.unit_price" readonly
-                                    class="block w-full rounded-lg border-slate-200 bg-slate-100 py-1.5 pl-8 pr-3 text-sm text-slate-500 text-right font-medium focus:ring-0 transition-all cursor-not-allowed">
+                                <input type="number" step="0.01" x-model="item.unit_price"
+                                    :readonly="isItemLocked(item)" @input="calculateTotals"
+                                    :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                    class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                             </div>
                         </td>
                         <!-- Quantity -->
@@ -649,10 +651,12 @@
                                     </td>
                                     <!-- Details (Simplified for package) -->
                                     <td class="px-3 py-4">
-                                        <input type="text" x-model="item.name" placeholder="Item Name" readonly
-                                            class="block w-full border-0 p-0 text-sm font-bold text-slate-500 cursor-default bg-transparent mb-1">
-                                        <input type="text" x-model="item.description" placeholder="Description" readonly
-                                            class="block w-full border-0 p-0 text-xs text-slate-500 cursor-default bg-transparent">
+                                        <input type="text" x-model="item.name" placeholder="Item Name" :readonly="isItemLocked(item)"
+                                            :class="isItemLocked(item) ? 'text-slate-500 cursor-default' : 'text-slate-900'"
+                                            class="block w-full border-0 p-0 text-sm font-bold bg-transparent mb-1">
+                                        <input type="text" x-model="item.description" placeholder="Description" :readonly="isItemLocked(item)"
+                                            :class="isItemLocked(item) ? 'text-slate-500 cursor-default' : 'text-slate-900'"
+                                            class="block w-full border-0 p-0 text-xs bg-transparent">
                                     </td>
                                     <!-- Price -->
                                     <td class="px-3 py-4">
@@ -935,8 +939,10 @@
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
                                     x-text="estimate.currency_symbol"></span>
-                                <input type="number" step="0.01" x-model="item.unit_price" readonly
-                                    class="block w-full rounded-lg border-slate-200 bg-slate-100 py-1.5 pl-8 pr-3 text-sm text-slate-500 text-right font-medium focus:ring-0 transition-all cursor-not-allowed">
+                                <input type="number" step="0.01" x-model="item.unit_price"
+                                    :readonly="isItemLocked(item)" @input="calculateTotals"
+                                    :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                    class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                             </div>
                         </td>
                         <td class="px-3 py-4">

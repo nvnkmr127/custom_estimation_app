@@ -573,8 +573,8 @@
                                                             class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
                                                             x-text="estimate.currency_symbol"></span>
                                                         <input type="number" step="0.01" x-model="item.unit_price"
-                                                            :readonly="!!item.product_id" @input="calculateTotals"
-                                                            :class="!!item.product_id ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
+                                                            :readonly="isItemLocked(item)" @input="calculateTotals"
+                                                            :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
                                                             class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
                                                     </div>
                                                 </td>
