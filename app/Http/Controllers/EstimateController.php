@@ -263,16 +263,11 @@ class EstimateController extends Controller
         $validated = $request->validated();
 
         try {
-            $itemsOrSections = $request->type === 'room_based'
-                ? ($validated['sections'] ?? [])
-                : ($validated['items'] ?? []);
-
-            // Ensure we don't pass the raw items/sections array as part of the main estimate attributes
-            // createEstimate expects: (data, itemsOrSections, type)
-            // We should strip items/sections from $validated for the first arg.
+            $sections = $validated['sections'] ?? [];
+            $items = $validated['items'] ?? [];
             $estimateData = \Illuminate\Support\Arr::except($validated, ['items', 'sections']);
 
-            $estimate = $this->estimateService->createEstimate($estimateData, $itemsOrSections, $request->type);
+            $estimate = $this->estimateService->createEstimate($estimateData, $sections, $items, $request->type);
 
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
@@ -427,14 +422,12 @@ class EstimateController extends Controller
         $validated = $request->validated();
 
         try {
-            $itemsOrSections = $request->type === 'room_based'
-                ? ($validated['sections'] ?? [])
-                : ($validated['items'] ?? []);
-
+            $sections = $validated['sections'] ?? [];
+            $items = $validated['items'] ?? [];
             $estimateData = \Illuminate\Support\Arr::except($validated, ['items', 'sections', 'last_update_timestamp']);
 
             // Service handles branching, transactions, logic
-            $updatedEstimate = $this->estimateService->updateEstimate($estimate, $estimateData, $itemsOrSections, $request->type);
+            $updatedEstimate = $this->estimateService->updateEstimate($estimate, $estimateData, $sections, $items, $request->type);
 
             $msg = 'Estimate updated successfully.';
             $isBranched = $updatedEstimate->id !== $estimate->id;

@@ -27,12 +27,13 @@ class EstimateService
      * Create a new estimate with sections and items.
      * 
      * @param array $data Input data for estimate
-     * @param array $itemsOrSections Data for items or sections
+     * @param array $sections Data for sections (for room_based)
+     * @param array $items Data for items (standalone or standard)
      * @param string $type 'standard' or 'room_based'
      * @return Estimate
      * @throws \Exception
      */
-    public function createEstimate(array $data, array $itemsOrSections, string $type): Estimate
+    public function createEstimate(array $data, array $sections, array $items, string $type): Estimate
     {
         // Simple Retry Loop not strictly needed for collisions anymore (resolved by DB Sequence), 
         // but kept for other transient DB errors.
@@ -55,27 +56,26 @@ class EstimateService
             try {
                 $estimate = Estimate::create($data);
 
-                if ($type === 'room_based') {
-                    foreach ($itemsOrSections as $sectionIndex => $sectionData) {
-                        $section = $estimate->sections()->create([
-                            'name' => $sectionData['name'],
-                            'order_index' => $sectionIndex,
-                            'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
-                        ]);
+                // Process Sections
+                foreach ($sections as $sectionIndex => $sectionData) {
+                    $section = $estimate->sections()->create([
+                        'name' => $sectionData['name'],
+                        'order_index' => $sectionIndex,
+                        'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
+                    ]);
 
-                        if (isset($sectionData['items'])) {
-                            foreach ($sectionData['items'] as $itemIndex => $itemData) {
-                                $oi = $itemData['order_index'] ?? $itemIndex;
-                                $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
-                            }
+                    if (isset($sectionData['items'])) {
+                        foreach ($sectionData['items'] as $itemIndex => $itemData) {
+                            $oi = $itemData['order_index'] ?? $itemIndex;
+                            $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                         }
                     }
-                } else {
-                    // Standard
-                    foreach ($itemsOrSections as $itemIndex => $itemData) {
-                        $oi = $itemData['order_index'] ?? $itemIndex;
-                        $this->createEstimateItem($estimate, null, $itemData, $oi);
-                    }
+                }
+
+                // Process Standalone Items
+                foreach ($items as $itemIndex => $itemData) {
+                    $oi = $itemData['order_index'] ?? $itemIndex;
+                    $this->createEstimateItem($estimate, null, $itemData, $oi);
                 }
 
                 $this->recalculateTotals($estimate);
@@ -114,12 +114,13 @@ class EstimateService
      * 
      * @param Estimate $estimate
      * @param array $data Validated estimate data
-     * @param array $itemsOrSections Data for items or sections
+     * @param array $sections Data for sections (for room_based)
+     * @param array $items Data for items (standalone or standard)
      * @param string $type
      * @param bool $forceBranch Force a new version creation
      * @return Estimate The updated or new estimate (if branched)
      */
-    public function updateEstimate(Estimate $estimate, array $data, array $itemsOrSections, string $type, bool $forceBranch = false): Estimate
+    public function updateEstimate(Estimate $estimate, array $data, array $sections, array $items, string $type, bool $forceBranch = false): Estimate
     {
         DB::beginTransaction();
         try {
@@ -167,103 +168,89 @@ class EstimateService
 
             $estimate->update($data);
 
-            // Sync Sections/Items
-            if ($type === 'room_based') {
-                $inputSectionIds = array_filter(array_column($itemsOrSections, 'id'));
-
-                // Collect all item IDs from all sections to prevent accidental deletion 
-                // when an item is moved between sections.
-                $allInputItemIds = [];
-                foreach ($itemsOrSections as $section) {
-                    if (isset($section['items'])) {
-                        $allInputItemIds = array_merge($allInputItemIds, array_filter(array_column($section['items'], 'id')));
+            // Deletion logic: only perform if we are updating the record in-place (not branched)
+            if (!$isBranched) {
+                // Identify all IDs being sent to prevent accidental deletion
+                $inputSectionIds = array_filter(array_column($sections, 'id'));
+                $inputStandaloneItemIds = array_filter(array_column($items, 'id'));
+                
+                $inputSectionItemIds = [];
+                foreach ($sections as $sectionData) {
+                    if (isset($sectionData['items'])) {
+                        $itemIds = array_filter(array_column($sectionData['items'], 'id'));
+                        $inputSectionItemIds = array_merge($inputSectionItemIds, $itemIds);
                     }
                 }
 
-                // If NOT branched, we verify deletes.
-                if (!$isBranched) {
-                    $estimate->sections()->whereNotIn('id', $inputSectionIds)->delete();
-                    // Global item deletion for the estimate: remove items that are not in ANY input section
-                    $estimate->items()->whereNotNull('estimate_section_id')->whereNotIn('id', $allInputItemIds)->delete();
+                $allInputItemIds = array_unique(array_merge($inputStandaloneItemIds, $inputSectionItemIds));
+
+                // 1. Delete sections no longer in the list
+                $estimate->sections()->whereNotIn('id', $inputSectionIds)->delete();
+
+                // 2. Global item deletion: remove items that are not in ANY input section AND not in standalone items
+                $estimate->items()->whereNotIn('id', $allInputItemIds)->delete();
+            }
+
+            // Sync Sections and their items
+            foreach ($sections as $sectionIndex => $sectionData) {
+                if ($isBranched) {
+                    $sectionData['id'] = null; // Forces new record creation on the new estimate version
                 }
 
-                foreach ($itemsOrSections as $sectionIndex => $sectionData) {
-                    // Sanitize IDs if branched
-                    if ($isBranched) {
-                        $sectionData['id'] = null;
-                        // DO NOT nullify item IDs here, we need them for lineage in createEstimateItem
-                    }
-
-                    if (!empty($sectionData['id'])) {
-                        $section = $estimate->sections()->where('id', $sectionData['id'])->first();
-                        if ($section) {
-                            $section->update([
-                                'name' => $sectionData['name'],
-                                'order_index' => $sectionIndex,
-                                'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
-                            ]);
-                        } else {
-                            $section = $estimate->sections()->create([
-                                'name' => $sectionData['name'],
-                                'order_index' => $sectionIndex,
-                                'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
-                            ]);
-                        }
+                if (!empty($sectionData['id'])) {
+                    $section = $estimate->sections()->where('id', $sectionData['id'])->first();
+                    if ($section) {
+                        $section->update([
+                            'name' => $sectionData['name'],
+                            'order_index' => $sectionIndex,
+                            'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
+                        ]);
                     } else {
+                        // This should theoretically not happen if not branched, but as a fallback:
                         $section = $estimate->sections()->create([
                             'name' => $sectionData['name'],
                             'order_index' => $sectionIndex,
                             'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                         ]);
                     }
+                } else {
+                    $section = $estimate->sections()->create([
+                        'name' => $sectionData['name'],
+                        'order_index' => $sectionIndex,
+                        'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
+                    ]);
+                }
 
-                    // Sync Items
-                    if (isset($sectionData['items'])) {
-                        $itemsToProcess = $sectionData['items'];
-                        // Individual item deletion within section is NO LONGER needed here 
-                        // because we handled it globally above. This allows moving items between sections.
-
-                        foreach ($itemsToProcess as $itemIndex => $itemData) {
-                            $oi = $itemData['order_index'] ?? $itemIndex;
-                            if (!empty($itemData['id']) && !$isBranched) {
-                                // Search item in the WHOLE estimate, because it might have moved sections
-                                $item = $estimate->items()->where('id', $itemData['id'])->first();
-                                if ($item) {
-                                    $this->updateEstimateItem($item, $section->id, $itemData, $oi);
-                                } else {
-                                    $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
-                                }
+                // Sync Items for this section
+                if (isset($sectionData['items'])) {
+                    foreach ($sectionData['items'] as $itemIndex => $itemData) {
+                        $oi = $itemData['order_index'] ?? $itemIndex;
+                        if (!empty($itemData['id']) && !$isBranched) {
+                            $item = $estimate->items()->where('id', $itemData['id'])->first();
+                            if ($item) {
+                                $this->updateEstimateItem($item, $section->id, $itemData, $oi);
                             } else {
                                 $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                             }
+                        } else {
+                            $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                         }
                     }
                 }
-            } else {
-                // Standard Type
-                $itemsToProcess = $itemsOrSections;
-                if ($isBranched) {
-                    // Clean Section IDs (Standard has no sections)
-                    // We DO NOT nullify item IDs here yet, as createEstimateItem needs them for lineage
-                }
+            }
 
-                if (!$isBranched) {
-                    $inputItemIds = array_filter(array_column($itemsToProcess, 'id'));
-                    $estimate->items()->whereNotIn('id', $inputItemIds)->delete();
-                }
-
-                foreach ($itemsToProcess as $itemIndex => $itemData) {
-                    $oi = $itemData['order_index'] ?? $itemIndex;
-                    if (!empty($itemData['id']) && !$isBranched) {
-                        $item = $estimate->items()->where('id', $itemData['id'])->first();
-                        if ($item) {
-                            $this->updateEstimateItem($item, null, $itemData, $oi);
-                        } else {
-                            $this->createEstimateItem($estimate, null, $itemData, $oi);
-                        }
+            // Sync Standalone Items
+            foreach ($items as $itemIndex => $itemData) {
+                $oi = $itemData['order_index'] ?? $itemIndex;
+                if (!empty($itemData['id']) && !$isBranched) {
+                    $item = $estimate->items()->where('id', $itemData['id'])->first();
+                    if ($item) {
+                        $this->updateEstimateItem($item, null, $itemData, $oi);
                     } else {
                         $this->createEstimateItem($estimate, null, $itemData, $oi);
                     }
+                } else {
+                    $this->createEstimateItem($estimate, null, $itemData, $oi);
                 }
             }
 
@@ -281,9 +268,6 @@ class EstimateService
             $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateUpdated($estimate, auth()->id(), $estimate->getChanges()));
 
             return $estimate;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
         }
     }
 
