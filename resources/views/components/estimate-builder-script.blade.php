@@ -1428,7 +1428,7 @@
 
                 document.body.appendChild(form);
                 form.submit();
-            }
+            },
             async fetchHistory() {
                 this.historyModal.isLoading = true;
                 this.historyModal.isOpen = true;
