@@ -77,6 +77,9 @@
             isCalculating: false,
             _calcTimeout: null,
             validationErrors: [],
+            deletedItems: [],
+            deletedSections: [],
+            showDeletedModal: false,
 
             generateUid() {
                 return 'item-' + Math.random().toString(36).substr(2, 9);
@@ -723,14 +726,67 @@
 
             removeSection(index) {
                 if (confirm('Are you sure you want to remove this room?')) {
+                    const section = this.estimate.sections[index];
+                    // Save to history before removal
+                    this.deletedSections.push({
+                        ...JSON.parse(JSON.stringify(section)),
+                        _originalIndex: index
+                    });
                     this.estimate.sections.splice(index, 1);
                     this.calculateTotals();
                 }
             },
 
             removeItem(sIdx, iIdx) {
-                if (sIdx !== null) this.estimate.sections[sIdx].items.splice(iIdx, 1);
-                else this.estimate.items.splice(iIdx, 1);
+                let item;
+                if (sIdx !== null) {
+                    item = this.estimate.sections[sIdx].items[iIdx];
+                    this.deletedItems.push({
+                        ...JSON.parse(JSON.stringify(item)),
+                        _sectionIndex: sIdx,
+                        _originalIndex: iIdx,
+                        _sectionName: this.estimate.sections[sIdx].name
+                    });
+                    this.estimate.sections[sIdx].items.splice(iIdx, 1);
+                } else {
+                    item = this.estimate.items[iIdx];
+                    this.deletedItems.push({
+                        ...JSON.parse(JSON.stringify(item)),
+                        _sectionIndex: null,
+                        _originalIndex: iIdx
+                    });
+                    this.estimate.items.splice(iIdx, 1);
+                }
+                this.calculateTotals();
+            },
+
+            restoreItem(index) {
+                const deletedItem = this.deletedItems[index];
+                if (deletedItem._sectionIndex !== null) {
+                    // Restore to section - check if section still exists by index or name
+                    let section = this.estimate.sections[deletedItem._sectionIndex];
+                    if (!section || section.name !== deletedItem._sectionName) {
+                        // Try to find by name instead
+                        section = this.estimate.sections.find(s => s.name === deletedItem._sectionName);
+                    }
+
+                    if (section) {
+                        section.items.push(deletedItem);
+                    } else {
+                        // Default to standard items if section gone
+                        this.estimate.items.push(deletedItem);
+                    }
+                } else {
+                    this.estimate.items.push(deletedItem);
+                }
+                this.deletedItems.splice(index, 1);
+                this.calculateTotals();
+            },
+
+            restoreSection(index) {
+                const deletedSection = this.deletedSections[index];
+                this.estimate.sections.push(deletedSection);
+                this.deletedSections.splice(index, 1);
                 this.calculateTotals();
             },
 
@@ -1254,7 +1310,7 @@
                         _method: method,
                         ...estimateCopy,
                         sections: this.estimate.type === 'room_based' 
-                            ? this.estimate.sections.filter(s => s.items && s.items.length > 0)
+                            ? this.estimate.sections
                             : undefined,
                         items: this.estimate.type === 'standard' ? this.estimate.items : undefined,
                         last_update_timestamp: this.estimate.updated_at
@@ -1357,8 +1413,8 @@
                 };
 
                 if (this.estimate.type === 'room_based') {
-                    // Filter out empty rooms for submission only
-                    const activeSections = this.estimate.sections.filter(s => s.items && s.items.length > 0);
+                    // Include all rooms (even empty ones) so they don't get deleted automatically
+                    const activeSections = this.estimate.sections;
 
                     activeSections.forEach((s, sIdx) => {
                         app(`sections[${sIdx}][name]`, s.name);

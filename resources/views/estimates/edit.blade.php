@@ -1223,6 +1223,15 @@
     <div
         class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 p-4 sm:px-8 z-50 flex justify-end items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
 
+        <button type="button" @click="showDeletedModal = true"
+            x-show="deletedItems.length > 0 || deletedSections.length > 0"
+            class="inline-flex items-center gap-x-1.5 rounded-md bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 shadow-sm ring-1 ring-inset ring-amber-200 hover:bg-amber-100 transition-all mr-auto">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Restore Deleted Items (<span x-text="deletedItems.length + deletedSections.length"></span>)
+        </button>
+
         <div class="h-6 w-px bg-slate-200 mx-2"></div>
         <button type="button" @click="window.history.back()"
             class="text-sm font-semibold leading-6 text-slate-600 hover:text-slate-900 transition-colors px-4">Cancel</button>
@@ -1260,6 +1269,104 @@
         </x-primary-button>
     </div>
     </form>
+    </div>
+
+    <!-- Restoration Modal -->
+    <div x-show="showDeletedModal" class="relative z-[60]" x-cloak>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div @click.away="showDeletedModal = false"
+                    class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                    <div class="bg-white px-6 pb-6 pt-5 sm:p-8 sm:pb-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center gap-3">
+                                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-900">Restore Deleted Items</h3>
+                                    <p class="text-sm text-slate-500">Recover items or rooms that were removed during this session.</p>
+                                </div>
+                            </div>
+                            <button @click="showDeletedModal = false" class="text-slate-400 hover:text-slate-500 transition-colors">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                            <!-- Rooms -->
+                            <div x-show="deletedSections.length > 0">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Recently Deleted Rooms</h4>
+                                <div class="space-y-2">
+                                    <template x-for="(section, index) in deletedSections" :key="'del_sec_'+index">
+                                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-indigo-300 transition-all group">
+                                            <div class="flex items-center gap-3">
+                                                <div class="h-8 w-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <span class="text-sm font-bold text-slate-900" x-text="section.name"></span>
+                                                    <span class="text-[10px] text-slate-400 block" x-text="(section.items ? section.items.length : 0) + ' items'"></span>
+                                                </div>
+                                            </div>
+                                            <button @click="restoreSection(index)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-[11px] font-bold text-white hover:bg-indigo-700 shadow-sm transition-all">
+                                                Restore
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Items -->
+                            <div x-show="deletedItems.length > 0">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Recently Deleted Items</h4>
+                                <div class="space-y-2">
+                                    <template x-for="(item, index) in deletedItems" :key="'del_item_'+index">
+                                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-indigo-300 transition-all group">
+                                            <div class="flex items-center gap-3">
+                                                <template x-if="item.image_url">
+                                                    <img :src="item.image_url" class="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200 shadow-sm">
+                                                </template>
+                                                <template x-if="!item.image_url">
+                                                    <div class="h-10 w-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-400 ring-1 ring-slate-200">
+                                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                                        </svg>
+                                                    </div>
+                                                </template>
+                                                <div>
+                                                    <span class="text-sm font-bold text-slate-900" x-text="item.name"></span>
+                                                    <span class="text-[10px] text-slate-400 block" x-text="item._sectionName ? 'From: ' + item._sectionName : 'Standalone Item'"></span>
+                                                </div>
+                                            </div>
+                                            <button @click="restoreItem(index)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-[11px] font-bold text-white hover:bg-indigo-700 shadow-sm transition-all">
+                                                Restore
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div x-show="deletedItems.length === 0 && deletedSections.length === 0" class="text-center py-12">
+                                <div class="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </div>
+                                <p class="text-slate-500 font-medium">No deleted items to restore.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Shared Logic Component -->
