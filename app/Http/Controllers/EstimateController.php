@@ -661,16 +661,21 @@ class EstimateController extends Controller
         // Create a temporary estimate instance
         $estimate = new Estimate($data);
 
-        // Populate items
+        // Populate items from sections
         $items = collect([]);
-        if ($request->type === 'room_based') {
-            foreach ($request->sections ?? [] as $sectionData) {
-                foreach ($sectionData['items'] ?? [] as $itemData) {
-                    $items->push(new EstimateItem($itemData));
+        if ($request->has('sections')) {
+            foreach ($request->sections as $sectionData) {
+                if (isset($sectionData['items']) && is_array($sectionData['items'])) {
+                    foreach ($sectionData['items'] as $itemData) {
+                        $items->push(new EstimateItem($itemData));
+                    }
                 }
             }
-        } else {
-            foreach ($request->items ?? [] as $itemData) {
+        }
+
+        // Populate items from root items array (for standalone items or standard type)
+        if ($request->has('items') && is_array($request->items)) {
+            foreach ($request->items as $itemData) {
                 $items->push(new EstimateItem($itemData));
             }
         }

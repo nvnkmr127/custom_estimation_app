@@ -956,13 +956,19 @@
                 let subtotal = 0;
                 let totalTax = 0;
 
-                if (this.estimate.type === 'room_based') {
+                // 1. Calculate Items in Sections (if any)
+                if (this.estimate.sections && this.estimate.sections.length > 0) {
                     this.estimate.sections.forEach(section => {
                         const secTotal = this.calculateSectionTotal(section);
-                        section.subtotal = secTotal; // Update section subtotal for persistence
+                        section.subtotal = secTotal; 
                         subtotal += secTotal;
                     });
-                } else {
+                } 
+
+                // 2. Calculate Standalone Items (if any)
+                // We ALWAYS include these because the backend PriceCalculator 
+                // iterates over all estimate items, regardless of section_id.
+                if (this.estimate.items && this.estimate.items.length > 0) {
                     this.estimate.items.forEach(item => {
                         subtotal += this.calculateItemTotal(item);
                     });
