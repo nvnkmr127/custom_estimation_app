@@ -1030,13 +1030,13 @@
                 })
                     .then(r => r.json())
                     .then(data => {
-                        // Update totals with authoritative server-side results
-                        this.totals.subtotal = parseFloat(data.subtotal).toFixed(2);
-                        this.totals.totalTax = parseFloat(data.total_tax).toFixed(2);
-                        this.totals.discount = parseFloat(data.discount_total || data.discount).toFixed(2);
-                        this.totals.grandTotal = parseFloat(data.grand_total).toFixed(2);
+                        // Update totals with authoritative server-side results (Keep as Numbers!)
+                        this.totals.subtotal = parseFloat(data.subtotal);
+                        this.totals.totalTax = parseFloat(data.total_tax);
+                        this.totals.discount = parseFloat(data.discount_total || data.discount);
+                        this.totals.grandTotal = parseFloat(data.grand_total);
                         
-                        this.estimate.coupon_discount = data.coupon_discount || 0;
+                        this.estimate.coupon_discount = parseFloat(data.coupon_discount || 0);
 
                         // Sync approval chain if relevant
                         if (data.approval_chain_id) {
