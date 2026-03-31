@@ -968,40 +968,45 @@
                     });
                 }
 
-                const t1Rate = (parseFloat(this.estimate.tax_1) || 0) / 100;
-                // With single GST box, we mainly look at tax_1. tax_2 stays in model but isn't set via UI.
-                // Reset tax_2 to 0 logic if desired, or keep logic just in case backend has old data.
-                // Assuming "make one box" implies single tax logic now.
-                const t2Rate = 0; // Effectively ignore tax_2 from calculation if UI doesn't provide it
-                totalTax = subtotal * (t1Rate + t2Rate);
+                // Standardize subtotal rounding
+                subtotal = parseFloat(subtotal.toFixed(2));
 
                 let discount = 0;
                 if (this.estimate.discount_value > 0) {
                     discount = this.estimate.discount_type === 'percentage'
                         ? subtotal * (this.estimate.discount_value / 100)
                         : parseFloat(this.estimate.discount_value);
+                    discount = parseFloat(discount.toFixed(2));
                 }
 
-                const transportation = parseFloat(this.estimate.transportation_charges || 0);
+                // Coupon Discount
+                const couponDiscount = parseFloat(parseFloat(this.estimate.coupon_discount || 0).toFixed(2));
+
+                // Tax base is normally Subtotal - Discount
+                const taxBase = Math.max(0, subtotal - discount);
+                const t1Rate = (parseFloat(this.estimate.tax_1) || 0) / 100;
+                totalTax = parseFloat((taxBase * t1Rate).toFixed(2));
+
+                const transportation = parseFloat(parseFloat(this.estimate.transportation_charges || 0).toFixed(2));
 
                 this.totals = {
                     subtotal,
                     totalTax,
-                    discount,
-                    grandTotal: subtotal + totalTax - discount + transportation
+                    discount: parseFloat((discount + couponDiscount).toFixed(2)),
+                    grandTotal: parseFloat(((subtotal - discount - couponDiscount) + totalTax + transportation).toFixed(2))
                 };
 
-                // Trigger Remote AJAX Sync (Debounced)
+                // Trigger Remote AJAX Sync (Debounced for authoritative backend check)
                 clearTimeout(this._calcTimeout);
                 this._calcTimeout = setTimeout(() => {
                     this.calculateTotalsRemote();
-                }, 500);
+                }, 800);
             },
 
             calculateTotalsRemote() {
                 this.isCalculating = true;
 
-                // Prepare minimal payload
+                // Prepare payload
                 const payload = {
                     type: this.estimate.type,
                     tax_1: this.estimate.tax_1,
@@ -1009,6 +1014,7 @@
                     discount_type: this.estimate.discount_type,
                     discount_value: this.estimate.discount_value,
                     transportation_charges: this.estimate.transportation_charges,
+                    coupon_code_id: this.estimate.coupon_code_id,
                     sections: this.estimate.sections,
                     items: this.estimate.items
                 };
@@ -1025,10 +1031,12 @@
                     .then(r => r.json())
                     .then(data => {
                         // Update totals with authoritative server-side results
-                        this.totals.subtotal = data.subtotal;
-                        this.totals.totalTax = data.total_tax;
-                        this.totals.discount = data.discount;
-                        this.totals.grandTotal = data.grand_total;
+                        this.totals.subtotal = parseFloat(data.subtotal).toFixed(2);
+                        this.totals.totalTax = parseFloat(data.total_tax).toFixed(2);
+                        this.totals.discount = parseFloat(data.discount_total || data.discount).toFixed(2);
+                        this.totals.grandTotal = parseFloat(data.grand_total).toFixed(2);
+                        
+                        this.estimate.coupon_discount = data.coupon_discount || 0;
 
                         // Sync approval chain if relevant
                         if (data.approval_chain_id) {

@@ -1287,7 +1287,7 @@
         </x-primary-button>
     </div>
     </form>
-    </div>
+    <!-- Modal container start -->
 
     <!-- Restoration Modal -->
     <div x-show="showDeletedModal" class="relative z-[60]" x-cloak>
@@ -1465,4 +1465,5 @@
         'categories' => $categories,
         'defaults' => $defaults
     ])
+    </div>
 </x-app-layout>
