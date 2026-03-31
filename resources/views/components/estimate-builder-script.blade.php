@@ -1328,9 +1328,29 @@
                             return; 
                         }
 
-                        if (!this.estimate.id && result.estimate_id) {
-                            this.estimate.id = result.estimate_id;
-                            window.history.pushState({}, '', result.redirect_url);
+                        if (result.estimate) {
+                            // Sync IDs and metadata back to Alpine state to prevent duplicates on next save
+                            this.estimate.id = result.estimate.id;
+                            if (result.estimate.sections && this.estimate.type === 'room_based') {
+                                result.estimate.sections.forEach((serverSection, sIdx) => {
+                                    if (this.estimate.sections[sIdx]) {
+                                        this.estimate.sections[sIdx].id = serverSection.id;
+                                        if (serverSection.items) {
+                                            serverSection.items.forEach((serverItem, iIdx) => {
+                                                if (this.estimate.sections[sIdx].items[iIdx]) {
+                                                    this.estimate.sections[sIdx].items[iIdx].id = serverItem.id;
+                                                }
+                                            });
+                                        }
+                                    }
+                                });
+                            } else if (result.estimate.items && this.estimate.type === 'standard') {
+                                result.estimate.items.forEach((serverItem, iIdx) => {
+                                    if (this.estimate.items[iIdx]) {
+                                        this.estimate.items[iIdx].id = serverItem.id;
+                                    }
+                                });
+                            }
                         }
 
                         if (result.last_update_timestamp) {

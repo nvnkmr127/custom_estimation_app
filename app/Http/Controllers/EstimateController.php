@@ -443,7 +443,7 @@ class EstimateController extends Controller
                     'success' => true,
                     'message' => $msg,
                     'estimate_id' => $updatedEstimate->id,
-                    'estimate_number' => $updatedEstimate->estimate_number,
+                    'estimate' => $updatedEstimate,
                     'is_branched' => $isBranched,
                     'redirect_url' => route('estimates.edit', $updatedEstimate),
                     'last_update_timestamp' => $updatedEstimate->updated_at->toDateTimeString()

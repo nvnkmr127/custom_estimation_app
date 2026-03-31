@@ -254,6 +254,9 @@ class EstimateService
 
             DB::commit();
 
+            // Load fresh data with relations for frontend sync
+            $estimate->load(['sections.items', 'items']);
+
             // Dispatch Event
             $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateUpdated($estimate, auth()->id(), $estimate->getChanges()));
 
