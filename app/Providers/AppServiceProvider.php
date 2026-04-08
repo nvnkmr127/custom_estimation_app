@@ -29,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\URL::forceRootUrl('http://run-agent-69d668482069862ce054766e-mnq5kjbm.remote-agent.svc.cluster.local:80');
         // Force HTTPS in production to prevent Livewire from generating HTTP urls behind proxies
         if ($this->app->environment('production') || \Illuminate\Support\Str::contains(config('app.url'), 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
