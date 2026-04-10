@@ -6,6 +6,7 @@ use App\Models\ApprovalChain;
 use App\Models\ApprovalChainStep;
 use App\Models\Estimate;
 use App\Models\User;
+use App\Models\EstimateItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -42,23 +43,21 @@ class ApprovalChainTest extends TestCase
         ]);
 
         // 3. Create Estimate
-        $estimate = Estimate::create([
+        $estimate = Estimate::factory()->create([
             'estimate_number' => 'EST-TEST-001',
-            'title' => 'Test Estimate',
-            'client_id' => 1, // Assumptions: Client factory or seeded client might be needed if foreign key constraints exist. Using 1 hoping standard setup exists or disabled FKs for simplicity if not. Better to creat a client.
-            'estimate_date' => now(),
-            'currency' => 'USD',
-            'status' => 'draft',
-            'discount_type' => 'fixed',
             'created_by' => $creator->id,
             'approval_chain_id' => $chain->id,
         ]);
 
-        // Fix for Client ID constraint if it exists. 
-        // We'll create a client if needed, but usually Tests use RefreshDatabase so ID 1 might not exist.
-        // Let's create a client properly.
-        $client = \App\Models\Client::factory()->create();
-        $estimate->update(['client_id' => $client->id]);
+        EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
 
         // --- Step 1: Submission ---
         $this->actingAs($creator);
@@ -66,7 +65,8 @@ class ApprovalChainTest extends TestCase
         $response->assertRedirect();
 
         $estimate->refresh();
-        $this->assertEquals('submitted', $estimate->approval_status);
+        $this->assertEquals(Estimate::APP_STATUS_WAITING, $estimate->approval_status);
+        $this->assertEquals(Estimate::EST_STATUS_PENDING_APPROVAL, $estimate->estimate_status);
 
         // Assert Approver 1 has pending approval
         $this->assertDatabaseHas('estimate_approvals', [
@@ -89,8 +89,7 @@ class ApprovalChainTest extends TestCase
         $response->assertRedirect();
 
         $estimate->refresh();
-        // Status should still be submitted (waiting for 2nd approver)
-        $this->assertEquals('submitted', $estimate->approval_status);
+        $this->assertEquals(Estimate::APP_STATUS_WAITING, $estimate->approval_status);
 
         // Assert Approver 1 is approved
         $this->assertDatabaseHas('estimate_approvals', [
@@ -115,8 +114,8 @@ class ApprovalChainTest extends TestCase
 
         $estimate->refresh();
         // Fully approved now
-        $this->assertEquals('approved', $estimate->approval_status);
-        $this->assertEquals('approved', $estimate->status);
+        $this->assertEquals(Estimate::APP_STATUS_APPROVED, $estimate->approval_status);
+        $this->assertEquals(Estimate::EST_STATUS_APPROVED, $estimate->estimate_status);
     }
 
     public function test_approval_chain_rejection()
@@ -146,33 +145,42 @@ class ApprovalChainTest extends TestCase
             'order' => 2,
         ]);
 
-        // 3. Create Estimate
-        $client = \App\Models\Client::factory()->create();
-        $estimate = Estimate::create([
+        $estimate = Estimate::factory()->create([
             'estimate_number' => 'EST-TEST-002',
             'title' => 'Test Estimate Reject',
-            'client_id' => $client->id,
-            'estimate_date' => now(),
-            'currency' => 'USD',
-            'status' => 'draft',
-            'discount_type' => 'fixed',
             'created_by' => $creator->id,
             'approval_chain_id' => $chain->id,
         ]);
 
+        EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
+
         // --- Step 1: Submission ---
         $this->actingAs($creator);
-        $this->post(route('estimates.submit', $estimate));
+        $this->post(route('estimates.submit', $estimate))->assertRedirect();
+        $this->assertDatabaseHas('estimate_approvals', [
+            'estimate_id' => $estimate->id,
+            'user_id' => $approver1->id,
+            'status' => 'pending',
+        ]);
 
         // --- Step 2: Approver 1 Rejects ---
         $this->actingAs($approver1);
         $response = $this->post(route('estimates.reject', $estimate), [
             'comments' => 'Bad estimate',
         ]);
+        $response->assertSessionHas('success');
 
         $estimate->refresh();
-        $this->assertEquals('rejected', $estimate->approval_status);
-        $this->assertNotEquals('approved', $estimate->status);
+        $this->assertEquals(Estimate::APP_STATUS_REJECTED, $estimate->approval_status);
+        $this->assertEquals(Estimate::EST_STATUS_DECLINED, $estimate->estimate_status);
 
         // Assert Approver 1 is rejected
         $this->assertDatabaseHas('estimate_approvals', [

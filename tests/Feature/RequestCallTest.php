@@ -23,7 +23,10 @@ class RequestCallTest extends TestCase
         $creator = User::factory()->create();
         $estimate = Estimate::factory()->create([
             'created_by' => $creator->id,
-            'status' => 'sent'
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
         ]);
 
         // Act: Make a POST request with signed URL
@@ -49,7 +52,12 @@ class RequestCallTest extends TestCase
     {
         Notification::fake();
 
-        $estimate = Estimate::factory()->create(['status' => 'sent']);
+        $estimate = Estimate::factory()->create([
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
+        ]);
 
         // Act: Make a POST request with TAMPERED URL
         $response = $this->post(route('portal.request-call', $estimate)); // Unsigned

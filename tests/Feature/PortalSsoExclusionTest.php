@@ -17,7 +17,12 @@ class PortalSsoExclusionTest extends TestCase
         Config::set('sso.enabled', true);
         Config::set('sso.auth_core_url', 'https://auth.example.com');
 
-        $estimate = Estimate::factory()->create(['status' => Estimate::STATUS_SENT]);
+        $estimate = Estimate::factory()->create([
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
+        ]);
 
         // Generate a valid signed URL
         $url = URL::signedRoute('portal.show', ['estimate' => $estimate->id]);
@@ -36,7 +41,12 @@ class PortalSsoExclusionTest extends TestCase
         Config::set('sso.enabled', true);
         Config::set('sso.auth_core_url', 'https://auth.example.com');
 
-        $estimate = Estimate::factory()->create(['status' => Estimate::STATUS_SENT]);
+        $estimate = Estimate::factory()->create([
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
+        ]);
 
         // Access WITHOUT a signature
         $response = $this->get(route('portal.show', ['estimate' => $estimate->id]));

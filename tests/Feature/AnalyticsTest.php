@@ -29,10 +29,18 @@ class AnalyticsTest extends TestCase
 
     public function test_portal_view_logs_analytics()
     {
-        $estimate = Estimate::factory()->create();
+        $client = \App\Models\Client::factory()->create();
+        $estimate = Estimate::factory()->create([
+            'client_id' => $client->id,
+            'status' => 'sent',
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
+        ]);
         $url = URL::signedRoute('portal.show', $estimate);
 
-        $this->get($url);
+        $this->get($url)->assertOk();
 
         $this->assertDatabaseHas('estimate_analytics', [
             'estimate_id' => $estimate->id,

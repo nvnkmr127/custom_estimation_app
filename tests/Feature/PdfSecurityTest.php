@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PdfTemplate;
+use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,13 +14,20 @@ class PdfSecurityTest extends TestCase
 
     public function test_estimator_admin_can_update_unlocked_template()
     {
+        RolePermission::firstOrCreate(['role' => 'estimator_admin', 'permission' => 'manage_pdf_templates']);
+        \App\Services\PermissionService::clearCache('estimator_admin');
+
         $user = User::factory()->create(['role' => 'estimator_admin']);
         $template = PdfTemplate::factory()->create(['is_locked' => false]);
 
         $response = $this->actingAs($user)
             ->put(route('pdf-templates.update', $template), [
                 'name' => 'Updated Name',
-                'html_content' => '<h1>New Content</h1>',
+                'html_content' => '<div>{LOOP_ITEMS}</div><div>{grand_total}</div>',
+                'paper_size' => 'a4',
+                'orientation' => 'portrait',
+                'primary_color' => '#333333',
+                'font_family' => 'Helvetica',
             ]);
 
         $response->assertRedirect();
@@ -28,6 +36,9 @@ class PdfSecurityTest extends TestCase
 
     public function test_estimator_admin_cannot_update_locked_template()
     {
+        RolePermission::firstOrCreate(['role' => 'estimator_admin', 'permission' => 'manage_pdf_templates']);
+        \App\Services\PermissionService::clearCache('estimator_admin');
+
         $user = User::factory()->create(['role' => 'estimator_admin']);
         $template = PdfTemplate::factory()->create(['is_locked' => true]);
 
@@ -41,12 +52,20 @@ class PdfSecurityTest extends TestCase
 
     public function test_super_admin_can_update_locked_template()
     {
+        RolePermission::firstOrCreate(['role' => 'super_admin', 'permission' => 'manage_pdf_templates']);
+        \App\Services\PermissionService::clearCache('super_admin');
+
         $user = User::factory()->create(['role' => 'super_admin']);
         $template = PdfTemplate::factory()->create(['is_locked' => true]);
 
         $response = $this->actingAs($user)
             ->put(route('pdf-templates.update', $template), [
                 'name' => 'Admin Update',
+                'html_content' => '<div>{LOOP_ITEMS}</div><div>{grand_total}</div>',
+                'paper_size' => $template->paper_size,
+                'orientation' => $template->orientation,
+                'primary_color' => $template->primary_color,
+                'font_family' => $template->font_family,
                 'is_locked' => true,
             ]);
 
@@ -56,6 +75,9 @@ class PdfSecurityTest extends TestCase
 
     public function test_update_creates_version_snapshot()
     {
+        RolePermission::firstOrCreate(['role' => 'super_admin', 'permission' => 'manage_pdf_templates']);
+        \App\Services\PermissionService::clearCache('super_admin');
+
         $user = User::factory()->create(['role' => 'super_admin']);
         $template = PdfTemplate::factory()->create([
             'html_content' => '<h1>Old Version</h1>',
@@ -64,7 +86,11 @@ class PdfSecurityTest extends TestCase
         $this->actingAs($user)
             ->put(route('pdf-templates.update', $template), [
                 'name' => 'New Version Name',
-                'html_content' => '<h1>New Version</h1>',
+                'html_content' => '<div>{LOOP_ITEMS}</div><div>{grand_total}</div>',
+                'paper_size' => $template->paper_size,
+                'orientation' => $template->orientation,
+                'primary_color' => $template->primary_color,
+                'font_family' => $template->font_family,
             ]);
 
         // Check if version was created with OLD content

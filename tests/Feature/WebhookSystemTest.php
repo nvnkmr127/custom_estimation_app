@@ -2,18 +2,10 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
-use Tests\TestCase;
-
-namespace Tests\Feature;
-
 use App\Core\Events\DomainEvent;
 use App\Jobs\ProcessInboundWebhook;
+use App\Jobs\WebhookDeliveryJob;
 use App\Jobs\SendOutboundWebhook;
-use App\Models\WebhookInboundEvent;
-use App\Models\WebhookSubscription;
-use App\Models\WebhookOutboundLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -25,8 +17,7 @@ class WebhookSystemTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
-    public function it_accepts_and_processes_inbound_webhooks()
+    public function test_it_accepts_and_processes_inbound_webhooks()
     {
         Queue::fake();
         Config::set('services.perfex.webhook_secret', 'secret123');
@@ -45,12 +36,10 @@ class WebhookSystemTest extends TestCase
             'status' => 'pending',
         ]);
 
-        // 2. Queue Dispatch
         Queue::assertPushed(ProcessInboundWebhook::class);
     }
 
-    /** @test */
-    public function it_rejects_invalid_inbound_signature()
+    public function test_it_rejects_invalid_inbound_signature()
     {
         Config::set('services.perfex.webhook_secret', 'secret123');
 
@@ -61,7 +50,6 @@ class WebhookSystemTest extends TestCase
 
         $response->assertStatus(403);
 
-        // Should still be logged but as failed
         $this->assertDatabaseHas('webhook_inbound_events', [
             'provider' => 'perfex',
             'status' => 'failed',
@@ -69,12 +57,10 @@ class WebhookSystemTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_dispatches_outbound_webhooks_to_subscribers()
+    public function test_it_dispatches_outbound_webhooks_to_subscribers()
     {
         Queue::fake();
 
-        // Setup Config
         $config = \App\Models\WebhookConfig::create([
             'name' => 'Test Hook',
             'url' => 'https://example.com/webhook',
@@ -83,30 +69,24 @@ class WebhookSystemTest extends TestCase
             'status' => 'active',
         ]);
 
-        // Trigger Event
         $event = new TestWebhookEvent('estimate.approved');
 
-        // Manually register listener to verify logic
         Event::listen(\App\Core\Events\DomainEvent::class, [\App\Listeners\WebhookDispatchListener::class, 'handle']);
 
-        // Dispatch
         event($event);
 
-        // Assert Job Pushed
-        Queue::assertPushed(SendOutboundWebhook::class, function ($job) use ($config, $event) {
+        Queue::assertPushed(WebhookDeliveryJob::class, function ($job) use ($config, $event) {
             return $job->webhookConfig->id === $config->id
                 && $job->webhookEvent->idempotency_key === $event->getEventId();
         });
 
-        // Assert Event Stored
         $this->assertDatabaseHas('webhook_events', [
             'event_type' => 'estimate.approved',
             'idempotency_key' => $event->getEventId(),
         ]);
     }
 
-    /** @test */
-    public function it_delivers_outbound_webhook_and_logs_success()
+    public function test_it_delivers_outbound_webhook_and_logs_success()
     {
         Http::fake([
             'example.com/*' => Http::response(['status' => 'ok'], 200),
@@ -122,7 +102,7 @@ class WebhookSystemTest extends TestCase
         $webhookEvent = \App\Models\WebhookEvent::create([
             'event_type' => 'test.event',
             'idempotency_key' => 'msg-123',
-            'payload' => ['foo' => 'bar'], // Simplified for test
+            'payload' => ['foo' => 'bar'],
             'occurred_at' => now(),
         ]);
 
@@ -142,8 +122,7 @@ class WebhookSystemTest extends TestCase
         });
     }
 
-    /** @test */
-    public function it_handles_outbound_failure_and_retries()
+    public function test_it_handles_outbound_failure_and_retries()
     {
         Http::fake([
             'example.com/*' => Http::response(['error' => 'server error'], 500),

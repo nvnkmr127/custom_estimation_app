@@ -34,7 +34,7 @@ class NotificationPreferenceTest extends TestCase
         ]);
 
         // Fire event
-        $event = new EstimateViewed($estimate->id, null, '1.1.1.1');
+        $event = new EstimateViewed($estimate, null, '1.1.1.1');
         $listener = app(MailListener::class);
         $listener->handle($event);
 
@@ -61,7 +61,7 @@ class NotificationPreferenceTest extends TestCase
         ]);
 
         // Fire event
-        $event = new EstimateViewed($estimate->id, null, '1.1.1.1');
+        $event = new EstimateViewed($estimate, null, '1.1.1.1');
         $listener = app(MailListener::class);
         $listener->handle($event);
 

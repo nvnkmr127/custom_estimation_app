@@ -27,10 +27,10 @@ class Dashboard extends Component
             // 1. Overview Stats
             return [
                 'total' => (clone $estimateQuery)->count(),
-                'draft' => (clone $estimateQuery)->where('status', 'draft')->count(),
-                'sent' => (clone $estimateQuery)->where('status', 'sent')->count(),
-                'accepted' => (clone $estimateQuery)->where('status', 'accepted')->count(),
-                'declined' => (clone $estimateQuery)->where('status', 'declined')->count(),
+                'draft' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_DRAFT)->count(),
+                'sent' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->count(),
+                'accepted' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count(),
+                'declined' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_DECLINED)->count(),
                 'tasks_pending' => (clone $taskQuery)->pending()->count(),
                 'tasks_overdue' => (clone $taskQuery)->overdue()->count(),
             ];
@@ -44,18 +44,20 @@ class Dashboard extends Component
                 $estimateQuery->where('created_by', $user->id);
             }
 
+            $weightedResult = (clone $estimateQuery)->whereIn('estimate_status', [Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL])
+                ->selectRaw('SUM(grand_total * 0.7) as weighted_total')
+                ->first();
+
             return [
-                'pipeline_revenue' => (clone $estimateQuery)->whereIn('status', ['draft', 'sent'])->sum('grand_total'),
-                'converted_revenue' => (clone $estimateQuery)->where('status', 'accepted')->sum('grand_total'),
-                'weightedForecast' => (clone $estimateQuery)->whereIn('status', ['sent', 'waiting_approval'])
-                    ->selectRaw('SUM(grand_total * 0.7) as weighted_total')
-                    ->first()->weighted_total ?? 0,
+                'pipeline_revenue' => (clone $estimateQuery)->whereIn('estimate_status', [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL, Estimate::EST_STATUS_APPROVED])->sum('grand_total'),
+                'converted_revenue' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->sum('grand_total'),
+                'weightedForecast' => $weightedResult ? $weightedResult->weighted_total : 0,
             ];
         });
 
         $pipeline_revenue = $financials['pipeline_revenue'];
         $converted_revenue = $financials['converted_revenue'];
-        $weightedForecast = $financials['weighted_total'] ?? $financials['weightedForecast']; // accommodate selectRaw alias
+        $weightedForecast = $financials['weightedForecast'];
 
         // 3. Conversion Rate
         $conversion_rate = 0;
@@ -72,9 +74,12 @@ class Dashboard extends Component
 
         $recent_estimates = (clone $baseEstimateQuery)->latest()->take(5)->get();
 
-        // Hot Leads: Sent estimates with engagement > 0, ordered by score
-        $hot_leads = (clone $baseEstimateQuery)->where('status', 'sent')
-            ->where('engagement_score', '>', 0)
+        // Hot Leads: Sent estimates with engagement > 0 or multiple views
+        $hot_leads = (clone $baseEstimateQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)
+            ->where(function ($q) {
+                $q->where('engagement_score', '>', 0)
+                  ->orWhere('view_count', '>', 1);
+            })
             ->orderByDesc('engagement_score')
             ->orderByDesc('last_viewed_at')
             ->take(5)

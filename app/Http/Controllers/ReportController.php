@@ -10,19 +10,19 @@ class ReportController extends Controller
     {
         // 1. Key Metrics
         $totalEstimates = Estimate::count();
-        $acceptedEstimates = Estimate::where('status', 'accepted')->count();
-        $declinedEstimates = Estimate::where('status', 'declined')->count();
+        $acceptedEstimates = Estimate::where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count();
+        $declinedEstimates = Estimate::where('estimate_status', Estimate::EST_STATUS_DECLINED)->count();
         $totalStats = $acceptedEstimates + $declinedEstimates;
         $winRate = $totalStats > 0 ? round(($acceptedEstimates / $totalStats) * 100, 1) : 0;
 
-        $totalRevenue = Estimate::where('status', 'accepted')->sum('grand_total');
-        $pipelineValue = Estimate::whereIn('status', ['draft', 'waiting_approval', 'sent'])->sum('grand_total');
+        $totalRevenue = Estimate::where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->sum('grand_total');
+        $pipelineValue = Estimate::whereIn('estimate_status', [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL, Estimate::EST_STATUS_APPROVED])->sum('grand_total');
 
         // 1.1 Funnel Analysis
-        $sentCount = Estimate::whereIn('status', ['sent', 'accepted', 'declined', 'expired'])->count();
+        $sentCount = Estimate::whereIn('estimate_status', [Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_ACCEPTED, Estimate::EST_STATUS_DECLINED, Estimate::EST_STATUS_EXPIRED])->count();
         $openedCount = Estimate::whereNotNull('email_opened_at')->count();
         $viewedCount = Estimate::where('view_count', '>', 0)->count();
-        $finalAccepted = Estimate::where('status', 'accepted')->count();
+        $finalAccepted = Estimate::where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count();
 
         $funnel = [
             'sent' => $sentCount,
@@ -37,9 +37,10 @@ class ReportController extends Controller
         ];
 
         // 1.2 Revenue Forecast (Weighted by probability)
-        $weightedForecast = Estimate::whereIn('status', ['sent', 'waiting_approval'])
+        $weightedResult = Estimate::whereIn('estimate_status', [Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL])
             ->selectRaw('SUM(grand_total * 0.7) as weighted_total') // Assuming 70% probability for sent/waiting
-            ->first()->weighted_total ?? 0;
+            ->first();
+        $weightedForecast = $weightedResult ? $weightedResult->weighted_total : 0;
 
         // 2. Chart Data (Last 6 Months Trend)
         $chartLabels = [];
@@ -50,7 +51,7 @@ class ReportController extends Controller
             $chartLabels[] = $date->format('M Y');
 
             // Sum of accepted estimates in that month
-            $val = Estimate::where('status', 'accepted')
+            $val = Estimate::where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
                 ->whereYear('estimate_date', $date->year)
                 ->whereMonth('estimate_date', $date->month)
                 ->sum('grand_total');

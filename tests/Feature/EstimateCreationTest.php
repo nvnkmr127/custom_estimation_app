@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CouponCode;
 use App\Models\User;
 use App\Models\Client;
 use App\Models\Estimate;
@@ -47,5 +48,57 @@ class EstimateCreationTest extends TestCase
         $estimate = Estimate::latest('id')->first();
         $this->assertNotNull($estimate);
         $this->assertEquals($client->id, $estimate->client_id);
+    }
+
+    public function test_coupon_validation_returns_discount_amount()
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+        $coupon = CouponCode::create([
+            'code' => 'SAVE10',
+            'name' => 'Save 10',
+            'type' => 'percentage',
+            'value' => 10,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('coupons.validate'), [
+            'code' => 'SAVE10',
+            'total' => 1000,
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'valid' => true,
+                'coupon_id' => $coupon->id,
+                'discount' => 100.0,
+            ]);
+    }
+
+    public function test_estimate_calculation_returns_manual_discount_and_coupon_discount_separately()
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+
+        $response = $this->actingAs($user)->postJson(route('estimates.calculate'), [
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'coupon_discount' => 25,
+            'tax_1' => 5,
+            'items' => [
+                [
+                    'name' => 'Item',
+                    'unit_price' => 100,
+                    'quantity' => 2,
+                    'unit_type' => 'nos',
+                ],
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'subtotal' => 200.0,
+                'discount_total' => 20.0,
+                'coupon_discount' => 25.0,
+                'grand_total' => 164.0,
+            ]);
     }
 }

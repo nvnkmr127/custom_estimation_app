@@ -316,7 +316,7 @@
                                         class="text-xs font-mono text-gray-500 leading-relaxed whitespace-pre-wrap break-words max-h-60">{{ Str::limit((string) $selectedDelivery->response_body, 2000) }}</pre>
                                 @endif
                                 <button
-                                    onclick="navigator.clipboard.writeText('{{ addslashes((string) $selectedDelivery->response_body) }}')"
+                                    onclick="navigator.clipboard.writeText('{{ addslashes(is_array($selectedDelivery->response_body) ? json_encode($selectedDelivery->response_body) : $selectedDelivery->response_body) }}')"
                                     class="absolute top-4 right-4 p-2 bg-white rounded-lg shadow-sm border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">

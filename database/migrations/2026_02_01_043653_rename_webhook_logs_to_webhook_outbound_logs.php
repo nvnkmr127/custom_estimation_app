@@ -26,6 +26,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('webhook_outbound_logs', function (Blueprint $table) {
+            $table->dropIndex('webhook_outbound_logs_subscription_id_index');
             $table->dropColumn(['subscription_id', 'request_headers', 'next_retry_at']);
         });
 

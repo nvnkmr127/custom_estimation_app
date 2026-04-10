@@ -169,6 +169,7 @@ class EstimateService
             }
 
             $estimate->update($data);
+            $estimateChanges = $estimate->getChanges();
 
             // Explicit Deletion logic: only perform if we are updating the record in-place (not branched)
             if (!$isBranched) {
@@ -245,6 +246,7 @@ class EstimateService
             }
 
             $this->recalculateTotals($estimate);
+            $estimateChanges = array_merge($estimateChanges, $estimate->getChanges());
 
             if ($isBranched) {
                 ActivityLog::log('created_proposal', $estimate, "Created revision v{$estimate->version} from locked/shared estimate {$originalNumber}.");
@@ -258,7 +260,7 @@ class EstimateService
             $estimate->load(['sections.items', 'items']);
 
             // Dispatch Event
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateUpdated($estimate, auth()->id(), $estimate->getChanges()));
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateUpdated($estimate, auth()->id(), $estimateChanges));
 
             return $estimate;
         } catch (\Exception $e) {
@@ -529,7 +531,12 @@ class EstimateService
                 'declined_at',
                 'parent_id', // Copying creates a new family
                 'version',
+                'estimate_date',
             ]);
+
+            // Set new baseline dates
+            $newEstimate->estimate_date = now();
+            $newEstimate->expires_at = null;
 
             // Generate new estimate number (Uses new V2 Logic automatically)
             $newEstimate->estimate_number = $this->generateNextNumber();

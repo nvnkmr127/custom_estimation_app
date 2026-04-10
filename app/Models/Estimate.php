@@ -61,7 +61,12 @@ class Estimate extends Model
                 'expired' => self::EST_STATUS_EXPIRED,
             ];
 
-            if ($estimate->status && in_array($estimate->status, array_keys($legacyMap))) {
+            if (
+                $estimate->isDirty('status')
+                && !$estimate->isDirty('estimate_status')
+                && $estimate->status
+                && in_array($estimate->status, array_keys($legacyMap))
+            ) {
                 $estimate->estimate_status = $legacyMap[$estimate->status] ?? self::EST_STATUS_DRAFT;
             }
 
@@ -73,6 +78,10 @@ class Estimate extends Model
             // Ensure approval_status is NEVER 'draft'
             if ($estimate->approval_status === 'draft' || !$estimate->approval_status) {
                 $estimate->approval_status = self::APP_STATUS_NOT_REQUIRED;
+            }
+
+            if ($estimate->approval_status === 'submitted') {
+                $estimate->approval_status = self::APP_STATUS_WAITING;
             }
 
             // Enum validation

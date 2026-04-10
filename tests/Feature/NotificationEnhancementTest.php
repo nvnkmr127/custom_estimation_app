@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Estimate;
 use App\Models\User;
 use App\Models\EstimateComment;
+use App\Models\Client;
 use App\Notifications\EstimateCommentNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -76,5 +77,31 @@ class NotificationEnhancementTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('commented on Estimate');
         $response->assertSee('Notifications');
+    }
+
+    public function test_comment_store_notifies_estimate_creator()
+    {
+        Notification::fake();
+
+        $creator = User::factory()->create(['role' => 'estimator']);
+        $commenter = User::factory()->create(['role' => 'super_admin']);
+        $client = Client::factory()->create();
+        $estimate = Estimate::factory()->create([
+            'client_id' => $client->id,
+            'created_by' => $creator->id,
+        ]);
+
+        $response = $this->actingAs($commenter)->postJson(route('comments.store', $estimate), [
+            'commentable_type' => Estimate::class,
+            'commentable_id' => $estimate->id,
+            'comment' => 'Please review this estimate.',
+        ]);
+
+        $response->assertOk();
+
+        Notification::assertSentTo(
+            $creator,
+            EstimateCommentNotification::class
+        );
     }
 }

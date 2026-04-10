@@ -44,7 +44,7 @@ class ApprovalEdgeCasesTest extends TestCase
         // Still 1 pending (User 2), User 1 is approved. No new approvals for User 3 yet.
         $this->assertEquals(1, $estimate->approvals()->where('status', 'pending')->count());
         $this->assertEquals(1, $estimate->approvals()->where('status', 'approved')->count());
-        $this->assertEquals('submitted', $estimate->fresh()->approval_status);
+        $this->assertEquals(Estimate::APP_STATUS_WAITING, $estimate->fresh()->approval_status);
 
         // Approve 2
         $this->actingAs($user2);
@@ -59,7 +59,7 @@ class ApprovalEdgeCasesTest extends TestCase
         $this->post(route('estimates.approve', $estimate));
 
         // Fully approved
-        $this->assertEquals('approved', $estimate->fresh()->approval_status);
+        $this->assertEquals(Estimate::APP_STATUS_APPROVED, $estimate->fresh()->approval_status);
     }
 
     public function test_timeout_rejection()
@@ -84,7 +84,7 @@ class ApprovalEdgeCasesTest extends TestCase
 
         $this->artisan('approval:check-timeouts');
 
-        $this->assertEquals('rejected', $estimate->fresh()->approval_status);
+        $this->assertEquals(Estimate::APP_STATUS_REJECTED, $estimate->fresh()->approval_status);
     }
 
     public function test_timeout_skip()

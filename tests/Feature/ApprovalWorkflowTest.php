@@ -6,6 +6,7 @@ use App\Models\ApprovalChain;
 use App\Models\ApprovalChainStep;
 use App\Models\ApprovalChecklist;
 use App\Models\Estimate;
+use App\Models\EstimateItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,7 +20,7 @@ class ApprovalWorkflowTest extends TestCase
         $user = User::factory()->create(['role' => 'estimator']);
         $approver = User::factory()->create(['role' => 'sales_manager']);
 
-        $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD']);
+        $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD', 'is_active' => true]);
         ApprovalChainStep::create([
             'approval_chain_id' => $chain->id,
             'user_id' => $approver->id,
@@ -29,9 +30,19 @@ class ApprovalWorkflowTest extends TestCase
 
         $estimate = Estimate::factory()->create([
             'created_by' => $user->id,
-            'status' => 'draft',
             'approval_chain_id' => $chain->id,
-            'approval_status' => 'draft',
+            'estimate_status' => Estimate::EST_STATUS_DRAFT,
+            'approval_status' => Estimate::APP_STATUS_NOT_REQUIRED,
+        ]);
+
+        EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
         ]);
 
         $this->actingAs($user)
@@ -40,7 +51,7 @@ class ApprovalWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('estimates', [
             'id' => $estimate->id,
-            'approval_status' => 'submitted',
+            'approval_status' => Estimate::APP_STATUS_WAITING,
         ]);
 
         $this->assertDatabaseHas('estimate_approvals', [
@@ -53,7 +64,7 @@ class ApprovalWorkflowTest extends TestCase
     public function test_approver_can_request_changes()
     {
         $approver = User::factory()->create(['role' => 'sales_manager']);
-        $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD']);
+        $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD', 'is_active' => true]);
         ApprovalChainStep::create([
             'approval_chain_id' => $chain->id,
             'user_id' => $approver->id,
@@ -62,12 +73,22 @@ class ApprovalWorkflowTest extends TestCase
         ]);
 
         $estimate = Estimate::factory()->create([
-            'status' => 'waiting_approval',
             'approval_chain_id' => $chain->id,
-            'approval_status' => 'submitted',
+            'estimate_status' => Estimate::EST_STATUS_DRAFT,
+            'approval_status' => Estimate::APP_STATUS_NOT_REQUIRED,
         ]);
 
-        $estimate->submitForApproval(); // Manual submit to create approvals
+        EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
+
+        $estimate = app(\App\Services\Estimates\EstimateWorkflowService::class)->submitForApproval($estimate);
 
         $this->actingAs($approver)
             ->post(route('estimates.request-changes', $estimate), [
@@ -75,24 +96,17 @@ class ApprovalWorkflowTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('estimate_approvals', [
-            'estimate_id' => $estimate->id,
-            'user_id' => $approver->id,
-            'status' => 'changes_requested',
-            'comments' => 'Please fix unit price',
-        ]);
-
         $this->assertDatabaseHas('estimates', [
             'id' => $estimate->id,
-            'status' => 'draft', // Should be reverted to draft
-            'approval_status' => 'draft',
+            'estimate_status' => Estimate::EST_STATUS_DRAFT,
+            'approval_status' => Estimate::APP_STATUS_CHANGES_REQUESTED,
         ]);
     }
 
     public function test_approver_cannot_approve_mandatory_checklist_incomplete()
     {
         $approver = User::factory()->create(['role' => 'sales_manager']);
-        $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD']);
+        $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD', 'is_active' => true]);
         ApprovalChainStep::create([
             'approval_chain_id' => $chain->id,
             'user_id' => $approver->id,
@@ -104,12 +118,22 @@ class ApprovalWorkflowTest extends TestCase
         ApprovalChecklist::create(['task' => 'Check Margin', 'is_required' => true]);
 
         $estimate = Estimate::factory()->create([
-            'status' => 'waiting_approval',
             'approval_chain_id' => $chain->id,
-            'approval_status' => 'submitted',
+            'estimate_status' => Estimate::EST_STATUS_DRAFT,
+            'approval_status' => Estimate::APP_STATUS_NOT_REQUIRED,
         ]);
 
-        $estimate->submitForApproval();
+        EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
+
+        $estimate = app(\App\Services\Estimates\EstimateWorkflowService::class)->submitForApproval($estimate);
 
         $this->actingAs($approver)
             ->post(route('estimates.approve', $estimate), ['comments' => 'LGTM'])

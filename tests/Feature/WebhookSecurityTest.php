@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Estimate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class WebhookSecurityTest extends TestCase
@@ -23,11 +24,10 @@ class WebhookSecurityTest extends TestCase
     public function test_webhook_accepts_authorized_requests()
     {
         config(['services.perfex.webhook_secret' => 'test-secret']);
+        Queue::fake();
 
-        // Create a client
         $client = \App\Models\Client::create(['name' => 'Test Client', 'email' => 'test@example.com']);
 
-        // Create a dummy estimate
         $estimate = Estimate::create([
             'title' => 'Test Estimate',
             'estimate_number' => 'EST-100',
@@ -44,8 +44,14 @@ class WebhookSecurityTest extends TestCase
             'id' => 123,
         ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(202);
 
-        $this->assertEquals('accepted', $estimate->fresh()->status);
+        $this->assertDatabaseHas('webhook_inbound_events', [
+            'provider' => 'perfex',
+            'provider_event_id' => '123',
+            'status' => 'pending',
+        ]);
+
+        Queue::assertPushed(\App\Jobs\ProcessInboundWebhook::class);
     }
 }

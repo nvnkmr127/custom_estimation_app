@@ -62,16 +62,12 @@ class PayloadValidationTest extends TestCase
             // Job handles failure and calls fail($e)
         }
 
-        // Assert DLQ entry created
-        $this->assertDatabaseHas('webhook_dead_letters', [
-            'webhook_id' => $config->id,
-            'webhook_event_id' => $event->id,
-        ]);
-
-        // Assert DLQ error reason contains validation message or generic failure
-        $dlq = \App\Models\WebhookDeadLetter::first();
-        // Laravel humanizes 'required_field' to 'required field'
-        $this->assertStringContainsString('required', $dlq->error_reason);
+        $dlq = \App\Models\WebhookDeadLetter::with('originalDelivery')->first();
+        $this->assertNotNull($dlq);
+        $this->assertNotNull($dlq->originalDelivery);
+        $this->assertEquals($config->id, $dlq->originalDelivery->webhook_id);
+        $this->assertEquals($event->id, $dlq->originalDelivery->webhook_event_id);
+        $this->assertStringContainsString('required', $dlq->final_error_message);
 
         // Ensure NO HTTP request sent
         Http::assertNothingSent();

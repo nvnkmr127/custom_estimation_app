@@ -100,4 +100,52 @@ class EstimateUpdateTest extends TestCase
         // Check New Item Created
         $this->assertEquals(2, $estimate->items->count());
     }
+
+    /** @test */
+    public function it_persists_selected_product_options_when_updating_an_estimate()
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+        $this->actingAs($user);
+
+        $client = Client::factory()->create();
+
+        $estimate = Estimate::create([
+            'title' => 'Configured Estimate',
+            'estimate_number' => 'EST-002',
+            'client_id' => $client->id,
+            'estimate_date' => now(),
+            'currency' => 'USD',
+            'status' => 'draft',
+            'type' => 'standard',
+        ]);
+
+        $payload = [
+            'title' => 'Configured Estimate Updated',
+            'client_id' => $client->id,
+            'estimate_date' => now()->format('Y-m-d'),
+            'currency' => 'USD',
+            'status' => 'draft',
+            'discount_type' => 'fixed',
+            'discount_value' => 0,
+            'type' => 'standard',
+            'items' => [
+                [
+                    'name' => 'Configured Item',
+                    'quantity' => 1,
+                    'unit_price' => 100,
+                    'unit_type' => 'nos',
+                    'selected_options' => ['10' => '20'],
+                ],
+            ],
+        ];
+
+        $response = $this->put(route('estimates.update', $estimate), $payload);
+
+        $response->assertRedirect();
+
+        $this->assertEquals(
+            ['10' => '20'],
+            $estimate->fresh()->items()->first()->selected_options
+        );
+    }
 }

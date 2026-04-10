@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ApprovalChain;
+use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,29 +53,41 @@ class RoleBoundaryTest extends TestCase
     public function cannot_edit_sent_estimate()
     {
         $user = User::factory()->create(['role' => 'estimator']);
-        $estimate = Estimate::create([
+        $client = Client::factory()->create();
+        $estimate = Estimate::factory()->create([
             'title' => 'Sent Estimate',
             'estimate_number' => 'EST-SENT',
-            'client_id' => 1,
-            'estimate_date' => now(),
+            'client_id' => $client->id,
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
             'currency' => 'USD',
-            'status' => 'sent',
             'created_by' => $user->id,
         ]);
 
         $this->actingAs($user);
         $response = $this->put(route('estimates.update', $estimate), [
             'title' => 'Hacked Title',
-            'client_id' => 1,
+            'client_id' => $client->id,
             'estimate_date' => now(),
             'currency' => 'USD',
-            'status' => 'sent',
+            'status' => Estimate::EST_STATUS_SENT,
             'discount_type' => 'fixed',
+            'type' => 'standard',
+            'items' => [
+                [
+                    'name' => 'Line Item',
+                    'unit_price' => 100,
+                    'quantity' => 1,
+                    'unit_type' => 'nos',
+                ],
+            ],
         ]);
 
         // Should be forbidden by Policy
-        $response->assertStatus(403);
-
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
         $this->assertEquals('Sent Estimate', $estimate->fresh()->title);
     }
 
@@ -82,13 +95,16 @@ class RoleBoundaryTest extends TestCase
     public function revert_to_draft_unlocks_editing()
     {
         $user = User::factory()->create(['role' => 'estimator']);
-        $estimate = Estimate::create([
+        $client = Client::factory()->create();
+        $estimate = Estimate::factory()->create([
             'title' => 'Sent Estimate 2',
             'estimate_number' => 'EST-SENT-2',
-            'client_id' => 1,
-            'estimate_date' => now(),
+            'client_id' => $client->id,
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
             'currency' => 'USD',
-            'status' => 'sent',
             'created_by' => $user->id,
         ]);
 
@@ -98,16 +114,25 @@ class RoleBoundaryTest extends TestCase
         $response = $this->post(route('estimates.revert', $estimate));
         $response->assertRedirect();
 
-        $this->assertEquals('draft', $estimate->fresh()->status);
+        $this->assertEquals(Estimate::EST_STATUS_DRAFT, $estimate->fresh()->estimate_status);
 
         // 2. Now Edit
         $response = $this->put(route('estimates.update', $estimate), [
             'title' => 'Corrected Title',
-            'client_id' => 1,
+            'client_id' => $client->id,
             'estimate_date' => now(),
             'currency' => 'USD',
-            'status' => 'draft',
+            'status' => Estimate::EST_STATUS_DRAFT,
             'discount_type' => 'fixed',
+            'type' => 'standard',
+            'items' => [
+                [
+                    'name' => 'Line Item',
+                    'unit_price' => 100,
+                    'quantity' => 1,
+                    'unit_type' => 'nos',
+                ],
+            ],
         ]);
 
         $response->assertRedirect();

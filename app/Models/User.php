@@ -70,7 +70,7 @@ class User extends Authenticatable
     public function isAdmin(): bool // @phpstan-ignore-line
     {
         // Add simple check to avoid errors if field is missing during initial seeding
-        return in_array($this->role ?? 'estimator', ['super_admin', 'estimator_admin']);
+        return in_array($this->role ?? 'estimator', ['super_admin', 'estimator_admin', 'admin']);
     }
 
     /**

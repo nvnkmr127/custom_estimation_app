@@ -1019,6 +1019,7 @@
                     tax_2: this.estimate.tax_2,
                     discount_type: this.estimate.discount_type,
                     discount_value: this.estimate.discount_value,
+                    coupon_discount: this.estimate.coupon_discount,
                     transportation_charges: this.estimate.transportation_charges,
                     coupon_code_id: this.estimate.coupon_code_id,
                     sections: this.estimate.sections,
@@ -1039,10 +1040,11 @@
                         // Update totals with authoritative server-side results (Keep as Numbers!)
                         this.totals.subtotal = parseFloat(data.subtotal);
                         this.totals.totalTax = parseFloat(data.total_tax);
-                        this.totals.discount = parseFloat(data.discount_total || data.discount);
-                        this.totals.grandTotal = parseFloat(data.grand_total);
-                        
                         this.estimate.coupon_discount = parseFloat(data.coupon_discount || 0);
+                        this.totals.discount = parseFloat(
+                            ((data.discount_total || data.discount || 0) + this.estimate.coupon_discount).toFixed(2)
+                        );
+                        this.totals.grandTotal = parseFloat(data.grand_total);
 
                         // Sync approval chain if relevant
                         if (data.approval_chain_id) {
@@ -1161,9 +1163,8 @@
                     .then(data => {
                         if (data.valid) {
                             this.estimate.coupon_code_id = data.coupon_id;
+                            this.estimate.coupon_discount = parseFloat(data.discount || 0);
                             this.appliedCouponCode = this.couponInput.toUpperCase();
-                            this.estimate.discount_type = data.type;
-                            this.estimate.discount_value = data.value;
                             this.couponMessage = data.message;
                             this.couponValid = true;
                             this.calculateTotals();
@@ -1183,9 +1184,9 @@
 
             removeCoupon() {
                 this.estimate.coupon_code_id = null;
+                this.estimate.coupon_discount = 0;
                 this.appliedCouponCode = '';
                 this.couponInput = '';
-                this.estimate.discount_value = 0;
                 this.couponMessage = '';
                 this.calculateTotals();
             },

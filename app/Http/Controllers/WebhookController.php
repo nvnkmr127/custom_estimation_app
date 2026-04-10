@@ -35,14 +35,14 @@ class WebhookController extends Controller
             $event->update([
                 'status' => 'failed',
                 'error_message' => 'Invalid signature',
-                'error' => 'Expected signature mismatch in headers: ' . json_encode($request->headers->all())
+                'error' => 'Invalid signature'
             ]);
             Log::warning("Webhook [{$provider}]: Invalid signature. Content-Type: " . $request->header('Content-Type'));
             return response()->json(['error' => 'Invalid signature'], 403);
         }
 
         // 3. Dispatch for Async Processing
-        ProcessInboundWebhook::dispatchSync($event);
+        ProcessInboundWebhook::dispatch($event);
 
         // 4. Acknowledge Receipt
         return response()->json(['message' => 'Accepted'], 202);
@@ -99,7 +99,7 @@ class WebhookController extends Controller
         ]);
 
         // 4. Dispatch for Async Processing
-        ProcessInboundWebhook::dispatchSync($event);
+        ProcessInboundWebhook::dispatch($event);
 
         return response()->json(['message' => 'Received'], 200);
     }
@@ -107,6 +107,7 @@ class WebhookController extends Controller
     protected function extractEventId(Request $request, string $provider): ?string
     {
         return match ($provider) {
+            'perfex' => (string) ($request->input('proposal_id') ?? $request->input('id') ?? $request->header('X-Event-Id') ?? $request->header('X-Request-Id') ?? \Illuminate\Support\Str::uuid()),
             default => $request->header('X-Event-Id') ?? $request->header('X-Request-Id') ?? (string) \Illuminate\Support\Str::uuid(),
         };
     }
@@ -114,13 +115,19 @@ class WebhookController extends Controller
     protected function verifySignature(Request $request, string $provider): bool
     {
         $secret = config("services.{$provider}.webhook_secret");
-        if (!$secret)
-            return true; // Fail open for now or strictly? Let's stay safe.
+        if (!$secret) {
+            return false;
+        }
 
-        $signature = $request->header('X-Webhook-Signature');
+        $signature = match ($provider) {
+            'perfex' => $request->header('X-Perfex-Token'),
+            default => $request->header('X-Webhook-Signature'),
+        };
 
+        if ($provider === 'perfex') {
+            return hash_equals($secret, $signature ?? '');
+        }
 
-        // HMAC comparison for others
         $computed = hash_hmac('sha256', $request->getContent(), $secret);
         return hash_equals($computed, $signature ?? '');
     }

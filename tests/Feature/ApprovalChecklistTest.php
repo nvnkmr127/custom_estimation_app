@@ -8,6 +8,7 @@ use App\Models\ApprovalChecklist;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\EstimateApproval;
+use App\Models\EstimateItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -28,17 +29,24 @@ class ApprovalChecklistTest extends TestCase
         // Create Mandatory Checklist
         $checklist = ApprovalChecklist::create(['task' => 'Verify Price', 'is_required' => true]);
 
-        // Create Estimate
         $client = Client::factory()->create();
-        $estimate = Estimate::create([
+        $estimate = Estimate::factory()->create([
             'estimate_number' => 'EST-001',
             'client_id' => $client->id,
-            'status' => 'waiting_approval',
-            'approval_status' => 'submitted',
             'approval_chain_id' => $chain->id,
-            'estimate_date' => now(),
-            'currency' => 'USD',
             'created_by' => $user->id,
+            'estimate_status' => Estimate::EST_STATUS_PENDING_APPROVAL,
+            'approval_status' => Estimate::APP_STATUS_WAITING,
+        ]);
+
+        EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
         ]);
 
         EstimateApproval::create([
@@ -55,7 +63,7 @@ class ApprovalChecklistTest extends TestCase
         ]);
 
         $response->assertSessionHas('error', 'You must complete the mandatory checklist items before approving.');
-        $this->assertEquals('submitted', $estimate->fresh()->approval_status);
+        $this->assertEquals(Estimate::APP_STATUS_WAITING, $estimate->fresh()->approval_status);
     }
 
     public function test_approver_can_approve_if_mandatory_checklist_complete()
@@ -67,15 +75,23 @@ class ApprovalChecklistTest extends TestCase
         ApprovalChainStep::create(['approval_chain_id' => $chain->id, 'user_id' => $approver->id, 'role' => 'manager', 'order' => 1]);
         $checklist = ApprovalChecklist::create(['task' => 'Verify Price', 'is_required' => true]);
         $client = Client::factory()->create();
-        $estimate = Estimate::create([
+        $estimate = Estimate::factory()->create([
             'estimate_number' => 'EST-002',
             'client_id' => $client->id,
-            'status' => 'waiting_approval',
-            'approval_status' => 'submitted',
-            'approval_chain_id' => $chain->id, // Add this
-            'estimate_date' => now(),
-            'currency' => 'USD',
+            'approval_chain_id' => $chain->id,
             'created_by' => User::factory()->create()->id,
+            'estimate_status' => Estimate::EST_STATUS_PENDING_APPROVAL,
+            'approval_status' => Estimate::APP_STATUS_WAITING,
+        ]);
+
+        EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
         ]);
         EstimateApproval::create([
             'estimate_id' => $estimate->id,

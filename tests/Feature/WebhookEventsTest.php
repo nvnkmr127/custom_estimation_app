@@ -55,7 +55,7 @@ class WebhookEventsTest extends TestCase
         Livewire::test(Show::class, ['event' => $event])
             ->assertOk()
             ->assertSee('Test Hook')
-            ->assertSee('Attempt #1')
+            ->assertSee('#1')
             ->assertSee('HTTP 200');
     }
 

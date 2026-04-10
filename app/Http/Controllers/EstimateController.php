@@ -61,7 +61,12 @@ class EstimateController extends Controller
 
         // --- Filters ---
         if ($request->has('status') && $request->status !== 'all' && $request->status !== '') {
-            $query->where('status', $request->status);
+            $status = $request->status;
+            $dbStatus = match ($status) {
+                'waiting_approval' => Estimate::EST_STATUS_PENDING_APPROVAL,
+                default => $status
+            };
+            $query->where('estimate_status', $dbStatus);
         }
 
         if ($request->filled('client_id')) {
@@ -568,7 +573,8 @@ class EstimateController extends Controller
         return DB::transaction(function () use ($estimate) {
             $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
-            $estimate->estimate_status = Estimate::EST_STATUS_DRAFT;
+            $stateService = app(\App\Services\Estimates\EstimateStateService::class);
+            $stateService->resetSafetyWorkflow($estimate);
             $estimate->save();
 
             ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} reverted to draft.");
@@ -648,7 +654,71 @@ class EstimateController extends Controller
      */
     public function preview(Request $request)
     {
-        return response()->json(['success' => true]);
+        $data = $request->all();
+
+        $estimate = new Estimate($data);
+        $estimate->estimate_number = 'EST-PREVIEW';
+        $estimate->estimate_date = $data['estimate_date'] ?? now()->toDateString();
+        $estimate->expiry_date = $data['expiry_date'] ?? now()->addDays(7)->toDateString();
+        $estimate->status = $data['status'] ?? Estimate::EST_STATUS_DRAFT;
+        $estimate->estimate_status = $data['status'] ?? Estimate::EST_STATUS_DRAFT;
+        $estimate->discount_type = $data['discount_type'] ?? 'fixed';
+        $estimate->discount_value = $data['discount_value'] ?? 0;
+        $estimate->coupon_discount = $data['coupon_discount'] ?? 0;
+        $estimate->transportation_charges = $data['transportation_charges'] ?? 0;
+        $estimate->tax_1 = $data['tax_1'] ?? 0;
+        $estimate->tax_2 = $data['tax_2'] ?? 0;
+
+        if (!empty($data['client_id'])) {
+            $client = Client::find($data['client_id']);
+            if ($client) {
+                $estimate->setRelation('client', $client);
+            }
+        }
+
+        $items = collect();
+        $sections = collect();
+
+        foreach ($request->input('sections', []) as $sectionData) {
+            $sectionItems = collect();
+
+            foreach ($sectionData['items'] ?? [] as $itemData) {
+                $item = $this->makePreviewItem($itemData);
+                $sectionItems->push($item);
+                $items->push($item);
+            }
+
+            $section = new \App\Models\EstimateSection([
+                'name' => $sectionData['name'] ?? 'Section',
+                'section_type' => $sectionData['section_type'] ?? 'room',
+                'subtotal' => round($sectionItems->sum('total'), 2),
+            ]);
+            $section->setRelation('items', $sectionItems);
+            $sections->push($section);
+        }
+
+        foreach ($request->input('items', []) as $itemData) {
+            $items->push($this->makePreviewItem($itemData));
+        }
+
+        $estimate->setRelation('sections', $sections);
+        $estimate->setRelation('items', $items);
+
+        $calculator = new \App\Services\Calculations\PriceCalculator();
+        $results = $calculator->calculate($estimate);
+        $estimate->forceFill($results['estimate_updates']);
+
+        $template = PdfTemplate::where('id', $request->input('pdf_template_id'))
+            ->where('is_active', true)
+            ->first()
+            ?? PdfTemplate::where('is_active', true)->where('is_default', true)->first()
+            ?? PdfTemplate::where('is_active', true)->first();
+
+        abort_if(!$template, 422, 'No active PDF template found.');
+
+        $html = (new PdfRenderingService())->render($template, $estimate, true);
+
+        return response($html);
     }
 
     /**
@@ -690,9 +760,43 @@ class EstimateController extends Controller
             'subtotal' => $results['estimate_updates']['subtotal'],
             'total_tax' => $results['estimate_updates']['total_tax'],
             'discount' => $results['estimate_updates']['discount_total'],
+            'discount_total' => $results['estimate_updates']['discount_total'],
+            'coupon_discount' => round((float) ($estimate->coupon_discount ?? 0), 2),
             'grand_total' => $results['estimate_updates']['grand_total'],
             'approval_chain_id' => $results['estimate_updates']['approval_chain_id'],
         ]);
+    }
+
+    private function makePreviewItem(array $itemData): EstimateItem
+    {
+        $item = new EstimateItem($itemData);
+        $item->total = $this->calculatePreviewItemTotal($itemData);
+        $item->setRelation('comments', collect());
+
+        if (!empty($itemData['product_id'])) {
+            $product = Product::with(['images', 'options.values', 'unitType'])->find($itemData['product_id']);
+            if ($product) {
+                $item->setRelation('product', $product);
+            }
+        }
+
+        return $item;
+    }
+
+    private function calculatePreviewItemTotal(array $itemData): float
+    {
+        $unitPrice = round((float) ($itemData['unit_price'] ?? 0), 2);
+        $quantity = (float) ($itemData['quantity'] ?? 0);
+        $sizeMultiplier = 1;
+
+        if (!empty($itemData['formula']) && in_array($itemData['formula'], ['area', 'volume', 'area_lh', 'formula'])) {
+            $size = (float) ($itemData['size'] ?? 1);
+            if ($size > 0) {
+                $sizeMultiplier = $size;
+            }
+        }
+
+        return round($unitPrice * $quantity * $sizeMultiplier, 2);
     }
 
     /**

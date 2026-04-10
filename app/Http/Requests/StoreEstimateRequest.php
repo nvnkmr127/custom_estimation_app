@@ -29,6 +29,7 @@ class StoreEstimateRequest extends FormRequest
         }
 
         return [
+            'title' => 'nullable|string|max:255',
             'client_id' => 'required|integer',
             'estimate_date' => 'required|date',
             'expiry_date' => 'nullable|date|after_or_equal:estimate_date',
@@ -36,6 +37,7 @@ class StoreEstimateRequest extends FormRequest
             'currency' => 'required|string|max:10',
             'discount_type' => 'required|in:percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
+            'coupon_discount' => 'nullable|numeric|min:0',
             'transportation_charges' => 'nullable|numeric|min:0',
             'client_note' => 'nullable|string',
             'admin_note' => 'nullable|string',
@@ -68,6 +70,7 @@ class StoreEstimateRequest extends FormRequest
             'items.*.options.*.name' => 'nullable|string',
             'items.*.options.*.value' => 'nullable|string',
             'items.*.options.*.price_adjustment' => 'nullable|numeric',
+            'items.*.selected_options' => 'nullable|array',
 
             // Section Validation
             'sections' => 'nullable|array|required_if:type,room_based',
@@ -94,6 +97,7 @@ class StoreEstimateRequest extends FormRequest
             'sections.*.items.*.options.*.name' => 'nullable|string',
             'sections.*.items.*.options.*.value' => 'nullable|string',
             'sections.*.items.*.options.*.price_adjustment' => 'nullable|numeric',
+            'sections.*.items.*.selected_options' => 'nullable|array',
 
             'tax_1' => 'nullable|numeric|min:0',
             'tax_2' => 'nullable|numeric|min:0',

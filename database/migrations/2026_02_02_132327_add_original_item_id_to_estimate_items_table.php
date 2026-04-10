@@ -24,6 +24,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('estimate_items', function (Blueprint $table) {
+            $table->dropIndex('estimate_items_original_item_id_index');
             $table->dropColumn('original_item_id');
         });
     }

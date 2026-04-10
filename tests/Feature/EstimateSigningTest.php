@@ -20,6 +20,10 @@ class EstimateSigningTest extends TestCase
         $estimate = Estimate::factory()->create([
             'client_id' => $client->id,
             'status' => 'sent',
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
         ]);
 
         // Generate Signed URL
@@ -36,7 +40,8 @@ class EstimateSigningTest extends TestCase
 
         $estimate->refresh();
 
-        $this->assertEquals('accepted', $estimate->status);
+        $this->assertEquals(Estimate::CLT_STATUS_ACCEPTED, $estimate->client_status);
+        $this->assertEquals(Estimate::EST_STATUS_ACCEPTED, $estimate->estimate_status);
         $this->assertEquals('TestBrowser/1.0', $estimate->signer_agent);
         $this->assertNotNull($estimate->signer_ip);
         // Note: Location might be null in tests due to localhost/mocking, which is fine

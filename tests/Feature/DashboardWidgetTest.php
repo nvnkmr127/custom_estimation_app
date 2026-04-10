@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Estimate;
+use App\Models\Client;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -18,27 +19,38 @@ class DashboardWidgetTest extends TestCase
         $user = User::factory()->create();
 
         // Hot Lead: Sent, High Engagement
+        $hotClient = Client::factory()->create(['name' => 'Hot Client']);
         $hotEstimate = Estimate::factory()->create([
+            'created_by' => $user->id,
+            'client_id' => $hotClient->id,
             'status' => 'sent',
+            'estimate_status' => Estimate::EST_STATUS_SENT,
             'engagement_score' => 5,
             'last_viewed_at' => now(),
             'estimate_number' => 'EST-HOT-001',
         ]);
 
         // Cold Lead: Sent, No Engagement
+        $coldClient = Client::factory()->create(['name' => 'Cold Client']);
         $coldEstimate = Estimate::factory()->create([
+            'created_by' => $user->id,
+            'client_id' => $coldClient->id,
             'status' => 'sent',
+            'estimate_status' => Estimate::EST_STATUS_SENT,
             'engagement_score' => 0,
             'estimate_number' => 'EST-COLD-001',
         ]);
 
         // Draft (Should not show)
         $draftEstimate = Estimate::factory()->create([
+            'created_by' => $user->id,
             'status' => 'draft',
-            'engagement_score' => 10, // Even with score, drafts shouldn't be "hot leads" typically? logic says status='sent'
+            'estimate_status' => Estimate::EST_STATUS_DRAFT,
+            'engagement_score' => 10,
         ]);
 
         // 2. Act: Visit Dashboard
+        \Illuminate\Support\Facades\Cache::flush();
         $response = $this->actingAs($user)->get(route('dashboard'));
 
         // 3. Assert
@@ -46,12 +58,9 @@ class DashboardWidgetTest extends TestCase
 
         // Check for widget presence
         $response->assertSee('Hot Leads');
-        $response->assertSee('EST-HOT-001');
+        $response->assertSee('Hot Client');
+        $response->assertSee('Score: 5');
 
-        // Assert Cold estimate is NOT in the Hot Leads section (Checking strictly might be hard with just text assert, but we can check if it appears in general)
-        // Ideally we check that hot count is 1.
-        $response->assertSee('1 Alert');
-
-        // Cold estimate might be in "Recent Estimates", so we can't assertDontSee('EST-COLD-001') globally.
+        $response->assertDontSee('Cold Client');
     }
 }

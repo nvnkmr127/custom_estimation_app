@@ -17,6 +17,27 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_login_screen_does_not_expose_demo_role_shortcuts(): void
+    {
+        $response = $this->get('/login');
+
+        $response->assertOk();
+        $response->assertDontSee('Super Admin');
+        $response->assertDontSee('Est. Admin');
+        $response->assertDontSee('Estimator (Sales)');
+    }
+
+    public function test_guest_pages_link_to_registration(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee(route('register', absolute: false));
+
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee(route('register', absolute: false));
+    }
+
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
         $user = User::factory()->create();

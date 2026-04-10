@@ -39,11 +39,12 @@ class WebhookDLQTest extends TestCase
             // job->handle() calls handleFailure -> fail().
         }
 
-        // Assert DLQ created
-        $this->assertDatabaseHas('webhook_dead_letters', [
-            'webhook_id' => $config->id,
-            'webhook_event_id' => $event->id,
-        ]);
+        $dlq = WebhookDeadLetter::with('originalDelivery')->first();
+        $this->assertNotNull($dlq);
+        $this->assertNotNull($dlq->originalDelivery);
+        $this->assertEquals($config->id, $dlq->originalDelivery->webhook_id);
+        $this->assertEquals($event->id, $dlq->originalDelivery->webhook_event_id);
+        $this->assertStringContainsString('HTTP 404', $dlq->final_error_message);
 
         // Assert Delivery Failed
         $this->assertDatabaseHas('webhook_deliveries', [
@@ -68,11 +69,10 @@ class WebhookDLQTest extends TestCase
 
         $dlq = WebhookDeadLetter::create([
             'id' => \Illuminate\Support\Str::uuid(),
-            'webhook_id' => $config->id,
-            'webhook_event_id' => $event->id,
             'original_delivery_id' => $delivery->id,
-            'error_reason' => 'Max retries',
-            'payload_snapshot' => $event->payload
+            'final_error_message' => 'failed: Max retries',
+            'snapshot_payload' => $event->payload,
+            'replayed' => false,
         ]);
 
         $processor = app(WebhookDLQProcessor::class);

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PdfTemplate;
+use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,11 +14,14 @@ class PdfStylingTest extends TestCase
 
     public function test_can_create_template_with_styling()
     {
+        RolePermission::firstOrCreate(['role' => 'super_admin', 'permission' => 'manage_pdf_templates']);
+        \App\Services\PermissionService::clearCache('super_admin');
+
         $user = User::factory()->create(['role' => 'super_admin']);
 
         $response = $this->actingAs($user)->post(route('pdf-templates.store'), [
             'name' => 'Styled Template',
-            'html_content' => '<h1>Test</h1>',
+            'html_content' => '<div>{LOOP_ITEMS}</div><div>{grand_total}</div>',
             'css_content' => 'h1 { color: red; }',
             'paper_size' => 'a4',
             'orientation' => 'portrait',
@@ -39,14 +43,21 @@ class PdfStylingTest extends TestCase
 
     public function test_can_update_template_styling()
     {
+        RolePermission::firstOrCreate(['role' => 'super_admin', 'permission' => 'manage_pdf_templates']);
+        \App\Services\PermissionService::clearCache('super_admin');
+
         $user = User::factory()->create(['role' => 'super_admin']);
 
         $template = PdfTemplate::factory()->create([
             'primary_color' => '#000000',
+            'html_content' => '<div>{LOOP_ITEMS}</div><div>{grand_total}</div>',
         ]);
 
         $response = $this->actingAs($user)->put(route('pdf-templates.update', $template), [
             'name' => $template->name,
+            'html_content' => $template->html_content,
+            'paper_size' => $template->paper_size,
+            'orientation' => $template->orientation,
             'primary_color' => '#FFFFFF',
             'font_family' => 'Courier',
         ]);

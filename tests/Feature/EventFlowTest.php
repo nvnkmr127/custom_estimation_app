@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Estimate;
 use App\Models\Client;
 use App\Models\EstimateApproval;
+use App\Models\EstimateItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use App\Core\Events\Estimates\EstimateApproved;
@@ -25,15 +26,22 @@ class EventFlowTest extends TestCase
         parent::setUp();
         $this->user = User::factory()->create(['role' => 'admin']);
         $this->client = Client::factory()->create();
-        $this->estimate = Estimate::create([
+        $this->estimate = Estimate::factory()->create([
             'estimate_number' => 'EST-FLOW-001',
             'created_by' => $this->user->id,
             'client_id' => $this->client->id,
-            'status' => Estimate::STATUS_WAITING_APPROVAL,
-            'estimate_date' => now(),
-            'currency' => 'USD',
-            'type' => 'standard',
-            'grand_total' => 1000
+            'estimate_status' => Estimate::EST_STATUS_PENDING_APPROVAL,
+            'approval_status' => Estimate::APP_STATUS_WAITING,
+        ]);
+
+        EstimateItem::create([
+            'estimate_id' => $this->estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
         ]);
     }
 
@@ -55,7 +63,6 @@ class EventFlowTest extends TestCase
             'estimate_id' => $this->estimate->id,
             'user_id' => $this->user->id,
             'status' => 'pending',
-            'step_number' => 1
         ]);
 
         $response = $this->post(route('estimates.approve', [$this->estimate->id]), [

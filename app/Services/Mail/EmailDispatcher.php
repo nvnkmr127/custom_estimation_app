@@ -96,8 +96,6 @@ class EmailDispatcher
             \Illuminate\Support\Facades\Log::error('Email Tracking Setup Failed: ' . $e->getMessage());
         }
 
-        // 5. Dispatch job to queue
-        // We log the final body being sent (optional, maybe too large for logs)
-        SendEmailJob::dispatch($to, $subject, $body);
+        \Illuminate\Support\Facades\Bus::dispatch(new SendEmailJob($to, $subject, $body));
     }
 }

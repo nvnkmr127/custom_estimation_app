@@ -53,42 +53,15 @@
         </div>
 
         <div class="flex items-center justify-end mt-4">
+            @if (Route::has('register'))
+                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    href="{{ route('register') }}">
+                    {{ __('Create account') }}
+                </a>
+            @endif
             <x-primary-button class="ms-3">
                 {{ __('Log in') }}
             </x-primary-button>
         </div>
-
-        {{-- Direct Login Buttons --}}
-        <div class="mt-6 grid grid-cols-2 gap-3 w-full border-t border-gray-100 pt-6">
-            <button type="button" onclick="autoLogin('super@example.com')"
-                class="flex justify-center items-center px-4 py-2 bg-purple-50 text-purple-700 text-xs font-semibold rounded-lg hover:bg-purple-100 transition-colors border border-purple-200">
-                Super Admin
-            </button>
-            <button type="button" onclick="autoLogin('estimator@example.com')"
-                class="flex justify-center items-center px-4 py-2 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200">
-                Est. Admin
-            </button>
-            <button type="button" onclick="autoLogin('manager@example.com')"
-                class="flex justify-center items-center px-4 py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors border border-blue-200">
-                Manager
-            </button>
-            <button type="button" onclick="autoLogin('sales@example.com')"
-                class="flex justify-center items-center px-4 py-2 bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition-colors border border-slate-200">
-                Estimator (Sales)
-            </button>
-        </div>
-
-        <script>
-            function autoLogin(email) {
-                const emailInput = document.getElementById('email');
-                const passInput = document.getElementById('password');
-
-                if (emailInput && passInput) {
-                    emailInput.value = email;
-                    passInput.value = 'password';
-                    emailInput.form.submit();
-                }
-            }
-        </script>
     </form>
 </x-guest-layout>

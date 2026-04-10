@@ -65,6 +65,12 @@
                             class="rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all">
                             Log in
                         </a>
+                        @if (Route::has('register'))
+                            <a href="{{ route('register') }}"
+                                class="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all">
+                                Create account
+                            </a>
+                        @endif
                         <a href="#"
                             class="text-sm font-semibold leading-6 text-slate-900 hover:text-indigo-600 transition-colors">
                             Learn more <span aria-hidden="true">→</span>

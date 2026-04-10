@@ -14,7 +14,7 @@ class EstimateStateService
      */
     protected array $estimateTransitions = [
         Estimate::EST_STATUS_DRAFT => [Estimate::EST_STATUS_PENDING_APPROVAL],
-        Estimate::EST_STATUS_PENDING_APPROVAL => [Estimate::EST_STATUS_APPROVED],
+        Estimate::EST_STATUS_PENDING_APPROVAL => [Estimate::EST_STATUS_APPROVED, Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_DECLINED],
         Estimate::EST_STATUS_APPROVED => [Estimate::EST_STATUS_SENT],
         Estimate::EST_STATUS_SENT => [Estimate::EST_STATUS_ACCEPTED, Estimate::EST_STATUS_DECLINED, Estimate::EST_STATUS_EXPIRED],
         Estimate::EST_STATUS_ACCEPTED => [],
@@ -108,7 +108,9 @@ class EstimateStateService
         $allowed = $matrix[$oldStatus] ?? [];
 
         // Admin Override
-        $isAdmin = Auth::user()?->hasRole(['super_admin', 'admin']);
+        $isAdmin = Auth::id()
+            ? \App\Models\User::find(Auth::id())?->hasRole(['super_admin', 'admin'])
+            : false;
 
         if (!in_array($newStatus, $allowed) && !$isAdmin && !($oldStatus === $newStatus && $force)) {
             throw new \InvalidArgumentException("Invalid transition for {$field}: '{$oldStatus}' to '{$newStatus}'.");
@@ -126,12 +128,7 @@ class EstimateStateService
                 $lockedEstimate->fill($extraData);
             }
 
-            // Prevent direct status modification through fill/update if they ever try
-            unset($lockedEstimate->estimate_status);
-            unset($lockedEstimate->client_status);
-            unset($lockedEstimate->approval_status);
-
-            // Re-assign explicitly via the validated field
+            unset($lockedEstimate->{$field});
             $lockedEstimate->{$field} = $newStatus;
 
             // Side Effects: Auto-update timestamps
@@ -158,6 +155,7 @@ class EstimateStateService
 
         // Sync back to the original object to avoid stale state in long-running processes or service sequences
         $estimate->{$field} = $result->{$field};
+        $estimate->estimate_status = $result->estimate_status; // Sync side effect
         if ($field === 'client_status') {
             $estimate->sent_at = $result->sent_at;
             $estimate->expires_at = $result->expires_at;

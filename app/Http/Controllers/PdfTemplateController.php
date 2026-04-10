@@ -79,7 +79,10 @@ class PdfTemplateController extends Controller
                 'content_structure' => isset($validated['content_structure']) ? json_decode($validated['content_structure'], true) : null,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException || $e instanceof \Illuminate\Validation\ValidationException) {
+                throw $e;
+            }
             \Illuminate\Support\Facades\Log::error('PDF Template Creation Failed: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'input' => $request->except(['html_content', 'css_content']) // exclude large fields from log
@@ -139,7 +142,7 @@ class PdfTemplateController extends Controller
                 'html_content' => $pdfTemplate->html_content,
                 'css_content' => $pdfTemplate->css_content,
                 'content_structure' => $pdfTemplate->content_structure,
-                'created_by' => auth()->id(),
+                'created_by' => \Illuminate\Support\Facades\Auth::id(),
             ]);
 
             // Handle Default Logic
@@ -165,7 +168,10 @@ class PdfTemplateController extends Controller
                 'content_structure' => isset($validated['content_structure']) ? json_decode($validated['content_structure'], true) : null,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException || $e instanceof \Illuminate\Validation\ValidationException) {
+                throw $e;
+            }
             \Illuminate\Support\Facades\Log::error('PDF Template Update Failed: ' . $e->getMessage(), [
                 'template_id' => $pdfTemplate->id,
                 'trace' => $e->getTraceAsString()

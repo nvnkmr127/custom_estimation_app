@@ -64,7 +64,7 @@ class WebhookReplayTest extends TestCase
     public function it_clones_event_when_payload_overridden()
     {
         Queue::fake();
-        $config = $this->seedConfig();
+        $this->seedConfig();
 
         $originalEvent = WebhookEvent::factory()->create([
             'event_type' => 'test.event',
@@ -74,8 +74,11 @@ class WebhookReplayTest extends TestCase
         $service = app(WebhookReplayService::class);
         $overriddenPayload = ['foo' => 'baz'];
 
-        $newEvent = $service->replayEvent($originalEvent, $overriddenPayload);
+        $dispatchCount = $service->replayEvent($originalEvent, $overriddenPayload);
+        $newEvent = WebhookEvent::where('id', '!=', $originalEvent->id)->latest('id')->first();
 
+        $this->assertGreaterThan(0, $dispatchCount);
+        $this->assertNotNull($newEvent);
         $this->assertNotEquals($originalEvent->id, $newEvent->id);
         $this->assertEquals($overriddenPayload, $newEvent->payload['normalized']);
         $this->assertTrue($newEvent->payload['metadata']['is_replay']);

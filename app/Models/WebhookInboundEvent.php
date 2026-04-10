@@ -35,6 +35,6 @@ class WebhookInboundEvent extends Model
         ]);
 
         // Logic to re-trigger processing
-        \App\Jobs\ProcessInboundWebhook::dispatchSync($this);
+        \App\Jobs\ProcessInboundWebhook::dispatch($this);
     }
 }

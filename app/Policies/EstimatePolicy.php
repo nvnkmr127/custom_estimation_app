@@ -108,7 +108,11 @@ class EstimatePolicy
 
     public function revertToDraft(User $user, Estimate $estimate)
     {
-        return $this->update($user, $estimate);
+        if ($user->id === $estimate->created_by) {
+            return true;
+        }
+
+        return $user->hasRole(['super_admin', 'admin', 'estimator_admin']);
     }
 
     public function extendExpiry(User $user, Estimate $estimate)

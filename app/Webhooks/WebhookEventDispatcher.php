@@ -53,12 +53,19 @@ class WebhookEventDispatcher
         ];
 
         // Add metadata from event if available
-        if (method_exists($event, 'getEntityType')) {
-            $envelope['metadata']['entity_type'] = $event->getEntityType();
-            $envelope['metadata']['entity_id'] = $event->getEntityId();
+        try {
+            if (method_exists($event, 'getEntityType')) {
+                $envelope['metadata']['entity_type'] = $event->getEntityType();
+                $envelope['metadata']['entity_id'] = $event->getEntityId();
+            }
+        } catch (\Throwable) {
         }
-        if (method_exists($event, 'getTriggeredBy')) {
-            $envelope['metadata']['triggered_by'] = $event->getTriggeredBy();
+
+        try {
+            if (method_exists($event, 'getTriggeredBy')) {
+                $envelope['metadata']['triggered_by'] = $event->getTriggeredBy();
+            }
+        } catch (\Throwable) {
         }
 
         // 5. Persist to WebhookEvent (Idempotency Check)

@@ -8,7 +8,7 @@ class UpdateWebhookRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('webhook_config'));
+        return $this->user()->can('update', $this->route('webhook'));
     }
 
     public function rules(): array

@@ -70,9 +70,12 @@ class CommentController extends Controller
             substr($comment->comment, 0, 100)
         ));
 
-        // Send notification if client comment
         if ($type === 'client') {
             $this->notifyTeam($estimate, $comment);
+        } else {
+            $estimate->followers
+                ->reject(fn ($user) => $user->id === auth()->id())
+                ->each(fn ($user) => $user->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate)));
         }
 
         \Log::info("CommentController: Created comment ID {$comment->id} Type: {$type} On: {$comment->commentable_type} #{$comment->commentable_id}");
@@ -173,12 +176,10 @@ class CommentController extends Controller
      */
     private function notifyTeam($estimate, $comment)
     {
-        // TODO: Implement email notification
-        // For now, just log it
-        \Log::info('New client comment on estimate', [
-            'estimate_id' => $estimate->id,
-            'comment_id' => $comment->id,
-            'client_name' => $comment->client_name,
-        ]);
+        $recipients = $estimate->followers
+            ->merge(\App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'sales_manager'])->get())
+            ->unique('id');
+
+        $recipients->each(fn ($user) => $user->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate)));
     }
 }

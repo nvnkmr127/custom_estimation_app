@@ -17,7 +17,7 @@ class EstimateNumberTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new EstimateService();
+        $this->service = app(EstimateService::class);
     }
 
     /** @test */

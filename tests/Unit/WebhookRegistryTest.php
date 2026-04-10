@@ -41,10 +41,10 @@ class WebhookRegistryTest extends TestCase
         $registry = app(WebhookEventRegistry::class);
         $groups = $registry->getGroupedEvents();
 
-        $this->assertArrayHasKey('Estimate', $groups);
-        $this->assertArrayHasKey('Client', $groups);
+        $this->assertArrayHasKey('Estimates Management', $groups);
+        $this->assertArrayHasKey('Client Relations', $groups);
 
-        $estimateEvents = collect($groups['Estimate'])->pluck('name');
+        $estimateEvents = collect($groups['Estimates Management'])->pluck('name');
         $this->assertTrue($estimateEvents->contains('estimate.created'));
     }
 }

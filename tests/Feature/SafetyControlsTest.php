@@ -28,7 +28,7 @@ class SafetyControlsTest extends TestCase
 
     public function test_and_logic_evaluation()
     {
-        $estimate = \App\Models\Estimate::factory()->create(['status' => 'pending']);
+        $estimate = \App\Models\Estimate::factory()->create(['estimate_status' => \App\Models\Estimate::EST_STATUS_DRAFT]);
 
         $automation = Automation::create([
             'name' => 'AND Rule',
@@ -57,7 +57,7 @@ class SafetyControlsTest extends TestCase
         AutomationAction::create([
             'automation_step_id' => $step->id,
             'type' => 'status_update',
-            'config' => ['field' => 'status', 'value' => 'processed']
+            'config' => ['field' => 'estimate_status', 'value' => \App\Models\Estimate::EST_STATUS_APPROVED]
         ]);
 
         $event = $this->createMockEvent(['price' => 150, 'status' => 'active'], 'Estimate', $estimate->id);
@@ -65,7 +65,7 @@ class SafetyControlsTest extends TestCase
         $this->assertDatabaseHas('automation_execution_logs', ['automation_id' => $automation->id, 'status' => 'success']);
 
         $estimate->refresh();
-        $this->assertEquals('processed', $estimate->status);
+        $this->assertEquals(\App\Models\Estimate::EST_STATUS_APPROVED, $estimate->estimate_status);
 
         AutomationExecutionLog::truncate();
 
@@ -105,7 +105,7 @@ class SafetyControlsTest extends TestCase
         AutomationAction::create([
             'automation_step_id' => $step->id,
             'type' => 'status_update',
-            'config' => ['field' => 'status', 'value' => 'processed']
+            'config' => ['field' => 'estimate_status', 'value' => \App\Models\Estimate::EST_STATUS_APPROVED]
         ]);
 
         // One matches
@@ -141,22 +141,20 @@ class SafetyControlsTest extends TestCase
         AutomationAction::create([
             'automation_step_id' => $step->id,
             'type' => 'status_update',
-            'config' => ['field' => 'status', 'value' => 'processed']
+            'config' => ['field' => 'estimate_status', 'value' => \App\Models\Estimate::EST_STATUS_APPROVED]
         ]);
 
-        $event = $this->createMockEvent([], 'Estimate', $estimate->id);
-
         // First execution
-        $this->service->evaluate($event);
+        $this->service->evaluate($this->createMockEvent([], 'Estimate', $estimate->id));
         $this->assertDatabaseHas('automation_execution_logs', ['automation_id' => $automation->id, 'status' => 'success']);
         $this->assertEquals(1, AutomationExecutionLog::count());
 
         // Second execution
-        $this->service->evaluate($event);
+        $this->service->evaluate($this->createMockEvent([], 'Estimate', $estimate->id));
         $this->assertEquals(2, AutomationExecutionLog::count());
 
         // Third execution (should be limited)
-        $this->service->evaluate($event);
+        $this->service->evaluate($this->createMockEvent([], 'Estimate', $estimate->id));
         $this->assertEquals(2, AutomationExecutionLog::count());
     }
 
@@ -179,7 +177,7 @@ class SafetyControlsTest extends TestCase
         AutomationAction::create([
             'automation_step_id' => $step->id,
             'type' => 'status_update',
-            'config' => ['field' => 'status', 'value' => 'processed']
+            'config' => ['field' => 'estimate_status', 'value' => \App\Models\Estimate::EST_STATUS_APPROVED]
         ]);
 
         // Create an EventLog record so we can associate AutomationExecutionLog with it
@@ -267,6 +265,10 @@ class SafetyControlsTest extends TestCase
             public function getSource(): string
             {
                 return 'test';
+            }
+            public function getPriority(): string
+            {
+                return DomainEvent::PRIORITY_NORMAL;
             }
         };
     }

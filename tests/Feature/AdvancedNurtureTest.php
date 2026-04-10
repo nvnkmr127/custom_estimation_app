@@ -84,14 +84,23 @@ class AdvancedNurtureTest extends TestCase
         Notification::fake();
 
         $creator = User::factory()->create();
-        $estimate = Estimate::factory()->create(['created_by' => $creator->id]);
+        $client = \App\Models\Client::factory()->create();
+        $estimate = Estimate::factory()->create([
+            'created_by' => $creator->id,
+            'client_id' => $client->id,
+            'status' => 'sent',
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
+        ]);
 
         // Mock Setting if possible, or use default (3)
 
         // Simulate 3 views
-        $this->get($estimate->public_url); // 1
-        $this->get($estimate->public_url); // 2
-        $this->get($estimate->public_url); // 3 -> Trigger
+        $this->get($estimate->public_url)->assertOk(); // 1
+        $this->get($estimate->public_url)->assertOk(); // 2
+        $this->get($estimate->public_url)->assertOk(); // 3 -> Trigger
 
         Notification::assertSentTo(
             $creator,

@@ -33,7 +33,10 @@ class PdfPerformanceTest extends TestCase
     {
         $user = User::factory()->create();
         $template = PdfTemplate::factory()->create(['html_content' => '<h1>Hello</h1>']);
-        $estimate = Estimate::factory()->create(['pdf_template_id' => $template->id]);
+        $estimate = Estimate::factory()->create([
+            'pdf_template_id' => $template->id,
+            'created_by' => $user->id,
+        ]);
 
         $this->actingAs($user)
             ->get(route('estimates.pdf', $estimate))

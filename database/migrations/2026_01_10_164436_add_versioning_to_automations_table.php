@@ -29,6 +29,8 @@ return new class extends Migration {
         Schema::table('automations', function (Blueprint $table) {
             $table->dropForeign(['parent_id']);
             $table->dropForeign(['created_by']);
+            $table->dropIndex('automations_parent_id_index');
+            $table->dropIndex('automations_is_current_version_index');
             $table->dropColumn(['parent_id', 'version', 'is_current_version', 'created_by']);
         });
     }

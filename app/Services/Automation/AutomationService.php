@@ -243,6 +243,16 @@ class AutomationService
                 break;
             }
 
+            $alreadyExecuted = AutomationExecutionLog::where('automation_id', $automation->id)
+                ->where('automation_step_id', $step->id)
+                ->where('event_id', $event->getEventId())
+                ->where('status', 'success')
+                ->exists();
+
+            if ($alreadyExecuted) {
+                continue;
+            }
+
             // Check step-level conditions
             if (!$this->matchesRelationalConditions($event, $step->conditions, $step->condition_logic)) {
                 continue;

@@ -90,10 +90,13 @@ class PdfStressTest extends TestCase
     {
         // 1. Create Estimate with known sensitive cost
         $sensitiveCost = 1234.56;
-        $estimate = Estimate::create([
+        $estimate = Estimate::factory()->create([
             'estimate_number' => 'LEAK-001',
+            'client_id' => $this->client->id,
             'created_by' => $this->user->id,
-            'status' => 'draft',
+            'estimate_status' => Estimate::EST_STATUS_DRAFT,
+            'client_status' => Estimate::CLT_STATUS_NOT_SENT,
+            'approval_status' => Estimate::APP_STATUS_NOT_REQUIRED,
         ]);
 
         $estimate->items()->create([
@@ -130,11 +133,14 @@ class PdfStressTest extends TestCase
 
     public function test_portal_magic_link_access()
     {
-        $estimate = Estimate::create([
+        $estimate = Estimate::factory()->create([
             'estimate_number' => 'MAGIC-001',
             'client_id' => $this->client->id,
             'created_by' => $this->user->id,
-            'status' => 'sent', // Must be sent to be viewable
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
         ]);
 
         // Generate Signed URL
@@ -153,16 +159,19 @@ class PdfStressTest extends TestCase
 
     public function test_portal_prevents_unauthorized_download()
     {
-        $estimate = Estimate::create([
+        $estimate = Estimate::factory()->create([
             'estimate_number' => 'SECURE-001',
             'client_id' => $this->client->id,
             'created_by' => $this->user->id,
-            'status' => 'sent',
+            'estimate_status' => Estimate::EST_STATUS_SENT,
+            'client_status' => Estimate::CLT_STATUS_SENT,
+            'is_current_version' => true,
+            'expires_at' => now()->addDays(7),
         ]);
 
         // Attempt to access download route typically meant for auth users
         // Assuming /estimates/{id}/download logic
-        $response = $this->get(route('estimates.download', $estimate));
+        $response = $this->get(route('estimates.pdf', $estimate));
         // Should redirect to login or 403
         $response->assertStatus(302); // Redirect to login
     }

@@ -101,6 +101,19 @@ class EstimateWorkflowService
         return DB::transaction(function () use ($estimate, $userId, $comments) {
             $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
+            $requiredChecklistIds = \App\Models\ApprovalChecklist::where('is_required', true)->pluck('id');
+            if ($requiredChecklistIds->isNotEmpty()) {
+                $completedRequiredCount = \App\Models\EstimateApprovalChecklistItem::where('estimate_id', $estimate->id)
+                    ->whereIn('approval_checklist_id', $requiredChecklistIds)
+                    ->where('is_completed', true)
+                    ->distinct('approval_checklist_id')
+                    ->count('approval_checklist_id');
+
+                if ($completedRequiredCount !== $requiredChecklistIds->count()) {
+                    throw new \Exception('You must complete the mandatory checklist items before approving.');
+                }
+            }
+
             $approval = $estimate->approvals()
                 ->where('user_id', $userId)
                 ->where('status', 'pending')
@@ -119,11 +132,19 @@ class EstimateWorkflowService
                 ]);
             } elseif ($isAdmin) {
                 // Force Approve: Create an approval record for the admin to track the action
-                $estimate->approvals()->create([
+                $approval = $estimate->approvals()->create([
                     'user_id' => $userId,
                     'status' => 'approved',
                     'comments' => $comments . ' (Force Approved by Admin)',
                 ]);
+            }
+
+            if ($approval) {
+                $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalApproved(
+                    $estimate->id,
+                    $approval,
+                    $userId
+                ));
             }
 
             // PARALLEL LOGIC: Determine if we should move to the next step

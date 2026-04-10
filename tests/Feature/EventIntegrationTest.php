@@ -26,7 +26,7 @@ class EventIntegrationTest extends TestCase
         parent::setUp();
         // Create user with necessary roles
         $this->user = User::factory()->create([
-            'role' => 'estimator_admin'
+            'role' => 'super_admin'
         ]);
         $this->client = Client::factory()->create();
     }
@@ -46,11 +46,16 @@ class EventIntegrationTest extends TestCase
             'currency' => 'USD',
             'discount_type' => 'fixed',
             'type' => 'standard',
+            'items' => [
+                [
+                    'name' => 'Line Item',
+                    'quantity' => 1,
+                    'unit_price' => 100,
+                    'order_index' => 0,
+                ],
+            ],
         ]);
 
-        if ($response->exception) {
-            dump($response->exception->getMessage());
-        }
         $response->assertSessionHasNoErrors();
 
         Event::assertDispatched(EstimateCreated::class, function ($event) {
@@ -83,12 +88,17 @@ class EventIntegrationTest extends TestCase
             'status' => 'sent',
             'currency' => 'USD',
             'discount_type' => 'fixed',
-            'type' => 'standard'
+            'type' => 'standard',
+            'items' => [
+                [
+                    'name' => 'Line Item',
+                    'quantity' => 1,
+                    'unit_price' => 100,
+                    'order_index' => 0,
+                ],
+            ],
         ]);
 
-        if ($response->exception) {
-            dump($response->exception->getMessage());
-        }
         $response->assertSessionHasNoErrors();
 
         Event::assertDispatched(EstimateUpdated::class, function ($event) {

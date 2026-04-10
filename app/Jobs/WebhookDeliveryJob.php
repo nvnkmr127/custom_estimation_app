@@ -117,7 +117,7 @@ class WebhookDeliveryJob implements ShouldQueue
 
     protected function updateDelivery(WebhookDelivery $delivery, string $status, float $startTime, $response = null, ?string $error = null): void
     {
-        $duration = (int) ((microtime(true) - $startTime) * 1000);
+        $duration = max(1, (int) ((microtime(true) - $startTime) * 1000));
 
         $data = [
             'status' => $status,

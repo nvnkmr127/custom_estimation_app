@@ -28,18 +28,25 @@ class WebhookEndpointController extends Controller
         return view('admin.webhooks.edit', compact('webhook'));
     }
 
-    public function update(UpdateWebhookRequest $request, WebhookConfig $webhookConfig): JsonResponse
+    public function store(StoreWebhookRequest $request): JsonResponse
     {
-        $webhookConfig->update($request->validated());
+        $webhook = WebhookConfig::create($request->validated());
 
-        return response()->json($webhookConfig);
+        return response()->json($webhook, 201);
     }
 
-    public function destroy(WebhookConfig $webhookConfig): JsonResponse
+    public function update(UpdateWebhookRequest $request, WebhookConfig $webhook): JsonResponse
     {
-        $this->authorize('delete', $webhookConfig);
+        $webhook->update($request->validated());
 
-        $webhookConfig->delete();
+        return response()->json($webhook);
+    }
+
+    public function destroy(WebhookConfig $webhook): JsonResponse
+    {
+        $this->authorize('delete', $webhook);
+
+        $webhook->delete();
 
         return response()->json(['message' => 'Webhook endpoint disabled'], 200);
     }

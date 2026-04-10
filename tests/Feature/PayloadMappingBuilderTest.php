@@ -28,7 +28,7 @@ class PayloadMappingBuilderTest extends TestCase
     {
         $sample = ['user' => ['id' => 1, 'name' => 'John']];
         $mapping = [
-            ['target' => 'customer_id', 'source' => 'user.id', 'default' => '', 'transform' => '', 'is_advanced' => false]
+            'customer_id' => 'user.id',
         ];
 
         Livewire::test(PayloadMapperBuilder::class, ['mapping' => $mapping, 'samplePayload' => $sample])
@@ -54,13 +54,11 @@ class PayloadMappingBuilderTest extends TestCase
     {
         $sample = ['created_at' => '2023-01-01 12:00:00'];
         $mapping = [
-            [
-                'target' => 'date',
+            'date' => [
                 'source' => 'created_at',
                 'default' => '',
                 'transform' => 'date:Y-m-d',
-                'is_advanced' => false
-            ]
+            ],
         ];
 
         Livewire::test(PayloadMapperBuilder::class, ['mapping' => $mapping, 'samplePayload' => $sample])

@@ -131,14 +131,14 @@ class Index extends Component
         // 1. Trend Data
         $dateDiff = $startDate->diffInDays($endDate);
         if ($dateDiff <= 31) {
-            $trendData = (clone $query)->where('status', 'accepted')
+            $trendData = (clone $query)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
                 ->whereBetween('estimate_date', [$startDate, $endDate])
                 ->selectRaw('DATE(estimate_date) as date, SUM(grand_total) as total')
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get();
         } else {
-            $trendData = (clone $query)->where('status', 'accepted')
+            $trendData = (clone $query)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
                 ->whereBetween('estimate_date', [$startDate, $endDate])
                 ->selectRaw('DATE_FORMAT(estimate_date, "%Y-%m") as date, SUM(grand_total) as total')
                 ->groupBy('date')
@@ -148,9 +148,9 @@ class Index extends Component
 
         // 2. Status Data
         $statusData = (clone $query)->whereBetween('created_at', [$startDate, $endDate])
-            ->select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
-            ->pluck('count', 'status')
+            ->select('estimate_status', DB::raw('count(*) as count'))
+            ->groupBy('estimate_status')
+            ->pluck('count', 'estimate_status')
             ->toArray();
 
         // 3. Funnel Data
@@ -160,7 +160,7 @@ class Index extends Component
             'sent' => $estimates->whereIn('status', ['sent', 'accepted', 'declined', 'expired'])->count(),
             'opened' => $estimates->whereNotNull('email_opened_at')->count(),
             'viewed' => $estimates->where('view_count', '>', 0)->count(),
-            'accepted' => $estimates->where('status', 'accepted')->count(),
+            'accepted' => $estimates->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count(),
         ];
 
         return compact('trendData', 'statusData', 'funnelData');
@@ -189,21 +189,21 @@ class Index extends Component
         $totalCount = (clone $currentEstimates)->count();
         $prevTotalCount = (clone $prevEstimates)->count();
 
-        $acceptedCount = (clone $currentEstimates)->where('status', 'accepted')->count();
-        $prevAcceptedCount = (clone $prevEstimates)->where('status', 'accepted')->count();
+        $acceptedCount = (clone $currentEstimates)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count();
+        $prevAcceptedCount = (clone $prevEstimates)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count();
 
-        $declinedCount = (clone $currentEstimates)->where('status', 'declined')->count();
+        $declinedCount = (clone $currentEstimates)->where('estimate_status', Estimate::EST_STATUS_DECLINED)->count();
 
-        $currentRevenue = (clone $currentEstimates)->where('status', 'accepted')->sum('grand_total');
-        $prevRevenue = (clone $prevEstimates)->where('status', 'accepted')->sum('grand_total');
+        $currentRevenue = (clone $currentEstimates)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->sum('grand_total');
+        $prevRevenue = (clone $prevEstimates)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->sum('grand_total');
 
-        $pipelineValue = (clone $baseQuery)->whereIn('status', ['draft', 'sent', 'waiting_approval'])->sum('grand_total');
+        $pipelineValue = (clone $baseQuery)->whereIn('estimate_status', [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL, Estimate::EST_STATUS_APPROVED])->sum('grand_total');
 
         // Win Rate
         $closedCount = $acceptedCount + $declinedCount;
         $winRate = $closedCount > 0 ? round(($acceptedCount / $closedCount) * 100, 1) : 0;
 
-        $prevClosedCount = $prevAcceptedCount + (clone $prevEstimates)->where('status', 'declined')->count();
+        $prevClosedCount = $prevAcceptedCount + (clone $prevEstimates)->where('estimate_status', Estimate::EST_STATUS_DECLINED)->count();
         $prevWinRate = $prevClosedCount > 0 ? round(($prevAcceptedCount / $prevClosedCount) * 100, 1) : 0;
 
         // Comparisons
@@ -217,7 +217,7 @@ class Index extends Component
         $topProducts = DB::table('estimate_items')
             ->join('estimates', 'estimate_items.estimate_id', '=', 'estimates.id')
             ->whereBetween('estimates.estimate_date', [$startDate, $endDate])
-            ->where('estimates.status', 'accepted')
+            ->where('estimates.estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->when($this->userId, function ($q) {
                 return $q->where('estimates.created_by', $this->userId);
             })
@@ -237,7 +237,7 @@ class Index extends Component
         // New Detailed Metrics
         $versionsCreated = (clone $currentEstimates)->whereNotNull('parent_id')->count();
         // Assuming 'approved' is an internal status for fully approved estimates
-        $internalApproved = (clone $currentEstimates)->where('status', 'approved')->count();
+        $internalApproved = (clone $currentEstimates)->where('estimate_status', Estimate::EST_STATUS_APPROVED)->count();
         // Need to check specific approval logic if 'status' isn't enough, but usually 'status' reflects final state.
 
         // Rejections (Internal) - Check EstimateApproval for this period
@@ -260,24 +260,24 @@ class Index extends Component
             ->get();
 
         // Weighted Forecast
-        $weightedForecast = (clone $baseQuery)->whereIn('status', ['sent', 'waiting_approval'])
+        $weightedForecast = (clone $baseQuery)->whereIn('estimate_status', [Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL])
             ->sum(DB::raw('grand_total * 0.7'));
 
         // Efficiency Metrics
         // Average Deal Size (Accepted)
-        $avgDealValue = (clone $baseQuery)->where('status', 'accepted')->avg('grand_total') ?? 0;
+        $avgDealValue = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->avg('grand_total') ?? 0;
 
         // Sales Velocity (Avg Days to Close)
         // detailed diff calculation references updated_at for manual accepts if signed_at is null
         // DB::raw is cleaner but sqlite/mysql differ. valid for mysql: DATEDIFF.
-        $avgDaysToClose = (clone $baseQuery)->where('status', 'accepted')
+        $avgDaysToClose = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->select(DB::raw('AVG(DATEDIFF(updated_at, created_at)) as avg_days'))
             ->value('avg_days');
         $avgDaysToClose = $avgDaysToClose ? round($avgDaysToClose, 1) : 0;
 
         // Actionable: Hot Leads
         // Estimates sent, not yet accepted, with high engagement (views > 1 or recent view)
-        $hotLeads = (clone $baseQuery)->where('status', 'sent')
+        $hotLeads = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)
             ->where(function ($q) {
                 $q->where('view_count', '>', 1)
                     ->orWhere('last_viewed_at', '>=', now()->subDays(3));
@@ -293,7 +293,7 @@ class Index extends Component
         // -----------------------------
 
         // 1. Stale Pipeline (Untouched > 14 days)
-        $staleEstimates = (clone $baseQuery)->whereIn('status', ['sent', 'waiting_approval'])
+        $staleEstimates = (clone $baseQuery)->whereIn('estimate_status', [Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL])
             ->where('updated_at', '<=', now()->subDays(14))
             ->with('client')
             ->orderBy('updated_at', 'asc') // Oldest untouched first
@@ -304,7 +304,12 @@ class Index extends Component
         // Calculate effective discount percentage on Won vs Lost deals
         // Formula: (discount_total / (grand_total + discount_total)) * 100
         $calcAvgDiscount = function ($status) use ($baseQuery, $startDate, $endDate) {
-            return (clone $baseQuery)->where('status', $status)
+            $dbStatus = match ($status) {
+                'accepted' => Estimate::EST_STATUS_ACCEPTED,
+                'declined' => Estimate::EST_STATUS_DECLINED,
+                default => $status
+            };
+            return (clone $baseQuery)->where('estimate_status', $dbStatus)
                 ->whereBetween('estimate_date', [$startDate, $endDate])
                 ->selectRaw('AVG(
                     CASE 
@@ -333,7 +338,7 @@ class Index extends Component
             ->join('products', 'estimate_items.product_id', '=', 'products.id')
             ->join('product_categories', 'products.category_id', '=', 'product_categories.id')
             ->whereBetween('estimates.estimate_date', [$startDate, $endDate])
-            ->where('estimates.status', 'accepted')
+            ->where('estimates.estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->when($this->userId, function ($q) {
                 return $q->where('estimates.created_by', $this->userId);
             })
@@ -362,7 +367,7 @@ class Index extends Component
         // New Business: Client's first accepted estimate is in this period.
         // Recurring: Client has older accepted estimates.
 
-        $acceptedEstimates = (clone $baseQuery)->where('status', 'accepted')
+        $acceptedEstimates = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->whereBetween('estimate_date', [$startDate, $endDate])
             ->select('id', 'client_id', 'grand_total')
             ->get();
@@ -373,7 +378,7 @@ class Index extends Component
         foreach ($acceptedEstimates as $estimate) {
             // Check if this client has ANY accepted estimate BEFORE this one (strictly before start date potentially, or just before this one)
             $previousWins = Estimate::where('client_id', $estimate->client_id)
-                ->where('status', 'accepted')
+                ->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
                 ->where('id', '!=', $estimate->id)
                 ->where('estimate_date', '<', $startDate) // strictly historical
                 ->exists();
@@ -401,7 +406,7 @@ class Index extends Component
 
         $cohorts = DB::table('estimates')
             ->selectRaw('DATE_FORMAT(MIN(estimate_date), "%Y-%m") as acquisition_month, client_id')
-            ->where('status', 'accepted')
+            ->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->groupBy('client_id');
 
         // Join cohorts with current period revenue
@@ -415,7 +420,7 @@ class Index extends Component
                 $join->on('e.client_id', '=', 'c.client_id');
             })
             ->whereBetween('e.estimate_date', [$startDate, $endDate])
-            ->where('e.status', 'accepted')
+            ->where('e.estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->when($this->userId, function ($q) {
                 return $q->where('e.created_by', $this->userId);
             })
@@ -434,7 +439,7 @@ class Index extends Component
         $topProductId = DB::table('estimate_items')
             ->join('estimates', 'estimate_items.estimate_id', '=', 'estimates.id')
             ->whereBetween('estimates.estimate_date', [$startDate, $endDate])
-            ->where('estimates.status', 'accepted')
+            ->where('estimates.estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->select('product_id')
             ->groupBy('product_id')
             ->orderByRaw('COUNT(*) DESC')
@@ -475,7 +480,7 @@ class Index extends Component
             // The User->estimates() relationship likely defaults to user_id, but the FK is created_by.
 
             $estimatorStats = \App\Models\Estimate::whereBetween('estimate_date', [$startDate, $endDate])
-                ->selectRaw('created_by, count(*) as total_estimates, sum(case when status = "accepted" then 1 else 0 end) as won_count, sum(case when status = "accepted" then grand_total else 0 end) as total_revenue')
+                ->selectRaw('created_by, count(*) as total_estimates, sum(case when estimate_status = "accepted" then 1 else 0 end) as won_count, sum(case when estimate_status = "accepted" then grand_total else 0 end) as total_revenue')
                 ->whereNotNull('created_by')
                 ->groupBy('created_by')
                 ->get();
@@ -501,7 +506,7 @@ class Index extends Component
         }
 
         // 10. Deal Size Distribution (Histogram)
-        $dealSizes = (clone $baseQuery)->where('status', 'accepted')
+        $dealSizes = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->whereBetween('estimate_date', [$startDate, $endDate])
             ->pluck('grand_total');
 

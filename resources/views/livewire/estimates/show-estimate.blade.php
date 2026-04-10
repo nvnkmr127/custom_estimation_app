@@ -929,6 +929,14 @@
                                     </dd>
                                 </div>
                             @endif
+                            @if($estimate->coupon_discount > 0)
+                                <div class="flex justify-between text-red-600">
+                                    <dt>Coupon Discount</dt>
+                                    <dd class="font-medium">- {{ $estimate->currency }}
+                                        {{ number_format($estimate->coupon_discount, 2) }}
+                                    </dd>
+                                </div>
+                            @endif
                             @if($estimate->transportation_charges > 0)
                                 <div class="flex justify-between text-slate-600">
                                     <dt>Transportation</dt>
@@ -1294,8 +1302,13 @@
                         <div class="text-sm text-slate-500">{{ $estimate->client->phone ?? '' }}</div>
                     </div>
                 </div>
-                <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400">
-                    Estimate Date: {{ $estimate->estimate_date->format('M d, Y') }}
+                <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between text-xs text-slate-500">
+                    <div>
+                        <span class="font-semibold text-slate-600">Created:</span> {{ $estimate->created_at->format('M d, Y') }}
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-600">Estimate Date:</span> {{ $estimate->estimate_date->format('M d, Y') }}
+                    </div>
                 </div>
             </div>
 
