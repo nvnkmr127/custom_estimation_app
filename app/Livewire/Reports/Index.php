@@ -140,7 +140,7 @@ class Index extends Component
         } else {
             $trendData = (clone $query)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
                 ->whereBetween('estimate_date', [$startDate, $endDate])
-                ->selectRaw("strftime('%Y-%m', estimate_date) as date, SUM(grand_total) as total")
+                ->selectRaw($this->monthKeyExpr('estimate_date') . ' as date, SUM(grand_total) as total')
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get();
@@ -164,6 +164,15 @@ class Index extends Component
         ];
 
         return compact('trendData', 'statusData', 'funnelData');
+    }
+
+    private function monthKeyExpr(string $dateExpr): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => "DATE_FORMAT($dateExpr, '%Y-%m')",
+            'pgsql' => "to_char($dateExpr, 'YYYY-MM')",
+            default => "strftime('%Y-%m', $dateExpr)",
+        };
     }
 
     public function render()
@@ -409,7 +418,7 @@ class Index extends Component
         // This shows: "Are our old clients still buying?" vs "Are new clients buying?"
 
         $cohorts = DB::table('estimates')
-            ->selectRaw("strftime('%Y-%m', MIN(estimate_date)) as acquisition_month, client_id")
+            ->selectRaw($this->monthKeyExpr('MIN(estimate_date)') . ' as acquisition_month, client_id')
             ->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->groupBy('client_id');
 

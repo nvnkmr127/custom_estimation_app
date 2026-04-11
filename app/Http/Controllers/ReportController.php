@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estimate;
+use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
@@ -44,10 +45,16 @@ class ReportController extends Controller
 
         // 2. Chart Data (Last 6 Months Trend) - Optimized Single Query
         $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
+
+        $monthLabelExpr = match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => "DATE_FORMAT(estimate_date, '%m %Y')",
+            'pgsql' => "to_char(estimate_date, 'MM YYYY')",
+            default => "strftime('%m %Y', estimate_date)",
+        };
         
         $monthlyRevenue = Estimate::where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->where('estimate_date', '>=', $sixMonthsAgo)
-            ->selectRaw("strftime('%m %Y', estimate_date) as month_label, SUM(grand_total) as revenue")
+            ->selectRaw("$monthLabelExpr as month_label, SUM(grand_total) as revenue")
             ->groupBy('month_label')
             ->pluck('revenue', 'month_label');
 
@@ -64,8 +71,8 @@ class ReportController extends Controller
         }
 
         // 3. Top Products (Simplified)
-        $topProducts = \Illuminate\Support\Facades\DB::table('estimate_items')
-            ->select('name', \Illuminate\Support\Facades\DB::raw('count(*) as count'), \Illuminate\Support\Facades\DB::raw('sum(total) as revenue'))
+        $topProducts = DB::table('estimate_items')
+            ->select('name', DB::raw('count(*) as count'), DB::raw('sum(total) as revenue'))
             ->groupBy('name')
             ->orderByDesc('revenue')
             ->limit(5)
