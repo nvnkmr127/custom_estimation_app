@@ -286,7 +286,7 @@ class EstimateController extends Controller
                     'message' => 'Estimate created successfully.',
                     'estimate_id' => $estimate->id,
                     'estimate_number' => $estimate->estimate_number,
-                    'redirect_url' => route('estimates.edit', $estimate),
+                    'redirect_url' => route('estimates.show', $estimate),
                     'last_update_timestamp' => $estimate->updated_at->toDateTimeString()
                 ]);
             }
@@ -456,7 +456,7 @@ class EstimateController extends Controller
                     'estimate_id' => $updatedEstimate->id,
                     'estimate' => $updatedEstimate,
                     'is_branched' => $isBranched,
-                    'redirect_url' => route('estimates.edit', $updatedEstimate),
+                    'redirect_url' => route('estimates.show', $updatedEstimate),
                     'last_update_timestamp' => $updatedEstimate->updated_at->toDateTimeString()
                 ]);
             }
