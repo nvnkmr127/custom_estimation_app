@@ -57,18 +57,24 @@ class EstimateService
                 $estimate = Estimate::create($data);
 
                 // Process Sections
-                foreach ($sections as $sectionIndex => $sectionData) {
+                $persistedSectionIndex = 0;
+                foreach ($sections as $sectionData) {
+                    $sectionItems = $sectionData['items'] ?? null;
+                    $hasItems = is_array($sectionItems) && count($sectionItems) > 0;
+                    if (!$hasItems) {
+                        continue;
+                    }
+
                     $section = $estimate->sections()->create([
                         'name' => $sectionData['name'],
-                        'order_index' => $sectionIndex,
+                        'order_index' => $persistedSectionIndex,
                         'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                     ]);
+                    $persistedSectionIndex++;
 
-                    if (isset($sectionData['items'])) {
-                        foreach ($sectionData['items'] as $itemIndex => $itemData) {
-                            $oi = $itemData['order_index'] ?? $itemIndex;
-                            $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
-                        }
+                    foreach ($sectionItems as $itemIndex => $itemData) {
+                        $oi = $itemData['order_index'] ?? $itemIndex;
+                        $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                     }
                 }
 
@@ -183,9 +189,26 @@ class EstimateService
             }
 
             // Sync Sections and their items
-            foreach ($sections as $sectionIndex => $sectionData) {
+            $persistedSectionIndex = 0;
+            foreach ($sections as $sectionData) {
                 if ($isBranched) {
                     $sectionData['id'] = null; // Forces new record creation on the new estimate version
+                }
+
+                $itemsKeyExists = array_key_exists('items', $sectionData);
+                $sectionItems = $sectionData['items'] ?? null;
+                $hasItems = $itemsKeyExists && is_array($sectionItems) && count($sectionItems) > 0;
+                $isExplicitEmpty = $itemsKeyExists && is_array($sectionItems) && count($sectionItems) === 0;
+
+                if (!$hasItems) {
+                    if (!$isBranched && $isExplicitEmpty && !empty($sectionData['id'])) {
+                        $section = $estimate->sections()->where('id', $sectionData['id'])->first();
+                        if ($section) {
+                            $section->items()->delete();
+                            $section->delete();
+                        }
+                    }
+                    continue;
                 }
 
                 if (!empty($sectionData['id'])) {
@@ -193,39 +216,37 @@ class EstimateService
                     if ($section) {
                         $section->update([
                             'name' => $sectionData['name'],
-                            'order_index' => $sectionIndex,
+                            'order_index' => $persistedSectionIndex,
                             'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                         ]);
                     } else {
-                        // This should theoretically not happen if not branched, but as a fallback:
                         $section = $estimate->sections()->create([
                             'name' => $sectionData['name'],
-                            'order_index' => $sectionIndex,
+                            'order_index' => $persistedSectionIndex,
                             'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                         ]);
                     }
                 } else {
                     $section = $estimate->sections()->create([
                         'name' => $sectionData['name'],
-                        'order_index' => $sectionIndex,
+                        'order_index' => $persistedSectionIndex,
                         'section_type' => $sectionData['section_type'] ?? (($sectionData['is_package'] ?? false) ? 'package' : 'room'),
                     ]);
                 }
+                $persistedSectionIndex++;
 
                 // Sync Items for this section
-                if (isset($sectionData['items'])) {
-                    foreach ($sectionData['items'] as $itemIndex => $itemData) {
-                        $oi = $itemData['order_index'] ?? $itemIndex;
-                        if (!empty($itemData['id']) && !$isBranched) {
-                            $item = $estimate->items()->where('id', $itemData['id'])->first();
-                            if ($item) {
-                                $this->updateEstimateItem($item, $section->id, $itemData, $oi);
-                            } else {
-                                $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
-                            }
+                foreach ($sectionItems as $itemIndex => $itemData) {
+                    $oi = $itemData['order_index'] ?? $itemIndex;
+                    if (!empty($itemData['id']) && !$isBranched) {
+                        $item = $estimate->items()->where('id', $itemData['id'])->first();
+                        if ($item) {
+                            $this->updateEstimateItem($item, $section->id, $itemData, $oi);
                         } else {
                             $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                         }
+                    } else {
+                        $this->createEstimateItem($estimate, $section->id, $itemData, $oi);
                     }
                 }
             }

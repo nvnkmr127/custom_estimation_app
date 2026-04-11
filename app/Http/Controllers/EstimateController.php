@@ -325,6 +325,13 @@ class EstimateController extends Controller
                 }
             }
         }
+
+        if ($estimate->relationLoaded('sections')) {
+            $estimate->setRelation(
+                'sections',
+                $estimate->sections->filter(fn ($section) => $section->items && $section->items->count() > 0)->values()
+            );
+        }
         $checklists = ApprovalChecklist::getAllCached();
         $declineReasons = DeclineReason::getActiveCached();
 
@@ -396,6 +403,13 @@ class EstimateController extends Controller
                     $section->items->makeVisible(['cost', 'internal_note']);
                 }
             }
+        }
+
+        if ($estimate->relationLoaded('sections')) {
+            $estimate->setRelation(
+                'sections',
+                $estimate->sections->filter(fn ($section) => $section->items && $section->items->count() > 0)->values()
+            );
         }
 
         $settings = Setting::getAllCached();

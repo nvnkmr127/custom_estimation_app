@@ -268,8 +268,14 @@ class Index extends Component
         $avgDealValue = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->avg('grand_total') ?? 0;
 
         // Sales Velocity (Avg Days to Close)
+        $avgDaysExpr = match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => 'AVG(TIMESTAMPDIFF(SECOND, created_at, updated_at) / 86400) as avg_days',
+            'pgsql' => 'AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400) as avg_days',
+            default => 'AVG(julianday(updated_at) - julianday(created_at)) as avg_days',
+        };
+
         $avgDaysToClose = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
-            ->select(DB::raw('AVG(julianday(updated_at) - julianday(created_at)) as avg_days'))
+            ->selectRaw($avgDaysExpr)
             ->value('avg_days');
         $avgDaysToClose = $avgDaysToClose ? round($avgDaysToClose, 1) : 0;
 
