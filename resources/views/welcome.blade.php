@@ -28,7 +28,7 @@
             <div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-xl lg:flex-shrink-0 lg:pt-8">
                 <!-- Logo -->
                 <div class="mt-24 sm:mt-32 lg:mt-16">
-                    <a href="#" class="inline-flex items-center space-x-2">
+                    <a href="{{ auth()->check() ? route('dashboard') : url('/') }}" class="inline-flex items-center space-x-2">
                         @if(isset($app_settings['app_logo']) && $app_settings['app_logo'])
                             <img src="{{ asset($app_settings['app_logo']) }}" alt="{{ config('app.name') }}"
                                 class="h-10 w-auto rounded-lg shadow-lg shadow-indigo-500/30">
@@ -71,7 +71,7 @@
                                 Create account
                             </a>
                         @endif
-                        <a href="#"
+                        <a href="{{ route('guide.index') }}"
                             class="text-sm font-semibold leading-6 text-slate-900 hover:text-indigo-600 transition-colors">
                             Learn more <span aria-hidden="true">→</span>
                         </a>

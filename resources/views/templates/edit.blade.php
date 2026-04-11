@@ -744,6 +744,48 @@
                     return this.items.reduce((sum, item) => sum + (parseFloat(item.quantity || 0) * parseFloat(item.unit_price || 0)), 0);
                 },
 
+                // Safe math evaluator for formulas (prevents RCE/arbitrary execution)
+                safeEvaluate(expression) {
+                    try {
+                        const tokens = expression.match(/\d+\.\d+|\d+|[+\-*/()]/g);
+                        if (!tokens) return 0;
+                        let pos = 0;
+                        const consume = () => tokens[pos++];
+                        const peek = () => tokens[pos];
+                        const parsePrimary = () => {
+                            let t = consume();
+                            if (t === '(') {
+                                let res = parseExpr();
+                                consume(); // )
+                                return res;
+                            }
+                            return parseFloat(t);
+                        };
+                        const parseMul = () => {
+                            let left = parsePrimary();
+                            while (peek() === '*' || peek() === '/') {
+                                let op = consume();
+                                let right = parsePrimary();
+                                left = op === '*' ? left * right : left / right;
+                            }
+                            return left;
+                        };
+                        const parseExpr = () => {
+                            let left = parseMul();
+                            while (peek() === '+' || peek() === '-') {
+                                let op = consume();
+                                let right = parseMul();
+                                left = op === '+' ? left + right : left - right;
+                            }
+                            return left;
+                        };
+                        return parseExpr();
+                    } catch (e) {
+                        console.error('Math evaluation failed:', e);
+                        return 0;
+                    }
+                },
+
                 calculateQuantity(item) {
                     const l = parseFloat(item.length) || 0;
                     const w = parseFloat(item.width) || 0;
@@ -774,7 +816,7 @@
                                 .replace(/\bh\b/g, h);
 
                             if (/^[0-9+\-*/().\s]+$/.test(expression)) {
-                                const result = (new Function('return ' + expression))();
+                                const result = this.safeEvaluate(expression);
                                 item.quantity = isNaN(result) ? 0 : parseFloat(result).toFixed(2);
                             }
                         } catch (e) {

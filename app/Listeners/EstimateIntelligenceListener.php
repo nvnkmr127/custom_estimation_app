@@ -58,13 +58,13 @@ class EstimateIntelligenceListener implements ShouldQueue
 
         if ($recentViews >= $threshold) {
             $cacheKey = "hot_lead_alerted_{$estimate->id}";
-            if (!Cache::has($cacheKey)) {
+            // Atomic check-and-set to prevent race conditions during simultaneous views
+            if (Cache::add($cacheKey, true, now()->addHour())) {
                 $followers = $estimate->followers;
                 Notification::send($followers, new HotLeadAlert($estimate, [
                     'reason' => "High Velocity: Viewed {$recentViews} times in the last hour."
                 ]));
-
-                Cache::put($cacheKey, true, now()->addHour());
+                
                 Log::info("Intelligence: Hot lead alert sent for Estimate #{$estimate->estimate_number}");
             }
         }

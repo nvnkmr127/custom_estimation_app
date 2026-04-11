@@ -20,24 +20,35 @@ class AnalyticsService
         $agent = new Agent;
         $userAgent = Request::header('User-Agent');
         $agent->setUserAgent($userAgent);
-        $ip = Request::ip();
+        
+        // Security/Compliance: Filter out bots to prevent data inflation
+        if ($agent->isRobot()) {
+            return;
+        }
 
-        // Check uniqueness: Same IP & User Agent within last 24 hours?
+        $ip = Request::ip();
+        
+        // Privacy: Anonymize IP and UserAgent for GDPR compliance
+        // We truncate the last octet and store a truncated/hashed version to prevent full PII storage
+        $anonymizedIp = preg_replace('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', '$1.$2.$3.0', $ip);
+        // If we can't change schema, we store the hash in the user_agent column
+        $uaHash = hash('sha256', $userAgent);
+
+        // Check uniqueness: Same Anon-IP & UA Hash within last 24 hours
         $existing = EstimateAnalytic::where('estimate_id', $estimate->id)
-            ->where('ip_address', $ip)
-            ->where('user_agent', $userAgent)
+            ->where('ip_address', $anonymizedIp)
+            ->where('user_agent', $uaHash)
             ->where('created_at', '>=', now()->subHours(24))
             ->exists();
 
         $isUnique = !$existing;
-
         $location = $this->resolveLocation($ip);
 
         EstimateAnalytic::create([
             'estimate_id' => $estimate->id,
             'action' => $action,
-            'ip_address' => $ip,
-            'user_agent' => $userAgent,
+            'ip_address' => $anonymizedIp,
+            'user_agent' => $uaHash,
             'device' => $agent->device(),
             'browser' => $agent->browser(),
             'platform' => $agent->platform(),

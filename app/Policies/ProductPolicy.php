@@ -32,6 +32,14 @@ class ProductPolicy
     }
 
     /**
+     * Determine whether the user can suggest a product (non-admins).
+     */
+    public function suggest(User $user): bool
+    {
+        return true; // Any authenticated user can suggest
+    }
+
+    /**
      * Determine whether the user can update the model.
      */
     public function update(User $user, Product $product): bool

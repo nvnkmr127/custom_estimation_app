@@ -404,7 +404,7 @@ class EstimateService
                 $newTotal = $results['item_updates'][$item->id];
                 if (abs($item->total - $newTotal) > 0.001) {
                     $item->total = $newTotal;
-                    $item->saveQuietly();
+                    $item->save();
                 }
             }
         }
@@ -429,6 +429,12 @@ class EstimateService
         return DB::transaction(function () use ($estimate, $replicateItems, $isProposal) {
             // Lock the family to prevent concurrent version generation
             $rootId = $estimate->parent_id ?? $estimate->id;
+
+            // Security: Enforce internal authorization check even for service calls
+            // This prevents logical bypasses if a controller has an auth gap.
+            if (\Illuminate\Support\Facades\Auth::check()) {
+                \Illuminate\Support\Facades\Gate::authorize('update', $estimate);
+            }
 
             // Acquire lock on all versions in this family to ensure max('version') is stable
             // We select 'id' to minimize data but ensure rows are locked.
@@ -495,12 +501,16 @@ class EstimateService
                 $this->recalculateTotals($newEstimate);
             }
 
-            // 4. Replicate Manual Followers
+            // 4. Replicate Manual Followers (Deduplicated)
+            $existingFollowerIds = $newEstimate->manualFollowers()->pluck('user_id')->toArray();
             foreach ($estimate->manualFollowers as $follower) {
-                $newEstimate->manualFollowers()->create([
-                    'user_id' => $follower->user_id,
-                    'permissions' => $follower->permissions, // Permissions casted to array in model, handled by Eloquent
-                ]);
+                if (!in_array($follower->user_id, $existingFollowerIds)) {
+                    $newEstimate->manualFollowers()->create([
+                        'user_id' => $follower->user_id,
+                        'permissions' => $follower->permissions,
+                    ]);
+                    $existingFollowerIds[] = $follower->user_id;
+                }
             }
 
             return $newEstimate;

@@ -42,21 +42,25 @@ class ReportController extends Controller
             ->first();
         $weightedForecast = $weightedResult ? $weightedResult->weighted_total : 0;
 
-        // 2. Chart Data (Last 6 Months Trend)
+        // 2. Chart Data (Last 6 Months Trend) - Optimized Single Query
+        $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
+        
+        $monthlyRevenue = Estimate::where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
+            ->where('estimate_date', '>=', $sixMonthsAgo)
+            ->selectRaw("strftime('%m %Y', estimate_date) as month_label, SUM(grand_total) as revenue")
+            ->groupBy('month_label')
+            ->pluck('revenue', 'month_label');
+
         $chartLabels = [];
         $chartData = [];
 
         for ($i = 5; $i >= 0; $i--) {
             $date = now()->subMonths($i);
             $chartLabels[] = $date->format('M Y');
-
-            // Sum of accepted estimates in that month
-            $val = Estimate::where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
-                ->whereYear('estimate_date', $date->year)
-                ->whereMonth('estimate_date', $date->month)
-                ->sum('grand_total');
-
-            $chartData[] = $val;
+            
+            // Map labels appropriately (handling SQLite strftime format e.g. "04 2026")
+            $lookupKey = $date->format('m Y');
+            $chartData[] = $monthlyRevenue[$lookupKey] ?? 0;
         }
 
         // 3. Top Products (Simplified)

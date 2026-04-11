@@ -97,6 +97,21 @@ class AppServiceProvider extends ServiceProvider
                 $view->with(compact('unreadCount', 'pendingApprovals', 'pendingSuggestions', 'dlqCount'));
             });
 
+            // register dynamic gates based on permissions
+            \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+                if ($user->hasRole('super_admin')) {
+                    return true;
+                }
+            });
+
+            \Illuminate\Support\Facades\Gate::define('manage_settings', function ($user) {
+                return $user->hasPermission('manage_settings');
+            });
+            
+            \Illuminate\Support\Facades\Gate::define('view_reports', function ($user) {
+                return $user->hasPermission('view_reports');
+            });
+
             // Define the gate for the Log Viewer accessible by admins
             \Illuminate\Support\Facades\Gate::define('viewLogViewer', function ($user) {
                 return $user->isAdmin();

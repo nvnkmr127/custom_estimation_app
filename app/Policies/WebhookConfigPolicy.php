@@ -12,7 +12,7 @@ class WebhookConfigPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->hasRole('super_admin');
     }
 
     /**
@@ -20,7 +20,7 @@ class WebhookConfigPolicy
      */
     public function view(User $user, WebhookConfig $webhookConfig): bool
     {
-        return $user->isAdmin();
+        return $user->hasRole('super_admin');
     }
 
     /**
@@ -28,7 +28,7 @@ class WebhookConfigPolicy
      */
     public function create(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->hasRole('super_admin');
     }
 
     /**
@@ -36,7 +36,7 @@ class WebhookConfigPolicy
      */
     public function update(User $user, WebhookConfig $webhookConfig): bool
     {
-        return $user->isAdmin();
+        return $user->hasRole('super_admin');
     }
 
     /**
@@ -44,6 +44,6 @@ class WebhookConfigPolicy
      */
     public function delete(User $user, WebhookConfig $webhookConfig): bool
     {
-        return $user->isAdmin();
+        return $user->hasRole('super_admin');
     }
 }

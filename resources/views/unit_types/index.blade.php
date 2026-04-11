@@ -85,7 +85,8 @@
                                             </svg>
                                         </button>
                                         <form action="{{ route('unit-types.destroy', $type) }}" method="POST" class="inline"
-                                            onsubmit="return confirm('Are you sure you want to delete this unit type?')">
+                                            x-data
+                                            @submit.prevent="if(confirm('Are you sure you want to permanently delete this unit type? ({{ $type->name }}) This will affect any products using these units.')) $el.submit()">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"

@@ -6,6 +6,49 @@
         </div>
     </div>
 
+    @php($defaultRemindAt = now()->addHour()->format('Y-m-d\\TH:i'))
+    <form method="POST" action="{{ route('reminders.store') }}" class="mb-6 bg-white shadow-sm overflow-hidden sm:rounded-lg p-6 space-y-4">
+        @csrf
+        <input type="hidden" name="remindable_type" value="{{ \App\Models\User::class }}">
+        <input type="hidden" name="remindable_id" value="{{ Auth::id() }}">
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Title</label>
+                <input name="title" required value="{{ old('title') }}"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+            </div>
+
+            <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Description</label>
+                <textarea name="description" rows="2"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{{ old('description') }}</textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Remind At</label>
+                <input type="datetime-local" name="remind_at" required value="{{ old('remind_at', $defaultRemindAt) }}"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Delivery</label>
+                <select name="type" required
+                    class="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <option value="in_app" @selected(old('type') === 'in_app')>In-App</option>
+                    <option value="email" @selected(old('type') === 'email')>Email</option>
+                    <option value="both" @selected(old('type') === 'both')>Both</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                Add Reminder
+            </button>
+        </div>
+    </form>
+
     <div class="bg-white shadow-sm overflow-hidden sm:rounded-lg">
         <ul role="list" class="divide-y divide-gray-200">
             @forelse($reminders as $reminder)

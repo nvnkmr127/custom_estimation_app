@@ -65,14 +65,19 @@ class Product extends Model
 
     public function scopeSearch($query, $term)
     {
-        return $query->where(function ($q) use ($term) {
-            $q->where('name', 'like', "%{$term}%")
-                ->orWhere('description', 'like', "%{$term}%")
-                ->orWhere('sku', 'like', "%{$term}%");
+        // Security: Escape wildcards to prevent SQL Wildcard Injection (DoS)
+        $escapedTerm = str_replace(['%', '_'], ['\%', '\_'], $term);
+
+        return $query->where(function ($q) use ($escapedTerm) {
+            $q->where('name', 'like', "%{$escapedTerm}%")
+                ->orWhere('description', 'like', "%{$escapedTerm}%")
+                ->orWhere('sku', 'like', "%{$escapedTerm}%");
         });
     }
 
     // Lifecycle Methods
+
+
     public function retire($reason = null)
     {
         $this->update([
@@ -125,11 +130,15 @@ class Product extends Model
     // Accessors
     public function getPrimaryImageUrlAttribute()
     {
-        if ($this->images->isEmpty()) {
-            return null;
+        if ($this->relationLoaded('images')) {
+            if ($this->images->isEmpty()) return null;
+            $imagePath = $this->images->first()->image_path;
+        } else {
+            // Avoid N+1: Use a direct query if relation is not loaded
+            $firstImage = $this->images()->orderBy('display_order')->first();
+            if (!$firstImage) return null;
+            $imagePath = $firstImage->image_path;
         }
-
-        $imagePath = $this->images->first()->image_path;
 
         if (\Illuminate\Support\Str::startsWith($imagePath, ['http://', 'https://'])) {
             return $imagePath;

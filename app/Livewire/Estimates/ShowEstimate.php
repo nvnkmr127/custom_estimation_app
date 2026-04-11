@@ -476,8 +476,10 @@ class ShowEstimate extends Component
     {
         try {
             $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
-            // Correct table name is estimate_comments
-            DB::table('estimate_comments')->where('id', $commentId)->update(['status' => $newStatus]);
+            
+            $comment = \App\Models\EstimateComment::findOrFail($commentId);
+            $comment->update(['status' => $newStatus]);
+
             $this->refreshEstimate();
         } catch (\Exception $e) {
             \Log::error("Failed to toggle comment status", ['error' => $e->getMessage()]);

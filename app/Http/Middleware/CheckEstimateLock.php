@@ -44,9 +44,18 @@ class CheckEstimateLock
         ]);
 
         $isAccepted = ($estimate->client_status === Estimate::CLT_STATUS_ACCEPTED);
+        $isDeclined = ($estimate->client_status === Estimate::CLT_STATUS_DECLINED);
+        $isExpired = ($estimate->client_status === Estimate::CLT_STATUS_EXPIRED);
 
-        if ($isPending || $isSent || $isAccepted) {
-            $msg = "Estimate #{$estimate->estimate_number} is currently locked (Status: {$estimate->approval_status}/{$estimate->client_status}). You cannot modify it directly.";
+        // If the request is an update (PUT/PATCH), we allow it to proceed to the controller
+        // because the Service layer handles "Branching-on-edit" automatically for locked estimates.
+        // This ensures the user doesn't get a hard "Locked" error when trying to save a revision.
+        if ($request->isMethod('PUT') || $request->isMethod('PATCH')) {
+            return $next($request);
+        }
+
+        if ($isPending || $isSent || $isAccepted || $isDeclined || $isExpired) {
+            $msg = "Estimate #{$estimate->estimate_number} is currently locked (Status: {$estimate->approval_status}/{$estimate->client_status}). You cannot perform direct actions like status toggles in its current state.";
 
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([

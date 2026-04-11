@@ -253,6 +253,8 @@ class AutomationController extends Controller
 
     public function getLogs(Automation $automation)
     {
+        $this->authorize('view', $automation);
+
         // Execution logs grouped by event_id (Execution Trace)
         $logs = \App\Models\AutomationExecutionLog::where('automation_id', $automation->id)
             ->with('step.action')
@@ -265,6 +267,8 @@ class AutomationController extends Controller
 
     public function getMetrics(Automation $automation)
     {
+        $this->authorize('view', $automation);
+
         $logs = \App\Models\AutomationExecutionLog::where('automation_id', $automation->id)->get();
         $totalTriggers = $logs->unique('event_id')->count();
         $totalSteps = $logs->count();

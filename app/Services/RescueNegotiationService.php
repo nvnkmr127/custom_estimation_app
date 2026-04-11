@@ -30,13 +30,37 @@ class RescueNegotiationService
         }
 
         return DB::transaction(function () use ($estimate, $discountPercentage) {
-            // 3. Create New Version
+            // 3. Cooldown Check: Prevent Rescue Spam
+            $rootId = $estimate->parent_id ?? $estimate->id;
+            $familyIds = Estimate::where('id', $rootId)
+                ->orWhere('parent_id', $rootId)
+                ->pluck('id');
+                
+            $lastRescue = ActivityLog::whereIn('subject_id', $familyIds)
+                ->where('action', 'system_rescue_offer')
+                ->where('created_at', '>', now()->subDays(7))
+                ->first();
+            
+            if ($lastRescue) {
+                return null; // Silent skip during cooldown
+            }
+
+            // 4. Create New Version
             $newVersion = $this->estimateService->createVersion($estimate);
 
-            // 4. Apply Discount
-            // We apply it as a global percentage discount
-            $newVersion->discount_type = 'percentage';
-            $newVersion->discount_value = $discountPercentage;
+            // 5. Apply Discount - Multi-layer Logic
+            // If estimate already has a percentage discount, we make it additive
+            if ($newVersion->discount_type === 'percentage') {
+                $newVersion->discount_value = min(100, $newVersion->discount_value + $discountPercentage);
+            } else {
+                // Convert existing fixed discount to percentage and layer the rescue percentage
+                $existingFixed = (float) ($newVersion->discount_value ?? 0);
+                $subtotal = (float) ($estimate->subtotal ?? 0);
+                $existingPercentage = $subtotal > 0 ? ($existingFixed / $subtotal) * 100 : 0;
+                
+                $newVersion->discount_type = 'percentage';
+                $newVersion->discount_value = min(100, $existingPercentage + $discountPercentage);
+            }
 
             // Add a special admin note
             $newVersion->admin_note .= "\n[System Auto-Rescue] Created with {$discountPercentage}% discount.";
@@ -45,12 +69,12 @@ class RescueNegotiationService
             // 5. Recalculate Totals
             $this->estimateService->recalculateTotals($newVersion);
 
-            // 6. Send to Client (Silent send, status update)
-            // We use the boolean return of sendToClient but we might want custom email text.
-            // EstimateService::sendToClient sends specific notification 'EstimateSentToClient'.
-            // For Rescue, we usually want to send a specific "Offer" email.
+            // 6. Finalize and Send to Client
+            // Ensure status is at least approved to allow sending
+            $newVersion->estimate_status = Estimate::EST_STATUS_APPROVED;
+            $newVersion->save();
 
-            $newVersion->update(['status' => 'sent']);
+            $this->estimateService->sendToClient($newVersion);
 
             ActivityLog::create([
                 'action' => 'system_rescue_offer',

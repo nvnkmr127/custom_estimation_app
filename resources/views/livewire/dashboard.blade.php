@@ -286,7 +286,7 @@
                         @endforeach
                     </ul>
                      <div class="relative z-10 px-6 py-4 bg-rose-500/10 border-t border-white/10">
-                        <a href="#" class="text-xs font-bold text-rose-300 hover:text-white transition-colors flex items-center gap-1">
+                        <a href="{{ route('estimates.index') }}" class="text-xs font-bold text-rose-300 hover:text-white transition-colors flex items-center gap-1">
                             View All Opportunities &rarr;
                         </a>
                      </div>

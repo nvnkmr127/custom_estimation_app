@@ -310,6 +310,11 @@
                 } catch (e) {
                     this.timezones = ['UTC', 'America/New_York', 'Europe/London', 'Asia/Kolkata'];
                 }
+
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('open_templates') === '1') {
+                    this.openTemplateModal();
+                }
             },
             fetchSchedules(automationId) {
                 fetch(`/automation/${automationId}/schedules`)
@@ -467,7 +472,7 @@
             },
             toggleSelectAll(checked) {
                 if (checked) {
-                    this.selectedRules = @json($rules->pluck('id')->toArray());
+                    this.selectedRules = JSON.parse("@json($rules->pluck('id')->toArray())");
                 } else {
                     this.selectedRules = [];
                 }

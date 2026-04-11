@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
@@ -87,7 +88,7 @@ class ProductController extends Controller
                 ->with('success', 'Product added successfully');
         } catch (\Exception $e) {
             Log::error('Failed to store product', [
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -142,7 +143,7 @@ class ProductController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to update product', [
                 'product_id' => $product->id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -169,6 +170,9 @@ class ProductController extends Controller
      */
     public function suggest(Request $request)
     {
+        // Security: Explicitly authorize suggestion capability
+        $this->authorize('suggest', Product::class);
+
         $validated = $request->validate([
             'category_id' => 'required|exists:product_categories,id',
             'name' => 'required|string|max:255',
@@ -179,7 +183,7 @@ class ProductController extends Controller
 
         Product::create(array_merge($validated, [
             'status' => 'pending',
-            'suggested_by' => auth()->id(),
+            'suggested_by' => Auth::id(),
         ]));
 
         return redirect()->route('products.index')
@@ -227,6 +231,10 @@ class ProductController extends Controller
 
         $product->retire($validated['retirement_reason'] ?? null);
 
+        if (!$request->expectsJson()) {
+            return back()->with('success', 'Product retired successfully');
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Product retired successfully',
@@ -236,11 +244,15 @@ class ProductController extends Controller
     /**
      * Activate retired product.
      */
-    public function activate(Product $product)
+    public function activate(Request $request, Product $product)
     {
         $this->authorize('update', $product);
 
         $product->activate();
+
+        if (!$request->expectsJson()) {
+            return back()->with('success', 'Product reactivated successfully');
+        }
 
         return response()->json([
             'success' => true,
@@ -264,9 +276,16 @@ class ProductController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
 
-            // Example Row
-            fputcsv($file, ['Example Tile', 'TILE-001', 'Flooring', '12.50', 'sqft', 'premium, ceramic', 'High quality ceramic tile', 'https://example.com/image.jpg']);
+            // Example Row - Security: Sanitize output to prevent CSV Formula Injection
+            $row = ['Example Tile', 'TILE-001', 'Flooring', '12.50', 'sqft', 'premium, ceramic', 'High quality ceramic tile', 'https://example.com/image.jpg'];
+            $sanitizedRow = array_map(function($val) {
+                if (is_string($val)) {
+                    return (str_starts_with($val, '=') || str_starts_with($val, '+') || str_starts_with($val, '-')) ? "'".$val : $val;
+                }
+                return $val;
+            }, $row);
 
+            fputcsv($file, $sanitizedRow);
             fclose($file);
         };
 
@@ -289,7 +308,7 @@ class ProductController extends Controller
 
             if (count($result['errors']) > 0) {
                 Log::warning('Product import completed with errors', [
-                    'user_id' => auth()->id(),
+                    'user_id' => Auth::id(),
                     'imported_count' => $result['imported_count'],
                     'error_count' => count($result['errors']),
                 ]);

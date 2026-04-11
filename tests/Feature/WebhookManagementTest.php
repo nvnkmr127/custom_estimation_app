@@ -109,4 +109,19 @@ class WebhookManagementTest extends TestCase
         $response->assertOk();
         $this->assertSoftDeleted('webhooks', ['id' => $webhook->id]);
     }
+
+    /** @test */
+    public function admin_can_view_webhook_endpoint()
+    {
+        $webhook = WebhookConfig::create([
+            'name' => 'View Me',
+            'url' => 'https://example.com',
+            'events' => ['*'],
+            'status' => 'active'
+        ]);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.webhooks.show', $webhook));
+        $response->assertOk();
+        $response->assertSee('View Me');
+    }
 }

@@ -55,6 +55,12 @@ class EstimateController extends Controller
                     })
                     ->orWhereHas('approvals', function ($a) {
                         $a->where('user_id', auth()->id());
+                    })
+                    ->orWhereIn('parent_id', function ($pq) {
+                        $pq->select('followable_id')
+                            ->from('followers')
+                            ->where('followable_type', Estimate::class)
+                            ->where('user_id', auth()->id());
                     });
             });
         }
@@ -654,9 +660,13 @@ class EstimateController extends Controller
      */
     public function preview(Request $request)
     {
-        $data = $request->all();
+        $data = $request->only([
+            'title', 'client_id', 'estimate_date', 'expiry_date', 'discount_type', 'discount_value', 
+            'tax_1', 'tax_2', 'notes', 'terms', 'sections', 'items', 'transportation_charges', 'status'
+        ]);
 
-        $estimate = new Estimate($data);
+        $estimate = new Estimate();
+        $estimate->fill($data);
         $estimate->estimate_number = 'EST-PREVIEW';
         $estimate->estimate_date = $data['estimate_date'] ?? now()->toDateString();
         $estimate->expiry_date = $data['expiry_date'] ?? now()->addDays(7)->toDateString();
@@ -726,7 +736,10 @@ class EstimateController extends Controller
      */
     public function calculate(Request $request)
     {
-        $data = $request->all();
+        $data = $request->only([
+            'discount_type', 'discount_value', 'tax_1', 'tax_2', 
+            'transportation_charges', 'coupon_discount', 'coupon_code_id'
+        ]);
 
         // Create a temporary estimate instance
         $estimate = new Estimate($data);

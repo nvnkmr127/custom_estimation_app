@@ -3,6 +3,7 @@
         search: '', 
         results: [], 
         loading: false,
+        error: '',
         selectedIndex: -1
     }" @open-search.window="isOpen = true; $nextTick(() => $refs.searchInput.focus())"
     @keydown.window.ctrl.k.prevent="$dispatch('open-search')" @keydown.window.meta.k.prevent="$dispatch('open-search')"
@@ -31,20 +32,32 @@
                     placeholder="Search estimates, clients, products..." x-model="search" @input.debounce.300ms="
                         if (search.length > 1) {
                             loading = true;
-                            fetch('/search?q=' + search)
-                                .then(res => res.json())
+                            error = '';
+                            fetch('/search?q=' + encodeURIComponent(search), { headers: { 'Accept': 'application/json' } })
+                                .then(res => {
+                                    if (!res.ok) throw new Error('Search failed');
+                                    return res.json();
+                                })
                                 .then(data => {
                                     results = data;
                                     loading = false;
                                     selectedIndex = results.length > 0 ? 0 : -1;
+                                })
+                                .catch(() => {
+                                    results = [];
+                                    loading = false;
+                                    selectedIndex = -1;
+                                    error = 'Search is temporarily unavailable. Please try again.';
                                 });
                         } else {
                             results = [];
+                            error = '';
+                            loading = false;
                             selectedIndex = -1;
                         }
-                    " @keydown.arrow-down.prevent="selectedIndex = (selectedIndex + 1) % results.length"
-                    @keydown.arrow-up.prevent="selectedIndex = (selectedIndex - 1 + results.length) % results.length"
-                    @keydown.enter.prevent="if (selectedIndex >= 0) window.location.href = results[selectedIndex].url"
+                    " @keydown.arrow-down.prevent="if (results.length) selectedIndex = (selectedIndex + 1) % results.length"
+                    @keydown.arrow-up.prevent="if (results.length) selectedIndex = (selectedIndex - 1 + results.length) % results.length"
+                    @keydown.enter.prevent="if (selectedIndex >= 0 && results.length) window.location.href = results[selectedIndex].url"
                     @keydown.escape="isOpen = false">
             </div>
 
@@ -89,6 +102,10 @@
                 </template>
             </ul>
 
+            <div x-show="error" class="px-6 py-4 text-sm text-rose-700">
+                <span x-text="error"></span>
+            </div>
+
             <!-- Empty state -->
             <div x-show="search.length > 1 && !loading && results.length === 0" class="px-6 py-14 text-center sm:px-14">
                 <svg class="mx-auto h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -103,8 +120,12 @@
 
             <!-- Help text -->
             <div class="flex flex-wrap items-center bg-gray-50 px-4 py-2.5 text-xs text-gray-700">
-                Type <kbd
-                    class="mx-1 flex h-5 w-5 items-center justify-center rounded border bg-white font-semibold text-gray-900 sm:mx-2">/</kbd>
+                Press <kbd
+                    class="mx-1 flex h-5 items-center justify-center rounded border bg-white px-1.5 font-semibold text-gray-900 sm:mx-2">⌘</kbd><kbd
+                    class="mx-1 flex h-5 items-center justify-center rounded border bg-white px-1.5 font-semibold text-gray-900 sm:mx-2">K</kbd>
+                or <kbd
+                    class="mx-1 flex h-5 items-center justify-center rounded border bg-white px-1.5 font-semibold text-gray-900 sm:mx-2">Ctrl</kbd><kbd
+                    class="mx-1 flex h-5 items-center justify-center rounded border bg-white px-1.5 font-semibold text-gray-900 sm:mx-2">K</kbd>
                 to search and <kbd
                     class="mx-1 flex h-5 w-5 items-center justify-center rounded border bg-white font-semibold text-gray-900 sm:mx-2">esc</kbd>
                 to close.

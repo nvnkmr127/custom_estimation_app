@@ -148,19 +148,25 @@ class BackupService
         $username = config('database.connections.mysql.username');
         $password = config('database.connections.mysql.password');
         $tempFile = sys_get_temp_dir() . '/db_dump_' . time() . '.sql';
+        $cnfFile = sys_get_temp_dir() . '/my_cnf_' . time() . '.cnf';
 
-        $passwordArg = !empty($password) ? "-p" . escapeshellarg($password) : '';
+        // Use a temporary option file to hide password from 'ps aux'
+        $cnfContent = "[client]\npassword=\"" . addcslashes($password, '"\\') . "\"\n";
+        file_put_contents($cnfFile, $cnfContent);
+        chmod($cnfFile, 0600);
+
         $cmd = sprintf(
-            'mysqldump --single-transaction --quick --lock-tables=false -h %s -P %d -u %s %s %s > %s 2>&1',
+            'mysqldump --defaults-extra-file=%s --single-transaction --quick --lock-tables=false -h %s -P %d -u %s %s > %s 2>&1',
+            escapeshellarg($cnfFile),
             escapeshellarg($host),
             (int) $port,
             escapeshellarg($username),
-            $passwordArg,
             escapeshellarg($database),
             escapeshellarg($tempFile)
         );
 
         exec($cmd, $output, $exitCode);
+        @unlink($cnfFile);
 
         if ($exitCode === 0 && file_exists($tempFile)) {
             $zip->addFile($tempFile, 'database/database.sql');
@@ -318,12 +324,21 @@ class BackupService
             $backupDb = $extractPath . '/database/database.sqlite';
             if (file_exists($backupDb)) {
                 $currentDb = config('database.connections.sqlite.database');
-                $oldDb = $currentDb . '.old';
-                if (file_exists($currentDb))
-                    rename($currentDb, $oldDb);
-                copy($backupDb, $currentDb);
-                if (file_exists($oldDb))
-                    @unlink($oldDb);
+                $tempSwap = $currentDb . '.temp_restore';
+                
+                // Atomic Swap Strategy: Copy to temp, then rename
+                // This prevents leaving the app with NO database if the copy is interrupted
+                if (!copy($backupDb, $tempSwap)) {
+                    throw new \RuntimeException("Critical: Database restore copy failed.");
+                }
+                
+                // Perform the swap
+                if (file_exists($currentDb)) {
+                    rename($currentDb, $currentDb . '.bak_' . time());
+                }
+                rename($tempSwap, $currentDb);
+                
+                Log::info("[BackupService] SQLite database swapped atomically.");
             }
         }
     }

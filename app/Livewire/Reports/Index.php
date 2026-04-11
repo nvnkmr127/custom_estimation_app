@@ -140,7 +140,7 @@ class Index extends Component
         } else {
             $trendData = (clone $query)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
                 ->whereBetween('estimate_date', [$startDate, $endDate])
-                ->selectRaw('DATE_FORMAT(estimate_date, "%Y-%m") as date, SUM(grand_total) as total')
+                ->selectRaw("strftime('%Y-%m', estimate_date) as date, SUM(grand_total) as total")
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get();
@@ -268,10 +268,8 @@ class Index extends Component
         $avgDealValue = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->avg('grand_total') ?? 0;
 
         // Sales Velocity (Avg Days to Close)
-        // detailed diff calculation references updated_at for manual accepts if signed_at is null
-        // DB::raw is cleaner but sqlite/mysql differ. valid for mysql: DATEDIFF.
         $avgDaysToClose = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
-            ->select(DB::raw('AVG(DATEDIFF(updated_at, created_at)) as avg_days'))
+            ->select(DB::raw('AVG(julianday(updated_at) - julianday(created_at)) as avg_days'))
             ->value('avg_days');
         $avgDaysToClose = $avgDaysToClose ? round($avgDaysToClose, 1) : 0;
 
@@ -405,7 +403,7 @@ class Index extends Component
         // This shows: "Are our old clients still buying?" vs "Are new clients buying?"
 
         $cohorts = DB::table('estimates')
-            ->selectRaw('DATE_FORMAT(MIN(estimate_date), "%Y-%m") as acquisition_month, client_id')
+            ->selectRaw("strftime('%Y-%m', MIN(estimate_date)) as acquisition_month, client_id")
             ->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
             ->groupBy('client_id');
 

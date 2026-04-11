@@ -16,12 +16,12 @@ class WebhookListTest extends TestCase
     /** @test */
     public function it_renders_the_component()
     {
-        $admin = User::factory()->create(); // Assuming we don't need roles for unit test of component logic, or we bypass middleware for component test if not asserting full route access
-        // For component test, we can just test the component.
+        $admin = User::factory()->create(['role' => 'super_admin']);
 
         WebhookConfig::factory()->create(['name' => 'Searchable Webhook']);
 
-        Livewire::test(Index::class)
+        Livewire::actingAs($admin)
+            ->test(Index::class)
             ->assertOk()
             ->assertSee('Searchable Webhook');
     }
@@ -29,10 +29,13 @@ class WebhookListTest extends TestCase
     /** @test */
     public function it_filters_by_search_string()
     {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
         WebhookConfig::factory()->create(['name' => 'Alpha']);
         WebhookConfig::factory()->create(['name' => 'Beta']);
 
-        Livewire::test(Index::class)
+        Livewire::actingAs($admin)
+            ->test(Index::class)
             ->set('search', 'Alpha')
             ->assertSee('Alpha')
             ->assertDontSee('Beta');
@@ -41,14 +44,17 @@ class WebhookListTest extends TestCase
     /** @test */
     public function it_toggles_status()
     {
+        $admin = User::factory()->create(['role' => 'super_admin']);
         $webhook = WebhookConfig::factory()->create(['status' => 'active']);
 
-        Livewire::test(Index::class)
+        Livewire::actingAs($admin)
+            ->test(Index::class)
             ->call('toggleStatus', $webhook->id);
 
         $this->assertEquals('inactive', $webhook->fresh()->status);
 
-        Livewire::test(Index::class)
+        Livewire::actingAs($admin)
+            ->test(Index::class)
             ->call('toggleStatus', $webhook->id);
 
         $this->assertEquals('active', $webhook->fresh()->status);

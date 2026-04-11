@@ -299,8 +299,12 @@
                 <div class="bg-white shadow-lg ring-1 ring-slate-200 sm:rounded-2xl px-4 py-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-sm font-semibold text-slate-900">Approval Workflow</h3>
-                        <a href="#" title="{{ $estimate->approvalChain->name }}"
-                            class="text-xs text-indigo-600 hover:text-indigo-500">View Chain</a>
+                        @if(Auth::user()->hasRole('super_admin'))
+                            <a href="{{ route('approval-chains.show', $estimate->approvalChain) }}" title="{{ $estimate->approvalChain->name }}"
+                                class="text-xs text-indigo-600 hover:text-indigo-500">View Chain</a>
+                        @else
+                            <span class="text-xs text-slate-500" title="{{ $estimate->approvalChain->name }}">{{ $estimate->approvalChain->name }}</span>
+                        @endif
                     </div>
 
                     <div class="relative pl-3 border-l-2 border-slate-100 space-y-6 my-2">

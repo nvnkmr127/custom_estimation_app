@@ -45,9 +45,10 @@ class ProductCategoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(ProductCategory $category)
     {
-        //
+        $category->load(['products', 'children']);
+        return view('product_categories.show', compact('category'));
     }
 
     /**

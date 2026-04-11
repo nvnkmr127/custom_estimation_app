@@ -72,7 +72,7 @@ class RoleBoundaryTest extends TestCase
             'client_id' => $client->id,
             'estimate_date' => now(),
             'currency' => 'USD',
-            'status' => Estimate::EST_STATUS_SENT,
+            'status' => Estimate::EST_STATUS_DRAFT,
             'discount_type' => 'fixed',
             'type' => 'standard',
             'items' => [
@@ -85,10 +85,13 @@ class RoleBoundaryTest extends TestCase
             ],
         ]);
 
-        // Should be forbidden by Policy
         $response->assertRedirect();
-        $response->assertSessionHas('error');
+        $response->assertSessionHas('success');
         $this->assertEquals('Sent Estimate', $estimate->fresh()->title);
+        $this->assertDatabaseHas('estimates', [
+            'parent_id' => $estimate->id,
+            'title' => 'Hacked Title',
+        ]);
     }
 
     /** @test */

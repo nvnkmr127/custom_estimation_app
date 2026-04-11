@@ -153,17 +153,11 @@ class EstimateStateService
             return $lockedEstimate;
         });
 
-        // Sync back to the original object to avoid stale state in long-running processes or service sequences
-        $estimate->{$field} = $result->{$field};
-        $estimate->estimate_status = $result->estimate_status; // Sync side effect
-        if ($field === 'client_status') {
-            $estimate->sent_at = $result->sent_at;
-            $estimate->expires_at = $result->expires_at;
-            $estimate->accepted_at = $result->accepted_at;
-            $estimate->declined_at = $result->declined_at;
-        }
+        // Refresh the original object from the database to ensure all side effects 
+        // (timestamps, automatic state changes) are perfectly synchronized.
+        $estimate->refresh();
 
-        return $result;
+        return $estimate;
     }
 
     /**
@@ -209,10 +203,16 @@ class EstimateStateService
             $lockedEstimate->expires_at = $newDate;
             $lockedEstimate->expiry_date = $newDate->toDateString(); // Sync legacy
 
-            // Recovery Logic: If previously expired, move back to ACTIVE
+            // Recovery Logic: If previously expired, move back to SENT (if it was sent) or APPROVED
             $movedBack = false;
             if ($lockedEstimate->estimate_status === Estimate::EST_STATUS_EXPIRED) {
-                $lockedEstimate->estimate_status = Estimate::EST_STATUS_APPROVED; // Or SENT depending on flow, but APPROVED is safer as it might need re-sending
+                if ($lockedEstimate->sent_at) {
+                    $lockedEstimate->estimate_status = Estimate::EST_STATUS_SENT;
+                    $lockedEstimate->client_status = Estimate::CLT_STATUS_SENT;
+                } else {
+                    $lockedEstimate->estimate_status = Estimate::EST_STATUS_APPROVED;
+                    $lockedEstimate->client_status = Estimate::CLT_STATUS_NOT_SENT;
+                }
                 $movedBack = true;
             }
 

@@ -54,6 +54,7 @@ class Index extends Component
     public function toggleStatus($id)
     {
         $webhook = WebhookConfig::findOrFail($id);
+        $this->authorize('update', $webhook);
         $webhook->update([
             'status' => $webhook->status === 'active' ? 'inactive' : 'active'
         ]);

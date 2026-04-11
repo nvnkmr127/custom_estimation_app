@@ -23,4 +23,14 @@ class Brand extends Model
     protected $casts = [
         'is_default' => 'boolean',
     ];
+
+    protected static function booted()
+    {
+        static::saving(function ($brand) {
+            if ($brand->is_default) {
+                // Ensure only one default brand exists
+                static::where('id', '!=', $brand->id)->update(['is_default' => false]);
+            }
+        });
+    }
 }

@@ -107,31 +107,36 @@ class ProductService
                     continue;
                 }
 
-                DB::transaction(function () use ($name, $sku, $categoryName, $price, $unitType, $tags, $description, $imageUrl, &$imported) {
-                    // Find or Create Category
-                    $category = ProductCategory::firstOrCreate(['name' => $categoryName]);
+                // Data Integrity: Normalize category and basic fields
+                $categoryName = ucwords(strtolower(trim($categoryName)));
+                
+                // Security: Basic Remote Image Verification
+                if ($imageUrl && !filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+                    $imageUrl = null;
+                }
 
-                    // Create Product
-                    $product = Product::create([
-                        'name' => $name,
-                        'sku' => $sku ?: null,
-                        'category_id' => $category->id,
-                        'unit_price' => $price,
-                        'unit_type_id' => null, // Default to manual
-                        'unit_type' => $unitType ?: 'nos',
-                        'tags' => $this->parseTags($tags),
-                        'description' => $description,
-                        'status' => 'active',
+                $category = ProductCategory::firstOrCreate(['name' => $categoryName]);
+
+                // Create Product
+                $product = Product::create([
+                    'name' => $name,
+                    'sku' => $sku ?: null,
+                    'category_id' => $category->id,
+                    'unit_price' => $price,
+                    'unit_type_id' => null, // Default to manual
+                    'unit_type' => $unitType ?: 'nos',
+                    'tags' => $this->parseTags($tags),
+                    'description' => $description,
+                    'status' => 'active',
+                ]);
+
+                if ($imageUrl) {
+                    $product->images()->create([
+                        'image_path' => $imageUrl,
                     ]);
+                }
 
-                    if ($imageUrl) {
-                        $product->images()->create([
-                            'image_path' => $imageUrl,
-                        ]);
-                    }
-
-                    $imported++;
-                });
+                $imported++;
 
             } catch (\Exception $e) {
                 $errors[] = "Row {$rowNumber}: " . $e->getMessage();

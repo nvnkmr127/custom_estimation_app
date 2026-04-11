@@ -301,6 +301,16 @@ class Estimate extends Model
         return !empty($this->final_terms);
     }
 
+    protected static function booted()
+    {
+        static::deleting(function ($estimate) {
+            // Prune associated activity logs to prevent orphanage
+            ActivityLog::where('subject_type', Estimate::class)
+                ->where('subject_id', $estimate->id)
+                ->delete();
+        });
+    }
+
     /**
      * Get terms formatted for HTML rendering
      */
@@ -448,8 +458,10 @@ class Estimate extends Model
         return EstimateComment::whereIn('estimate_id', function ($query) use ($rootId) {
             $query->select('id')
                 ->from('estimates')
-                ->where('id', $rootId)
-                ->orWhere('parent_id', $rootId)
+                ->where(function ($q) use ($rootId) {
+                    $q->where('id', $rootId)
+                      ->orWhere('parent_id', $rootId);
+                })
                 ->whereNull('deleted_at');
         })->with(['user', 'commentable']);
     }

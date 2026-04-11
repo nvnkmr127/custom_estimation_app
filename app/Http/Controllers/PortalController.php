@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Notification;
 
 class PortalController extends Controller
 {
-    protected $perfexApi;
+    // protected $perfexApi; // Removed unused property
 
     protected $analytics;
     protected $dispatcher;
@@ -39,13 +39,8 @@ class PortalController extends Controller
 
         // 2. Version Verification
         if (!$estimate->is_current_version) {
-            // Find the current version if possible to redirect, or just block
-            $current = $estimate->parent_id ? Estimate::where('id', $estimate->parent_id)->first() : Estimate::where('parent_id', $estimate->id)->where('is_current_version', true)->first();
-            if ($current && $current->id !== $estimate->id) {
-                // We don't automatically redirect to avoid exposing new version URLs without a new email,
-                // but we block the old one.
-                abort(403, 'This version of the estimate is no longer active. Please check your email for the latest version.');
-            }
+            // Security: Use a generic error message to avoid confirming existence of historical versions
+            abort(403, 'This estimate link is no longer active. Please check your email for the latest updated version.');
         }
 
         // 3. Status Verification (Internal Lifecycle)
@@ -130,6 +125,15 @@ class PortalController extends Controller
 
             $finalItemName = $itemName ?? (($type === 'App\Models\EstimateItem' && $c->commentable) ? ($c->commentable->name ?? optional(\App\Models\EstimateItem::find($id))->name) : null);
 
+            // Security: Strictly whitelist displayed user fields to prevent Staff PII leakage (email, mobileID)
+            $user = null;
+            if ($c->user) {
+                $user = [
+                    'name' => $c->user->name,
+                    'role_badge_class' => $c->user->role_badge_class ?? 'staff',
+                ];
+            }
+
             return [
                 'id' => $c->id,
                 'comment' => $c->comment,
@@ -137,7 +141,7 @@ class PortalController extends Controller
                 'created_at' => $c->created_at,
                 'commentable_type' => $type,
                 'commentable_id' => $id,
-                'user' => $c->user,
+                'user' => $user,
                 'item_name' => $finalItemName
             ];
         };
@@ -179,11 +183,11 @@ class PortalController extends Controller
         try {
             $ip = $request->ip();
             if ($ip !== '127.0.0.1' && $ip !== '::1') {
-                $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=city,country,regionName", false, stream_context_create(['http' => ['timeout' => 2]]));
-                if ($json) {
-                    $data = json_decode($json, true);
-                    if ($data && ($data['status'] ?? '') === 'success') {
-                        $location = ($data['city'] ?? '') . ', ' . ($data['regionName'] ?? '') . ', ' . ($data['country'] ?? '');
+                $response = \Illuminate\Support\Facades\Http::timeout(3)->get("https://ipapi.co/{$ip}/json/");
+                if ($response->successful()) {
+                    $data = $response->json();
+                    if ($data && !isset($data['error'])) {
+                        $location = ($data['city'] ?? '') . ', ' . ($data['region'] ?? '') . ', ' . ($data['country_name'] ?? '');
                         $location = trim($location, ', ');
                     }
                 }
@@ -214,7 +218,7 @@ class PortalController extends Controller
                 // Dispatch Event
                 $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateAccepted($estimate, 0, 'client'));
 
-                return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. It has also been synced to our CRM.');
+                return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. Our team has been notified.');
             });
 
         } catch (\InvalidArgumentException $e) {

@@ -67,6 +67,19 @@
                     </svg>
                 </a>
                 @endcan
+                @can('delete', $client)
+                <form method="POST" action="{{ route('clients.destroy', $client) }}" onsubmit="event.stopPropagation(); return confirm('Delete this client?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                        class="p-2 text-slate-400 hover:text-rose-600 hover:bg-white hover:shadow-lg rounded-xl transition-all"
+                        title="Delete Client">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12m-1 0l-.8 12.1a2 2 0 01-2 1.9H9.8a2 2 0 01-2-1.9L7 7m3 0V5a2 2 0 012-2h2a2 2 0 012 2v2" />
+                        </svg>
+                    </button>
+                </form>
+                @endcan
                 <div class="h-6 w-px bg-slate-200 mx-0.5"></div>
                 <a href="{{ route('clients.show', $client) }}" onclick="event.stopPropagation()"
                     class="p-2 text-white bg-slate-900 hover:bg-indigo-600 shadow-lg rounded-xl transition-all" title="Full Report">

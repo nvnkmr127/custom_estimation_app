@@ -86,7 +86,11 @@ class PdfRenderingService
             ";
         }
 
-        $finalCss = $cssVars . ($template->css_content ?? '');
+        // Security: Sanitize CSS content to prevent simple exfiltration or broken layouts
+        $safeCss = $template->css_content ?? '';
+        $safeCss = preg_replace('/url\s*\([^)]*\b(http|https|data|ftp)\b[^)]*\)/i', 'none', $safeCss); // Strip remote URLs in CSS content
+
+        $finalCss = $cssVars . $safeCss;
 
         // Pre-process CSS variables for DOMPDF (which has buggy var() support)
         $finalCss = str_replace([
@@ -101,14 +105,11 @@ class PdfRenderingService
 
         // --- Layout Refinements: Borders & Equal Spacing ---
         if (!$isWeb) {
-            // Ensure <body> exists for reliable injection
+            // Robust Body Wrapping: Ensure content is wrapped if body is missing
             if (stripos($html, '<body') === false) {
-                // If it looks like a full document but missing body (rare), or just a fragment
-                if (stripos($html, '<html') !== false) {
-                    $html = str_ireplace('</html>', '<body>' . substr($html, strpos($html, '</html>')), $html); // This is risky, better to wrap content
-                } else {
-                    $html = '<body>' . $html . '</body>';
-                }
+                // Remove existing doctype/html/head if we are going to wrap manually
+                $html = preg_replace('/<(?:!DOCTYPE|html|head|meta|title)[^>]*>.*?<\/(?:head|html)>/is', '', $html);
+                $html = '<body>' . $html . '</body>';
             }
 
             // Restored fixed positioning for page border and footer logo (injected at runtime to bypass HTML Purifier)
@@ -245,11 +246,10 @@ class PdfRenderingService
                     return $matches[0];
                 }
 
-                // Optimization: Convert remote images to base64 to prevent Dompdf network timeouts
-                // This is especially important for large images or slow remote servers
+                // Optimization & Security: Convert remote images to base64 with strict timeouts
                 try {
-                    // Set a short timeout for image downloading
-                    $context = stream_context_create(['http' => ['timeout' => 5]]);
+                    // Skip extremely large or slow resources to prevent worker exhaustion
+                    $context = stream_context_create(['http' => ['timeout' => 3, 'header' => "Range: bytes=0-2097152"]]); // Max 2MB read
                     $imageContent = @file_get_contents($src, false, $context);
 
                     if ($imageContent !== false) {
@@ -655,8 +655,9 @@ class PdfRenderingService
             $renderedSections = '';
 
             foreach ($this->estimate->sections as $section) {
-                // Prepare Section Local Variables for conditionals
+                // Section State for nested IF tags
                 $sectionVars = [
+                    'section_name' => $section->name,
                     'section_is_package' => $section->is_package ? 1 : 0,
                     '_raw_section_is_package' => $section->is_package ? 1 : 0,
                 ];
@@ -668,7 +669,7 @@ class PdfRenderingService
                 $sectionHtml = $this->parseSectionConditionals($sectionHtml, $sectionVars);
 
                 // 2. Variable Replacement for section specific tags
-                $formattedTotal = number_format($section->total, 2);
+                $formattedTotal = number_format($section->subtotal ?? 0, 2);
                 $replacements = [
                     '{section_name}' => $section->name,
                     '{ section_name }' => $section->name,

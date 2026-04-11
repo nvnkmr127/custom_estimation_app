@@ -11,7 +11,15 @@ class SettingsController extends Controller
 {
     public function edit()
     {
+        $this->authorize('manage_settings');
+
         $settings = Setting::all()->pluck('value', 'key');
+        
+        // Security: Mask sensitive SMTP credentials before sending to view
+        if (isset($settings['smtp_password'])) {
+            $settings['smtp_password'] = '********';
+        }
+
         $timezones = \DateTimeZone::listIdentifiers();
 
         return view('settings.edit', compact('settings', 'timezones'));
@@ -19,6 +27,8 @@ class SettingsController extends Controller
 
     public function update(Request $request)
     {
+        $this->authorize('manage_settings');
+
         $validated = $request->validate([
             // General
             'app_name' => 'required|string|max:255',
@@ -122,10 +132,17 @@ class SettingsController extends Controller
         ];
 
         foreach ($keys as $key) {
+            $val = $request->input($key);
+
+            // Security: Don't update sensitive fields if they are masked/placeholders
+            if ($key === 'smtp_password' && ($val === '********' || empty($val))) {
+                continue;
+            }
+
             if ($request->has($key)) {
                 Setting::updateOrCreate(
                     ['key' => $key],
-                    ['value' => $request->input($key)]
+                    ['value' => $val]
                 );
             }
         }
@@ -192,6 +209,8 @@ class SettingsController extends Controller
 
     public function testEmail(Request $request, \App\Services\Mail\Contracts\MailGatewayInterface $mailService)
     {
+        $this->authorize('manage_settings');
+
         try {
             $request->validate([
                 'email' => 'required|email|max:255',
@@ -252,6 +271,8 @@ class SettingsController extends Controller
 
     public function deleteGalleryImage($index)
     {
+        $this->authorize('manage_settings');
+
         $rawSetting = Setting::where('key', 'portal_company_showcase_images')->first();
         if (!$rawSetting) {
             return back()->with('error', 'No images found.');

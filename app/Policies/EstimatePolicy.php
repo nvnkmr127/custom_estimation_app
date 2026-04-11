@@ -53,18 +53,20 @@ class EstimatePolicy
     public function update(User $user, Estimate $estimate)
     {
         // 1. Lock if Finalized/Accepted/Sent
-        $isLocked = in_array($estimate->client_status, [
-            Estimate::CLT_STATUS_SENT,
-            Estimate::CLT_STATUS_VIEWED,
-            Estimate::CLT_STATUS_ACCEPTED,
-            Estimate::CLT_STATUS_DECLINED
+        $isLocked = in_array($estimate->estimate_status, [
+            Estimate::EST_STATUS_APPROVED,
+            Estimate::EST_STATUS_SENT,
+            Estimate::EST_STATUS_ACCEPTED,
+            Estimate::EST_STATUS_DECLINED,
+            Estimate::EST_STATUS_EXPIRED
         ]) || in_array($estimate->approval_status, [
-                Estimate::APP_STATUS_WAITING
-            ]);
+            Estimate::APP_STATUS_WAITING
+        ]);
 
-        if ($isLocked && !$user->hasRole('super_admin')) {
-            // Note: Service layer might branch if finalized, but Policy acts as the primary gate.
-            return false;
+        if ($isLocked && !$user->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
+            // Note: Service layer handles branching for locked/finalized estimates.
+            // We allow the policy to pass if the user is authorized to edit, 
+            // even if locked, to facilitate the "Edit-to-Branch" workflow.
         }
 
         if ($user->id == $estimate->created_by) {

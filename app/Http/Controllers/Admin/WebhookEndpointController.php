@@ -16,6 +16,13 @@ class WebhookEndpointController extends Controller
         return view('admin.webhooks.index');
     }
 
+    public function show(WebhookConfig $webhook)
+    {
+        $this->authorize('view', $webhook);
+
+        return view('admin.webhooks.show', compact('webhook'));
+    }
+
     public function create()
     {
         $this->authorize('create', WebhookConfig::class);

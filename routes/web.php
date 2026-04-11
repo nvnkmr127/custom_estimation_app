@@ -296,13 +296,5 @@ Route::post('/webhooks/{provider}', [App\Http\Controllers\WebhookController::cla
 
 require __DIR__ . '/auth.php';
 
-Route::get('/debug-estimate-7', function () {
-    $estimate = \App\Models\Estimate::find(7);
-    return [
-        'status' => $estimate ? $estimate->status : 'NOT_FOUND',
-        'generated_url' => $estimate ? $estimate->public_url : 'N/A',
-        'app_url_config' => config('app.url'),
-        'request_host' => request()->getHost(),
-    ];
-});
+
 

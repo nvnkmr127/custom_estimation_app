@@ -35,29 +35,23 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('reminders:send')->everyMinute();
         $schedule->command('notifications:send-digests daily_digest')->daily();
         $schedule->command('notifications:send-digests weekly_digest')->weekly();
-
-        // Automation Engine: Run every minute to check for due cron-based/scheduled automations
         $schedule->command('automation:run-scheduled')->everyMinute();
-
-        // Automation Engine: Daily analytics aggregation (calculates stats for previous day)
         $schedule->command('automation:analytics-calculate')->dailyAt('00:05');
-
-        // Estimate Nurturing: Process intelligent follow-ups daily
         $schedule->command('estimates:nurture')->dailyAt('09:00');
-
-        // Approval Management: Check for expiring/timeout approvals hourly
         $schedule->command('approval:check-timeouts')->hourly();
 
-
-        // Queue Processing: Process pending jobs every minute (for environments without a dedicated worker)
-        // We include 'default' and 'webhooks' queues.
-        $schedule->command('queue:work --queue=default,webhooks --stop-when-empty --tries=3')
-            ->everyMinute()
+        // Backup Strategy: Checkpoint DB during hours, consolidate at 8 PM
+        $schedule->command('backup:checkpoint')
+            ->cron('0 10,13,16,19 * * *')
+            ->withoutOverlapping();
+        $schedule->command('backup:consolidate')
+            ->dailyAt('20:00')
             ->withoutOverlapping();
 
-        // Queue Maintenance: Cleanup old failed jobs and batches
-        $schedule->command('queue:prune-failed --hours=24')->daily();
-        $schedule->command('queue:prune-batches --hours=24')->daily();
+        // Queue Processing
+        $schedule->command('queue:work --stop-when-empty --tries=3')
+            ->everyMinute()
+            ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
@@ -95,9 +89,21 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($e instanceof \Illuminate\Database\QueryException) {
+                // Security: Filter out sensitive parameters from logs
+                $bindings = $e->getBindings();
+                $sensitiveKeys = ['password', 'token', 'secret', 'key', 'cvv', 'card'];
+                $filteredBindings = array_map(function ($value) use ($sensitiveKeys) {
+                    if (is_string($value)) {
+                        foreach ($sensitiveKeys as $key) {
+                            if (stripos($value, $key) !== false && strlen($value) > 20) return '[REDACTED]';
+                        }
+                    }
+                    return $value;
+                }, $bindings);
+
                 \Illuminate\Support\Facades\Log::critical('Database Error: ' . $e->getMessage(), [
                     'sql' => $e->getSql(),
-                    'params' => $e->getBindings(),
+                    'params' => $filteredBindings,
                     'user_id' => auth()->id(),
                 ]);
             }

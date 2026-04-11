@@ -39,7 +39,17 @@ class EstimateWorkflowService
         }
 
         // 2. Validate Completeness (Must have items)
-        if ($estimate->items()->count() === 0 && $estimate->sections()->count() === 0) {
+        $hasItems = $estimate->items()->exists();
+        if (!$hasItems) {
+            foreach ($estimate->sections as $section) {
+                if ($section->items()->exists()) {
+                    $hasItems = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$hasItems) {
             throw new \Exception("Cannot submit an empty estimate. Please add some items first.");
         }
 

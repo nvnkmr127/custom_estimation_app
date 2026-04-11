@@ -12,6 +12,9 @@ class AppLayout extends Component
      */
     public function render(): View
     {
-        return view('components.app-layout');
+        $navigation = app(\App\Services\Navigation\NavigationService::class);
+        return view('components.app-layout', [
+            'sidebarMenu' => $navigation->getSidebarMenu(),
+        ]);
     }
 }

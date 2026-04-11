@@ -47,22 +47,24 @@ class PriceCalculator
         // Ensure discount doesn't exceed subtotal
         $discountTotal = min($discountTotal, $subtotal);
 
-        // 3. Calculate Tax Base
+        // 3. Coupon & Transportation
+        $couponAmount = round($estimate->coupon_discount ?? 0, 2);
+        $transportation = round($estimate->transportation_charges ?? 0, 2);
+
+        // 4. Calculate Tax Base
         $taxableAmount = ($taxMethod === 'subtotal_only')
             ? $subtotal
             : ($subtotal - $discountTotal);
+        
+        $taxableAmount = max(0, $taxableAmount);
 
-        // 4. Calculate Tax
+        // 5. Calculate Tax
         // User requested one tax only (GST)
         $tax1Amount = round($taxableAmount * ($estimate->tax_1 / 100), 2);
         $totalTax = $tax1Amount;
 
-        // 5. Coupon & Transportation
-        $couponAmount = round($estimate->coupon_discount ?? 0, 2);
-        $transportation = round($estimate->transportation_charges ?? 0, 2);
-
         // 6. Grand Total
-        $grandTotal = round(($subtotal - $discountTotal) + $totalTax - $couponAmount + $transportation, 2);
+        $grandTotal = round(($subtotal - $discountTotal) + $totalTax + $transportation - $couponAmount, 2);
         $grandTotal = max(0, $grandTotal);
 
         // 7. Margin/Profit
@@ -89,8 +91,8 @@ class PriceCalculator
 
     private function calculateLines(Estimate $estimate): array
     {
-        $subtotal = 0;
-        $totalCost = 0;
+        $rawSubtotal = 0;
+        $rawTotalCost = 0;
         $sectionSubtotals = [];
         $itemUpdates = [];
 
@@ -102,27 +104,28 @@ class PriceCalculator
                     $sizeMultiplier = $s;
             }
 
-            $lineTotal = round($item->unit_price * $item->quantity * $sizeMultiplier, 2);
-            $lineCost = round(($item->cost ?? 0) * $item->quantity * $sizeMultiplier, 2);
+            // Financial Precision: Maintain raw floats for accumulation to avoid cent-drift
+            $lineTotalRaw = ($item->unit_price * $item->quantity * $sizeMultiplier);
+            $lineCostRaw = (($item->cost ?? 0) * $item->quantity * $sizeMultiplier);
 
-            $subtotal += $lineTotal;
-            $totalCost += $lineCost;
+            $rawSubtotal += $lineTotalRaw;
+            $rawTotalCost += $lineCostRaw;
 
-            // Track for sections
+            // Track for sections (rounded for display)
             if ($item->estimate_section_id) {
                 if (!isset($sectionSubtotals[$item->estimate_section_id])) {
                     $sectionSubtotals[$item->estimate_section_id] = 0;
                 }
-                $sectionSubtotals[$item->estimate_section_id] += $lineTotal;
+                $sectionSubtotals[$item->estimate_section_id] += round($lineTotalRaw, 2);
             }
 
-            // Track item total for update check
-            $itemUpdates[$item->id] = $lineTotal;
+            // Track item total for update check (rounded per business rule)
+            $itemUpdates[$item->id] = round($lineTotalRaw, 2);
         }
 
         return [
-            'subtotal' => round($subtotal, 2),
-            'total_cost' => $totalCost,
+            'subtotal' => round($rawSubtotal, 2),
+            'total_cost' => round($rawTotalCost, 2),
             'section_subtotals' => $sectionSubtotals,
             'item_updates' => $itemUpdates,
         ];
@@ -134,28 +137,32 @@ class PriceCalculator
         $discountPercentage = ($subtotal > 0) ? (($discountTotal + $couponAmount) / $subtotal) * 100 : 0;
         $discountPercentage = round($discountPercentage, 2);
 
-        // 1. Discount-based
+        // 7. Tiered Approval Logic - Select most restrictive/highest authority chain
+        $candidates = [];
+
+        // 7.1 Discount-based matches
         $discountChain = ApprovalChain::where('is_active', true)
             ->whereNotNull('min_discount_percentage')
             ->where('min_discount_percentage', '<=', $discountPercentage)
             ->orderBy('min_discount_percentage', 'desc')
             ->first();
+        if ($discountChain) $candidates[] = $discountChain;
 
-        if ($discountChain) {
-            return $discountChain->id;
-        }
-
-        // 2. Amount-based
+        // 7.2 Amount-based matches
         $amountChain = ApprovalChain::where('is_active', true)
-            ->where(function ($q) use ($grandTotal) {
-                $q->whereNull('min_amount')->orWhere('min_amount', '<=', $grandTotal);
-            })
-            ->where(function ($q) use ($grandTotal) {
+            ->whereNotNull('min_amount')
+            ->where('min_amount', '<=', $grandTotal)
+            ->where(function($q) use ($grandTotal) {
                 $q->whereNull('max_amount')->orWhere('max_amount', '>=', $grandTotal);
             })
             ->orderBy('min_amount', 'desc')
             ->first();
+        if ($amountChain) $candidates[] = $amountChain;
 
-        return $amountChain ? $amountChain->id : null;
+        if (empty($candidates)) return null;
+
+        // Bias towards strictness: If multiple constraints apply, select the most authoritative (highest minimum)
+        usort($candidates, fn($a, $b) => ($b->min_amount ?? 0) <=> ($a->min_amount ?? 0));
+        return $candidates[0]->id;
     }
 }

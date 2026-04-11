@@ -64,21 +64,28 @@ class WebhookController extends Controller
             }
         }
 
-        // 2. Signature Verification
+        // 2. Signature & Replay Verification
         if ($endpoint->secret && $endpoint->signature_header) {
             $signature = $request->header($endpoint->signature_header);
-            // Assuming simplified HMAC-SHA256 for now, can be made configurable later
-            $computed = hash_hmac('sha256', $request->getContent(), $endpoint->secret);
+            $timestamp = $request->header('X-Webhook-Timestamp') ?? $request->header('Timestamp');
+            
+            // Replay Protection: Enforce 5-minute validity window if timestamp is provided
+            if ($timestamp && abs(time() - (int)$timestamp) > 300) {
+                 Log::warning("Webhook: Replay attempt detected (Timestamp: {$timestamp}) for endpoint {$endpoint->name}");
+                 return response()->json(['error' => 'Request expired'], 401);
+            }
 
-            // Note: Some providers use "sha256=<hash>", so we might need simple string containment or normalization
-            // For now, let's try direct comparison or "sha256=" prefix check
+            $content = $request->getContent();
+            $payloadToSign = $timestamp ? "{$timestamp}.{$content}" : $content;
+            $computed = hash_hmac('sha256', $payloadToSign, $endpoint->secret);
+
             if (!hash_equals($computed, $signature ?? '') && !hash_equals("sha256={$computed}", $signature ?? '')) {
                 Log::warning("Webhook: Invalid signature for endpoint {$endpoint->name}");
 
-                // We still log the attempt as failed
+                // We still log the attempt as failed for audit
                 WebhookInboundEvent::create([
                     'provider' => $uuid,
-                    'provider_event_id' => $request->header('X-Request-ID') ?? (string) \Illuminate\Support\Str::uuid(),
+                    'provider_event_id' => 'fail_' . (string) \Illuminate\Support\Str::uuid(),
                     'payload' => $request->all(),
                     'headers' => $request->headers->all(),
                     'status' => 'failed',
@@ -89,14 +96,21 @@ class WebhookController extends Controller
             }
         }
 
-        // 3. Log Valid Payload
-        $event = WebhookInboundEvent::create([
-            'provider' => $uuid, // Use UUID as provider identifier
-            'provider_event_id' => $request->header('X-Request-ID') ?? (string) \Illuminate\Support\Str::uuid(),
-            'payload' => $request->all(),
-            'headers' => $request->headers->all(),
-            'status' => 'pending',
-        ]);
+        // 3. Log Valid Payload (Idempotent Check)
+        $eventId = $request->header('X-Request-ID') ?? $request->header('X-Event-ID') ?? (string) \Illuminate\Support\Str::uuid();
+        
+        $event = WebhookInboundEvent::firstOrCreate(
+            ['provider' => $uuid, 'provider_event_id' => $eventId],
+            [
+                'payload' => $request->all(),
+                'headers' => $request->headers->all(),
+                'status' => 'pending',
+            ]
+        );
+
+        if (!$event->wasRecentlyCreated && $event->status === 'processed') {
+             return response()->json(['message' => 'Accepted'], 202);
+        }
 
         // 4. Dispatch for Async Processing
         ProcessInboundWebhook::dispatch($event);
@@ -106,10 +120,12 @@ class WebhookController extends Controller
 
     protected function extractEventId(Request $request, string $provider): ?string
     {
-        return match ($provider) {
-            'perfex' => (string) ($request->input('proposal_id') ?? $request->input('id') ?? $request->header('X-Event-Id') ?? $request->header('X-Request-Id') ?? \Illuminate\Support\Str::uuid()),
-            default => $request->header('X-Event-Id') ?? $request->header('X-Request-Id') ?? (string) \Illuminate\Support\Str::uuid(),
+        $id = match ($provider) {
+            'perfex' => (string) ($request->input('proposal_id') ?? $request->input('id') ?? $request->header('X-Event-Id') ?? $request->header('X-Request-Id')),
+            default => $request->header('X-Event-Id') ?? $request->header('X-Request-Id'),
         };
+
+        return $id ?: 'hash_' . md5(json_encode($request->all()));
     }
 
     protected function verifySignature(Request $request, string $provider): bool

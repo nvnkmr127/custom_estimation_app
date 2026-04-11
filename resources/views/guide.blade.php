@@ -410,9 +410,9 @@
                         <p class="text-slate-600 mb-4">If you encounter issues not covered in this guide, please contact
                             support.</p>
                         <div class="flex gap-4">
-                            <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">Contact IT Support
+                            <a href="mailto:{{ config('mail.from.address', 'support@example.com') }}?subject=Support%20Request" class="text-blue-600 hover:text-blue-700 font-medium">Contact IT Support
                                 &rarr;</a>
-                            <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">Report a Bug &rarr;</a>
+                            <a href="mailto:{{ config('mail.from.address', 'support@example.com') }}?subject=Bug%20Report" class="text-blue-600 hover:text-blue-700 font-medium">Report a Bug &rarr;</a>
                         </div>
                     </div>
 

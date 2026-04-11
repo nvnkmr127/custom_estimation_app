@@ -25,9 +25,12 @@ class SearchController extends Controller
 
         $results = [];
 
+        // Security: Escape wildcards to prevent SQL Wildcard Injection
+        $escapedQuery = str_replace(['%', '_'], ['\%', '\_'], $query);
+
         // Search Estimates
-        $estimates = Estimate::where('estimate_number', 'like', "%{$query}%")
-            ->orWhere('title', 'like', "%{$query}%")
+        $estimates = Estimate::where('estimate_number', 'like', "%{$escapedQuery}%")
+            ->orWhere('title', 'like', "%{$escapedQuery}%")
             ->limit(5)
             ->get();
 
@@ -41,8 +44,8 @@ class SearchController extends Controller
         }
 
         // Search Clients
-        $clients = Client::where('name', 'like', "%{$query}%")
-            ->orWhere('company', 'like', "%{$query}%")
+        $clients = Client::where('name', 'like', "%{$escapedQuery}%")
+            ->orWhere('company', 'like', "%{$escapedQuery}%")
             ->limit(5)
             ->get();
 
@@ -56,7 +59,11 @@ class SearchController extends Controller
         }
 
         // Search Products
-        $products = Product::where('name', 'like', "%{$query}%")
+        $products = Product::active()
+            ->where(function($q) use ($escapedQuery) {
+                $q->where('name', 'like', "%{$escapedQuery}%")
+                  ->orWhere('sku', 'like', "%{$escapedQuery}%");
+            })
             ->limit(5)
             ->get();
 

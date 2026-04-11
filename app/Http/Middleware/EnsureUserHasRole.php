@@ -15,6 +15,11 @@ class EnsureUserHasRole
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
+        // Security: Super Admin has global bypass for all role-restricted routes
+        if ($request->user() && $request->user()->hasRole('super_admin')) {
+            return $next($request);
+        }
+
         if (! $request->user() || ! $request->user()->hasRole($roles)) {
             abort(403, 'Unauthorized action.');
         }

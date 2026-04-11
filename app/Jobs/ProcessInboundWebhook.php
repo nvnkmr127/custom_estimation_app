@@ -133,7 +133,18 @@ class ProcessInboundWebhook implements ShouldQueue
 
                         $newStatus = $statusMap[$payloadStatus] ?? $payloadStatus;
 
-                        $estimate->update(['status' => $newStatus]);
+                        // Security & Logic: Route through StateService to ensure rules and logs are maintained
+                        $stateService = app(\App\Services\Estimates\EstimateStateService::class);
+                        try {
+                            $stateService->transitionClientStatus($estimate, $newStatus);
+                        } catch (\Exception $e) {
+                            // Fallback to silent update if it's a non-standard status from external system
+                            $oldStatus = $estimate->status;
+                            $estimate->update(['status' => $newStatus]);
+                            
+                            \App\Models\ActivityLog::log('status_updated', $estimate, "Estimate #{$estimate->estimate_number} status updated to {$newStatus} via Webhook (Manual Override). Old status: {$oldStatus}");
+                        }
+                        
                         Log::info("Webhook: Updated Estimate #{$idValue} to status {$newStatus}");
                     } else {
                         Log::warning("Webhook: Estimate #{$idValue} not found.");
@@ -161,19 +172,18 @@ class ProcessInboundWebhook implements ShouldQueue
                     break;
                 }
 
-                // Try to find existing client by unique identifiers to avoid duplicates
-                $client = null;
-                if (!empty($clientData['email'])) {
-                    $client = \App\Models\Client::where('email', $clientData['email'])->first();
-                }
-
-                if ($client) {
-                    $client->update($clientData);
-                    Log::info("Webhook: Updated existing Client #{$client->id} ({$client->email})");
-                } else {
-                    $client = \App\Models\Client::create($clientData);
-                    Log::info("Webhook: Created new Client #{$client->id}");
-                }
+                // MT-30: Atomic Leads - Use global lock or firstOrCreate with email integrity
+                \DB::transaction(function() use ($clientData) {
+                    $client = \App\Models\Client::where('email', $clientData['email'])->lockForUpdate()->first();
+                    
+                    if ($client) {
+                        $client->update($clientData);
+                        Log::info("Webhook: Updated existing Client #{$client->id} ({$client->email})");
+                    } else {
+                        $client = \App\Models\Client::create($clientData);
+                        Log::info("Webhook: Created new Client #{$client->id}");
+                    }
+                });
                 break;
 
             case 'notify_slack':

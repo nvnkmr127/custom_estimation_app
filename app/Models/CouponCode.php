@@ -51,14 +51,14 @@ class CouponCode extends Model
             return false;
         }
 
-        // Check validity dates
+        // Check validity dates (Inclusivity fix: comparing end of day)
         $now = Carbon::now();
 
-        if ($this->valid_from && $now->lt($this->valid_from)) {
+        if ($this->valid_from && $now->lt($this->valid_from->startOfDay())) {
             return false;
         }
 
-        if ($this->valid_until && $now->gt($this->valid_until)) {
+        if ($this->valid_until && $now->gt($this->valid_until->endOfDay())) {
             return false;
         }
 
@@ -78,7 +78,17 @@ class CouponCode extends Model
      */
     public function incrementUsage()
     {
-        $this->increment('usage_count');
+        // Security: Atomic usage increment with limit verification to prevent race conditions
+        $affected = \DB::table('coupon_codes')
+            ->where('id', $this->id)
+            ->where(function($q) {
+                $q->whereNull('usage_limit')->orWhereRaw('usage_count < usage_limit');
+            })
+            ->increment('usage_count');
+
+        if ($affected === 0) {
+            throw new \Exception("Coupon usage limit reached.");
+        }
     }
 
     /**

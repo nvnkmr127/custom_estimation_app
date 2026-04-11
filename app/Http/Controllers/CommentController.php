@@ -35,14 +35,15 @@ class CommentController extends Controller
 
         // If replying to a comment, inherit the context (Item vs Estimate)
         if (!empty($validated['parent_id'])) {
-            $parent = EstimateComment::find($validated['parent_id']);
-            if ($parent) {
-                // Determine if we should inherit the commentable context
-                // Only inherit if the request didn't explicitly set a specific item 
-                // OR if we want to enforce strict threading (usually safer to enforce)
-                $validated['commentable_type'] = $parent->commentable_type;
-                $validated['commentable_id'] = $parent->commentable_id;
+            $parent = EstimateComment::where('estimate_id', $estimate->id)
+                ->find($validated['parent_id']);
+                
+            if (!$parent) {
+                return response()->json(['success' => false, 'message' => 'Invalid parent comment context.'], 400);
             }
+            
+            $validated['commentable_type'] = $parent->commentable_type;
+            $validated['commentable_id'] = $parent->commentable_id;
         }
 
         $comment = $estimate->comments()->create([
@@ -94,11 +95,20 @@ class CommentController extends Controller
     {
         $this->authorize('view', $estimate);
 
-        $comments = $estimate->comments()
-            ->with(['user', 'commentable', 'replies.user'])
-            ->whereNull('parent_id')
-            ->latest()
-            ->get();
+        $query = $estimate->comments()
+            ->with(['user', 'commentable', 'replies.user', 'replies' => function($q) {
+                if (!auth()->check()) {
+                   $q->where('type', 'client');
+                }
+            }])
+            ->whereNull('parent_id');
+
+        // Privacy: Filter out internal notes for clients
+        if (!auth()->check()) {
+            $query->where('type', 'client');
+        }
+
+        $comments = $query->latest()->get();
 
         return response()->json($comments);
     }
@@ -108,6 +118,9 @@ class CommentController extends Controller
      */
     public function markAsRead(EstimateComment $comment)
     {
+        // Security: Prevent IDOR across estimates
+        $this->authorize('update', $comment->estimate);
+        
         $comment->markAsRead();
 
         return response()->json([
@@ -121,6 +134,8 @@ class CommentController extends Controller
      */
     public function markAllAsRead(Estimate $estimate)
     {
+        $this->authorize('update', $estimate);
+
         $estimate->comments()
             ->unread()
             ->clientComments()
@@ -137,6 +152,9 @@ class CommentController extends Controller
      */
     public function destroy(EstimateComment $comment)
     {
+        // Security: Prevent IDOR across estimates
+        $this->authorize('update', $comment->estimate);
+
         // Only allow deleting own comments or if admin
         if (auth()->id() !== $comment->user_id && !auth()->user()->isAdmin()) {
             return response()->json([
@@ -158,6 +176,9 @@ class CommentController extends Controller
      */
     public function updateStatus(Request $request, EstimateComment $comment)
     {
+        // Security: Prevent IDOR across estimates
+        $this->authorize('update', $comment->estimate);
+
         $validated = $request->validate([
             'status' => 'required|in:pending,clarified',
         ]);

@@ -61,27 +61,13 @@ class RunEstimateNurture extends Command
         if ($rule->trigger_type === 'time_based') {
             // e.g. 3 days after created/sent
             $targetDate = now()->subDays($rule->trigger_days)->toDateString();
-            // We use whereDate to catch items from that specific day (daily run)
-            // or simply '<=' if we want to catch backlog, but careful of repeating.
-            // Best practice: Check if we haven't nurtured for THIS rule yet?
-            // Since we don't store "rule_id" on estimate history easily, we rely on 'nurture_status' flow
-            // OR we just check the timeframe.
-            // Let's use <= targetDate AND last_nurtured_at is null (for first step).
-            // Complex multi-step rules are hard without tracking "current_step".
-            // For this MVP: time_based implies "Initial check".
-            $query->whereDate('created_at', '<=', $targetDate)
-                ->whereNull('last_nurtured_at');
+            $query->whereDate('created_at', '<=', $targetDate);
 
         } elseif ($rule->trigger_type === 'engagement_based') {
             // e.g. 4 days since last view
             $targetDate = now()->subDays($rule->trigger_days)->toDateString();
             $query->whereNotNull('last_viewed_at')
-                ->whereDate('last_viewed_at', '<=', $targetDate)
-                // Avoid re-sending same engagement check?
-                ->where(function ($q) {
-                    $q->whereNull('last_nurtured_at')
-                        ->orWhere('last_nurtured_at', '<', now()->subDays(2)); // basic cool-off
-                });
+                ->whereDate('last_viewed_at', '<=', $targetDate);
 
         } elseif ($rule->trigger_type === 'expiry_based') {
             // e.g. 3 days BEFORE expiry
@@ -93,6 +79,24 @@ class RunEstimateNurture extends Command
         $this->info("  Found {$estimates->count()} matching estimates.");
 
         foreach ($estimates as $estimate) {
+            // --- Atomic Rule Tracking ---
+            // Check if THIS specific rule was already fired for THIS estimate to avoid spam/redundancy
+            $alreadyFired = \App\Models\ActivityLog::where('subject_type', Estimate::class)
+                ->where('subject_id', $estimate->id)
+                ->where('action', 'nurture_applied')
+                ->where('description', 'LIKE', "%[Rule ID: {$rule->id}]%")
+                ->exists();
+
+            if ($alreadyFired) {
+                continue;
+            }
+
+            // Skip if client data is missing (prevents crash on notification)
+            if (!$estimate->client) {
+                $this->warn("    Skipping Estimate #{$estimate->estimate_number}: Client not found.");
+                continue;
+            }
+
             // --- Condition Logic (JSON) ---
             if (!$this->evaluateConditions($estimate, $rule->condition_logic)) {
                 continue;
@@ -107,10 +111,14 @@ class RunEstimateNurture extends Command
             try {
                 $this->executeAction($estimate, $rule, $rescueService);
 
-                // Update State
-                $estimate->update([
-                    'last_nurtured_at' => now(),
-                    // Optionally update nurture_status if this was a terminal action
+                // Update State and Log Execution
+                $estimate->update(['last_nurtured_at' => now()]);
+
+                \App\Models\ActivityLog::create([
+                    'action' => 'nurture_applied',
+                    'description' => "Applied nurture rule '{$rule->name}' [Rule ID: {$rule->id}]. Resulted in {$rule->action_type}.",
+                    'subject_type' => Estimate::class,
+                    'subject_id' => $estimate->id,
                 ]);
 
             } catch (\Exception $e) {

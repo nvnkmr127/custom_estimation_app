@@ -34,6 +34,10 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+        <title>Estimate Preview | {{ $estimate->estimate_number }}</title>
+        <meta name="description" content="View and accept your custom estimate from {{ config('app.name') }}. Professional estimate #{{ $estimate->estimate_number }} for {{ $estimate->client_name }}.">
+    
+        <!-- External Libs -->
         <!-- Alerts -->
         @if(session('success'))
             <div class="mb-6 rounded-lg bg-green-50 p-4 border border-green-200 animate-fade-in-down">
