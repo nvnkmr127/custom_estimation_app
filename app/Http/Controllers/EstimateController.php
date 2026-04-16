@@ -198,11 +198,19 @@ class EstimateController extends Controller
             // Authorize
             if ($request->action === 'delete') {
                 if (auth()->user()->can('delete', $estimate)) {
-                    $estimate->delete();
-                    $count++;
+                    try {
+                        $this->estimateService->deleteEstimate($estimate);
+                        $count++;
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to bulk delete estimate {$estimate->id}: " . $e->getMessage());
+                    }
                 }
             } else {
                 if (auth()->user()->can('update', $estimate)) {
+                    // BUSINESS RULE: Lock estimates in pending_approval
+                    if ($estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL) {
+                        continue;
+                    }
                     $stateService = app(\App\Services\Estimates\EstimateStateService::class);
 
                     try {
@@ -484,7 +492,7 @@ class EstimateController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return back()->withInput()->withErrors(['error' => 'Failed to update estimate. System error logged.']);
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
@@ -1023,31 +1031,12 @@ class EstimateController extends Controller
     {
         $this->authorize('delete', $estimate);
 
-        return DB::transaction(function () use ($estimate) {
-            $estimateNumber = $estimate->estimate_number;
-            $isCurrentVersion = $estimate->is_current_version;
-            $parentId = $estimate->parent_id;
-
-            // Soft delete the estimate (cascade only applies to hard deletes, so parent is safe)
-            $estimate->delete();
-
-            // If we deleted the current version and it has a parent, restore the previous version as current
-            if ($isCurrentVersion && $parentId) {
-                $previousVersion = Estimate::where('id', $parentId)
-                    ->orWhere('parent_id', $parentId)
-                    ->where('id', '!=', $estimate->id)
-                    ->orderBy('version', 'desc')
-                    ->first();
-
-                if ($previousVersion) {
-                    $previousVersion->update(['is_current_version' => true]);
-                }
-            }
-
-            ActivityLog::log('estimate_deleted', $estimate, "Estimate #{$estimateNumber} deleted by " . auth()->user()->name);
-
+        try {
+            $this->estimateService->deleteEstimate($estimate);
             return redirect()->route('estimates.index')->with('success', 'Estimate deleted successfully.');
-        });
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
     public function approveVersion(Estimate $estimate)
     {

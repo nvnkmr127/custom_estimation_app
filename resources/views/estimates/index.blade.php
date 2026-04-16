@@ -309,15 +309,19 @@
                                     </td>
                                     <td
                                         class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                        <a href="{{ route('estimates.edit', $estimate) }}"
-                                            class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                                        <form action="{{ route('estimates.destroy', $estimate) }}" method="POST"
-                                            class="inline-block" onsubmit="return confirm('Delete this estimate?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="text-rose-600 hover:text-rose-900 bg-transparent border-0 p-0 cursor-pointer">Delete</button>
-                                        </form>
+                                        @if($estimate->estimate_status !== \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL)
+                                            <a href="{{ route('estimates.edit', $estimate) }}"
+                                                class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
+                                            <form action="{{ route('estimates.destroy', $estimate) }}" method="POST"
+                                                class="inline-block" onsubmit="return confirm('Delete this estimate?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="text-rose-600 hover:text-rose-900 bg-transparent border-0 p-0 cursor-pointer">Delete</button>
+                                            </form>
+                                        @else
+                                            <span class="text-xs text-slate-400 italic">Locked (Approval)</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

@@ -136,6 +136,11 @@ class EstimateService
      */
     public function updateEstimate(Estimate $estimate, array $data, array $sections, array $items, string $type, bool $forceBranch = false, array $deletedSections = [], array $deletedItems = []): Estimate
     {
+        // BUSINESS RULE: Lock estimates in pending_approval state
+        if ($estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL) {
+            throw new \Exception("This estimate is currently under internal approval and cannot be modified.");
+        }
+
         DB::beginTransaction();
         try {
             // 1. History Integrity Check: Seamlessly allow editing by branching 
@@ -738,6 +743,41 @@ class EstimateService
             }
 
             return $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
+        });
+    }
+
+    /**
+     * Delete an estimate with locking rule enforcement.
+     */
+    public function deleteEstimate(Estimate $estimate): void
+    {
+        // BUSINESS RULE: Lock estimates in pending_approval state
+        if ($estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL) {
+            throw new \Exception("This estimate is currently under internal approval and cannot be deleted.");
+        }
+
+        DB::transaction(function () use ($estimate) {
+            $estimateNumber = $estimate->estimate_number;
+            $isCurrentVersion = $estimate->is_current_version;
+            $parentId = $estimate->parent_id;
+
+            // Soft delete
+            $estimate->delete();
+
+            // If we deleted the current version and it has a parent, restore the previous version as current
+            if ($isCurrentVersion && $parentId) {
+                $previousVersion = Estimate::where('id', $parentId)
+                    ->orWhere('parent_id', $parentId)
+                    ->where('id', '!=', $estimate->id)
+                    ->orderBy('version', 'desc')
+                    ->first();
+
+                if ($previousVersion) {
+                    $previousVersion->update(['is_current_version' => true]);
+                }
+            }
+
+            ActivityLog::log('estimate_deleted', $estimate, "Estimate #{$estimateNumber} deleted by " . auth()->user()->name);
         });
     }
 }

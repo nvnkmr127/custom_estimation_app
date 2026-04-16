@@ -81,6 +81,24 @@
             </div>
         </div>
     @endif
+    
+    <!-- Locked Status Banner -->
+    @if($estimate->estimate_status === \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL)
+        <div class="mb-6 rounded-lg bg-amber-50 border-l-4 border-amber-400 p-4 shadow-sm ring-1 ring-amber-100">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-amber-800">
+                        This estimate is currently under internal approval and is locked. Editing and deletion are disabled until the approval process is complete.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Header & Toolbar -->
     <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -120,14 +138,16 @@
                     (in_array($estimate->status, ['waiting_approval', 'approved']) && $estimate->client_status !== 'sent');
             @endphp
             @if($canEditOrSubmit && $estimate->is_current_version)
-                @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin']))
+                @if($estimate->estimate_status !== \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL)
+                    @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin']))
 
-                    <a href="{{ route('estimates.edit', $estimate) }}"
-                        wire:loading.attr="disabled"
-                        class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
-                        Edit
-                    </a>
+                        <a href="{{ route('estimates.edit', $estimate) }}"
+                            wire:loading.attr="disabled"
+                            class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
+                            Edit
+                        </a>
 
+                    @endif
                 @endif
 
                 @if(in_array($estimate->approval_status, [\App\Models\Estimate::APP_STATUS_NOT_REQUIRED, \App\Models\Estimate::APP_STATUS_CHANGES_REQUESTED]))
@@ -155,14 +175,16 @@
                 @endif
 
                 <!-- Discard Draft -->
-                <button type="button"
-                    wire:loading.attr="disabled"
-                    wire:target="discard"
-                    @click="if(confirm('Are you sure you want to discard this draft? This action cannot be undone.')) { $wire.discard() }"
-                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50 disabled:opacity-50">
-                    <span wire:loading.remove wire:target="discard">Discard</span>
-                    <span wire:loading wire:target="discard">Discarding...</span>
-                </button>
+                @if($estimate->estimate_status !== \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL)
+                    <button type="button"
+                        wire:loading.attr="disabled"
+                        wire:target="discard"
+                        @click="if(confirm('Are you sure you want to discard this draft? This action cannot be undone.')) { $wire.discard() }"
+                        class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="discard">Discard</span>
+                        <span wire:loading wire:target="discard">Discarding...</span>
+                    </button>
+                @endif
 
             @endif
 
@@ -176,7 +198,7 @@
 
             <!-- Pending Approval Actions (For Approver or Admin) -->
             @if(in_array($estimate->approval_status, ['waiting']) && $userApproval)
-                @if($estimate->estimate_status === \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin']))
+                @if($estimate->estimate_status === \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL || auth()->user()->hasPermission('approve_estimates'))
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->
                     <div x-data="{ 
@@ -1000,19 +1022,56 @@
                     <h3 class="text-base font-semibold text-slate-900 mb-4">Terms & Notes</h3>
                     <div class="space-y-8">
                         @if($estimate->client_note)
-                            <div class="prose prose-sm max-w-none">
+                            <div class="prose prose-sm max-w-none" x-data="{ expanded: false, isLong: false }" x-init="isLong = $refs.noteContainer.scrollHeight > 100">
                                 <h4 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 mb-4">Client Note
                                 </h4>
-                                <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                                    {{ $estimate->client_note }}</p>
+                                <div class="relative overflow-hidden transition-all duration-300" 
+                                     x-ref="noteContainer"
+                                     :style="expanded ? 'max-height: none;' : 'max-height: 100px;'">
+                                    <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                                        {{ $estimate->client_note }}</p>
+                                    
+                                    <!-- Fade Overlay -->
+                                    <div x-show="!expanded && isLong" 
+                                         class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none">
+                                    </div>
+                                </div>
+                                <div class="mt-2" x-show="isLong">
+                                    <button type="button" @click="expanded = !expanded" 
+                                            class="text-[10px] font-bold text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-colors flex items-center gap-1">
+                                        <span x-text="expanded ? 'Show Less' : 'Show Full Note'"></span>
+                                        <svg class="h-3 w-3 transition-transform duration-300" :class="expanded ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         @endif
                         @if($estimate->has_final_terms)
-                            <div class="prose prose-sm max-w-none">
+                            <div class="prose prose-sm max-w-none" x-data="{ expanded: false, isLong: false }" x-init="isLong = $refs.termsContainer.scrollHeight > 200">
                                 <h4 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 mb-4">Terms &
                                     Conditions</h4>
-                                <div class="text-sm text-slate-600 leading-relaxed">
-                                    {!! $estimate->final_terms_html !!}
+                                <div class="relative overflow-hidden transition-all duration-300" 
+                                     x-ref="termsContainer"
+                                     :style="expanded ? 'max-height: none;' : 'max-height: 200px;'">
+                                    <div class="text-sm text-slate-600 leading-relaxed">
+                                        {!! $estimate->final_terms_html !!}
+                                    </div>
+                                    
+                                    <!-- Fade Overlay -->
+                                    <div x-show="!expanded && isLong" 
+                                         class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none">
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-2 text-center" x-show="isLong">
+                                    <button type="button" @click="expanded = !expanded" 
+                                            class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-500 uppercase tracking-widest transition-colors py-2 px-4 rounded-full border border-indigo-100 hover:bg-indigo-50 shadow-sm">
+                                        <span x-text="expanded ? 'Show Less' : 'Read Full Terms'"></span>
+                                        <svg class="h-4 w-4 transition-transform duration-300" :class="expanded ? 'rotate-180' : ''" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         @endif

@@ -101,17 +101,20 @@ class ShowEstimate extends Component
         // Load decline reasons
         $this->declineReasons = DeclineReason::all();
 
-        // Check if current user is an approver
-        $this->userApproval = EstimateApproval::where('estimate_id', $this->estimate->id)
-            ->where('user_id', Auth::id())
-            ->where('status', 'pending')
-            ->first();
+        // Logic for showing approval buttons:
+        // 1. User must have 'approve_estimates' permission
+        // 2. Either they are an explicitly assigned pending approver, OR they are an admin/manager (override)
+        if (Auth::user()->hasPermission('approve_estimates')) {
+            // Check if explicitly assigned
+            $this->userApproval = EstimateApproval::where('estimate_id', $this->estimate->id)
+                ->where('user_id', Auth::id())
+                ->where('status', 'pending')
+                ->first();
 
-        // Admin Override: If user is admin and estimate is waiting, 
-        // they should see approval actions even if it's not their "turn" in the chain.
-        // We'll signal this to the blade but won't create a DB record here.
-        if (!$this->userApproval && Auth::user()->hasRole(['super_admin', 'admin', 'estimator_admin']) && $this->estimate->approval_status === Estimate::APP_STATUS_WAITING) {
-            $this->userApproval = true; // Temporary flag for Blade
+            // Handle Override: If not explicitly assigned but has permission to approve waiting estimates
+            if (!$this->userApproval && $this->estimate->approval_status === Estimate::APP_STATUS_WAITING) {
+                $this->userApproval = true; // Temporary flag for Blade
+            }
         }
 
         // Load activity logs for the entire estimate family
@@ -149,6 +152,13 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         $this->mount($this->estimate->id);
+    }
+
+    private function ensureNotLocked()
+    {
+        if ($this->estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL) {
+            throw new \Exception("This estimate is currently under internal approval and is locked.");
+        }
     }
 
     public function approve($comments = null)
@@ -224,6 +234,7 @@ class ShowEstimate extends Component
     {
         \Illuminate\Support\Facades\Log::info('createVersion triggered', ['estimate_id' => $this->estimate->id]);
         try {
+            $this->ensureNotLocked();
             DB::beginTransaction();
 
             $newEstimate = $estimateService->createVersion($this->estimate);
@@ -245,6 +256,7 @@ class ShowEstimate extends Component
     public function markAs($status)
     {
         try {
+            $this->ensureNotLocked();
             DB::beginTransaction();
 
             // Call the controller method for status change
@@ -325,6 +337,7 @@ class ShowEstimate extends Component
     public function revertToDraft()
     {
         try {
+            $this->ensureNotLocked();
             $response = app()->call([app(\App\Http\Controllers\EstimateController::class), 'revertToDraft'], ['estimate' => $this->estimate]);
             if ($response instanceof RedirectResponse)
                 return $response;
@@ -338,6 +351,7 @@ class ShowEstimate extends Component
     public function duplicateItem($itemId)
     {
         try {
+            $this->ensureNotLocked();
             $item = EstimateItem::findOrFail($itemId);
             app()->call([app(\App\Http\Controllers\EstimateController::class), 'duplicateItem'], ['item' => $item]);
             $this->refreshEstimate();

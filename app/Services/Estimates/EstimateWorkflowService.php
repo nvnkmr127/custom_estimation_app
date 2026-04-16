@@ -127,7 +127,7 @@ class EstimateWorkflowService
                 ->orderBy('order')
                 ->first();
 
-            $isAdmin = \App\Models\User::find($userId)?->hasRole(['super_admin', 'admin', 'estimator_admin']);
+            $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
             
             if (!$approval && !$isAdmin) {
                 // Check if it was already approved/acted upon to provide better feedback
@@ -231,7 +231,9 @@ class EstimateWorkflowService
                 ->where('status', 'pending')
                 ->first();
 
-            if (!$approval) {
+            $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
+
+            if (!$approval && !$isAdmin) {
                 $alreadyActed = $estimate->approvals()->where('user_id', $userId)->exists();
                 if ($alreadyActed) {
                     throw new \Exception("You have already acted on this estimate. Please refresh.");
@@ -270,7 +272,9 @@ class EstimateWorkflowService
                 ->where('status', 'pending')
                 ->first();
 
-            if (!$approval) {
+            $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
+
+            if (!$approval && !$isAdmin) {
                 throw new \Exception("No pending approval found for this user.");
             }
 
