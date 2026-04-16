@@ -13,7 +13,7 @@ class EstimateStateService
      * Define internal lifecycle transitions (Main Status).
      */
     protected array $estimateTransitions = [
-        Estimate::EST_STATUS_DRAFT => [Estimate::EST_STATUS_PENDING_APPROVAL],
+        Estimate::EST_STATUS_DRAFT => [Estimate::EST_STATUS_PENDING_APPROVAL, Estimate::EST_STATUS_APPROVED],
         Estimate::EST_STATUS_PENDING_APPROVAL => [Estimate::EST_STATUS_APPROVED, Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_DECLINED],
         Estimate::EST_STATUS_APPROVED => [Estimate::EST_STATUS_SENT],
         Estimate::EST_STATUS_SENT => [Estimate::EST_STATUS_ACCEPTED, Estimate::EST_STATUS_DECLINED, Estimate::EST_STATUS_EXPIRED],
@@ -109,7 +109,7 @@ class EstimateStateService
 
         // Admin Override
         $isAdmin = Auth::id()
-            ? \App\Models\User::find(Auth::id())?->hasRole(['super_admin', 'admin'])
+            ? \App\Models\User::find(Auth::id())?->hasRole(['super_admin', 'admin', 'estimator_admin'])
             : false;
 
         if (!in_array($newStatus, $allowed) && !$isAdmin && !($oldStatus === $newStatus && $force)) {

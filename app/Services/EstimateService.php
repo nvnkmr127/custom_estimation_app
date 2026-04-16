@@ -14,13 +14,16 @@ class EstimateService
 {
     private $dispatcher;
     private $stateService;
+    private $evaluator;
 
     public function __construct(
         \App\Core\Events\EventDispatcherInterface $dispatcher,
-        \App\Services\Estimates\EstimateStateService $stateService
+        \App\Services\Estimates\EstimateStateService $stateService,
+        \App\Services\Estimates\ApprovalChainEvaluator $evaluator
     ) {
         $this->dispatcher = $dispatcher;
         $this->stateService = $stateService;
+        $this->evaluator = $evaluator;
     }
 
     /**
@@ -644,7 +647,19 @@ class EstimateService
             try {
                 // Business Rule: Ensure estimate is approved before sending
                 if ($estimate->estimate_status !== Estimate::EST_STATUS_APPROVED && $estimate->estimate_status !== Estimate::EST_STATUS_SENT) {
-                    throw new \Exception('Estimate must be approved before it can be sent to the client.');
+                    
+                    // Allow auto-approval for drafts that do not require a chain
+                    if ($estimate->estimate_status === Estimate::EST_STATUS_DRAFT) {
+                        $chain = $this->evaluator->evaluate($estimate);
+                        if (!$chain) {
+                            $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_APPROVED);
+                            $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_APPROVED);
+                        } else {
+                            throw new \Exception('Estimate must be approved before it can be sent to the client.');
+                        }
+                    } else {
+                        throw new \Exception('Estimate must be approved before it can be sent to the client.');
+                    }
                 }
 
                 // Perform Transition via StateService
