@@ -82,56 +82,150 @@
         </div>
     @endif
     
-    <!-- Locked Status Banner -->
-    @if($policy['is_locked'] ?? false)
-        <div class="mb-6 rounded-lg bg-amber-50 border-l-4 border-amber-400 p-4 shadow-sm ring-1 ring-amber-100">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+    <!-- Guidance & Next Actions Panel -->
+    <div class="mb-6 rounded-xl bg-indigo-50 border border-indigo-100 p-4 shadow-sm">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 mt-1">
+                <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
-                <div class="ml-3">
-                    <p class="text-sm font-medium text-amber-800">
-                        {{ $policy['lock_reason'] ?? 'This estimate is currently under internal approval and is locked. Editing and deletion are disabled.' }}
+            </div>
+            <div class="flex-grow">
+                <h3 class="text-sm font-semibold text-indigo-900">System Guidance</h3>
+                <p class="mt-1 text-sm text-indigo-700 leading-relaxed">
+                    {{ $policy['guidance'] }}
+                </p>
+                <div class="mt-3 flex items-center gap-3">
+                    @if($policy['next_step_label'] ?? false)
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-600 text-white">
+                            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Recommended Next Step: {{ $policy['next_step_label'] }}
+                        </span>
+                    @endif
+                    
+                    @if($policy['is_locked'])
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-100 text-amber-700">
+                            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                            </svg>
+                            Editing Locked
+                        </span>
+                    @endif
+                </div>
+            </div>
+            @if($policy['can_submit'])
+                <div class="flex-shrink-0 self-center">
+                    <button wire:click="submitForApproval" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm transition-all active:scale-95">
+                        Submit Now
+                    </button>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    @if($versionMismatch)
+        <div class="mb-6 rounded-xl bg-red-50 border border-red-200 p-5 shadow-sm">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg class="h-6 w-6 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-red-900 uppercase tracking-tight">Review Required: Critical Content Modification</h3>
+                    <p class="mt-1 text-sm text-red-700 leading-relaxed">
+                        This estimate's content was modified <strong>after</strong> the internal approval was requested. 
+                        The system has identified a version mismatch between the approval snapshot and the current draft.
                     </p>
+                    <div class="mt-3">
+                        <p class="text-xs text-red-600 font-semibold border-t border-red-100 pt-2">
+                            Action: Please review the entire line item list below before granting authorization.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
     @endif
 
-    <!-- Header & Toolbar -->
-    <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="sm:flex-auto">
-            <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Estimate
-                    {{ $estimate->estimate_number }}
-                </h1>
-                <x-estimate-status-badge :status="$estimate->status" />
-                @if($estimate->approval_status && $estimate->approval_status !== 'not_required')
+    <!-- Workflow Visibility (Timeline) -->
+    @if($estimate->approvalChain || $estimate->approvals()->exists())
+        <div class="mb-8 border-b border-slate-200 pb-6">
+            <nav aria-label="Progress">
+                <ol role="list" class="flex flex-wrap items-center gap-y-4">
                     @php
-                        $approvalLabels = [
-                            'waiting' => 'Pending Approval',
-                            'approved' => 'Internally Approved',
-                            'rejected' => 'Rejected',
-                            'changes_requested' => 'Changes Requested',
-                        ];
+                        $steps = $estimate->approvalChain?->steps ?? collect();
+                        $totalSteps = $steps->count();
+                        $completedApprovals = $estimate->approvals()->where('status', 'approved')->pluck('user_id')->toArray();
                     @endphp
-                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                            @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
-                                                                            @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
-                                                                            @elseif($estimate->approval_status === 'waiting') bg-yellow-50 text-yellow-700 ring-yellow-700/10
-                                                                            @elseif($estimate->approval_status === 'changes_requested') bg-amber-50 text-amber-700 ring-amber-600/20
-                                                                            @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                                            @endif">
-                        {{ $approvalLabels[$estimate->approval_status] ?? ucfirst(str_replace('_', ' ', $estimate->approval_status)) }}
-                    </span>
-                @endif
-            </div>
 
+                    <!-- Draft State -->
+                    <li class="relative flex items-center pr-8 sm:pr-20 group">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 {{ $estimate->status !== 'draft' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-indigo-600' }}">
+                            @if($estimate->status !== 'draft')
+                                <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                </svg>
+                            @else
+                                <span class="text-indigo-600 font-bold text-sm">1</span>
+                            @endif
+                        </div>
+                        <div class="ml-4 text-sm font-medium {{ $estimate->status !== 'draft' ? 'text-indigo-900' : 'text-indigo-600' }}">Draft</div>
+                        <div class="absolute right-0 top-4 h-0.5 w-full bg-slate-200" style="width: calc(100% - 2rem)"></div>
+                    </li>
+
+                    @foreach($steps as $index => $step)
+                        @php
+                            $stepUsers = $step->approvers->pluck('id')->toArray();
+                            $isDone = count(array_intersect($stepUsers, $completedApprovals)) > 0;
+                            $isCurrent = $estimate->estimate_status === 'pending_approval' && !$isDone && 
+                                        ($index === 0 || count(array_intersect($steps[$index-1]->approvers->pluck('id')->toArray(), $completedApprovals)) > 0);
+                        @endphp
+                        <li class="relative flex items-center pr-8 sm:pr-20">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 
+                                {{ $isDone ? 'bg-indigo-600 border-indigo-600' : ($isCurrent ? 'bg-white border-indigo-600 ring-4 ring-indigo-50' : 'bg-white border-slate-300') }}">
+                                @if($isDone)
+                                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                    </svg>
+                                @else
+                                    <span class="{{ $isCurrent ? 'text-indigo-600' : 'text-slate-500' }} font-bold text-sm">{{ $index + 2 }}</span>
+                                @endif
+                            </div>
+                            <div class="ml-4 text-sm font-medium {{ $isDone ? 'text-indigo-900' : ($isCurrent ? 'text-indigo-600' : 'text-slate-500') }}">
+                                {{ $step->name }}
+                            </div>
+                            @if(!$loop->last)
+                                <div class="absolute right-0 top-4 h-0.5 w-full bg-slate-200" style="width: calc(100% - 2rem)"></div>
+                            @endif
+                        </li>
+                    @endforeach
+
+                    <!-- Final State -->
+                    <li class="flex items-center">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 
+                            {{ in_array($estimate->status, ['approved', 'sent', 'accepted']) ? 'bg-green-600 border-green-600' : 'bg-white border-slate-300' }}">
+                            @if(in_array($estimate->status, ['approved', 'sent', 'accepted']))
+                                <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                </svg>
+                            @else
+                                <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            @endif
+                        </div>
+                        <div class="ml-4 text-sm font-medium {{ in_array($estimate->status, ['approved', 'sent', 'accepted']) ? 'text-green-900' : 'text-slate-500' }}">Approved</div>
+                    </li>
+                </ol>
+            </nav>
         </div>
-
-        <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">
+    @endif
             <!-- Primary Actions -->
             @if($estimate->is_current_version)
                 @if($policy['can_edit'] ?? false)
@@ -211,7 +305,7 @@
                             </button>
                             <div x-show="open" @click.outside="open = false"
                                 class="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 z-20 p-4 text-left">
-                                <h3 class="font-semibold text-gray-900 mb-3">Approval Checklist</h3>
+                                 <h3 class="font-semibold text-gray-900 mb-3">Approval Checklist</h3>
                                 <div class="space-y-2 mb-4 max-h-48 overflow-y-auto">
                                     @foreach($checklists as $item)
                                         <label class="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">

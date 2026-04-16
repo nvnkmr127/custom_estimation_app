@@ -140,6 +140,23 @@ class EstimateStateService
         // 5. Delete Phase
         $canDelete = $rules['can_delete'] && ($isPowerUser || $user->id === $estimate->created_by);
 
+        // 6. Guidance Logic
+        $guidance = match ($status) {
+            Estimate::EST_STATUS_DRAFT => "This estimate is in draft. Once finalized, submit it for internal approval.",
+            Estimate::EST_STATUS_PENDING_APPROVAL => "This estimate is awaiting internal authorization. You can track progress in the timeline below.",
+            Estimate::EST_STATUS_APPROVED => "Internal approval complete. You can now send this estimate to the client.",
+            Estimate::EST_STATUS_SENT => "The estimate has been sent to the client. Keep an eye on the analytics for views.",
+            Estimate::EST_STATUS_ACCEPTED => "Client has accepted! You can now proceed with fulfillent.",
+            Estimate::EST_STATUS_DECLINED => "The estimate was declined. You may want to create a new version to address feedback.",
+            Estimate::EST_STATUS_EXPIRED => "This estimate has expired. You can extend the expiry or create a new version.",
+            default => "Unknown state."
+        };
+
+        // Specific Guidance Overlay
+        if ($status === Estimate::EST_STATUS_DRAFT && ($estimate->approval_status === Estimate::APP_STATUS_CHANGES_REQUESTED)) {
+            $guidance = "Changes were requested. Please update the items and resubmit for approval.";
+        }
+
         return array_merge($rules, [
             'can_edit' => $canEdit,
             'can_approve' => $canApprove,
@@ -147,7 +164,15 @@ class EstimateStateService
             'can_send' => $canSend,
             'can_delete' => $canDelete,
             'is_locked' => $status === Estimate::EST_STATUS_PENDING_APPROVAL,
-            'lock_reason' => ($status === Estimate::EST_STATUS_PENDING_APPROVAL) ? "This estimate is currently under internal approval." : null
+            'lock_reason' => ($status === Estimate::EST_STATUS_PENDING_APPROVAL) ? "This estimate is currently under internal approval." : null,
+            'guidance' => $guidance,
+            'next_step_label' => match ($status) {
+                Estimate::EST_STATUS_DRAFT => 'Submit for Approval',
+                Estimate::EST_STATUS_APPROVED => 'Send to Client',
+                Estimate::EST_STATUS_SENT => 'Wait for Client',
+                Estimate::EST_STATUS_DECLINED => 'Create New Revision',
+                default => null
+            }
         ]);
     }
 

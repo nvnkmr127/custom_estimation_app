@@ -27,6 +27,7 @@ class ShowEstimate extends Component
     public $diff;
     public $activityLogs;
     public $policy;
+    public $versionMismatch = false;
 
     protected $listeners = [
         'estimateUpdated' => 'refreshEstimate',
@@ -115,6 +116,13 @@ class ShowEstimate extends Component
             // Handle Admin/Manager Override visibility
             if (!$this->userApproval && Auth::user()->hasPermission('approve_estimates')) {
                 $this->userApproval = true; 
+            }
+            
+            // Version Awareness Logic
+            if ($this->userApproval && $this->userApproval !== true) {
+                if ($this->userApproval->snapshot_version !== (int)$this->estimate->lock_version) {
+                    $this->versionMismatch = true;
+                }
             }
         }
 
