@@ -153,32 +153,38 @@
         </div>
     @endif
 
-    <!-- Workflow Visibility (Timeline) -->
+    <!-- Workflow Visibility (Premium Timeline) -->
     @if($estimate->approvalChain || $estimate->approvals()->exists())
-        <div class="mb-8 border-b border-slate-200 pb-6">
-            <nav aria-label="Progress">
-                <ol role="list" class="flex flex-wrap items-center gap-y-4">
+        <div class="mb-12">
+            <div class="relative">
+                <!-- Background Progress Line -->
+                <div class="absolute top-5 left-0 w-full h-0.5 bg-slate-100 -z-0"></div>
+                
+                <div class="relative flex justify-between items-start">
                     @php
                         $steps = $estimate->approvalChain?->steps ?? collect();
                         $totalSteps = $steps->count();
-                        $completedApprovals = $estimate->approvals()->where('status', 'approved')->pluck('user_id')->toArray();
                     @endphp
 
-                    <!-- Draft State -->
-                    <li class="relative flex items-center pr-8 sm:pr-20 group">
-                        <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 {{ $estimate->status !== 'draft' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-indigo-600' }}">
+                    <!-- Step 1: Draft -->
+                    <div class="flex flex-col items-center group relative z-10 w-32">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-300
+                            {{ $estimate->status !== 'draft' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-indigo-600 ring-4 ring-indigo-50' }}">
                             @if($estimate->status !== 'draft')
-                                <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                                 </svg>
                             @else
-                                <span class="text-indigo-600 font-bold text-sm">1</span>
+                                <span class="text-indigo-600 font-bold">1</span>
                             @endif
                         </div>
-                        <div class="ml-4 text-sm font-medium {{ $estimate->status !== 'draft' ? 'text-indigo-900' : 'text-indigo-600' }}">Draft</div>
-                        <div class="absolute right-0 top-4 h-0.5 w-full bg-slate-200" style="width: calc(100% - 2rem)"></div>
-                    </li>
+                        <div class="mt-3 text-center">
+                            <span class="block text-xs font-bold uppercase tracking-wider {{ $estimate->status !== 'draft' ? 'text-indigo-900' : 'text-indigo-600' }}">Draft</span>
+                            <span class="block text-[10px] text-slate-500 mt-0.5">Created</span>
+                        </div>
+                    </div>
 
+                    <!-- Approval Steps -->
                     @foreach($steps as $index => $step)
                         @php
                             $approval = $estimate->approvals()
@@ -190,48 +196,60 @@
                             $isCurrent = $estimate->status === 'pending_approval' && !$isDone && !$isRejected && 
                                         ($index === 0 || $estimate->approvals()->where('approval_chain_step_id', $steps[$index-1]->id)->where('status', 'approved')->exists());
                         @endphp
-                        <li class="relative flex items-center pr-8 sm:pr-20">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 
-                                {{ $isDone ? 'bg-indigo-600 border-indigo-600' : ($isRejected ? 'bg-red-600 border-red-600' : ($isCurrent ? 'bg-white border-indigo-600 ring-4 ring-indigo-50' : 'bg-white border-slate-300')) }}">
+                        
+                        <div class="flex flex-col items-center group relative z-10 w-32">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-300
+                                {{ $isDone ? 'bg-indigo-600 border-indigo-600' : 
+                                   ($isRejected ? 'bg-red-600 border-red-600' : 
+                                   ($isCurrent ? 'bg-white border-indigo-600 ring-4 ring-indigo-50 animate-pulse' : 'bg-white border-slate-200')) }}">
                                 @if($isDone)
-                                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                                     </svg>
                                 @elseif($isRejected)
-                                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                                     </svg>
                                 @else
-                                    <span class="{{ $isCurrent ? 'text-indigo-600' : 'text-slate-500' }} font-bold text-sm">{{ $index + 2 }}</span>
+                                    <span class="{{ $isCurrent ? 'text-indigo-600' : 'text-slate-400' }} font-bold">{{ $index + 2 }}</span>
                                 @endif
                             </div>
-                            <div class="ml-4 text-sm font-medium {{ $isDone ? 'text-indigo-900' : ($isRejected ? 'text-red-900' : ($isCurrent ? 'text-indigo-600' : 'text-slate-500')) }}">
-                                {{ $step->name }}
+                            <div class="mt-3 text-center">
+                                <span class="block text-xs font-bold uppercase tracking-wider {{ ($isDone || $isCurrent) ? 'text-indigo-900' : ($isRejected ? 'text-red-900' : 'text-slate-400') }}">
+                                    {{ $step->name }}
+                                </span>
+                                <span class="block text-[10px] text-slate-500 mt-0.5">Internal Review</span>
                             </div>
-                            @if(!$loop->last)
-                                <div class="absolute right-0 top-4 h-0.5 w-full bg-slate-200" style="width: calc(100% - 2rem)"></div>
+
+                            @if($isDone && $approval->updated_at)
+                                <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 w-max opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-slate-900 text-white text-[10px] py-1 px-2 rounded">
+                                    Approved by {{ $approval->user->name }} on {{ $approval->updated_at->format('M j, Y') }}
+                                </div>
                             @endif
-                        </li>
+                        </div>
                     @endforeach
 
-                    <!-- Final State -->
-                    <li class="flex items-center">
-                        <div class="flex h-8 w-8 items-center justify-center rounded-full border-2 
-                            {{ in_array($estimate->status, ['approved', 'sent', 'accepted']) ? 'bg-green-600 border-green-600' : 'bg-white border-slate-300' }}">
+                    <!-- Final State: Approved -->
+                    <div class="flex flex-col items-center group relative z-10 w-32">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm
+                            {{ in_array($estimate->status, ['approved', 'sent', 'accepted']) ? 'bg-green-600 border-green-600' : 'bg-white border-slate-200' }}">
                             @if(in_array($estimate->status, ['approved', 'sent', 'accepted']))
-                                <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                                 </svg>
                             @else
-                                <svg class="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <svg class="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             @endif
                         </div>
-                        <div class="ml-4 text-sm font-medium {{ in_array($estimate->status, ['approved', 'sent', 'accepted']) ? 'text-green-900' : 'text-slate-500' }}">Approved</div>
-                    </li>
-                </ol>
-            </nav>
+                        <div class="mt-3 text-center">
+                            <span class="block text-xs font-bold uppercase tracking-wider {{ in_array($estimate->status, ['approved', 'sent', 'accepted']) ? 'text-green-900' : 'text-slate-400' }}">Finalized</span>
+                            <span class="block text-[10px] text-slate-500 mt-0.5">Internal Approval</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     @endif
     <!-- Header & Toolbar -->
