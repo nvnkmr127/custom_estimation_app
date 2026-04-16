@@ -520,6 +520,7 @@ class Estimate extends Model
                     'order' => $order,
                     'approval_chain_step_id' => $step->id,
                     'status' => 'pending',
+                    'snapshot_version' => $this->lock_version, // Bind approval to specific content state
                 ]);
                 $createdApprovals->push($approval);
             }

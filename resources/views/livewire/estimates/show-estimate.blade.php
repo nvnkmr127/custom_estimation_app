@@ -133,24 +133,16 @@
 
         <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">
             <!-- Primary Actions -->
-            @php
-                $canEditOrSubmit = in_array($estimate->status, ['draft', 'declined', 'rejected']) ||
-                    (in_array($estimate->status, ['waiting_approval', 'approved']) && $estimate->client_status !== 'sent');
-            @endphp
-            @if($canEditOrSubmit && $estimate->is_current_version)
-                @if($estimate->estimate_status !== \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL)
-                    @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin']))
-
-                        <a href="{{ route('estimates.edit', $estimate) }}"
-                            wire:loading.attr="disabled"
-                            class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
-                            Edit
-                        </a>
-
-                    @endif
+            @if($estimate->is_current_version)
+                @if($policy['can_edit'] ?? false)
+                    <a href="{{ route('estimates.edit', $estimate) }}"
+                        wire:loading.attr="disabled"
+                        class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
+                        Edit
+                    </a>
                 @endif
 
-                @if(in_array($estimate->approval_status, [\App\Models\Estimate::APP_STATUS_NOT_REQUIRED, \App\Models\Estimate::APP_STATUS_CHANGES_REQUESTED]))
+                @if($policy['can_submit'] ?? false)
                     <button type="button" 
                         wire:click="submitForApproval"
                         wire:loading.attr="disabled"
@@ -163,7 +155,7 @@
                     </button>
                 @endif
 
-                @if($estimate->status === 'draft' && ($estimate->approval_status === \App\Models\Estimate::APP_STATUS_NOT_REQUIRED || $estimate->approval_status === \App\Models\Estimate::APP_STATUS_APPROVED))
+                @if($policy['can_send'] ?? false)
                     <button type="button" 
                         wire:click="sendToClient"
                         wire:loading.attr="disabled"
@@ -175,7 +167,7 @@
                 @endif
 
                 <!-- Discard Draft -->
-                @if($estimate->estimate_status !== \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL)
+                @if($policy['can_delete'] ?? false)
                     <button type="button"
                         wire:loading.attr="disabled"
                         wire:target="discard"
@@ -185,7 +177,6 @@
                         <span wire:loading wire:target="discard">Discarding...</span>
                     </button>
                 @endif
-
             @endif
 
             <!-- Approved Actions -->
@@ -197,8 +188,8 @@
             @endif
 
             <!-- Pending Approval Actions (For Approver or Admin) -->
-            @if(in_array($estimate->approval_status, ['waiting']) && $userApproval)
-                @if($estimate->estimate_status === \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL || auth()->user()->hasPermission('approve_estimates'))
+            @if(($policy['can_approve'] ?? false) && $userApproval)
+                @if($policy['can_approve'] || auth()->user()->hasPermission('approve_estimates'))
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->
                     <div x-data="{ 

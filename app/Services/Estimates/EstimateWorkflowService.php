@@ -28,11 +28,10 @@ class EstimateWorkflowService
      */
     public function submitForApproval(Estimate $estimate): Estimate
     {
+        // 0. Central Policy Check (Single Source of Truth)
+        $this->stateService->validateAction($estimate, 'can_submit');
+
         // 1. Validate State
-        // estimate_status must be 'draft' AND approval_status must be 'not_required' or 'changes_requested'
-        if ($estimate->estimate_status !== Estimate::EST_STATUS_DRAFT) {
-            throw new \Exception("Only estimates in draft status can be submitted for approval (current: {$estimate->estimate_status}).");
-        }
 
         if (!in_array($estimate->approval_status, [Estimate::APP_STATUS_NOT_REQUIRED, Estimate::APP_STATUS_CHANGES_REQUESTED])) {
             throw new \Exception("Estimate approval workflow is already active or completed (approval_status: {$estimate->approval_status}). Cannot re-submit.");
@@ -106,7 +105,9 @@ class EstimateWorkflowService
     public function approve(Estimate $estimate, int $userId, ?string $comments = null): Estimate
     {
         return DB::transaction(function () use ($estimate, $userId, $comments) {
+            // Re-lock and validate current state
             $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
+            $this->stateService->validateAction($estimate, 'can_approve');
 
             $requiredChecklistIds = \App\Models\ApprovalChecklist::where('is_required', true)->pluck('id');
             if ($requiredChecklistIds->isNotEmpty()) {
@@ -126,6 +127,11 @@ class EstimateWorkflowService
                 ->where('status', 'pending')
                 ->orderBy('order')
                 ->first();
+
+            // DATA INTEGRITY: Verify the approval is for the CURRENT version of the content
+            if ($approval && $approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
+                throw new \Exception("The estimate content has changed since this approval was requested. Please refresh and review the latest version.");
+            }
 
             $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
             
@@ -225,11 +231,16 @@ class EstimateWorkflowService
     {
         return DB::transaction(function () use ($estimate, $userId, $comments) {
             $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
+            $this->stateService->validateAction($estimate, 'can_approve');
 
             $approval = $estimate->approvals()
                 ->where('user_id', $userId)
                 ->where('status', 'pending')
                 ->first();
+
+            if ($approval && $approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
+                throw new \Exception("The estimate content has changed. Review the latest version before rejecting.");
+            }
 
             $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
 
@@ -266,11 +277,16 @@ class EstimateWorkflowService
     {
         return DB::transaction(function () use ($estimate, $userId, $comments) {
             $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
+            $this->stateService->validateAction($estimate, 'can_approve');
 
             $approval = $estimate->approvals()
                 ->where('user_id', $userId)
                 ->where('status', 'pending')
                 ->first();
+
+            if ($approval && $approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
+                throw new \Exception("The estimate content has changed. Review the latest version before requesting changes.");
+            }
 
             $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
 

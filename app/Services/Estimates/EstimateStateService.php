@@ -46,6 +46,95 @@ class EstimateStateService
     ];
 
     /**
+     * Define central policy rules for each state.
+     * This is the SINGLE SOURCE OF TRUTH for UI and Backend.
+     */
+    protected array $statePolicy = [
+        Estimate::EST_STATUS_DRAFT => [
+            'can_edit' => true,
+            'can_delete' => true,
+            'can_approve' => false,
+            'can_submit' => true,
+            'next_states' => [Estimate::EST_STATUS_PENDING_APPROVAL, Estimate::EST_STATUS_APPROVED],
+        ],
+        Estimate::EST_STATUS_PENDING_APPROVAL => [
+            'can_edit' => false,
+            'can_delete' => false,
+            'can_approve' => true,
+            'can_submit' => false,
+            'next_states' => [Estimate::EST_STATUS_APPROVED, Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_DECLINED],
+        ],
+        Estimate::EST_STATUS_APPROVED => [
+            'can_edit' => false, // Editing an approved estimate requires branching (handled by Service)
+            'can_delete' => true,
+            'can_approve' => false,
+            'can_submit' => false,
+            'can_send' => true,
+            'next_states' => [Estimate::EST_STATUS_SENT],
+        ],
+        Estimate::EST_STATUS_SENT => [
+            'can_edit' => false,
+            'can_delete' => false,
+            'can_approve' => false,
+            'can_submit' => false,
+            'can_send' => true, // Resend allowed
+            'next_states' => [Estimate::EST_STATUS_ACCEPTED, Estimate::EST_STATUS_DECLINED, Estimate::EST_STATUS_EXPIRED],
+        ],
+        Estimate::EST_STATUS_ACCEPTED => [
+            'can_edit' => false,
+            'can_delete' => false,
+            'can_approve' => false,
+            'can_submit' => false,
+            'next_states' => [],
+        ],
+        Estimate::EST_STATUS_DECLINED => [
+            'can_edit' => false,
+            'can_delete' => true,
+            'can_approve' => false,
+            'can_submit' => false,
+            'next_states' => [],
+        ],
+        Estimate::EST_STATUS_EXPIRED => [
+            'can_edit' => false,
+            'can_delete' => true,
+            'can_approve' => false,
+            'can_submit' => false,
+            'next_states' => [Estimate::EST_STATUS_SENT],
+        ],
+    ];
+
+    /**
+     * Get the policy for a specific estimate.
+     */
+    public function getPolicy(Estimate $estimate): array
+    {
+        return $this->statePolicy[$estimate->estimate_status] ?? [
+            'can_edit' => false,
+            'can_delete' => false,
+            'can_approve' => false,
+            'can_submit' => false,
+            'next_states' => [],
+        ];
+    }
+
+    /**
+     * Strongly validate if an action is allowed for the estimate's current state.
+     */
+    public function validateAction(Estimate $estimate, string $action): void
+    {
+        $policy = $this->getPolicy($estimate);
+        
+        // Admin Override for safety
+        $isAdmin = Auth::id()
+            ? \App\Models\User::find(Auth::id())?->hasRole(['super_admin', 'admin'])
+            : false;
+
+        if (!($policy[$action] ?? false) && !$isAdmin) {
+            throw new \InvalidArgumentException("Action '{$action}' is not allowed for the current estimate state: '{$estimate->estimate_status}'.");
+        }
+    }
+
+    /**
      * Transition the estimate lifecycle status.
      *
      * @param Estimate $estimate
@@ -117,8 +206,12 @@ class EstimateStateService
         }
 
         $result = DB::transaction(function () use ($estimate, $field, $newStatus, $oldStatus, $force, $extraData) {
-            // Lock the record
+            // Lock the record for Atomic update
             $lockedEstimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
+
+            // CONCURRENCY PROTECTION: Increment lock_version on every state transition
+            // This invalidates any stale views or simultaneous approval attempts.
+            $lockedEstimate->lock_version += 1;
 
             // Update Field
             $lockedEstimate->{$field} = $newStatus;
@@ -127,9 +220,6 @@ class EstimateStateService
             if (!empty($extraData)) {
                 $lockedEstimate->fill($extraData);
             }
-
-            unset($lockedEstimate->{$field});
-            $lockedEstimate->{$field} = $newStatus;
 
             // Side Effects: Auto-update timestamps
             $this->applyTimestampSideEffects($lockedEstimate, $field, $newStatus);
@@ -146,18 +236,28 @@ class EstimateStateService
                     'field' => $field,
                     'old_status' => $oldStatus,
                     'new_status' => $newStatus,
-                    'forced' => $force
+                    'forced' => $force,
+                    'new_lock_version' => $lockedEstimate->lock_version
                 ]
             );
 
             return $lockedEstimate;
         });
 
-        // Refresh the original object from the database to ensure all side effects 
-        // (timestamps, automatic state changes) are perfectly synchronized.
+        // Refresh the original object from the database
         $estimate->refresh();
 
         return $estimate;
+    }
+
+    /**
+     * Manually increment the lock version. 
+     * Useful for non-status changes that should still invalidate current approvals (e.g. content edits).
+     */
+    public function incrementLockVersion(Estimate $estimate): void
+    {
+        DB::table('estimates')->where('id', $estimate->id)->increment('lock_version');
+        $estimate->refresh();
     }
 
     /**

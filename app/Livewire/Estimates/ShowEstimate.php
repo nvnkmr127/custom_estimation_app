@@ -26,6 +26,7 @@ class ShowEstimate extends Component
     public $userApproval;
     public $diff;
     public $activityLogs;
+    public $policy;
 
     protected $listeners = [
         'estimateUpdated' => 'refreshEstimate',
@@ -124,6 +125,9 @@ class ShowEstimate extends Component
             ->with(['user', 'subject'])
             ->latest()
             ->get();
+
+        // Load dynamic policy from central state service
+        $this->policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($this->estimate);
     }
 
     public function refreshStats()
@@ -154,10 +158,12 @@ class ShowEstimate extends Component
         $this->mount($this->estimate->id);
     }
 
-    private function ensureNotLocked()
+    private function ensureNotLocked($action = 'can_edit')
     {
-        if ($this->estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL) {
-            throw new \Exception("This estimate is currently under internal approval and is locked.");
+        try {
+            app(\App\Services\Estimates\EstimateStateService::class)->validateAction($this->estimate, $action);
+        } catch (\InvalidArgumentException $e) {
+            throw new \Exception($e->getMessage());
         }
     }
 
@@ -509,6 +515,8 @@ class ShowEstimate extends Component
 
     public function render()
     {
-        return view('livewire.estimates.show-estimate');
+        return view('livewire.estimates.show-estimate', [
+            'policy' => $this->policy
+        ]);
     }
 }

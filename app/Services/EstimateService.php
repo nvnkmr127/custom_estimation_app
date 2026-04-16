@@ -136,9 +136,17 @@ class EstimateService
      */
     public function updateEstimate(Estimate $estimate, array $data, array $sections, array $items, string $type, bool $forceBranch = false, array $deletedSections = [], array $deletedItems = []): Estimate
     {
-        // BUSINESS RULE: Lock estimates in pending_approval state
-        if ($estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL) {
-            throw new \Exception("This estimate is currently under internal approval and cannot be modified.");
+        // BUSINESS RULE: Centralized Policy Check
+        // If it fails here, the operation is blocked at the service level regardless of UI state.
+        try {
+            $this->stateService->validateAction($estimate, 'can_edit');
+        } catch (\InvalidArgumentException $e) {
+            // Check if we can branch instead (Soft Lock)
+            $isFinalized = !in_array($estimate->estimate_status, [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_PENDING_APPROVAL]);
+            if (!$isFinalized && !$forceBranch) {
+                throw $e;
+            }
+            // If finalized or forceBranch is true, the code below will handle branching.
         }
 
         DB::beginTransaction();
@@ -279,6 +287,11 @@ class EstimateService
 
             $this->recalculateTotals($estimate);
             $estimateChanges = array_merge($estimateChanges, $estimate->getChanges());
+
+            // CONCURRENCY PROTECTION: Increment lock_version on update to invalidate current approval requests
+            if (!$isBranched) {
+                $this->stateService->incrementLockVersion($estimate);
+            }
 
             if ($isBranched) {
                 ActivityLog::log('created_proposal', $estimate, "Created revision v{$estimate->version} from locked/shared estimate {$originalNumber}.");
@@ -653,21 +666,10 @@ class EstimateService
 
         DB::transaction(function () use ($estimate) {
             try {
-                // Business Rule: Ensure estimate is approved before sending
-                if ($estimate->estimate_status !== Estimate::EST_STATUS_APPROVED && $estimate->estimate_status !== Estimate::EST_STATUS_SENT) {
-                    
-                    // Allow auto-approval for drafts that do not require a chain
-                    if ($estimate->estimate_status === Estimate::EST_STATUS_DRAFT) {
-                        $this->workflowService->submitForApproval($estimate);
+                // Business Rule: Ensure estimate is allowed to be sent
+                $this->stateService->validateAction($estimate, 'can_send');
 
-                        // If after submission it's still not approved, it means it's now pending internal approval
-                        if ($estimate->estimate_status !== Estimate::EST_STATUS_APPROVED) {
-                            throw new \Exception('Estimate requires internal approval before it can be sent to the client.');
-                        }
-                    } else {
-                        throw new \Exception('Estimate must be fully approved before it can be sent to the client.');
-                    }
-                }
+                // Perform Transition via StateService
 
                 // Perform Transition via StateService
                 // Use 'force' to allow resending (which resets sent_at and expires_at)
@@ -751,10 +753,8 @@ class EstimateService
      */
     public function deleteEstimate(Estimate $estimate): void
     {
-        // BUSINESS RULE: Lock estimates in pending_approval state
-        if ($estimate->estimate_status === Estimate::EST_STATUS_PENDING_APPROVAL) {
-            throw new \Exception("This estimate is currently under internal approval and cannot be deleted.");
-        }
+        // BUSINESS RULE: Centralized Policy Check
+        $this->stateService->validateAction($estimate, 'can_delete');
 
         DB::transaction(function () use ($estimate) {
             $estimateNumber = $estimate->estimate_number;

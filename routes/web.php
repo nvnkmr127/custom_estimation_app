@@ -294,6 +294,19 @@ Route::any('/catch/{uuid}', [App\Http\Controllers\WebhookController::class, 'cat
 Route::post('/webhooks/{provider}', [App\Http\Controllers\WebhookController::class, 'handle'])->name('webhooks.handle');
 
 
+// Local Development Autologin
+if (app()->environment('local')) {
+    Route::get('/dev/login/{id?}', function ($id = null) {
+        $user = $id ? \App\Models\User::find($id) : \App\Models\User::where('role', 'super_admin')->first() ?? \App\Models\User::first();
+
+        if ($user) {
+            auth()->login($user);
+            return redirect()->route('dashboard')->with('success', "Logged in as {$user->name} ({$user->role})");
+        }
+        return "No user found to autologin. Please run migrations/seeders.";
+    })->name('dev.login');
+}
+
 require __DIR__ . '/auth.php';
 
 
