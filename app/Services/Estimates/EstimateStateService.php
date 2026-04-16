@@ -104,17 +104,51 @@ class EstimateStateService
     ];
 
     /**
-     * Get the policy for a specific estimate.
+     * Get the dynamic policy for a specific estimate and user.
+     * This combines STATE constraints and ROLE permissions.
      */
-    public function getPolicy(Estimate $estimate): array
+    public function getPolicy(Estimate $estimate, ?\App\Models\User $user = null): array
     {
-        return $this->statePolicy[$estimate->estimate_status] ?? [
+        $user = $user ?? Auth::user();
+        if (!$user) return [];
+
+        $status = $estimate->estimate_status;
+        $rules = $this->statePolicy[$status] ?? [
             'can_edit' => false,
             'can_delete' => false,
             'can_approve' => false,
             'can_submit' => false,
+            'can_send' => false,
             'next_states' => [],
         ];
+
+        // Role-Based Overlays
+        // 1. Super Admin / Admin can do almost anything (but still respects critical state locks like 'declined' if wanted)
+        $isPowerUser = $user->hasRole(['super_admin', 'admin', 'estimator_admin']);
+
+        // 2. Draft Phase
+        $canEdit = $rules['can_edit'] && ($isPowerUser || $user->id === $estimate->created_by);
+        
+        // 3. Approval Phase
+        // can_approve is true if state allows it AND user is either an admin OR explicitly assigned to a pending approval
+        $isAssigned = $estimate->approvals()->where('user_id', $user->id)->where('status', 'pending')->exists();
+        $canApprove = $rules['can_approve'] && ($isPowerUser || $isAssigned);
+
+        // 4. Send Phase
+        $canSend = ($rules['can_send'] ?? false) && ($isPowerUser || $user->hasPermission('send_estimates'));
+
+        // 5. Delete Phase
+        $canDelete = $rules['can_delete'] && ($isPowerUser || $user->id === $estimate->created_by);
+
+        return array_merge($rules, [
+            'can_edit' => $canEdit,
+            'can_approve' => $canApprove,
+            'can_submit' => $rules['can_submit'] && ($isPowerUser || $user->id === $estimate->created_by),
+            'can_send' => $canSend,
+            'can_delete' => $canDelete,
+            'is_locked' => $status === Estimate::EST_STATUS_PENDING_APPROVAL,
+            'lock_reason' => ($status === Estimate::EST_STATUS_PENDING_APPROVAL) ? "This estimate is currently under internal approval." : null
+        ]);
     }
 
     /**

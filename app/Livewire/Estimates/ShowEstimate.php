@@ -102,32 +102,27 @@ class ShowEstimate extends Component
         // Load decline reasons
         $this->declineReasons = DeclineReason::all();
 
-        // Logic for showing approval buttons:
-        // 1. User must have 'approve_estimates' permission
-        // 2. Either they are an explicitly assigned pending approver, OR they are an admin/manager (override)
-        if (Auth::user()->hasPermission('approve_estimates')) {
-            // Check if explicitly assigned
+        // Load dynamic policy from central state service
+        $this->policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($this->estimate);
+
+        // Logic for showing approval controls
+        if ($this->policy['can_approve'] ?? false) {
             $this->userApproval = EstimateApproval::where('estimate_id', $this->estimate->id)
                 ->where('user_id', Auth::id())
                 ->where('status', 'pending')
                 ->first();
 
-            // Handle Override: If not explicitly assigned but has permission to approve waiting estimates
-            if (!$this->userApproval && $this->estimate->approval_status === Estimate::APP_STATUS_WAITING) {
-                $this->userApproval = true; // Temporary flag for Blade
+            // Handle Admin/Manager Override visibility
+            if (!$this->userApproval && Auth::user()->hasPermission('approve_estimates')) {
+                $this->userApproval = true; 
             }
         }
 
-        // Load activity logs for the entire estimate family
-        $familyIds = $this->allVersions->pluck('id')->toArray();
         $this->activityLogs = ActivityLog::where('subject_type', Estimate::class)
             ->whereIn('subject_id', $familyIds)
             ->with(['user', 'subject'])
             ->latest()
             ->get();
-
-        // Load dynamic policy from central state service
-        $this->policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($this->estimate);
     }
 
     public function refreshStats()
@@ -135,6 +130,9 @@ class ShowEstimate extends Component
         $this->estimate->refresh();
         $this->viewCount = $this->estimate->view_count;
         $this->lastActivity = $this->estimate->updated_at;
+        
+        // Refresh policy to keep UI buttons in sync with background state changes
+        $this->policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($this->estimate);
     }
 
     public function toggleChecklist($checklistId, $completed)
@@ -171,21 +169,21 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         try {
+            $this->ensureNotLocked('can_approve');
             DB::beginTransaction();
 
-            // Call the ApprovalController method for approval logic
             app(\App\Http\Controllers\ApprovalController::class)
                 ->approve(request()->merge(['comments' => $comments]), $this->estimate);
 
             DB::commit();
-
             $this->refreshEstimate();
-            $this->dispatch('estimateUpdated');
-
             session()->flash('success', 'Estimate approved successfully.');
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            session()->flash('error', 'Action Denied: ' . $e->getMessage());
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Failed to approve estimate: ' . $e->getMessage());
+            session()->flash('error', 'Workflow Error: ' . $e->getMessage());
         }
     }
 
@@ -193,9 +191,9 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         try {
+            $this->ensureNotLocked('can_approve');
             DB::beginTransaction();
 
-            // Call the ApprovalController method for rejection logic
             app(\App\Http\Controllers\ApprovalController::class)
                 ->reject(request()->merge([
                     'reason_id' => $reasonId,
@@ -203,14 +201,14 @@ class ShowEstimate extends Component
                 ]), $this->estimate);
 
             DB::commit();
-
             $this->refreshEstimate();
-            $this->dispatch('estimateUpdated');
-
             session()->flash('success', 'Estimate rejected.');
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            session()->flash('error', 'Action Denied: ' . $e->getMessage());
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Failed to reject estimate: ' . $e->getMessage());
+            session()->flash('error', 'Workflow Error: ' . $e->getMessage());
         }
     }
 
@@ -218,21 +216,21 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         try {
+            $this->ensureNotLocked('can_approve');
             DB::beginTransaction();
 
-            // Call the ApprovalController method for request changes logic
             app(\App\Http\Controllers\ApprovalController::class)
                 ->requestChanges(request()->merge(['comments' => $comments]), $this->estimate);
 
             DB::commit();
-
             $this->refreshEstimate();
-            $this->dispatch('estimateUpdated');
-
             session()->flash('success', 'Changes requested successfully.');
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            session()->flash('error', 'Action Denied: ' . $e->getMessage());
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Failed to request changes: ' . $e->getMessage());
+            session()->flash('error', 'Workflow Error: ' . $e->getMessage());
         }
     }
 
@@ -284,22 +282,21 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         try {
+            $this->ensureNotLocked('can_submit');
             DB::beginTransaction();
             $workflowService = app(\App\Services\Estimates\EstimateWorkflowService::class);
-            $dispatcher = app(\App\Core\Events\EventDispatcherInterface::class);
-
-            \Log::info("Livewire ShowEstimate: submitForApproval called for Estimate ID: {$this->estimate->id}");
 
             $estimate = $workflowService->submitForApproval($this->estimate);
 
             DB::commit();
-            return redirect()->route('estimates.show', $this->estimate->id);
-
+            $this->refreshEstimate();
+            session()->flash('success', 'Estimate submitted for approval.');
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            session()->flash('error', 'Policy Restriction: ' . $e->getMessage());
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error("Livewire ShowEstimate submit failing: " . $e->getMessage());
-            session()->flash('error', $e->getMessage());
-            return redirect()->route('estimates.show', $this->estimate->id);
+            session()->flash('error', 'Submission Failed: ' . $e->getMessage());
         }
     }
 
@@ -400,12 +397,19 @@ class ShowEstimate extends Component
             }
 
             DB::commit();
-            \Log::info("Livewire: addComment success");
+            
+            // UX Enhancement: Standardized Refresh & Reset
             $this->refreshEstimate();
+            $this->dispatch('estimateUpdated');
+
+            session()->flash('success', 'Comment added.');
+        } catch (\App\Core\Exceptions\AuthorizationException $e) {
+            DB::rollBack();
+            session()->flash('error', 'You are not authorized to comment on this estimate.');
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error("Livewire: addComment failed", ['error' => $e->getMessage()]);
-            session()->flash('error', 'Failed to add comment: ' . $e->getMessage());
+            session()->flash('error', 'Critical Error: ' . $e->getMessage());
         }
     }
 

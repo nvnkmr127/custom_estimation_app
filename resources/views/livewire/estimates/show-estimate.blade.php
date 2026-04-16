@@ -83,7 +83,7 @@
     @endif
     
     <!-- Locked Status Banner -->
-    @if($estimate->estimate_status === \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL)
+    @if($policy['is_locked'] ?? false)
         <div class="mb-6 rounded-lg bg-amber-50 border-l-4 border-amber-400 p-4 shadow-sm ring-1 ring-amber-100">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -93,7 +93,7 @@
                 </div>
                 <div class="ml-3">
                     <p class="text-sm font-medium text-amber-800">
-                        This estimate is currently under internal approval and is locked. Editing and deletion are disabled until the approval process is complete.
+                        {{ $policy['lock_reason'] ?? 'This estimate is currently under internal approval and is locked. Editing and deletion are disabled.' }}
                     </p>
                 </div>
             </div>
