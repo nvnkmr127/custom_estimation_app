@@ -129,12 +129,14 @@
 
                 @endif
 
-                @if($estimate->approval_status === 'not_required' && $estimate->approvalChain)
+                @if(in_array($estimate->approval_status, [\App\Models\Estimate::APP_STATUS_NOT_REQUIRED, \App\Models\Estimate::APP_STATUS_CHANGES_REQUESTED]))
                     <button type="button" wire:click="submitForApproval"
                         class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
                         Submit for Approval
                     </button>
-                @elseif($estimate->status === 'draft' && (!$estimate->approvalChain || $estimate->approval_status === 'approved'))
+                @endif
+
+                @if($estimate->status === 'draft' && ($estimate->approval_status === \App\Models\Estimate::APP_STATUS_NOT_REQUIRED || $estimate->approval_status === \App\Models\Estimate::APP_STATUS_APPROVED))
                     <button type="button" wire:click="sendToClient"
                         class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
                         Send to Client
