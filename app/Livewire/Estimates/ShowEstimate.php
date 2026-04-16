@@ -118,6 +118,9 @@ class ShowEstimate extends Component
             }
         }
 
+        // Load activity logs for the entire estimate family
+        $familyIds = $this->allVersions->pluck('id')->toArray();
+
         $this->activityLogs = ActivityLog::where('subject_type', Estimate::class)
             ->whereIn('subject_id', $familyIds)
             ->with(['user', 'subject'])
