@@ -92,14 +92,6 @@ class ApprovalController extends Controller
 
             $estimate = $this->workflowService->reject($estimate, $user->id, $comments);
 
-            // Dispatch Event
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateRejected($estimate, $user->id, $comments));
-
-            // Notify Creator
-            if ($estimate->creator) {
-                $estimate->creator->notify(new \App\Notifications\EstimateStatusUpdated($estimate, 'rejected', $comments));
-            }
-
             return redirect()->back()->with('success', 'Estimate rejected successfully.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Rejection failed: ' . $e->getMessage());

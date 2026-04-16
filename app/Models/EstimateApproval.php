@@ -12,6 +12,8 @@ class EstimateApproval extends Model
     protected $fillable = [
         'estimate_id',
         'user_id',
+        'order',
+        'approval_chain_step_id',
         'status',
         'comments',
     ];

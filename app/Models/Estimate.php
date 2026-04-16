@@ -234,6 +234,11 @@ class Estimate extends Model
      */
     public function getStatusAttribute(): string
     {
+        // Internal rejection takes precedence for internal staff view
+        if ($this->approval_status === self::APP_STATUS_REJECTED) {
+            return 'rejected';
+        }
+
         // Client has already responded — this is the most important state
         if ($this->client_status === self::CLT_STATUS_ACCEPTED) {
             return 'accepted';
@@ -476,30 +481,6 @@ class Estimate extends Model
         return $this->hasMany(EstimateApproval::class);
     }
 
-    /**
-     * Submit estimate for approval workflow
-     * @return \Illuminate\Support\Collection
-     */
-    public function submitForApproval()
-    {
-        if (!$this->approval_chain_id) {
-            throw new \Exception('No approval chain assigned to this estimate');
-        }
-
-        $this->update([
-            'approval_status' => self::APP_STATUS_WAITING,
-            'estimate_status' => self::EST_STATUS_PENDING_APPROVAL,
-        ]);
-
-        // Get the first order
-        $firstStep = $this->approvalChain->steps()->orderBy('order')->first();
-
-        if ($firstStep) {
-            return $this->createApprovalsForOrder($firstStep->order);
-        }
-
-        return collect();
-    }
 
     /**
      * Create approval records for a specific order step
@@ -536,6 +517,8 @@ class Estimate extends Model
                 $approval = EstimateApproval::create([
                     'estimate_id' => $this->id,
                     'user_id' => $userId,
+                    'order' => $order,
+                    'approval_chain_step_id' => $step->id,
                     'status' => 'pending',
                 ]);
                 $createdApprovals->push($approval);
@@ -554,97 +537,22 @@ class Estimate extends Model
             return collect();
         }
 
-        // Find the current max order that is fully approved
-        // This is tricky if orders are skipped or parallel. 
-        // Better: Get all approval records. Find the highest order associated with them?
-        // No, approval records don't store order.
-
-        // Let's assume sequential orders: 1, 2, 3...
-        // We need to find the lowest order that is NOT fully approved yet.
-
-        $chainSteps = $this->approvalChain->steps()->get()->groupBy('order')->sortKeys();
-
-        foreach ($chainSteps as $order => $steps) {
-            // Check if this order is fully approved
-            $approvedCountForOrder = 0;
-            $requiredCount = $steps->count(); // basic logic: all steps in order must approve
-
-            // We need to map approvals back to steps or just check if users approved.
-            // Since users can change steps, this is loose.
-            // But typically, we check if we have approvals from these users.
-
-            // Improved logic:
-            // For this order, check if we have APPROVED records for these users (or fallback).
-            // This is getting complex because of fallback users.
-
-            // Alternative: Look at the *active* pending approvals.
-            // If there are pending approvals, we are at that step.
-            if ($this->approvals()->where('status', 'pending')->exists()) {
-                return collect(); // We are currently waiting, no "next" step until these are done.
-            }
-
-            // If no pending approvals, check if we have approved records for this order's steps.
-            // This assumes we move sequentially.
-            // Let's check if *any* step in this order is NOT approved yet.
-            // But wait, if they aren't pending and aren't approved, they haven't been created yet?
-            // If we strictly follow createApprovalsForOrder, then:
-
-            // 1. Get all approvals for this estimate.
-            $approvals = $this->approvals;
-            $approvedUserIds = $approvals->where('status', 'approved')->pluck('user_id')->toArray();
-
-            $isOrderComplete = true;
-            foreach ($steps as $step) {
-                // Logic to determine effective user ID (msg handling fallback)
-                // This logic effectively needs to mirror createApprovalsForOrder resolution
-                // which is hard.
-                // Ideally, we store 'order' on EstimateApproval, but we didn't add that column.
-
-                // Heuristic: If we haven't created approvals for this order yet, then THIS is the next step.
-                // How do we know if we created them?
-                // We can check if ANY of the users in this order have an approval record (pending or approved).
-            }
+        // 1. Check if we have active pending approvals (no "next" until current is cleared)
+        if ($this->approvals()->where('status', 'pending')->exists()) {
+            return collect();
         }
 
-        // Simplified Logic:
-        // We know the current status.
-        // We need to find the NEXT order.
+        // 2. Find the highest order reached so far
+        $lastOrder = $this->approvals()->max('order') ?? 0;
 
-        // 1. Find the highest order of the steps that have associated approvals (approved or pending).
-        $userIdsWithApprovals = $this->approvals()->pluck('user_id')->toArray();
-
-        $lastTouchedOrder = 0;
-        $allSteps = $this->approvalChain->steps()->orderBy('order')->get();
-
-        foreach ($allSteps as $step) {
-            // resolve effective user
-            $effectiveUserId = $step->user_id;
-            $user = \App\Models\User::withTrashed()->find($effectiveUserId);
-            if (!$user || $user->trashed()) {
-                $effectiveUserId = $this->approvalChain->fallback_user_id;
-            }
-
-            if (in_array($effectiveUserId, $userIdsWithApprovals)) {
-                $lastTouchedOrder = max($lastTouchedOrder, $step->order);
-            }
-        }
-
-        // So we are at least at $lastTouchedOrder.
-        // Are we done with it?
-        $pendingCount = $this->approvals()->where('status', 'pending')->count();
-        if ($pendingCount > 0) {
-            return collect(); // Still working on current order
-        }
-
-        // If no pending, we might be ready for next.
-        // Get the first order > lastTouchedOrder
-        $nextStepFirst = $this->approvalChain->steps()
-            ->where('order', '>', $lastTouchedOrder)
+        // 3. Find the lowest order greater than $lastOrder
+        $nextStep = $this->approvalChain->steps()
+            ->where('order', '>', $lastOrder)
             ->orderBy('order')
             ->first();
 
-        if ($nextStepFirst) {
-            return $this->approvalChain->steps()->where('order', $nextStepFirst->order)->get();
+        if ($nextStep) {
+            return $this->approvalChain->steps()->where('order', $nextStep->order)->get();
         }
 
         return collect();

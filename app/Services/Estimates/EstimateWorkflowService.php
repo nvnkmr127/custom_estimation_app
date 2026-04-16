@@ -84,9 +84,6 @@ class EstimateWorkflowService
                 $estimate->createApprovalsForOrder($firstStepOrder);
             }
 
-            // 7. Transition to Waiting
-            $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_WAITING);
-
             // 8. Dispatch Domain Event (Atomic via transaction)
             $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSubmittedForApproval($estimate, auth()->id()));
 
@@ -127,12 +124,18 @@ class EstimateWorkflowService
             $approval = $estimate->approvals()
                 ->where('user_id', $userId)
                 ->where('status', 'pending')
+                ->orderBy('order')
                 ->first();
 
-            $isAdmin = \App\Models\User::find($userId)?->hasRole(['super_admin', 'admin']);
-
+            $isAdmin = \App\Models\User::find($userId)?->hasRole(['super_admin', 'admin', 'estimator_admin']);
+            
             if (!$approval && !$isAdmin) {
-                throw new \Exception("No pending approval found for this user.");
+                // Check if it was already approved/acted upon to provide better feedback
+                $alreadyActed = $estimate->approvals()->where('user_id', $userId)->exists();
+                if ($alreadyActed) {
+                    throw new \Exception("You have already acted on this estimate or it has moved to the next stage. Please refresh the page.");
+                }
+                throw new \Exception("You are not currently authorized to approve this estimate or it is not your turn in the approval chain.");
             }
 
             if ($approval) {
@@ -141,12 +144,19 @@ class EstimateWorkflowService
                     'comments' => $comments,
                 ]);
             } elseif ($isAdmin) {
-                // Force Approve: Create an approval record for the admin to track the action
+                // Force Approve: Identify current active order to track where the admin intervened
+                $currentOrder = $estimate->approvals()->where('status', 'pending')->max('order')
+                    ?? ($estimate->approvalChain ? $estimate->approvalChain->steps()->min('order') : 0);
+
                 $approval = $estimate->approvals()->create([
                     'user_id' => $userId,
                     'status' => 'approved',
+                    'order' => $currentOrder,
                     'comments' => $comments . ' (Force Approved by Admin)',
                 ]);
+
+                // When an admin forces approval, we clear all other pending requests for the entire estimate
+                $estimate->approvals()->where('status', 'pending')->delete();
             }
 
             if ($approval) {
@@ -160,34 +170,30 @@ class EstimateWorkflowService
             // PARALLEL LOGIC: Determine if we should move to the next step
             $shouldAdvance = false;
 
-            // Find the specific step definition for this user in this chain
-            $approvingStep = $estimate->approvalChain ? $estimate->approvalChain->steps()
-                ->where('user_id', $userId)
-                ->first() : null;
+            // Find the specific step definition linked to this approval record
+            $approvingStep = $approval && $approval->approval_chain_step_id
+                ? \App\Models\ApprovalChainStep::find($approval->approval_chain_step_id)
+                : null;
 
-            if ($approvingStep && !$approvingStep->require_all) {
-                // RULE: REQUIRE ANY - First approval completes the step
+            if ($isAdmin && !$approvingStep) {
+                // Admin force-approved without a specific step context
+                $shouldAdvance = true;
+            } elseif ($approvingStep && !$approvingStep->require_all) {
+                // RULE: REQUIRE ANY - First approval completes the step/order
                 $shouldAdvance = true;
 
-                // Identify and clear other pending approvals at the same order level
-                $peerUserIds = $estimate->approvalChain->steps()
+                // Clear other pending approvals at the same order level
+                $estimate->approvals()
                     ->where('order', $approvingStep->order)
-                    ->where('user_id', '!=', $userId)
-                    ->pluck('user_id');
-
-                if ($peerUserIds->isNotEmpty()) {
-                    $estimate->approvals()
-                        ->whereIn('user_id', $peerUserIds)
-                        ->where('status', 'pending')
-                        ->delete();
-                }
+                    ->where('status', 'pending')
+                    ->delete();
             } else {
                 // RULE: REQUIRE ALL (Default) - Wait for everyone at the current level
-                $hasOtherPending = $estimate->approvals()
+                $hasOtherPendingForLevel = $estimate->approvals()
                     ->where('status', 'pending')
                     ->exists();
 
-                if (!$hasOtherPending) {
+                if (!$hasOtherPendingForLevel) {
                     $shouldAdvance = true;
                 }
             }
@@ -226,7 +232,11 @@ class EstimateWorkflowService
                 ->first();
 
             if (!$approval) {
-                throw new \Exception("No pending approval found for this user.");
+                $alreadyActed = $estimate->approvals()->where('user_id', $userId)->exists();
+                if ($alreadyActed) {
+                    throw new \Exception("You have already acted on this estimate. Please refresh.");
+                }
+                throw new \Exception("No pending approval found for you. You may not be the current approver.");
             }
 
             $approval->update([

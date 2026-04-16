@@ -110,7 +110,7 @@ class ShowEstimate extends Component
         // Admin Override: If user is admin and estimate is waiting, 
         // they should see approval actions even if it's not their "turn" in the chain.
         // We'll signal this to the blade but won't create a DB record here.
-        if (!$this->userApproval && Auth::user()->hasRole(['super_admin', 'admin']) && $this->estimate->approval_status === Estimate::APP_STATUS_WAITING) {
+        if (!$this->userApproval && Auth::user()->hasRole(['super_admin', 'admin', 'estimator_admin']) && $this->estimate->approval_status === Estimate::APP_STATUS_WAITING) {
             $this->userApproval = true; // Temporary flag for Blade
         }
 
@@ -153,6 +153,7 @@ class ShowEstimate extends Component
 
     public function approve($comments = null)
     {
+        $this->estimate->refresh();
         try {
             DB::beginTransaction();
 
@@ -174,6 +175,7 @@ class ShowEstimate extends Component
 
     public function reject($reasonId, $comments)
     {
+        $this->estimate->refresh();
         try {
             DB::beginTransaction();
 
@@ -198,6 +200,7 @@ class ShowEstimate extends Component
 
     public function requestChanges($comments)
     {
+        $this->estimate->refresh();
         try {
             DB::beginTransaction();
 
@@ -261,6 +264,7 @@ class ShowEstimate extends Component
     }
     public function submitForApproval()
     {
+        $this->estimate->refresh();
         try {
             DB::beginTransaction();
             $workflowService = app(\App\Services\Estimates\EstimateWorkflowService::class);

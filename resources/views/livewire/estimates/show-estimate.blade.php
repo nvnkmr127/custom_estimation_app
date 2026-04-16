@@ -116,13 +116,14 @@
         <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">
             <!-- Primary Actions -->
             @php
-                $canEditOrSubmit = in_array($estimate->status, ['draft', 'declined']) ||
+                $canEditOrSubmit = in_array($estimate->status, ['draft', 'declined', 'rejected']) ||
                     (in_array($estimate->status, ['waiting_approval', 'approved']) && $estimate->client_status !== 'sent');
             @endphp
             @if($canEditOrSubmit && $estimate->is_current_version)
-                @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole('super_admin'))
+                @if($estimate->status !== 'waiting_approval' || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin']))
 
                     <a href="{{ route('estimates.edit', $estimate) }}"
+                        wire:loading.attr="disabled"
                         class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
                         Edit
                     </a>
@@ -130,24 +131,37 @@
                 @endif
 
                 @if(in_array($estimate->approval_status, [\App\Models\Estimate::APP_STATUS_NOT_REQUIRED, \App\Models\Estimate::APP_STATUS_CHANGES_REQUESTED]))
-                    <button type="button" wire:click="submitForApproval"
-                        class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                        Submit for Approval
+                    <button type="button" 
+                        wire:click="submitForApproval"
+                        wire:loading.attr="disabled"
+                        wire:target="submitForApproval"
+                        class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="submitForApproval">
+                            {{ $estimate->approval_status === \App\Models\Estimate::APP_STATUS_CHANGES_REQUESTED ? 'Resubmit for Approval' : 'Submit for Approval' }}
+                        </span>
+                        <span wire:loading wire:target="submitForApproval">Submitting...</span>
                     </button>
                 @endif
 
                 @if($estimate->status === 'draft' && ($estimate->approval_status === \App\Models\Estimate::APP_STATUS_NOT_REQUIRED || $estimate->approval_status === \App\Models\Estimate::APP_STATUS_APPROVED))
-                    <button type="button" wire:click="sendToClient"
-                        class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                        Send to Client
+                    <button type="button" 
+                        wire:click="sendToClient"
+                        wire:loading.attr="disabled"
+                        wire:target="sendToClient"
+                        class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="sendToClient">Send to Client</span>
+                        <span wire:loading wire:target="sendToClient">Sending...</span>
                     </button>
                 @endif
 
                 <!-- Discard Draft -->
                 <button type="button"
+                    wire:loading.attr="disabled"
+                    wire:target="discard"
                     @click="if(confirm('Are you sure you want to discard this draft? This action cannot be undone.')) { $wire.discard() }"
-                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50">
-                    Discard
+                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-300 hover:bg-red-50 disabled:opacity-50">
+                    <span wire:loading.remove wire:target="discard">Discard</span>
+                    <span wire:loading wire:target="discard">Discarding...</span>
                 </button>
 
             @endif
@@ -162,7 +176,7 @@
 
             <!-- Pending Approval Actions (For Approver or Admin) -->
             @if(in_array($estimate->approval_status, ['waiting']) && $userApproval)
-                @if($estimate->estimate_status === \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL || auth()->user()->hasRole(['super_admin', 'admin']))
+                @if($estimate->estimate_status === \App\Models\Estimate::EST_STATUS_PENDING_APPROVAL || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin']))
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->
                     <div x-data="{ 
@@ -200,8 +214,15 @@
                                 <div x-data="{ comments: '' }">
                                     <textarea x-model="comments" placeholder="Comments..."
                                         class="w-full text-xs rounded border-gray-300 mb-2"></textarea>
-                                    <button type="button" :disabled="!canApprove" @click="$wire.approve(comments)"
-                                        class="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50">Confirm</button>
+                                    <button type="button" 
+                                        :disabled="!canApprove" 
+                                        @click="$wire.approve(comments)"
+                                        wire:loading.attr="disabled"
+                                        wire:target="approve"
+                                        class="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50">
+                                        <span wire:loading.remove wire:target="approve">Confirm</span>
+                                        <span wire:loading wire:target="approve">Processing...</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -218,9 +239,14 @@
                             <div x-data="{ comments: '' }">
                                 <textarea x-model="comments" placeholder="Comments..."
                                     class="w-full text-xs rounded border-gray-300 mb-2"></textarea>
-                                <button type="button" @click="$wire.approve(comments)"
-                                    class="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">Confirm
-                                    Approval</button>
+                                <button type="button" 
+                                     @click="$wire.approve(comments)"
+                                     wire:loading.attr="disabled"
+                                     wire:target="approve"
+                                     class="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50">
+                                     <span wire:loading.remove wire:target="approve">Confirm Approval</span>
+                                     <span wire:loading wire:target="approve">Processing...</span>
+                                 </button>
                             </div>
                         </div>
                     </div>
@@ -240,9 +266,13 @@
                             <textarea x-model="comments" required placeholder="Describe required changes..."
                                 class="w-full text-sm rounded border-gray-300 mb-2"></textarea>
                             <button type="button"
-                                @click="if(comments.trim()) { $wire.requestChanges(comments); } else { alert('Please describe required changes'); }"
-                                class="w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500">Confirm
-                                Request</button>
+                                 wire:loading.attr="disabled"
+                                 wire:target="requestChanges"
+                                 @click="if(comments.trim()) { $wire.requestChanges(comments); } else { alert('Please describe required changes'); }"
+                                 class="w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 disabled:opacity-50">
+                                 <span wire:loading.remove wire:target="requestChanges">Confirm Request</span>
+                                 <span wire:loading wire:target="requestChanges">Processing...</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -270,9 +300,13 @@
                             <textarea x-model="comments" required placeholder="Additional comments..."
                                 class="w-full text-sm rounded border-gray-300 mb-2"></textarea>
                             <button type="button"
+                                wire:loading.attr="disabled"
+                                wire:target="reject"
                                 @click="if(reason_id && comments.trim()) { $wire.reject(reason_id, comments); } else { alert('Please provide a reason and comments'); }"
-                                class="w-full rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Confirm
-                                Rejection</button>
+                                class="w-full rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50">
+                                <span wire:loading.remove wire:target="reject">Confirm Rejection</span>
+                                <span wire:loading wire:target="reject">Processing...</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -356,8 +390,11 @@
                             Create New Version
                         </button>
                         <button type="button" wire:click="duplicate"
-                            class="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                            Duplicate Estimate
+                            wire:loading.attr="disabled"
+                            wire:target="duplicate"
+                            class="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                            <span wire:loading.remove wire:target="duplicate">Duplicate Estimate</span>
+                            <span wire:loading wire:target="duplicate">Duplicating...</span>
                         </button>
                     </div>
 

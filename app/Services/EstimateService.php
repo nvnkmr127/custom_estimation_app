@@ -15,15 +15,18 @@ class EstimateService
     private $dispatcher;
     private $stateService;
     private $evaluator;
+    private $workflowService;
 
     public function __construct(
         \App\Core\Events\EventDispatcherInterface $dispatcher,
         \App\Services\Estimates\EstimateStateService $stateService,
-        \App\Services\Estimates\ApprovalChainEvaluator $evaluator
+        \App\Services\Estimates\ApprovalChainEvaluator $evaluator,
+        \App\Services\Estimates\EstimateWorkflowService $workflowService
     ) {
         $this->dispatcher = $dispatcher;
         $this->stateService = $stateService;
         $this->evaluator = $evaluator;
+        $this->workflowService = $workflowService;
     }
 
     /**
@@ -650,15 +653,14 @@ class EstimateService
                     
                     // Allow auto-approval for drafts that do not require a chain
                     if ($estimate->estimate_status === Estimate::EST_STATUS_DRAFT) {
-                        $chain = $this->evaluator->evaluate($estimate);
-                        if (!$chain) {
-                            $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_APPROVED);
-                            $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_APPROVED);
-                        } else {
-                            throw new \Exception('Estimate must be approved before it can be sent to the client.');
+                        $this->workflowService->submitForApproval($estimate);
+
+                        // If after submission it's still not approved, it means it's now pending internal approval
+                        if ($estimate->estimate_status !== Estimate::EST_STATUS_APPROVED) {
+                            throw new \Exception('Estimate requires internal approval before it can be sent to the client.');
                         }
                     } else {
-                        throw new \Exception('Estimate must be approved before it can be sent to the client.');
+                        throw new \Exception('Estimate must be fully approved before it can be sent to the client.');
                     }
                 }
 
