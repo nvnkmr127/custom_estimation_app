@@ -89,7 +89,7 @@
                                 <div class="flex flex-wrap gap-2">
                                     <template x-for="(desc, v) in activeVariables" :key="v">
                                         <button type="button" @click="insertVar(v)" class="group relative inline-flex items-center px-2 py-1 bg-white border border-gray-200 text-[10px] font-mono text-indigo-600 rounded hover:border-indigo-500 hover:bg-indigo-50 transition-all">
-                                            <span x-text="'{{ $' + v + ' }}'"></span>
+                                            <span x-text="'@{{ $' + v + ' }}'"></span>
                                             <!-- Tooltip -->
                                             <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-[9px] px-2 py-1 rounded whitespace-nowrap z-50" x-text="desc"></span>
                                         </button>
@@ -164,7 +164,7 @@
                     const el = document.getElementsByName('body_html')[0];
                     const start = el.selectionStart;
                     const end = el.selectionEnd;
-                    const varStr = '{{ $' + v + ' }}';
+                    const varStr = '@{{ $' + v + ' }}';
                     this.body = this.body.substring(0, start) + varStr + this.body.substring(end);
                     this.updatePreview();
                     
@@ -178,9 +178,9 @@
                 insertBlock(type) {
                     let block = '';
                     if (type === 'card') {
-                        block = `\n<div class="card">\n    <div class="card-title">Summary Details</div>\n    <div class="card-row">\n        <span class="card-label">Estimate #</span>\n        <span class="card-value">{{ $estimate_number }}</span>\n    </div>\n    <div class="card-row">\n        <span class="card-label">Total Amount</span>\n        <span class="card-value">{{ $total_amount }}</span>\n    </div>\n</div>\n`;
+                        block = `\n<div class="card">\n    <div class="card-title">Summary Details</div>\n    <div class="card-row">\n        <span class="card-label">Estimate #</span>\n        <span class="card-value">@{{ $estimate_number }}</span>\n    </div>\n    <div class="card-row">\n        <span class="card-label">Total Amount</span>\n        <span class="card-value">@{{ $total_amount }}</span>\n    </div>\n</div>\n`;
                     } else if (type === 'button') {
-                        block = `\n<div class="text-center">\n    <a href="{{ $view_url }}" class="btn">View & Approve Online</a>\n</div>\n`;
+                        block = `\n<div class="text-center">\n    <a href="@{{ $view_url }}" class="btn">View & Approve Online</a>\n</div>\n`;
                     } else if (type === 'table') {
                         block = `\n<div class="item-list">\n    <div class="item-row">\n        <span class="item-name">Premium Service Package</span>\n        <span class="item-desc">Comprehensive estimation and design brief.</span>\n    </div>\n</div>\n`;
                     }
