@@ -154,139 +154,209 @@
     @endif
 
     <!-- Workflow Visibility (Premium Timeline) -->
-@if($estimate->approvalChain || $estimate->approvals()->exists())
+    @if($estimate->approvalChain || $estimate->approvals()->exists())
         @php
             $steps = $estimate->approvalChain?->steps ?? collect();
-            $totalStepsCount = $steps->count();
-            $pointsCount = 2 + $totalStepsCount; // Draft + Steps + Final
+            $totalPoints = 2 + $steps->count(); // Draft + Steps + Final
+            $currentStatus = $estimate->status;
             
-            $currentPointIndex = 0;
-            $progressStatus = $estimate->status;
-            
-            if ($progressStatus !== 'draft') {
-                $approvedStepsCount = $estimate->approvals()->where('status', 'approved')->count();
-                $currentPointIndex = 1 + $approvedStepsCount;
+            // Calculate progress index
+            $activeIndex = 0;
+            if ($currentStatus !== 'draft') {
+                $approvedCount = $estimate->approvals()->where('status', 'approved')->count();
+                $activeIndex = 1 + $approvedCount;
                 
-                // If finalized or past approval phase
-                if (in_array($progressStatus, ['approved', 'sent', 'accepted', 'declined', 'expired'])) {
-                    $currentPointIndex = $pointsCount - 1;
+                if (in_array($currentStatus, ['approved', 'sent', 'accepted', 'declined', 'expired'])) {
+                    $activeIndex = $totalPoints - 1;
                 }
             }
             
-            $progressPercent = $pointsCount > 1 ? ($currentPointIndex / ($pointsCount - 1)) * 100 : 0;
-            $isRejectedStatus = $estimate->approvals()->where('status', 'rejected')->exists() || $estimate->status === 'declined';
+            $isRejected = $estimate->approvals()->where('status', 'rejected')->exists();
+            $isDeclined = $currentStatus === 'declined';
+            $isTerminalFailure = $isRejected || $isDeclined;
+            
+            // Percentage for the progress bar
+            $progressPercent = ($totalPoints > 1) ? ($activeIndex / ($totalPoints - 1)) * 100 : 0;
         @endphp
 
-        <div class="mb-12 px-6" x-data="{ animate: false }" x-init="setTimeout(() => animate = true, 100)">
-            <div class="relative pt-2">
-                <!-- Background Progress Line (The Track) -->
-                <div class="absolute top-7 left-0 w-full h-1 bg-slate-100 rounded-full"></div>
+        <div class="mb-16 relative group" x-data="{ loaded: false }" x-init="setTimeout(() => loaded = true, 300)">
+            <div class="bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200/60 p-10 shadow-xl shadow-slate-200/40 overflow-hidden relative">
                 
-                <!-- Active Progress Line (The Fill) -->
-                <div class="absolute top-7 left-0 h-1 rounded-full transition-all duration-1000 ease-in-out shadow-[0_0_8px_rgba(79,70,229,0.4)]
-                    {{ $isRejectedStatus ? 'bg-red-500' : 'bg-indigo-600' }}"
-                    :style="animate ? 'width: {{ $progressPercent }}%' : 'width: 0%'">
+                <!-- Header Info for Timeline -->
+                <div class="flex items-center justify-between mb-12">
+                     <div class="flex items-center gap-4">
+                         <div class="h-10 w-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+                             <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                             </svg>
+                         </div>
+                         <div>
+                             <h2 class="text-lg font-bold text-slate-900 leading-tight">Workflow Intelligence</h2>
+                             <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-0.5">Real-time Approval Chain Status</p>
+                         </div>
+                     </div>
+                     <div class="hidden md:flex items-center gap-6">
+                         <div class="flex flex-col items-end">
+                             <span class="text-[10px] font-bold text-slate-400 uppercase">Current Stage</span>
+                             <span class="text-sm font-bold text-indigo-600">
+                                 {{ $currentStatus === 'draft' ? 'Drafting & Preparation' : ($currentStatus === 'pending_approval' ? 'Strategic Internal Review' : 'Finalized & Authorized') }}
+                             </span>
+                         </div>
+                     </div>
                 </div>
-                
-                <div class="relative flex justify-between items-start">
-                    <!-- Step 1: Draft -->
-                    <div class="flex flex-col items-center group relative z-10 w-32 translate-y-0 transition-all duration-500"
-                         :class="animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-500 delay-[100ms]
-                            {{ $estimate->status !== 'draft' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-indigo-600 ring-4 ring-indigo-50 border-t-indigo-400' }}">
-                            @if($estimate->status !== 'draft')
-                                <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                                </svg>
-                            @else
-                                <span class="text-indigo-600 font-bold">1</span>
-                            @endif
-                        </div>
-                        <div class="mt-3 text-center">
-                            <span class="block text-xs font-bold uppercase tracking-wider {{ $estimate->status !== 'draft' ? 'text-indigo-900' : 'text-indigo-600' }}">Draft</span>
-                            <span class="block text-[10px] text-slate-500 mt-0.5">Created</span>
+
+                <div class="relative px-8 pb-4">
+                    <!-- Progress Line Container (The Connector Track) -->
+                    <div class="absolute top-[22px] left-12 right-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <!-- Dynamic Progress Fill -->
+                        <div class="h-full transition-all duration-1000 ease-in-out relative
+                            {{ $isTerminalFailure ? 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]' : 'bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 shadow-[0_0_15px_rgba(79,70,229,0.5)]' }}"
+                            :style="loaded ? 'width: {{ $progressPercent }}%' : 'width: 0%'">
+                            <!-- Moving Glow Streak -->
+                            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full animate-[shimmer_3s_infinite] -skew-x-12"></div>
                         </div>
                     </div>
 
-                    <!-- Approval Steps -->
-                    @foreach($steps as $index => $step)
-                        @php
-                            $approval = $estimate->approvals()
-                                ->where('approval_chain_step_id', $step->id)
-                                ->first();
-                            
-                            $isDone = $approval && $approval->status === 'approved';
-                            $isRejected = $approval && $approval->status === 'rejected';
-                            $isCurrent = $estimate->status === 'pending_approval' && !$isDone && !$isRejected && 
-                                        ($index === 0 || $estimate->approvals()->where('approval_chain_step_id', $steps[$index-1]->id)->where('status', 'approved')->exists());
-                            
-                            $delay = 200 + ($index * 100);
-                        @endphp
+                    <div class="relative flex justify-between items-start no-scrollbar overflow-x-auto min-w-max md:min-w-0">
                         
-                        <div class="flex flex-col items-center group relative z-10 w-32 transition-all duration-500"
-                             :class="animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-                             style="transition-delay: {{ $delay }}ms">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-500
-                                {{ $isDone ? 'bg-indigo-600 border-indigo-600 scale-100' : 
-                                   ($isRejected ? 'bg-red-600 border-red-600 shadow-red-100' : 
-                                   ($isCurrent ? 'bg-white border-indigo-600 ring-4 ring-indigo-50 animate-pulse scale-110' : 'bg-white border-slate-200')) }}">
-                                @if($isDone)
-                                    <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                                    </svg>
-                                @elseif($isRejected)
-                                    <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                    </svg>
-                                @else
-                                    <span class="{{ $isCurrent ? 'text-indigo-600' : 'text-slate-400' }} font-bold">{{ $index + 2 }}</span>
+                        <!-- 1. DRAFT POINT -->
+                        <div class="flex flex-col items-center group/step w-40 first:items-start last:items-end md:w-auto md:flex-1">
+                            <div class="flex items-center justify-center w-full">
+                                <div class="relative flex-shrink-0">
+                                    <div class="h-11 w-11 rounded-full border-4 flex items-center justify-center transition-all duration-500 shadow-md z-20 
+                                        {{ $activeIndex >= 0 ? 'bg-indigo-600 border-white ring-2 ring-indigo-600' : 'bg-white border-slate-200' }}">
+                                        @if($activeIndex > 0)
+                                            <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+                                        @else
+                                            <span class="text-indigo-600 font-bold">1</span>
+                                        @endif
+                                    </div>
+                                    <!-- Dynamic Label above the circle -->
+                                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap overflow-visible">
+                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm
+                                            {{ $activeIndex === 0 ? 'bg-indigo-600 text-white animate-bounce' : 'bg-slate-100 text-slate-400' }}">
+                                            {{ $activeIndex === 0 ? 'Current' : 'Done' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 text-center md:text-left transition-all duration-300">
+                                <span class="block text-xs font-black uppercase tracking-widest leading-none {{ $activeIndex >= 0 ? 'text-indigo-950' : 'text-slate-400' }}">Establishment</span>
+                                <span class="block text-[10px] text-slate-500 font-bold mt-1">Estimate Drafted</span>
+                            </div>
+                        </div>
+
+                        <!-- 2. APPROVAL STEPS POINTS -->
+                        @foreach($steps as $idx => $step)
+                            @php
+                                $approval = $estimate->approvals()->where('approval_chain_step_id', $step->id)->first();
+                                $stepIdx = $idx + 1;
+                                $isStepDone = $approval && $approval->status === 'approved';
+                                $isStepActive = $activeIndex === $stepIdx && !$isTerminalFailure;
+                                $isStepRejected = $approval && $approval->status === 'rejected';
+                                $delay = ($idx + 1) * 150;
+                            @endphp
+                            
+                            <div class="flex flex-col items-center group/step w-40 md:w-auto md:flex-1" 
+                                 x-transition:enter="transition ease-out duration-700 delay-{{ $delay }}"
+                                 x-transition:enter-start="opacity-0 translate-y-4"
+                                 x-transition:enter-end="opacity-100 translate-y-0"
+                                 x-show="loaded">
+                                <div class="flex items-center justify-center w-full">
+                                    <div class="relative flex-shrink-0">
+                                        <div class="h-11 w-11 rounded-full border-4 flex items-center justify-center transition-all duration-500 shadow-md z-20
+                                            {{ $isStepDone ? 'bg-indigo-600 border-white ring-2 ring-indigo-600' : 
+                                               ($isStepRejected ? 'bg-red-500 border-white ring-2 ring-red-500' : 
+                                               ($isStepActive ? 'bg-white border-white ring-4 ring-indigo-100 animate-pulse' : 'bg-white border-slate-200')) }}">
+                                            @if($isStepDone)
+                                                <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+                                            @elseif($isStepRejected)
+                                                <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                            @else
+                                                <span class="font-black {{ $isStepActive ? 'text-indigo-600 scale-110' : 'text-slate-300' }}">{{ $idx + 2 }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                                            <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm
+                                                {{ $isStepActive ? 'bg-indigo-600 text-white animate-bounce' : ($isStepDone ? 'bg-indigo-50 text-indigo-400' : ($isStepRejected ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-300')) }}">
+                                                {{ $isStepActive ? 'Current Action' : ($isStepDone ? 'Verified' : ($isStepRejected ? 'Stopped' : 'Upcoming')) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 text-center">
+                                    <span class="block text-xs font-black uppercase tracking-widest leading-none {{ ($isStepDone || $isStepActive) ? 'text-indigo-950' : ($isStepRejected ? 'text-red-600' : 'text-slate-400') }}">
+                                        {{ $step->name }}
+                                    </span>
+                                    <span class="block text-[10px] text-slate-500 font-bold mt-1">
+                                        {{ $isStepRejected ? 'Rejected by ' . $approval->user->name : 'Authorization Review' }}
+                                    </span>
+                                </div>
+
+                                <!-- Tooltip Card for Completed Steps -->
+                                @if($isStepDone)
+                                    <div class="absolute -bottom-16 left-1/2 -translate-x-1/2 w-max opacity-0 group-hover/step:opacity-100 transition-all duration-300 transform group-hover/step:-translate-y-2 pointer-events-none z-50">
+                                        <div class="bg-slate-900 rounded-xl px-4 py-3 shadow-2xl shadow-indigo-200 border border-slate-700">
+                                            <div class="flex items-center gap-3">
+                                                <div class="h-8 w-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+                                                     <div class="h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></div>
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <span class="text-[10px] text-slate-400 font-extrabold uppercase">Approved by</span>
+                                                    <span class="text-xs text-white font-bold leading-none">{{ $approval->user->name }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2 pt-2 border-t border-slate-800 text-[9px] text-slate-500 italic">
+                                                {{ $approval->updated_at->format('M j, Y • h:i A') }}
+                                            </div>
+                                        </div>
+                                        <div class="absolute -top-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                                    </div>
                                 @endif
                             </div>
-                            <div class="mt-3 text-center">
-                                <span class="block text-xs font-bold uppercase tracking-wider {{ ($isDone || $isCurrent) ? 'text-indigo-900' : ($isRejected ? 'text-red-900' : 'text-slate-400') }}">
-                                    {{ $step->name }}
-                                </span>
-                                <span class="block text-[10px] text-slate-500 mt-0.5">Internal Review</span>
-                            </div>
+                        @endforeach
 
-                            @if($isDone && $approval->updated_at)
-                                <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 w-max opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:-translate-y-1 whitespace-nowrap bg-slate-900 text-white text-[10px] py-1.5 px-3 rounded-lg shadow-xl z-20">
-                                    <div class="flex items-center gap-2">
-                                        <div class="h-4 w-4 rounded-full bg-indigo-500 flex items-center justify-center text-[8px] font-bold">✓</div>
-                                        <span>Approved by {{ $approval->user->name }} • {{ $approval->updated_at->format('M j, Y') }}</span>
+                        <!-- 3. FINALIZED POINT -->
+                        <div class="flex flex-col items-center group/step w-40 last:items-end md:w-auto md:flex-1">
+                            <div class="flex items-center justify-center w-full">
+                                <div class="relative flex-shrink-0">
+                                    <div class="h-11 w-11 rounded-full border-4 flex items-center justify-center transition-all duration-500 shadow-md z-20
+                                        {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'bg-green-600 border-white ring-2 ring-green-600' : 
+                                           ($isTerminalFailure && $activeIndex === $totalPoints - 1 ? 'bg-red-500 border-white ring-2 ring-red-500' : 'bg-white border-slate-200') }}">
+                                        @if(in_array($currentStatus, ['approved', 'sent', 'accepted']))
+                                            <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+                                        @else
+                                            <svg class="h-5 w-5 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                                        @endif
                                     </div>
-                                    <div class="absolute -top-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
+                                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                                        <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm
+                                            {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'bg-green-600 text-white' : ($isTerminalFailure && $activeIndex === $totalPoints - 1 ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-300') }}">
+                                            {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'Active Content' : ($isTerminalFailure ? 'Revoked' : 'Locked') }}
+                                        </span>
+                                    </div>
                                 </div>
-                            @endif
+                            </div>
+                            <div class="mt-4 text-center md:text-right">
+                                <span class="block text-xs font-black uppercase tracking-widest leading-none {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'text-green-950' : 'text-slate-400' }}">Authorization</span>
+                                <span class="block text-[10px] text-slate-500 font-bold mt-1">Market Launch Status</span>
+                            </div>
                         </div>
-                    @endforeach
 
-                    <!-- Final State: Approved -->
-                    @php 
-                        $isFinalized = in_array($estimate->status, ['approved', 'sent', 'accepted']);
-                        $finalDelay = 300 + ($totalStepsCount * 100);
-                    @endphp
-                    <div class="flex flex-col items-center group relative z-10 w-32 transition-all duration-500"
-                         :class="animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'"
-                         style="transition-delay: {{ $finalDelay }}ms">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-full border-2 shadow-sm transition-all duration-500
-                            {{ $isFinalized ? 'bg-green-600 border-green-600 shadow-green-100' : 'bg-white border-slate-200' }}">
-                            @if($isFinalized)
-                                <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                                </svg>
-                            @else
-                                <svg class="h-5 w-5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            @endif
-                        </div>
-                        <div class="mt-3 text-center">
-                            <span class="block text-xs font-bold uppercase tracking-wider {{ $isFinalized ? 'text-green-900' : 'text-slate-400' }}">Finalized</span>
-                            <span class="block text-[10px] text-slate-500 mt-0.5">Internal Approval</span>
-                        </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Global Status Alert Bar (Subtle) -->
+            <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl flex items-center gap-3 transition-all duration-700"
+                 :class="loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'">
+                 <div class="h-2 w-2 rounded-full {{ $isTerminalFailure ? 'bg-red-500 animate-pulse' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' }}"></div>
+                 <span class="text-[10px] text-white font-black uppercase tracking-widest">
+                     System Status: {{ str_replace('_', ' ', $currentStatus) }} 
+                     @if($estimate->approval_status)
+                        | Approval: {{ str_replace('_', ' ', $estimate->approval_status) }}
+                     @endif
+                 </span>
             </div>
         </div>
     @endif
