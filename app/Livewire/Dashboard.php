@@ -304,8 +304,8 @@ class Dashboard extends Component
         // 2. Operational Bottlenecks (For Admins)
         $bottlenecks = [];
         if ($user->isAdmin() || $user->hasRole('estimator_manager')) {
-            $bottlenecks = EstimateApproval::where('status', 'pending')
-                ->where('created_at', '<', now()->subHours(24))
+            $bottlenecks = EstimateApproval::where('estimate_approvals.status', 'pending')
+                ->where('estimate_approvals.created_at', '<', now()->subHours(24))
                 ->join('users', 'estimate_approvals.user_id', '=', 'users.id')
                 ->select('users.name', DB::raw('count(*) as pending_count'))
                 ->groupBy('users.name')
