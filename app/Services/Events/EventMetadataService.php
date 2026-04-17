@@ -47,7 +47,7 @@ class EventMetadataService
     {
         $variables = [];
         foreach ($payload as $key => $value) {
-            $fullKey = $prefix ? "{$prefix}.{$key}" : $key;
+            $fullKey = $prefix ? "{$prefix}_{$key}" : $key;
             
             if (is_array($value) && !empty($value) && !array_is_list($value)) {
                 $variables = array_merge($variables, $this->extractVariables($value, $fullKey));
@@ -78,9 +78,9 @@ class EventMetadataService
     public function getCommonVariables(): array
     {
         return [
-            'metadata.event_id' => 'The unique ID for this specific event (Webhook ID)',
-            'metadata.occurred_at' => 'Timestamp when the event happened',
-            'metadata.source' => 'Origin of the event (web/api)',
+            'metadata_event_id' => 'The unique ID for this specific event (Webhook ID)',
+            'metadata_occurred_at' => 'Timestamp when the event happened',
+            'metadata_source' => 'Origin of the event (web/api)',
             'company_name' => 'Your organization name from settings',
         ];
     }

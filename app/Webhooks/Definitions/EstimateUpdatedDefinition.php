@@ -36,13 +36,17 @@ class EstimateUpdatedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => $resource->id,
             'reference' => $resource->estimate_number,
+            'estimate_number' => $resource->estimate_number,
             'total' => $resource->grand_total,
+            'total_amount' => '₹ ' . number_format($resource->grand_total, 2),
             'mobile_number' => $resource->client?->phone,
             'status' => $resource->status,
             'updated_at' => $resource->updated_at ? $resource->updated_at->toIso8601String() : now()->toIso8601String(),
             'url' => $shortEstimateUrl,
+            'view_url' => $shortEstimateUrl,
             'pdf' => $shortPdfUrl,
             'changes' => $resource->getChanges(),
+            'notifiable_name' => $resource->client?->name ?? 'Valued Client',
             'client' => $resource->client ? [
                 'name' => $resource->client->name,
                 'email' => $resource->client->email,
@@ -62,16 +66,20 @@ class EstimateUpdatedDefinition implements WebhookEventDefinitionInterface
         return [
             'id' => 123,
             'reference' => 'EST-2024-001',
+            'estimate_number' => 'EST-2024-001',
             'total' => 1750.00,
+            'total_amount' => '₹ 1,750.00',
             'mobile_number' => '8688771397',
             'status' => 'sent',
             'updated_at' => now()->toIso8601String(),
             'url' => 'https://example.com/portal/estimates/123?signature=...',
+            'view_url' => 'https://example.com/portal/estimates/123?signature=...',
             'pdf' => 'https://example.com/portal/estimates/123/download?signature=...',
             'changes' => [
                 'total' => ['old' => 1500.00, 'new' => 1750.00],
                 'status' => ['old' => 'draft', 'new' => 'sent'],
             ],
+            'notifiable_name' => 'John Doe',
             'client' => [
                 'name' => 'John Doe',
                 'email' => 'wapmedia3@gmail.com',

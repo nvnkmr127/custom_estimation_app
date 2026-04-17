@@ -52,8 +52,8 @@
                                     @endphp
                                     @foreach($grouped as $group => $eventList)
                                         <optgroup label="{{ $group }}">
-                                            @foreach($eventList as $id => $meta)
-                                                <option value="{{ $id }}">{{ $meta['label'] }}</option>
+                                            @foreach($eventList as $meta)
+                                                <option value="{{ $meta['name'] }}">{{ $meta['label'] }}</option>
                                             @endforeach
                                         </optgroup>
                                     @endforeach
