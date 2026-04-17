@@ -96,6 +96,6 @@ class EmailDispatcher
             \Illuminate\Support\Facades\Log::error('Email Tracking Setup Failed: ' . $e->getMessage());
         }
 
-        \Illuminate\Support\Facades\Bus::dispatch(new SendEmailJob($to, $subject, $body));
+        \Illuminate\Support\Facades\Bus::dispatch(new SendEmailJob($to, $subject, $body, [], $log->id ?? null));
     }
 }

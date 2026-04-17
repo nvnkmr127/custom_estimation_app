@@ -21,7 +21,9 @@ class EmailTemplateController extends Controller
      */
     public function create()
     {
-        return view('email_templates.create');
+        $eventService = app(\App\Services\Events\EventMetadataService::class);
+        $events = $eventService->getSupportedEvents();
+        return view('email_templates.edit', compact('events')); // We reuse edit for create too
     }
 
     /**
@@ -31,6 +33,7 @@ class EmailTemplateController extends Controller
     {
         $validated = $request->validate([
             'code' => 'required|string|unique:email_templates,code',
+            'event_trigger' => 'required|string',
             'name' => 'required|string',
             'subject' => 'required|string',
             'body_html' => 'required|string',
@@ -56,7 +59,9 @@ class EmailTemplateController extends Controller
      */
     public function edit(EmailTemplate $emailTemplate)
     {
-        return view('email_templates.edit', compact('emailTemplate'));
+        $eventService = app(\App\Services\Events\EventMetadataService::class);
+        $events = $eventService->getSupportedEvents();
+        return view('email_templates.edit', compact('emailTemplate', 'events'));
     }
 
     /**
@@ -66,6 +71,7 @@ class EmailTemplateController extends Controller
     {
         $validated = $request->validate([
             'code' => 'required|string|unique:email_templates,code,' . $emailTemplate->id,
+            'event_trigger' => 'required|string',
             'name' => 'required|string',
             'subject' => 'required|string',
             'body_html' => 'required|string',
@@ -91,12 +97,59 @@ class EmailTemplateController extends Controller
     {
         $validated = $request->validate([
             'body_html' => 'required|string',
-            'variables' => 'nullable|array',
+            'subject' => 'nullable|string',
         ]);
 
         $templateService = app(\App\Services\Templates\TemplateService::class);
-        $content = $templateService->renderString($validated['body_html'], $validated['variables'] ?? []);
+        
+        // Mock some data for preview
+        $mockData = [
+            'estimate_number' => 'EST-2026-PREVIEW',
+            'total_amount' => '₹ 5,20,000.00',
+            'client_name' => 'John Doe (Sample)',
+            'notifiable_name' => 'Valued Client',
+            'view_url' => '#',
+            'pixel_url' => '#',
+            'expires_in' => '24 hours',
+            'subject' => $validated['subject'] ?? 'Template Preview',
+        ];
 
-        return response()->json(['html' => $content]);
+        // Wrap in Layout for preview if it doesn't have one
+        $content = $validated['body_html'];
+        if (!str_contains($content, '@extends') && !str_contains($content, '<html>')) {
+            $content = "@extends('emails.layout')\n@section('content')\n" . $content . "\n@endsection";
+        }
+
+        try {
+            $html = $templateService->renderString($content, $mockData);
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            return response()->json(['html' => "<div style='color:red;padding:20px;'><strong>Template Error:</strong><br>{$e->getMessage()}</div>"], 422);
+        }
+    }
+
+    public function test(Request $request, EmailTemplate $emailTemplate)
+    {
+        $user = auth()->user();
+        $emailDispatcher = app(\App\Services\Mail\EmailDispatcher::class);
+
+        // Mock data for the test
+        $mockData = [
+            'estimate_number' => 'TEST-0001',
+            'total_amount' => '₹ 1,00,000.00',
+            'client_name' => $user->name,
+            'notifiable_name' => $user->name,
+            'view_url' => route('dashboard'),
+            'pixel_url' => '#',
+        ];
+
+        $emailDispatcher->dispatch(
+            $user->email, 
+            "[TEST] " . $emailTemplate->subject, 
+            $emailTemplate->code, 
+            $mockData
+        );
+
+        return back()->with('success', "Test email sent to {$user->email}");
     }
 }

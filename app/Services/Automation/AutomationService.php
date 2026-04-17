@@ -363,8 +363,28 @@ class AutomationService
         $subject = $this->parseVariables($action['subject'] ?? 'Automation Alert', $event);
         $template = $action['template'] ?? 'emails.generic_automation';
 
+        // Resolve Entity (Estimate/Client etc) and include in data
+        $entity = $this->resolveEntity($event);
+        $entityName = strtolower(class_basename($entity ?? 'entity'));
+
         // Merge event payload with action data for template
         $data = array_merge($event->getPayload(), $action['data'] ?? []);
+
+        // Unified Webhook-style Payload for Email
+        $data['payload'] = $event->getPayload();
+        $data['metadata'] = [
+            'event_id' => $event->getEventId(),
+            'occurred_at' => $event->getOccurredOn()->format('c'),
+            'source' => $event->getSource(),
+            'triggered_by' => $event->getTriggeredBy(),
+        ];
+
+        if ($entity) {
+            $data[$entityName] = $entity;
+            if (isset($entity->creator)) {
+                $data['creator'] = $entity->creator;
+            }
+        }
 
         if ($to) {
             $this->emailDispatcher->dispatch($to, $subject, $template, $data);

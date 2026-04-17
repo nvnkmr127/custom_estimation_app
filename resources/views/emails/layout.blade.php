@@ -5,8 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>{{ $subject ?? config('app.name') }}</title>
     <!--[if !mso]><!-->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!--<![endif]-->
     <style>
         @media only screen and (max-width: 620px) {
@@ -16,149 +17,218 @@
             }
 
             .content-box {
-                padding: 20px !important;
+                padding: 24px !important;
+                border-radius: 0 !important;
+            }
+
+            .header {
+                padding: 20px 0 !important;
             }
         }
 
         body {
-            background-color: #f3f4f6;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
             font-size: 16px;
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            -ms-text-size-adjust: 100%;
-            -webkit-text-size-adjust: 100%;
-            color: #1f2937;
-        }
-
-        table {
-            border-collapse: separate;
-            mso-table-lspace: 0pt;
-            mso-table-rspace: 0pt;
-            width: 100%;
-        }
-
-        table td {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            font-size: 16px;
-            vertical-align: top;
+            color: #334155;
         }
 
         .wrapper {
-            background-color: #f3f4f6;
+            background-color: #f8fafc;
             width: 100%;
             padding: 40px 0;
         }
 
         .container {
-            display: block;
             margin: 0 auto !important;
             max-width: 600px;
             width: 600px;
         }
 
         .header {
-            padding: 0 0 30px 0;
+            padding: 0 0 40px 0;
             text-align: center;
         }
 
         .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: #111827;
+            font-size: 26px;
+            font-weight: 800;
+            color: #0f172a;
             text-decoration: none;
-            letter-spacing: -0.025em;
+            letter-spacing: -1px;
+            text-transform: uppercase;
         }
 
         .content-box {
             background: #ffffff;
-            border-radius: 16px;
+            border-radius: 20px;
             width: 100%;
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 40px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            padding: 48px;
             box-sizing: border-box;
+            border: 1px solid #f1f5f9;
         }
 
         .footer {
-            clear: both;
-            margin-top: 30px;
+            margin-top: 40px;
             text-align: center;
             width: 100%;
             padding: 0 20px;
         }
 
         .footer p {
-            color: #6b7280;
-            font-size: 12px;
-            margin-bottom: 8px;
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 12px;
         }
 
         .footer a {
-            color: #3b82f6;
+            color: #2563eb;
             text-decoration: none;
+            font-weight: 500;
         }
 
         .btn {
             display: inline-block;
-            background-color: #2563eb;
+            background: #2563eb linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             color: #ffffff !important;
-            padding: 12px 24px;
+            padding: 16px 32px;
             font-weight: 600;
             text-decoration: none;
-            border-radius: 8px;
-            margin-top: 20px;
+            border-radius: 10px;
+            margin-top: 24px;
             text-align: center;
-        }
-
-        .btn:hover {
-            background-color: #1d4ed8;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+            transition: transform 0.2s;
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
-            color: #111827;
+            color: #0f172a;
             margin-top: 0;
-            margin-bottom: 20px;
-            letter-spacing: -0.025em;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
         }
 
         p {
             margin-top: 0;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
+            color: #475569;
         }
 
-        .summary-box {
-            background-color: #f9fafb;
+        .card {
+            background-color: #f8fafc;
             border-radius: 12px;
-            padding: 20px;
+            padding: 24px;
             margin: 24px 0;
-            border: 1px solid #f3f4f6;
+            border: 1px solid #f1f5f9;
         }
 
-        .summary-item {
-            margin-bottom: 8px;
-            font-size: 14px;
+        .card-title {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .summary-label {
-            color: #6b7280;
+        .card-row {
+            margin-bottom: 12px;
+            display: block;
+            overflow: auto;
+        }
+
+        .card-label {
+            color: #64748b;
             font-weight: 500;
+            font-size: 14px;
+            float: left;
         }
 
-        .summary-value {
-            color: #111827;
-            font-weight: 600;
+        .card-value {
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 14px;
             float: right;
         }
 
         .divider {
             height: 1px;
-            background-color: #f3f4f6;
-            margin: 24px 0;
+            background-color: #f1f5f9;
+            margin: 32px 0;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            background-color: #ffffff;
+            color: #475569 !important;
+            padding: 12px 24px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-top: 24px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-sm { font-size: 14px; }
+        .text-xs { font-size: 12px; }
+        .font-bold { font-weight: 700; }
+        
+        .mt-0 { margin-top: 0; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-4 { margin-bottom: 16px; }
+
+        .price-text {
+            color: #2563eb;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .item-list {
+            width: 100%;
+            border-top: 1px solid #f1f5f9;
+            margin-top: 24px;
+        }
+
+        .item-row {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 12px 0;
+            overflow: auto;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #0f172a;
+            display: block;
+        }
+
+        .item-desc {
+            font-size: 13px;
+            color: #64748b;
+            display: block;
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -168,11 +238,15 @@
         <div class="container">
             <div class="header">
                 <a href="{{ config('app.url') }}" class="logo">
-                    {{ config('app.name') }}
+                   {{ config('app.name') }}
                 </a>
             </div>
 
             <div class="content-box">
+                @if(isset($priority_badge))
+                    {!! $priority_badge !!}
+                @endif
+                
                 @yield('content')
             </div>
 
@@ -180,15 +254,13 @@
                 @php
                     $settings = \App\Models\Setting::getAllCached();
                 @endphp
-                <p>&copy; {{ date('Y') }} {{ $settings['company_legal_name'] ?? config('app.name') }}. All rights
-                    reserved.</p>
+                <p>&copy; {{ date('Y') }} {{ $settings['company_legal_name'] ?? config('app.name') }}. All rights reserved.</p>
                 <p>
                     {{ $settings['company_address_street'] ?? '' }}
-                    {{ isset($settings['company_address_city']) ? ', ' . $settings['company_address_city'] : '' }}
-                    {{ isset($settings['company_address_state']) ? ', ' . $settings['company_address_state'] : '' }}
+                    @if(isset($settings['company_address_city'])) , {{ $settings['company_address_city'] }} @endif
                 </p>
                 <p>
-                    You received this email because it's related to your activity in {{ config('app.name') }}.
+                    <a href="{{ config('app.url') }}/notifications">Manage Notification Preferences</a>
                 </p>
             </div>
         </div>

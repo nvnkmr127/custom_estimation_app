@@ -143,6 +143,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('templates', App\Http\Controllers\RoomTemplateController::class);
         Route::resource('email-templates', App\Http\Controllers\EmailTemplateController::class);
         Route::post('email-templates/preview', [App\Http\Controllers\EmailTemplateController::class, 'preview'])->name('email-templates.preview');
+        Route::post('email-templates/{emailTemplate}/test', [App\Http\Controllers\EmailTemplateController::class, 'test'])->name('email-templates.test');
 
         Route::resource('brands', App\Http\Controllers\BrandController::class)->except(['show']);
         Route::resource('packages', App\Http\Controllers\ItemPackageController::class);

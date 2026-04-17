@@ -93,6 +93,7 @@ class TemplateService
             'recommended_action' => $recommendedAction,
             'priority_badge' => $priorityBadge,
             'expires_in' => $expiresIn,
+            'company_name' => \App\Models\Setting::getCached('company_name', config('app.name')),
         ];
     }
 

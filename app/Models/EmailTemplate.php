@@ -11,6 +11,7 @@ class EmailTemplate extends Model
 
     protected $fillable = [
         'code',
+        'event_trigger',
         'name',
         'subject',
         'body_html',

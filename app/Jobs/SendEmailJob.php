@@ -19,6 +19,7 @@ class SendEmailJob implements ShouldQueue
     public $subject;
     public $body;
     public $attachments;
+    public $emailLogId;
 
     /**
      * Create a new job instance.
@@ -27,13 +28,15 @@ class SendEmailJob implements ShouldQueue
      * @param string $subject
      * @param string $body
      * @param array $attachments
+     * @param string|null $emailLogId
      */
-    public function __construct(string $to, string $subject, string $body, array $attachments = [])
+    public function __construct(string $to, string $subject, string $body, array $attachments = [], ?string $emailLogId = null)
     {
         $this->to = $to;
         $this->subject = $subject;
         $this->body = $body;
         $this->attachments = $attachments;
+        $this->emailLogId = $emailLogId;
     }
 
     /**
@@ -41,19 +44,22 @@ class SendEmailJob implements ShouldQueue
      */
     public function handle()
     {
-        // In a real DI scenario, we might want to resolve the interface from the container.
-        // For now, we instantiate SmtpMailGateway or resolve it.
-        // To keep it flexible, let's resolve the interface.
-        // Ensure AppServiceProvider binds MailGatewayInterface to SmtpMailGateway.
-
         $gateway = app(MailGatewayInterface::class);
 
-        if (!$gateway->send($this->to, $this->subject, $this->body, $this->attachments)) {
+        $sent = $gateway->send($this->to, $this->subject, $this->body, $this->attachments);
+
+        if ($this->emailLogId) {
+            \App\Models\EmailLog::where('id', $this->emailLogId)->update([
+                'status' => $sent ? 'sent' : 'failed',
+                'error_message' => $sent ? null : 'Gateway declined to send',
+            ]);
+        }
+
+        if (!$sent) {
             $attempt = $this->attempts();
             Log::error("SendEmailJob Failed (Attempt $attempt): Gateway declined to send", [
-                'to' => $this->to, 
-                'subject' => $this->subject,
-                'has_attachments' => !empty($this->attachments)
+                'to' => $this->to,
+                'subject' => $this->subject
             ]);
             throw new \Exception("Failed to send email to {$this->to}");
         }
