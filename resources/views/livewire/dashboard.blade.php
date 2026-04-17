@@ -202,79 +202,112 @@
             </div>
         </div>
 
-        {{-- Smart Alerts & Leaderboard Column --}}
-        <div class="lg:col-span-4 flex flex-col gap-6">
-            {{-- Team Leaderboard (Admin Only) --}}
-            @if(count($metrics['leaderboard']) > 0)
-            <div class="rounded-[2.5rem] bg-indigo-900 p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-4 opacity-10">
-                    <x-heroicon-o-trophy class="h-12 w-12 text-white" />
-                </div>
-                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-300 mb-4 flex items-center gap-2">
-                    Top Performers
-                </h3>
-                <div class="space-y-3">
-                    @foreach($metrics['leaderboard'] as $index => $performer)
-                    <div class="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg font-black {{ $index === 0 ? 'text-amber-400' : 'text-slate-400' }}">#{{ $index + 1 }}</span>
-                            <div class="min-w-0">
-                                <p class="text-xs font-bold text-white truncate">{{ $performer->name }}</p>
-                                <p class="text-[9px] font-bold text-indigo-300 uppercase">{{ $performer->won_count }} Wins</p>
+        {{-- Smart Alerts & Intelligence Column --}}
+        <div class="lg:col-span-4 flex flex-col gap-6" x-data="{ sideTab: 'alerts' }">
+            
+            {{-- Intelligence Switcher --}}
+            <div class="flex p-1.5 bg-slate-100 rounded-2xl gap-1">
+                <button @click="sideTab = 'alerts'" :class="sideTab === 'alerts' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'" class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Alerts & Targets</button>
+                <button @click="sideTab = 'intel'" :class="sideTab === 'intel' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-500'" class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Process Intel</button>
+            </div>
+
+            <div x-show="sideTab === 'alerts'" class="space-y-6" x-transition>
+                {{-- Team Leaderboard (Admin Only) --}}
+                @if(count($metrics['leaderboard']) > 0)
+                <div class="rounded-[2.5rem] bg-indigo-900 p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <x-heroicon-o-trophy class="h-12 w-12 text-white" />
+                    </div>
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-300 mb-4 flex items-center gap-2">
+                        Top Performers
+                    </h3>
+                    <div class="space-y-3">
+                        @foreach($metrics['leaderboard'] as $index => $performer)
+                        <div class="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
+                            <div class="flex items-center gap-3">
+                                <span class="text-lg font-black {{ $index === 0 ? 'text-amber-400' : 'text-slate-400' }}">#{{ $index + 1 }}</span>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-bold text-white truncate">{{ $performer->name }}</p>
+                                    <p class="text-[9px] font-bold text-indigo-300 uppercase">{{ $performer->won_count }} Wins</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs font-black text-white">{{ $currencySymbol }}{{ number_format($performer->total_revenue / 1000, 0) }}k</p>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs font-black text-white">{{ $currencySymbol }}{{ number_format($performer->total_revenue / 1000, 0) }}k</p>
-                        </div>
+                        @endforeach
                     </div>
-                    @endforeach
+                </div>
+                @endif
+
+                {{-- Smart Alerts Card --}}
+                <div class="rounded-[2.5rem] bg-slate-50 p-6 shadow-inner ring-1 ring-slate-200/50">
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
+                        <x-heroicon-o-bell-alert class="h-4 w-4" />
+                        Smart Alerts
+                    </h3>
+                    <div class="space-y-3">
+                        @forelse($alerts as $alert)
+                        <div class="flex items-center gap-3 p-3 rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+                            <div class="h-8 w-8 rounded-xl flex items-center justify-center 
+                                @if($alert['type'] === 'danger') bg-rose-50 text-rose-600 @elseif($alert['type'] === 'warning') bg-amber-50 text-amber-600 @else bg-blue-50 text-blue-600 @endif">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-slate-900 truncate">{{ $alert['label'] }}</p>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">{{ $alert['count'] }} Estimates</p>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-center py-6 text-slate-400 italic text-xs font-bold">All clear! No alerts today.</div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
-            @endif
 
-            {{-- Bottleneck Radar (Admin Only) --}}
-            @if(count($metrics['bottlenecks']) > 0)
-            <div class="rounded-[2.5rem] bg-rose-50 border border-rose-100 p-6">
-                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-rose-600 mb-4 flex items-center gap-2">
-                    <x-heroicon-o-exclamation-triangle class="h-4 w-4" />
-                    Approval Bottlenecks
-                </h3>
-                <div class="space-y-4">
-                    @foreach($metrics['bottlenecks'] as $bottleneck)
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-700">{{ $bottleneck->name }}</span>
-                        <span class="px-2 py-0.5 rounded-lg bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest">{{ $bottleneck->pending_count }} STUCK</span>
-                    </div>
-                    @endforeach
-                </div>
-                <p class="mt-4 text-[10px] text-rose-400 font-bold uppercase tracking-widest italic">* Delayed > 24 hours</p>
-            </div>
-            @endif
-
-            {{-- Client Engagement Radar --}}
-            @if(count($metrics['client_engagement']) > 0)
-            <div class="rounded-[2.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-100">
-                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
-                    Client Engagement Radar
-                </h3>
-                <div class="space-y-4">
-                    @foreach($metrics['client_engagement'] as $engagement)
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs font-bold text-slate-900 truncate max-w-[150px]">{{ $engagement->client->name ?? 'Unknown' }}</span>
-                            <span class="text-[10px] font-black text-indigo-600 uppercase">{{ $engagement->total_views }} Views</span>
+            <div x-show="sideTab === 'intel'" class="space-y-6" style="display: none;" x-transition>
+                {{-- Bottleneck Radar (Admin Only) --}}
+                @if(count($metrics['bottlenecks']) > 0)
+                <div class="rounded-[2.5rem] bg-rose-50 border border-rose-100 p-6">
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-rose-600 mb-4 flex items-center gap-2">
+                        <x-heroicon-o-exclamation-triangle class="h-4 w-4" />
+                        Approval Bottlenecks
+                    </h3>
+                    <div class="space-y-4">
+                        @foreach($metrics['bottlenecks'] as $bottleneck)
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-700">{{ $bottleneck->name }}</span>
+                            <span class="px-2 py-0.5 rounded-lg bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest">{{ $bottleneck->pending_count }} STUCK</span>
                         </div>
-                        <div class="h-1 w-full bg-slate-50 rounded-full overflow-hidden">
-                            <div class="h-full bg-indigo-500 rounded-full" style="width: {{ min(100, $engagement->total_views * 10) }}%"></div>
-                        </div>
+                        @endforeach
                     </div>
-                    @endforeach
+                    <p class="mt-4 text-[10px] text-rose-400 font-bold uppercase tracking-widest italic">* Delayed > 24 hours</p>
                 </div>
-            </div>
-            @endif
+                @endif
 
-            {{-- Smart Alerts Card --}}
-            <div class="rounded-[2.5rem] bg-slate-50 p-6 shadow-inner ring-1 ring-slate-200/50 flex-1">
+                {{-- Client Engagement Radar --}}
+                @if(count($metrics['client_engagement']) > 0)
+                <div class="rounded-[2.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-100">
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
+                        Client Engagement Radar
+                    </h3>
+                    <div class="space-y-4">
+                        @foreach($metrics['client_engagement'] as $engagement)
+                        <div class="relative">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-bold text-slate-900 truncate max-w-[150px]">{{ $engagement->client->name ?? 'Unknown' }}</span>
+                                <span class="text-[10px] font-black text-indigo-600 uppercase">{{ $engagement->total_views }} Views</span>
+                            </div>
+                            <div class="h-1 w-full bg-slate-50 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-500 rounded-full" style="width: {{ min(100, $engagement->total_views * 10) }}%"></div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
             <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                 Smart Alerts
