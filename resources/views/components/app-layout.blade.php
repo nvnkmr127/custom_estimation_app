@@ -14,6 +14,7 @@
     <!-- Scripts -->
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     @if(isset($app_settings['app_favicon']))
         <link rel="icon" type="image/x-icon" href="{{ $app_settings['app_favicon'] }}">

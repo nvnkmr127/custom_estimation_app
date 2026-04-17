@@ -84,6 +84,40 @@
     </section>
     @endif
 
+    {{-- Time Period Selector --}}
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-[2rem] shadow-sm ring-1 ring-slate-100">
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-black uppercase tracking-widest text-slate-400 px-4">Time Window:</span>
+            <div class="flex flex-wrap p-1 bg-slate-100 rounded-xl gap-1">
+                <button wire:click="$set('period', 'yesterday')" class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {{ $period === 'yesterday' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">Yesterday</button>
+                <button wire:click="$set('period', 'last_3')" class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {{ $period === 'last_3' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">3 Days</button>
+                <button wire:click="$set('period', 'last_7')" class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {{ $period === 'last_7' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">7 Days</button>
+                <button wire:click="$set('period', 'this_month')" class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {{ $period === 'this_month' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">This Month</button>
+                <button wire:click="$set('period', 'last_30')" class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {{ $period === 'last_30' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">Last 30</button>
+                <button wire:click="$set('period', 'year_to_date')" class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {{ $period === 'year_to_date' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">YTD</button>
+                <button wire:click="$set('period', 'all_time')" class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {{ $period === 'all_time' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700' }}">All</button>
+                <button wire:click="$set('period', 'custom')" class="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all {{ $period === 'custom' ? 'bg-emerald-600 shadow-sm text-white' : 'text-slate-500 hover:text-slate-700' }}">Custom</button>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            @if($period === 'custom')
+            <div class="flex items-center gap-2 animate-in slide-in-from-right-4 duration-300">
+                <input type="date" wire:model.live="fromDate" class="text-[10px] font-black uppercase bg-slate-50 border-slate-200 rounded-lg focus:ring-emerald-500">
+                <span class="text-xs font-black text-slate-400">to</span>
+                <input type="date" wire:model.live="toDate" class="text-[10px] font-black uppercase bg-slate-50 border-slate-200 rounded-lg focus:ring-emerald-500">
+            </div>
+            @elseif($fromDate && $toDate)
+            <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-xl border border-indigo-100">
+                <x-heroicon-o-calendar class="h-4 w-4 text-indigo-600" />
+                <span class="text-[10px] font-black text-indigo-950 uppercase tracking-widest">
+                    {{ \Carbon\Carbon::parse($fromDate)->format('d M') }} — {{ \Carbon\Carbon::parse($toDate)->format('d M, Y') }}
+                </span>
+            </div>
+            @endif
+        </div>
+    </div>
+
     {{-- 2. Pipeline Visualization (Count & Value) --}}
     <section class="rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-slate-100 overflow-hidden relative">
         <div class="absolute top-0 right-0 p-8">
@@ -126,9 +160,9 @@
     </section>
 
     {{-- Row 3: Personal Achievement & Metrics --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {{-- Personal Achievement Tracker (Simple English & Lakhs) --}}
+        {{-- Personal Achievement Tracker --}}
         <div class="lg:col-span-12 rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-slate-100 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
             <div class="absolute -right-20 -bottom-20 h-64 w-64 bg-indigo-50/50 rounded-full blur-3xl group-hover:bg-indigo-100/50 transition-colors"></div>
             
@@ -169,8 +203,10 @@
             </div>
         </div>
 
-           {{-- Performance Metrics Card --}}
-        <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {{-- Metrics & Insights --}}
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            {{-- Performance Metrics Grid --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div class="rounded-3xl bg-slate-950 p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden group">
                 <div class="absolute -top-10 -right-10 h-24 w-24 bg-indigo-500/20 blur-2xl rounded-full"></div>
                 <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4">Total Revenue</dt>
@@ -185,9 +221,9 @@
             </div>
 
             <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 group">
-                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Approval Speed</dt>
-                <dd class="text-2xl font-black text-slate-900 tracking-tighter">{{ $metrics['avg_approval_time'] }}</dd>
-                <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">Average Days</div>
+                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Earnings Margin</dt>
+                <dd class="text-2xl font-black text-slate-900 tracking-tighter">{{ round($metrics['avg_margin'], 1) }}%</dd>
+                <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">Avg Profit</div>
             </div>
 
             <div class="rounded-3xl bg-indigo-50 p-6 shadow-sm ring-1 ring-indigo-200 group relative overflow-hidden">
@@ -199,6 +235,84 @@
                 <div class="mt-2 text-[10px] font-bold text-indigo-600 flex items-center gap-1 uppercase">Expected Sales</div>
             </div>
         </div>
+
+        {{-- New: Intelligence Row (Engagement & Bottlenecks) --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {{-- Client Engagement Radar --}}
+            <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 relative overflow-hidden group lg:col-span-1">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <x-heroicon-o-signal class="h-12 w-12 text-slate-900" />
+                </div>
+                <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Client Engagement Radar</h3>
+                <div class="space-y-4">
+                    @forelse($metrics['client_engagement'] as $engagement)
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-700 truncate max-w-[100px]">{{ $engagement->client->name }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="h-1.5 w-12 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-500 rounded-full" style="width: {{ min(100, $engagement->total_views * 10) }}%"></div>
+                            </div>
+                            <span class="text-[10px] font-black text-slate-400">{{ $engagement->total_views }}</span>
+                        </div>
+                    </div>
+                    @empty
+                    <p class="text-[10px] text-slate-400 font-bold uppercase py-4">No activity.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- Production Capacity Meter --}}
+            <div class="rounded-3xl bg-slate-900 p-6 shadow-lg relative overflow-hidden group lg:col-span-1">
+                <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:rotate-12 transition-transform">
+                    <x-heroicon-o-cog-6-tooth class="h-20 w-20 text-white" />
+                </div>
+                <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Factory Load</h3>
+                
+                <div class="flex items-end justify-between mb-2">
+                    <span class="text-3xl font-black text-white tracking-tighter">{{ $metrics['production_load'] }}%</span>
+                    <span class="text-[10px] font-black {{ $metrics['production_load'] > 80 ? 'text-rose-400' : 'text-emerald-400' }} uppercase mb-1">
+                        {{ $metrics['production_load'] > 80 ? 'CRITICAL' : 'OPTIMAL' }}
+                    </span>
+                </div>
+                
+                <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden mb-4">
+                    <div class="h-full {{ $metrics['production_load'] > 80 ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-emerald-500' }} rounded-full transition-all duration-1000" style="width: {{ $metrics['production_load'] }}%"></div>
+                </div>
+                
+                <p class="text-[10px] text-slate-400 font-bold uppercase leading-relaxed">
+                    {{ $metrics['production_load'] > 80 ? 'Suggest +7 days delivery for new deals.' : 'Ready for high-volume intake.' }}
+                </p>
+            </div>
+
+            {{-- Heavy Pipeline Alerts --}}
+            <div class="rounded-3xl bg-amber-50 p-6 shadow-sm ring-1 ring-amber-100 lg:col-span-1">
+                <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 mb-6 flex items-center gap-2">
+                    Incoming High Impact
+                    @if(count($metrics['heavy_pipeline']) > 0)
+                    <span class="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
+                    @endif
+                </h3>
+                
+                <div class="space-y-4">
+                    @forelse($metrics['heavy_pipeline'] as $heavy)
+                    <div class="flex items-center justify-between border-b border-amber-100 pb-2">
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-black text-amber-950 truncate uppercase">{{ $heavy->estimate_number }}</p>
+                            <p class="text-[9px] font-bold text-amber-600 uppercase">{{ $heavy->client->name }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] font-black text-amber-950 italic">~{{ number_format($heavy->grand_total / 100000, 1) }}L</p>
+                        </div>
+                    </div>
+                    @empty
+                    <p class="text-[10px] text-amber-400 font-bold uppercase py-4">No large deals pending.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
 
         {{-- Smart Alerts & Intelligence Column --}}
         <div class="lg:col-span-4 flex flex-col gap-6" x-data="{ sideTab: 'alerts' }">
@@ -212,25 +326,30 @@
             <div x-show="sideTab === 'alerts'" class="space-y-6" x-transition>
                 {{-- Team Leaderboard (Admin Only) --}}
                 @if(count($metrics['leaderboard']) > 0)
-                <div class="rounded-[2.5rem] bg-indigo-900 p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                <div class="rounded-[2.5rem] bg-gradient-to-br from-indigo-900 via-slate-900 to-black p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <x-heroicon-o-trophy class="h-12 w-12 text-white" />
                     </div>
-                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-300 mb-4 flex items-center gap-2">
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-300 mb-6 flex items-center gap-2">
                         Top Sellers
                     </h3>
                     <div class="space-y-3">
                         @foreach($metrics['leaderboard'] as $index => $performer)
-                        <div class="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
+                        <div class="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
                             <div class="flex items-center gap-3">
-                                <span class="text-lg font-black {{ $index === 0 ? 'text-amber-400' : 'text-slate-400' }}">#{{ $index + 1 }}</span>
+                                <div class="h-10 w-10 rounded-xl flex items-center justify-center font-black text-sm
+                                    @if($index === 0) bg-amber-400 text-amber-950 shadow-[0_0_15px_rgba(251,191,36,0.5)] 
+                                    @elseif($index === 1) bg-slate-200 text-slate-700 
+                                    @else bg-orange-700/50 text-orange-100 @endif">
+                                    {{ $index + 1 }}
+                                </div>
                                 <div class="min-w-0">
                                     <p class="text-xs font-bold text-white truncate">{{ $performer->name }}</p>
-                                    <p class="text-[9px] font-bold text-indigo-300 uppercase">{{ $performer->won_count }} Won</p>
+                                    <p class="text-[9px] font-black text-indigo-300 uppercase tracking-widest">{{ $performer->won_count }} Won</p>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="text-xs font-black text-white">{{ $currencySymbol }}{{ number_format($performer->total_revenue / 100000, 2) }} L</p>
+                                <p class="text-sm font-black text-white italic tracking-tighter">{{ $currencySymbol }}{{ number_format($performer->total_revenue / 100000, 1) }}L</p>
                             </div>
                         </div>
                         @endforeach
@@ -261,6 +380,44 @@
                         @endforelse
                     </div>
                 </div>
+
+                {{-- Sales Nudge Engine --}}
+                @if($metrics['neglected_count'] > 0 || $metrics['expiring_count'] > 0)
+                <div class="rounded-[2.5rem] bg-gradient-to-br from-white to-indigo-50/30 p-6 shadow-sm ring-1 ring-indigo-100/50 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 opacity-5 group-hover:rotate-12 transition-transform">
+                        <x-heroicon-o-rocket-launch class="h-16 w-16 text-indigo-600" />
+                    </div>
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400 mb-6 flex items-center gap-2">
+                        <x-heroicon-o-sparkles class="h-4 w-4" />
+                        Sales Nudges
+                    </h3>
+                    
+                    <div class="space-y-4 mb-6">
+                        @if($metrics['neglected_count'] > 0)
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-600">Cold Leads (48h+)</span>
+                            <span class="px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-700 text-[10px] font-black">{{ $metrics['neglected_count'] }}</span>
+                        </div>
+                        @endif
+                        @if($metrics['expiring_count'] > 0)
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-600">Expiring Soon (24h)</span>
+                            <span class="px-2 py-0.5 rounded-lg bg-rose-100 text-rose-700 text-[10px] font-black">{{ $metrics['expiring_count'] }}</span>
+                        </div>
+                        @endif
+                    </div>
+
+                    <button 
+                        wire:click="executeNudges"
+                        wire:loading.attr="disabled"
+                        class="w-full py-4 bg-indigo-600 hover:bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 group-hover:scale-[1.02] active:scale-[0.98]">
+                        <span wire:loading.remove>Automate Outreach</span>
+                        <span wire:loading>Nudging Clients...</span>
+                        <x-heroicon-o-paper-airplane class="h-4 w-4" wire:loading.remove />
+                    </button>
+                    <p class="mt-4 text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center italic">Personalized follow-ups via Email</p>
+                </div>
+                @endif
             </div>
 
             <div x-show="sideTab === 'intel'" class="space-y-6" style="display: none;" x-transition>

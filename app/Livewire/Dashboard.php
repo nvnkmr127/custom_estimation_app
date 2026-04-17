@@ -15,6 +15,57 @@ use Carbon\Carbon;
 class Dashboard extends Component
 {
     #[Layout('layouts.app')]
+    public $period = 'this_month';
+    public $fromDate;
+    public $toDate;
+
+    public function mount()
+    {
+        $this->updateDateRange();
+    }
+
+    public function updatedPeriod()
+    {
+        $this->updateDateRange();
+    }
+
+    protected function updateDateRange()
+    {
+        switch ($this->period) {
+            case 'yesterday':
+                $this->fromDate = now()->subDay()->format('Y-m-d');
+                $this->toDate = now()->subDay()->format('Y-m-d');
+                break;
+            case 'last_3':
+                $this->fromDate = now()->subDays(3)->format('Y-m-d');
+                $this->toDate = now()->format('Y-m-d');
+                break;
+            case 'last_7':
+                $this->fromDate = now()->subDays(7)->format('Y-m-d');
+                $this->toDate = now()->format('Y-m-d');
+                break;
+            case 'this_month':
+                $this->fromDate = now()->startOfMonth()->format('Y-m-d');
+                $this->toDate = now()->endOfMonth()->format('Y-m-d');
+                break;
+            case 'last_30':
+                $this->fromDate = now()->subDays(30)->format('Y-m-d');
+                $this->toDate = now()->format('Y-m-d');
+                break;
+            case 'year_to_date':
+                $this->fromDate = now()->startOfYear()->format('Y-m-d');
+                $this->toDate = now()->format('Y-m-d');
+                break;
+            case 'all_time':
+                $this->fromDate = null;
+                $this->toDate = null;
+                break;
+            case 'custom':
+                // Do nothing, let user pick
+                break;
+        }
+    }
+
     public function render()
     {
         $user = auth()->user();
@@ -183,6 +234,10 @@ class Dashboard extends Component
                 $query->where('created_by', $user->id);
             }
 
+            if ($this->fromDate && $this->toDate) {
+                $query->whereBetween('created_at', [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59']);
+            }
+
             $stats[$status] = [
                 'label' => $label,
                 'count' => $query->count(),
@@ -260,41 +315,64 @@ class Dashboard extends Component
 
     protected function getPerformanceMetrics($user)
     {
-        $thisMonth = [now()->startOfMonth(), now()->endOfMonth()];
+        $dateRange = ($this->fromDate && $this->toDate) 
+            ? [$this->fromDate . ' 00:00:00', $this->toDate . ' 23:59:59'] 
+            : null;
         
         $baseQuery = Estimate::query()
             ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id));
-
-        // Value of all estimates created this month
-        $totalVal = (clone $baseQuery)->whereBetween('created_at', $thisMonth)->sum('grand_total');
         
-        // Conversion: Accepted / Sent (ever)
-        $sentCount = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->count();
-        $acceptedCount = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count();
+        $filteredQuery = (clone $baseQuery)
+            ->when($dateRange, fn($q) => $q->whereBetween('created_at', $dateRange));
+
+        // Value of all estimates created in range
+        $totalVal = (clone $filteredQuery)->sum('grand_total');
+        
+        // Conversion: Accepted / Sent (in range)
+        $sentCount = (clone $filteredQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->count();
+        $acceptedCount = (clone $filteredQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count();
         $winRate = $sentCount > 0 ? ($acceptedCount / ($sentCount + $acceptedCount)) * 100 : 0;
 
         // Avg Deal Size for Accepted estimates
         $avgDealSize = $acceptedCount > 0 
-            ? (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->avg('grand_total') 
+            ? (clone $filteredQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->avg('grand_total') 
             : 0;
 
         // Avg Approval Time - Placeholder: In a real system we would calculate the difference between creation and approval
         $avgApprovalTime = "1.4 days"; 
 
         // New Logic: Revenue Forecast (Sent Value * Win Rate)
-        $sentValue = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->sum('grand_total');
+        $sentValue = (clone $filteredQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->sum('grand_total');
         $forecastValue = $sentValue * ($winRate / 100);
+
+        // Profitability Logic
+        $totalProfit = (clone $filteredQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->sum('gross_profit');
+        $avgMargin = (clone $filteredQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->where('grand_total', '>', 0)
+            ->selectRaw('AVG((gross_profit / grand_total) * 100) as margin')
+            ->value('margin') ?? 0;
+
+        // Sales Nudge Logic
+        $nudgeService = app(\App\Services\SalesNudgeService::class);
+        $neglectedCount = $nudgeService->getNeglectedEstimates()->count();
+        $expiringCount = $nudgeService->getExpiringEstimates()->count();
+
+        // Production Capacity Logic
+        $prodService = app(\App\Services\ProductionService::class);
+        $productionLoad = $prodService->getCapacityLoad();
+        $heavyPipeline = $prodService->getPendingImpact();
 
         // 1. Team Leaderboard (For Admins/Managers)
         $leaderboard = [];
         if ($user->isAdmin() || $user->hasRole('estimator_manager')) {
             $leaderboard = \App\Models\User::query()
                 ->select('users.id', 'users.name')
-                ->withCount(['estimates as won_count' => function($q) {
-                    $q->where('estimate_status', Estimate::EST_STATUS_ACCEPTED);
+                ->withCount(['estimates as won_count' => function($q) use ($dateRange) {
+                    $q->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
+                      ->when($dateRange, fn($q) => $q->whereBetween('updated_at', $dateRange));
                 }])
-                ->withSum(['estimates as total_revenue' => function($q) {
-                    $q->where('estimate_status', Estimate::EST_STATUS_ACCEPTED);
+                ->withSum(['estimates as total_revenue' => function($q) use ($dateRange) {
+                    $q->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
+                      ->when($dateRange, fn($q) => $q->whereBetween('updated_at', $dateRange));
                 }], 'grand_total')
                 ->orderByDesc('total_revenue')
                 ->take(3)
@@ -319,6 +397,7 @@ class Dashboard extends Component
             ->with('client')
             ->where('view_count', '>', 0)
             ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->when($dateRange, fn($q) => $q->whereBetween('created_at', $dateRange))
             ->select('client_id', DB::raw('SUM(view_count) as total_views'))
             ->groupBy('client_id')
             ->orderByDesc('total_views')
@@ -349,6 +428,12 @@ class Dashboard extends Component
             'avg_deal_size' => $avgDealSize,
             'avg_approval_time' => $avgApprovalTime,
             'forecast_value' => $forecastValue,
+            'total_profit' => $totalProfit,
+            'avg_margin' => $avgMargin,
+            'neglected_count' => $neglectedCount,
+            'expiring_count' => $expiringCount,
+            'production_load' => $productionLoad,
+            'heavy_pipeline' => $heavyPipeline,
             'leaderboard' => $leaderboard,
             'bottlenecks' => $bottlenecks,
             'client_engagement' => $clientEngagement,
@@ -358,5 +443,23 @@ class Dashboard extends Component
                 'percent' => $progressPercent,
             ],
         ];
+    }
+    /**
+     * One-Click Nudge Action
+     */
+    public function executeNudges()
+    {
+        $nudgeService = app(\App\Services\SalesNudgeService::class);
+        $neglected = $nudgeService->getNeglectedEstimates();
+        
+        $count = 0;
+        foreach ($neglected as $estimate) {
+            if ($nudgeService->nudge($estimate, 'manual_bulk')) {
+                $count++;
+            }
+        }
+
+        session()->flash('success', "Success! {$count} follow-up nudges have been sent to neglecting clients.");
+        $this->dispatch('metrics-updated');
     }
 }
