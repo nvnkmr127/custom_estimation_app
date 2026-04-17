@@ -42,6 +42,14 @@ class Product extends Model
         'retired_at' => 'datetime',
     ];
 
+    /**
+     * Mutator to ensure empty strings are saved as NULL for integer column.
+     */
+    public function setUnitTypeIdAttribute($value)
+    {
+        $this->attributes['unit_type_id'] = $value ?: null;
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -110,6 +118,11 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(ProductCategory::class);
+    }
+
+    public function unitType()
+    {
+        return $this->belongsTo(UnitType::class, 'unit_type_id');
     }
 
     public function images()

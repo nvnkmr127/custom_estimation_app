@@ -44,6 +44,14 @@ class EstimateItem extends Model
     ];
 
     /**
+     * Mutator to ensure empty strings are saved as NULL for integer column.
+     */
+    public function setUnitTypeIdAttribute($value)
+    {
+        $this->attributes['unit_type_id'] = $value ?: null;
+    }
+
+    /**
      * The attributes that should be hidden for arrays.
      *
      * @var array
