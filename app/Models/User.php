@@ -105,7 +105,7 @@ class User extends Authenticatable
 
     public function estimates()
     {
-        return $this->hasMany(Estimate::class);
+        return $this->hasMany(Estimate::class, 'created_by');
     }
 
     public function approvals()
