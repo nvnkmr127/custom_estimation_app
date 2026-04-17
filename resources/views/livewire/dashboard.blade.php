@@ -92,13 +92,13 @@
         
         <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
             <div>
-                <h2 class="text-xl font-black text-slate-900 tracking-tight">Active Sales Pipeline</h2>
-                <p class="text-sm font-bold text-slate-400">Track movement through the internal workflow</p>
+                <h2 class="text-xl font-black text-slate-900 tracking-tight">Sales Pipeline</h2>
+                <p class="text-sm font-bold text-slate-400">Track your sales progress</p>
             </div>
             <div class="text-right">
-                <span class="text-xs font-black uppercase tracking-widest text-slate-400">Total Pipeline Value</span>
+                <span class="text-xs font-black uppercase tracking-widest text-slate-400">Money in Pipeline</span>
                 <p class="text-3xl font-black text-slate-900 tracking-tighter">
-                    {{ $currencySymbol }} {{ number_format(collect($pipeline)->sum('value'), 0) }}
+                    {{ $currencySymbol }} {{ number_format(collect($pipeline)->sum('value') / 100000, 2) }} L
                 </p>
             </div>
         </div>
@@ -107,9 +107,9 @@
             @foreach($pipeline as $status => $data)
             <div class="relative group">
                 <div class="mb-4 flex flex-col items-center">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{{ $data['label'] }}</div>
+                    <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{{ match($data['label']) { 'Accepted' => 'Won', 'Declined' => 'Lost', default => $data['label'] } }}</div>
                     <div class="text-lg font-black text-slate-900">{{ $data['count'] }}</div>
-                    <div class="text-xs font-bold text-indigo-600/60">{{ $currencySymbol }}{{ number_format($data['value'] / 1000, 1) }}k</div>
+                    <div class="text-xs font-bold text-indigo-600/60">{{ $currencySymbol }}{{ number_format($data['value'] / 100000, 2) }} L</div>
                 </div>
                 {{-- Progress Line --}}
                 <div class="h-2 rounded-full overflow-hidden bg-slate-100">
@@ -128,77 +128,73 @@
     {{-- Row 3: Personal Achievement & Metrics --}}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {{-- Personal Achievement Tracker (NEW) --}}
+        {{-- Personal Achievement Tracker (Simple English & Lakhs) --}}
         <div class="lg:col-span-12 rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-slate-100 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
             <div class="absolute -right-20 -bottom-20 h-64 w-64 bg-indigo-50/50 rounded-full blur-3xl group-hover:bg-indigo-100/50 transition-colors"></div>
             
             <div class="relative z-10 flex-1">
                 <div class="flex items-center gap-3 mb-4">
-                    <span class="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest">Monthly Growth Target</span>
-                    <span class="text-xs font-bold text-slate-400">Target: {{ $currencySymbol }}{{ number_format($metrics['personal_achievement']['target'] / 1000, 1) }}k</span>
+                    <span class="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest">Monthly Sales Goal</span>
+                    <span class="text-xs font-bold text-slate-400 italic">Started on {{ now()->startOfMonth()->format('d M') }}</span>
                 </div>
-                <h3 class="text-2xl font-black text-slate-900 tracking-tight">You've reached <span class="text-indigo-600">{{ round($metrics['personal_achievement']['percent']) }}%</span> of your monthly goal!</h3>
+                <h3 class="text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                    @if($metrics['personal_achievement']['percent'] >= 100)
+                        Good Job! <span class="text-indigo-600">You have reached the target.</span>
+                    @else
+                        You have finished <span class="text-indigo-600">{{ round($metrics['personal_achievement']['percent']) }}%</span> of your goal.
+                    @endif
+                </h3>
                 
                 {{-- Progress Bar --}}
-                <div class="mt-6">
-                    <div class="h-4 w-full bg-slate-100 rounded-full overflow-hidden p-1 shadow-inner">
-                        <div class="h-full bg-indigo-500 rounded-full transition-all duration-1000 flex items-center justify-end px-2" style="width: {{ $metrics['personal_achievement']['percent'] }}%">
-                            @if($metrics['personal_achievement']['percent'] > 20)
-                            <div class="h-1 w-1 rounded-full bg-white animate-pulse"></div>
-                            @endif
+                <div class="mt-8">
+                    <div class="h-5 w-full bg-slate-100 rounded-full overflow-hidden p-1.5 shadow-inner">
+                        <div class="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full transition-all duration-1000 flex items-center justify-end px-2" style="width: {{ $metrics['personal_achievement']['percent'] }}%">
+                            <div class="h-2 w-2 rounded-full bg-white animate-pulse shadow-sm"></div>
                         </div>
-                    </div>
-                    <div class="mt-2 flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        <span>Started</span>
-                        <span class="text-indigo-600">Goal: {{ $currencySymbol }}{{ number_format($metrics['personal_achievement']['target'], 0) }}</span>
                     </div>
                 </div>
             </div>
 
             <div class="relative z-10 flex-shrink-0 text-right">
-                <span class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Generated Revenue</span>
-                <p class="text-5xl font-black text-slate-900 tracking-tighter italic">
-                    {{ $currencySymbol }}{{ number_format($metrics['personal_achievement']['current'], 0) }}
+                <span class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Money Earned</span>
+                <p class="text-6xl font-black text-slate-900 tracking-tighter italic">
+                    {{ $currencySymbol }}{{ number_format($metrics['personal_achievement']['current'] / 100000, 2) }} L
                 </p>
-                @if($metrics['personal_achievement']['percent'] >= 100)
-                    <div class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest animate-bounce">
-                        Target Achieved! 🏆
-                    </div>
-                @endif
+                <div class="mt-3 flex items-center justify-end gap-2">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target: {{ $currencySymbol }}{{ number_format($metrics['personal_achievement']['target'] / 100000, 2) }} L</span>
+                    @if($metrics['personal_achievement']['percent'] >= 100)
+                        <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg font-black text-[10px] uppercase tracking-widest">Target Reached 🏆</span>
+                    @endif
+                </div>
             </div>
-        </div>
-
-        {{-- Performance Metrics Card --}}
+               {{-- Performance Metrics Card --}}
         <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div class="rounded-3xl bg-slate-950 p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden group">
                 <div class="absolute -top-10 -right-10 h-24 w-24 bg-indigo-500/20 blur-2xl rounded-full"></div>
                 <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4">Total Revenue</dt>
-                <dd class="text-2xl font-black text-white tracking-tighter">{{ $currencySymbol }}{{ number_format($metrics['total_value'] / 1000, 1) }}k</dd>
-                <div class="mt-2 text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2 1 1 0 010 2zm1 2a1 1 0 10-2 0v6a1 1 0 102 0V9z" clip-rule="evenodd" /></svg>
-                    THIS MONTH
-                </div>
+                <dd class="text-2xl font-black text-white tracking-tighter">{{ $currencySymbol }}{{ number_format($metrics['total_value'] / 100000, 2) }} L</dd>
+                <div class="mt-2 text-[10px] font-bold text-emerald-400 flex items-center gap-1 uppercase">This Month</div>
             </div>
 
             <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 group">
-                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Win Rate</dt>
+                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Total Wins</dt>
                 <dd class="text-2xl font-black text-slate-900 tracking-tighter">{{ round($metrics['win_rate'], 1) }}%</dd>
-                <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">Avg. Accepted</div>
+                <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">Accepted Rate</div>
             </div>
 
             <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 group">
-                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Avg Approval</dt>
+                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Approval Speed</dt>
                 <dd class="text-2xl font-black text-slate-900 tracking-tighter">{{ $metrics['avg_approval_time'] }}</dd>
-                <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">Cycles</div>
+                <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">Average Days</div>
             </div>
 
             <div class="rounded-3xl bg-indigo-50 p-6 shadow-sm ring-1 ring-indigo-200 group relative overflow-hidden">
                 <div class="absolute -right-4 -bottom-4 opacity-10">
                     <x-heroicon-o-presentation-chart-line class="h-16 w-16" />
                 </div>
-                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-4">Revenue Forecast</dt>
-                <dd class="text-2xl font-black text-indigo-900 tracking-tighter">{{ $currencySymbol }}{{ number_format($metrics['forecast_value'] / 1000, 1) }}k</dd>
-                <div class="mt-2 text-[10px] font-bold text-indigo-600 flex items-center gap-1 uppercase">Proj. Wins</div>
+                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-4">Money Forecast</dt>
+                <dd class="text-2xl font-black text-indigo-900 tracking-tighter">{{ $currencySymbol }}{{ number_format($metrics['forecast_value'] / 100000, 2) }} L</dd>
+                <div class="mt-2 text-[10px] font-bold text-indigo-600 flex items-center gap-1 uppercase">Expected Sales</div>
             </div>
         </div>
 
@@ -207,8 +203,8 @@
             
             {{-- Intelligence Switcher --}}
             <div class="flex p-1.5 bg-slate-100 rounded-2xl gap-1">
-                <button @click="sideTab = 'alerts'" :class="sideTab === 'alerts' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'" class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Alerts & Targets</button>
-                <button @click="sideTab = 'intel'" :class="sideTab === 'intel' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-500'" class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Process Intel</button>
+                <button @click="sideTab = 'alerts'" :class="sideTab === 'alerts' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'" class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">My Targets</button>
+                <button @click="sideTab = 'intel'" :class="sideTab === 'intel' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-500'" class="flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all">Slow Deals</button>
             </div>
 
             <div x-show="sideTab === 'alerts'" class="space-y-6" x-transition>
@@ -219,7 +215,7 @@
                         <x-heroicon-o-trophy class="h-12 w-12 text-white" />
                     </div>
                     <h3 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-300 mb-4 flex items-center gap-2">
-                        Top Performers
+                        Top Sellers
                     </h3>
                     <div class="space-y-3">
                         @foreach($metrics['leaderboard'] as $index => $performer)
@@ -228,11 +224,11 @@
                                 <span class="text-lg font-black {{ $index === 0 ? 'text-amber-400' : 'text-slate-400' }}">#{{ $index + 1 }}</span>
                                 <div class="min-w-0">
                                     <p class="text-xs font-bold text-white truncate">{{ $performer->name }}</p>
-                                    <p class="text-[9px] font-bold text-indigo-300 uppercase">{{ $performer->won_count }} Wins</p>
+                                    <p class="text-[9px] font-bold text-indigo-300 uppercase">{{ $performer->won_count }} Won</p>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="text-xs font-black text-white">{{ $currencySymbol }}{{ number_format($performer->total_revenue / 1000, 0) }}k</p>
+                                <p class="text-xs font-black text-white">{{ $currencySymbol }}{{ number_format($performer->total_revenue / 100000, 2) }} L</p>
                             </div>
                         </div>
                         @endforeach
@@ -317,15 +313,15 @@
         <div class="lg:col-span-2 rounded-[2.5rem] bg-white shadow-sm ring-1 ring-slate-100 overflow-hidden" x-data="{ activeTab: 'recent' }">
             <div class="px-8 py-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
                 <div class="flex gap-6">
-                    <button @click="activeTab = 'recent'" :class="activeTab === 'recent' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400'" class="font-black text-sm tracking-tight pb-1 transition-all">Recent Activity</button>
+                    <button @click="activeTab = 'recent'" :class="activeTab === 'recent' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400'" class="font-black text-sm tracking-tight pb-1 transition-all">New Events</button>
                     <button @click="activeTab = 'expiring'" :class="activeTab === 'expiring' ? 'text-rose-600 border-b-2 border-rose-600' : 'text-slate-400'" class="font-black text-sm tracking-tight pb-1 transition-all flex items-center gap-2">
-                        Next Expiring
+                        Ending Soon
                         @if(count($expiring_estimates) > 0)
                             <span class="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
                         @endif
                     </button>
                 </div>
-                <a href="{{ route('estimates.index') }}" class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-full">Explore All</a>
+                <a href="{{ route('estimates.index') }}" class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-full">See All</a>
             </div>
             
             <div x-show="activeTab === 'recent'" x-transition:enter="duration-300 ease-out" x-transition:enter-start="opacity-0 translate-y-4">
@@ -447,7 +443,7 @@
              <div class="rounded-[2.5rem] bg-slate-900 p-8 shadow-xl relative overflow-hidden group">
                 <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-slate-950"></div>
                 <div class="relative z-10 flex items-center justify-between mb-8">
-                    <h3 class="font-black text-white tracking-tight">Engagement Hotlist</h3>
+                    <h3 class="font-black text-white tracking-tight">Hot Deals</h3>
                     <div class="h-8 w-8 rounded-full bg-rose-500 flex items-center justify-center animate-pulse">
                         <svg class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.5 4.938a7 7 0 11-9.006 1.737c.202-.257.59-.218.793.08a5.002 5.002 0 002.502 8.01 5 5 0 005.15-1.928 2.5 2.5 0 013.9 1.156c.196.883-.559 1.543-1.42 1.492a2.503 2.503 0 01-1.72-.756.75.75 0 00-1.06 1.06 4.003 4.003 0 005.418-5.32c-.066-.192-.28-.307-.478-.266a2.5 2.5 0 01-2.91-4.225.75.75 0 00-.916-1.04z" clip-rule="evenodd" /></svg>
                     </div>
@@ -466,7 +462,7 @@
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="text-xs font-black text-rose-400">{{ $currencySymbol }}{{ number_format($lead->grand_total, 0) }}</p>
+                                <p class="text-xs font-black text-rose-400">{{ $currencySymbol }}{{ number_format($lead->grand_total / 100000, 2) }} L</p>
                                 <p class="text-[10px] font-bold text-slate-500 uppercase mt-1">Score: {{ $lead->engagement_score }}</p>
                             </div>
                         </div>
@@ -478,9 +474,9 @@
              </div>
 
              {{-- Activity Feed --}}
-             <div class="rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-slate-100">
+             <div class="rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-slate-100 flex flex-col max-h-[600px]">
                 <h3 class="font-black text-slate-900 tracking-tight mb-8">Recent Events</h3>
-                <div class="space-y-6">
+                <div class="space-y-6 overflow-y-auto pr-2 custom-scrollbar">
                     @forelse($recent_activities as $activity)
                     <div class="flex gap-4 relative">
                         @if(!$loop->last)
