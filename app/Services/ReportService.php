@@ -249,6 +249,24 @@ class ReportService
     }
 
     /**
+     * Get Status Breakdown for Charts
+     */
+    public function getStatusBreakdown(): array
+    {
+        $cacheKey = $this->getCacheKey('status_breakdown');
+
+        return Cache::remember($cacheKey, 300, function () {
+            return $this->getBaseQuery()
+                ->whereBetween('estimates.created_at', [$this->startDate, $this->endDate])
+                ->selectRaw('estimate_status, COUNT(*) as count')
+                ->groupBy('estimate_status')
+                ->get()
+                ->pluck('count', 'estimate_status')
+                ->toArray();
+        });
+    }
+
+    /**
      * Public access to the filtered base query for drill-downs and exports
      */
     public function getDrilldownQuery()

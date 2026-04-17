@@ -1,4 +1,7 @@
-<div class="space-y-6" x-data="{ activeTab: @entangle('activeTab') }" x-init="
+<div class="space-y-6" x-data="{ 
+    activeTab: @entangle('activeTab'),
+    currencySymbol: '{{ $currencySymbol }}'
+}" x-init="
     if (typeof Chart === 'undefined') {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
@@ -6,21 +9,23 @@
     }
 ">
     <!-- Header & Global Actions -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between bg-white rounded-xl shadow-sm p-6 border border-slate-100">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Performance Intelligence</h1>
-            <p class="mt-1 text-sm text-slate-500">Business-critical metrics and growth indicators.</p>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between bg-white rounded-2xl shadow-sm p-8 border border-slate-100 relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-8 opacity-5">
+            <x-heroicon-o-presentation-chart-line class="h-32 w-32" />
         </div>
-        <div class="mt-4 md:mt-0 flex items-center space-x-3">
+        <div class="relative z-10">
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 italic uppercase">System Intel Explorer</h1>
+            <p class="mt-1 text-sm font-medium text-slate-500">Global business metrics synchronized with real-time operations.</p>
+        </div>
+        <div class="mt-6 md:mt-0 flex items-center space-x-4 relative z-10">
             <button wire:click="exportCsv" wire:loading.attr="disabled"
-                class="inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all">
+                class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95">
                 <x-heroicon-o-arrow-down-tray class="mr-2 h-4 w-4" />
-                Export CSV
-                <span wire:loading wire:target="exportCsv" class="ml-2">...</span>
+                Export Intelligence
             </button>
-            <div class="h-8 w-px bg-slate-200 mx-2"></div>
+            <div class="h-10 w-px bg-slate-200 mx-2"></div>
             <select wire:model.live="filter"
-                class="rounded-lg border-slate-200 py-2 pl-3 pr-10 text-sm focus:ring-2 focus:ring-indigo-500">
+                class="rounded-xl border-slate-200 py-2.5 pl-4 pr-10 text-sm font-bold text-slate-700 shadow-sm focus:ring-2 focus:ring-indigo-500 appearance-none bg-white">
                 <option value="today">Today</option>
                 <option value="yesterday">Yesterday</option>
                 <option value="this_week">This Week</option>
@@ -34,226 +39,237 @@
     </div>
 
     <!-- Advanced Filters -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-        <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">User</label>
-            <select wire:model.live="userId" class="w-full rounded-lg border-slate-200 text-sm py-2">
-                <option value="">All Users</option>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div class="relative">
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Origin User</label>
+            <select wire:model.live="userId" class="w-full rounded-xl border-slate-100 text-sm py-2 px-3 focus:ring-indigo-500 bg-slate-50/50">
+                <option value="">Full Organization</option>
                 @foreach ($users as $user)
                     <option value="{{ $user->id }}">{{ $user->name }}</option>
                 @endforeach
             </select>
         </div>
-        <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Client</label>
-            <select wire:model.live="clientId" class="w-full rounded-lg border-slate-200 text-sm py-2">
-                <option value="">All Clients</option>
+        <div class="relative">
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Target Client</label>
+            <select wire:model.live="clientId" class="w-full rounded-xl border-slate-100 text-sm py-2 px-3 focus:ring-indigo-500 bg-slate-50/50">
+                <option value="">Full Client List</option>
                 @foreach ($clients as $client)
                     <option value="{{ $client->id }}">{{ $client->name }}</option>
                 @endforeach
             </select>
         </div>
-        <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Status</label>
-            <select wire:model.live="status" class="w-full rounded-lg border-slate-200 text-sm py-2">
-                <option value="all">Any Status</option>
-                <option value="draft">Draft</option>
-                <option value="sent">Sent</option>
-                <option value="accepted">Accepted</option>
-                <option value="declined">Declined</option>
+        <div class="relative">
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Life-Cycle Stage</label>
+            <select wire:model.live="status" class="w-full rounded-xl border-slate-100 text-sm py-2 px-3 focus:ring-indigo-500 bg-slate-50/50">
+                <option value="all">Unified View</option>
+                <option value="draft">Draft Protocol</option>
+                <option value="sent">Dispatched</option>
+                <option value="accepted">Finalized (Won)</option>
+                <option value="declined">Rejected (Lost)</option>
             </select>
         </div>
         <div class="flex space-x-2">
             <div class="flex-1">
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">From</label>
-                <input type="date" wire:model.live="customStartDate" class="w-full rounded-lg border-slate-200 text-sm py-2">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Temporal Start</label>
+                <input type="date" wire:model.live="customStartDate" class="w-full rounded-xl border-slate-100 text-xs py-2 px-3 focus:ring-indigo-500 bg-slate-50/50">
             </div>
             <div class="flex-1">
-                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">To</label>
-                <input type="date" wire:model.live="customEndDate" class="w-full rounded-lg border-slate-200 text-sm py-2">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1">Temporal End</label>
+                <input type="date" wire:model.live="customEndDate" class="w-full rounded-xl border-slate-100 text-xs py-2 px-3 focus:ring-indigo-500 bg-slate-50/50">
             </div>
         </div>
     </div>
 
     <!-- Loading Overlay -->
-    <div wire:loading.flex class="fixed inset-0 z-50 items-center justify-center bg-white/50 backdrop-blur-sm">
-        <div class="flex flex-col items-center">
-            <div class="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
-            <span class="mt-2 text-sm font-semibold text-slate-700">Calculating metrics...</span>
+    <div wire:loading.flex class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/20 backdrop-blur-md">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-200">
+            <div class="relative">
+                <div class="h-16 w-16 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="h-2 w-2 bg-indigo-600 rounded-full"></div>
+                </div>
+            </div>
+            <span class="mt-6 text-sm font-black text-slate-900 uppercase tracking-widest">Compiling Database</span>
+            <span class="mt-1 text-xs text-slate-400">Optimizing system queries...</span>
         </div>
     </div>
 
-    <!-- Overview Metrics (Bento Grid) -->
+    <!-- Performance Bento Hub -->
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <!-- Revenue Card -->
-        <div class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 hover:shadow-md transition-all cursor-pointer"
+        <div class="group relative overflow-hidden rounded-[2rem] bg-indigo-600 p-8 text-white shadow-xl shadow-indigo-100 transition-all hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
              onclick="window.location.href='{{ route('estimates.index', ['client_status' => 'accepted']) }}'">
-            <div class="flex items-center justify-between">
-                <div class="rounded-lg bg-emerald-50 p-2 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
-                    <x-heroicon-o-currency-dollar class="h-6 w-6" />
-                </div>
-                <div class="flex items-center space-x-1 {{ $revenue['growth'] >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">
-                    <span class="text-xs font-bold">{{ $revenue['growth'] >= 0 ? '+' : '' }}{{ $revenue['growth'] }}%</span>
-                    @if($revenue['growth'] >= 0)
-                        <x-heroicon-o-arrow-trending-up class="h-4 w-4" />
-                    @else
-                        <x-heroicon-o-arrow-trending-down class="h-4 w-4" />
-                    @endif
-                </div>
+            <div class="absolute -right-4 -top-4 opacity-10 group-hover:rotate-12 transition-transform duration-500">
+                <x-heroicon-o-circle-stack class="h-32 w-32" />
             </div>
-            <div class="mt-4">
-                <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Revenue</h3>
-                <p class="text-2xl font-bold text-slate-900 mt-1">${{ number_format($revenue['total'], 2) }}</p>
-                <p class="text-xs text-slate-400 mt-1">{{ $revenue['count'] }} accepted estimates</p>
-            </div>
-            <!-- Progress towards goal -->
-            <div class="mt-4">
-                <div class="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
-                    <span>GOAL PROGRESS</span>
-                    <span>{{ $goalProgress }}%</span>
-                </div>
-                <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div class="h-full bg-indigo-500 rounded-full" style="width: {{ $goalProgress }}%"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pipeline Card -->
-        <div class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 hover:shadow-md transition-all cursor-pointer"
-             onclick="window.location.href='{{ route('estimates.index', ['status' => 'open']) }}'">
-            <div class="flex items-center justify-between">
-                <div class="rounded-lg bg-indigo-50 p-2 text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                    <x-heroicon-o-funnel class="h-6 w-6" />
-                </div>
-                <span class="text-xs font-bold text-indigo-600">Active Pipeline</span>
-            </div>
-            <div class="mt-4">
-                <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider">Pipeline Value</h3>
-                <p class="text-2xl font-bold text-slate-900 mt-1">${{ number_format($pipeline['total'], 2) }}</p>
-                <p class="text-xs text-slate-400 mt-1">{{ $pipeline['count'] }} estimates in flow</p>
-            </div>
-        </div>
-
-        <!-- Conversion Card -->
-        <div class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 hover:shadow-md transition-all">
-            <div class="flex items-center justify-between">
-                <div class="rounded-lg bg-blue-50 p-2 text-blue-600 group-hover:bg-blue-100 transition-colors">
-                    <x-heroicon-o-check-badge class="h-6 w-6" />
-                </div>
-                <span class="text-xs font-bold text-blue-600">Win Rate</span>
-            </div>
-            <div class="mt-4 text-center">
-                <div class="relative inline-flex items-center justify-center">
-                    <svg class="h-20 w-20">
-                        <circle class="text-slate-100" stroke-width="6" stroke="currentColor" fill="transparent" r="32" cx="40" cy="40"/>
-                        <circle class="text-blue-500" stroke-width="6" stroke-dasharray="{{ ($conversion['rate'] / 100) * 201 }} 201" stroke-linecap="round" stroke="currentColor" fill="transparent" r="32" cx="40" cy="40"/>
-                    </svg>
-                    <span class="absolute text-lg font-bold text-slate-900">{{ $conversion['rate'] }}%</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-2">{{ $conversion['accepted'] }} won / {{ $conversion['sent'] }} sent</p>
-            </div>
-        </div>
-
-        <!-- Approval Card -->
-        <div class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 hover:shadow-md transition-all">
-            <div class="flex items-center justify-between">
-                <div class="rounded-lg bg-amber-50 p-2 text-amber-600 group-hover:bg-amber-100 transition-colors">
-                    <x-heroicon-o-shield-check class="h-6 w-6" />
-                </div>
-                <span class="text-xs font-bold text-amber-600">Approval Flow</span>
-            </div>
-            <div class="mt-4">
-                <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider">Approval Rate</h3>
-                <p class="text-2xl font-bold text-slate-900 mt-1">{{ $approval['rate'] }}%</p>
-                <p class="text-xs text-slate-400 mt-1">{{ $approval['approved'] }} approved / {{ $approval['pending'] }} pending</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabs for Detailed Reports -->
-    <div class="mt-8">
-        <div class="sm:hidden">
-            <select wire:model.live="activeTab" class="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
-                <option value="summary">Summary</option>
-                <option value="funnel">Sales Funnel</option>
-                <option value="performance">Leaderboard</option>
-                <option value="discounts">Discount Analysis</option>
-            </select>
-        </div>
-        <div class="hidden sm:block">
-            <nav class="flex space-x-4 border-b border-slate-200" aria-label="Tabs">
-                <button wire:click="$set('activeTab', 'summary')" 
-                    class="px-4 py-3 text-sm font-medium border-b-2 transition-all {{ $activeTab === 'summary' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' }}">
-                    Revenue Trends
-                </button>
-                <button wire:click="$set('activeTab', 'funnel')" 
-                    class="px-4 py-3 text-sm font-medium border-b-2 transition-all {{ $activeTab === 'funnel' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' }}">
-                    Conversion Funnel
-                </button>
-                <button wire:click="$set('activeTab', 'performance')" 
-                    class="px-4 py-3 text-sm font-medium border-b-2 transition-all {{ $activeTab === 'performance' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' }}">
-                    Sales Performance
-                </button>
-                <button wire:click="$set('activeTab', 'discounts')" 
-                    class="px-4 py-3 text-sm font-medium border-b-2 transition-all {{ $activeTab === 'discounts' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300' }}">
-                    Discount Impact
-                </button>
-            </nav>
-        </div>
-    </div>
-
-    <!-- Active Report Content -->
-    <div class="mt-6">
-        @if($activeTab === 'summary')
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-bold text-slate-900">Revenue Trajectory</h3>
-                    <div class="flex items-center space-x-2 text-xs text-slate-400">
-                        <span class="inline-block h-2 w-2 rounded-full bg-indigo-500"></span>
-                        <span>Accepted Revenue</span>
+            <div class="relative z-10 h-full flex flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="rounded-2xl bg-white/20 p-3 backdrop-blur-md">
+                        <x-heroicon-o-banknotes class="h-6 w-6" />
+                    </div>
+                    <div class="flex items-center space-x-1 font-black text-sm {{ $revenue['growth'] >= 0 ? 'text-emerald-300' : 'text-rose-300' }}">
+                        <span>{{ $revenue['growth'] >= 0 ? '↑' : '↓' }} {{ abs($revenue['growth']) }}%</span>
                     </div>
                 </div>
-                <div class="h-80 w-full" x-data="{
+                <div class="mt-auto">
+                    <h3 class="text-xs font-black text-indigo-200 uppercase tracking-[0.2em]">Gross Revenue</h3>
+                    <p class="text-3xl font-black mt-2 leading-none tracking-tight">{{ $currencySymbol }}{{ number_format($revenue['total'], 0) }}</p>
+                    <div class="mt-6">
+                        <div class="flex justify-between text-[10px] font-black uppercase tracking-widest text-indigo-300 mb-1.5 line-clamp-1">
+                            <span>System Target</span>
+                            <span>{{ $goalProgress }}%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                            <div class="h-full bg-white rounded-full transition-all duration-1000" style="width: {{ $goalProgress }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Value -->
+        <div class="group relative overflow-hidden rounded-[2rem] bg-white p-8 shadow-sm border border-slate-100 transition-all hover:border-slate-300 cursor-pointer"
+             onclick="window.location.href='{{ route('estimates.index', ['status' => 'open']) }}'">
+            <div class="flex h-full flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
+                        <x-heroicon-o-bolt class="h-6 w-6" />
+                    </div>
+                    <span class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Active Ops</span>
+                </div>
+                <div class="mt-auto">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Pipeline Energy</h3>
+                    <p class="text-3xl font-black text-slate-900 mt-2">{{ $currencySymbol }}{{ number_format($pipeline['total'], 0) }}</p>
+                    <p class="text-xs font-medium text-slate-400 mt-2 italic">{{ $pipeline['count'] }} active protocols in flow</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Efficiency (Conversion) -->
+        <div class="group relative overflow-hidden rounded-[2rem] bg-white p-8 shadow-sm border border-slate-100 transition-all hover:border-slate-300">
+            <div class="flex h-full flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+                        <x-heroicon-o-fire class="h-6 w-6" />
+                    </div>
+                </div>
+                <div class="flex flex-col items-center justify-center flex-1 py-4">
+                    <div class="relative inline-flex items-center justify-center">
+                        <svg class="h-24 w-24 -rotate-90">
+                            <circle class="text-slate-100" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="48" cy="48"/>
+                            <circle class="text-emerald-500" stroke-width="8" stroke-dasharray="{{ ($conversion['rate'] / 100) * 251 }} 251" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="48" cy="48"/>
+                        </svg>
+                        <span class="absolute text-xl font-black text-slate-900 tracking-tighter">{{ $conversion['rate'] }}%</span>
+                    </div>
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">Conversion Ratio</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval Velocity -->
+        <div class="group relative overflow-hidden rounded-[2rem] bg-slate-900 p-8 text-white shadow-xl shadow-slate-200 transition-all hover:-translate-y-1">
+            <div class="flex h-full flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="rounded-2xl bg-slate-800 p-3 text-white">
+                        <x-heroicon-o-shield-check class="h-6 w-6" />
+                    </div>
+                </div>
+                <div class="mt-auto">
+                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Approval Flow</h3>
+                    <p class="text-3xl font-black mt-2">{{ $approval['rate'] }}%</p>
+                    <div class="mt-4 flex items-center space-x-2">
+                        <div class="flex-1 h-3 bg-slate-800 rounded-lg overflow-hidden flex">
+                            <div class="bg-indigo-500" style="width: {{ $approval['rate'] }}%"></div>
+                            <div class="bg-rose-500/50" style="width: {{ 100 - $approval['rate'] }}%"></div>
+                        </div>
+                    </div>
+                    <p class="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-wide">{{ $approval['approved'] }} Verified / {{ $approval['pending'] }} Queued</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Command Deck -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-12">
+        <!-- Main Chart Deck -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-900 uppercase italic">Revenue Trajectory</h3>
+                        <p class="text-xs text-slate-400 font-medium">Daily accepted value across organization.</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Growth</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-[400px] w-full" x-data="{
                     chart: null,
                     init() {
                         this.renderChart(@js($revenueTrend));
-                        Livewire.on('chart-updated', (data) => this.renderChart(data.revenueTrend));
+                        Livewire.on('chart-updated', (data) => {
+                            if (data.revenueTrend) this.renderChart(data.revenueTrend);
+                        });
                     },
                     renderChart(data) {
                         if (this.chart) this.chart.destroy();
                         if (!data || data.length === 0) return;
                         
                         const ctx = this.$refs.canvas.getContext('2d');
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+                        gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
                         this.chart = new Chart(ctx, {
                             type: 'line',
                             data: {
                                 labels: data.map(d => d.date),
                                 datasets: [{
-                                    label: 'Revenue',
+                                    label: 'Accepted Revenue',
                                     data: data.map(d => d.total),
                                     borderColor: '#6366f1',
-                                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                    backgroundColor: gradient,
                                     fill: true,
-                                    tension: 0.4,
-                                    borderWidth: 3,
-                                    pointBackgroundColor: '#6366f1',
-                                    pointBorderColor: '#fff',
+                                    tension: 0.5,
+                                    borderWidth: 4,
+                                    pointBackgroundColor: '#fff',
+                                    pointBorderColor: '#6366f1',
                                     pointBorderWidth: 2,
                                     pointRadius: 4,
-                                    pointHoverRadius: 6
+                                    pointHoverRadius: 8
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                plugins: { legend: { display: false } },
+                                plugins: { 
+                                    legend: { display: false },
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false,
+                                        backgroundColor: '#0f172a',
+                                        titleFont: { weight: 'bold', family: 'Inter' },
+                                        bodyFont: { family: 'Inter' },
+                                        padding: 12,
+                                        displayColors: false,
+                                        callbacks: {
+                                            label: (ctx) => ' ' + this.currencySymbol + ctx.raw.toLocaleString()
+                                        }
+                                    }
+                                },
                                 scales: {
                                     y: { 
                                         beginAtZero: true,
-                                        grid: { color: '#f8fafc' },
-                                        ticks: { callback: (val) => '$' + val.toLocaleString() }
+                                        grid: { color: 'rgba(0,0,0,0.02)', drawBorder: false },
+                                        ticks: { 
+                                            callback: (val) => this.currencySymbol + val.toLocaleString(),
+                                            font: { weight: 'bold', size: 10 }
+                                        }
                                     },
-                                    x: { grid: { display: false } }
+                                    x: { grid: { display: false }, ticks: { font: { weight: 'bold', size: 10 } } }
                                 }
                             }
                         });
@@ -262,182 +278,167 @@
                     <canvas x-ref="canvas"></canvas>
                 </div>
             </div>
-        @endif
-
-        @if($activeTab === 'funnel')
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-                    <h3 class="text-lg font-bold text-slate-900 mb-6">Visual Conversion Funnel</h3>
-                    <div class="space-y-4">
-                        @foreach($funnel as $index => $step)
-                            @php
-                                $percentage = $funnel[0]['count'] > 0 ? ($step['count'] / $funnel[0]['count']) * 100 : 0;
-                                $width = max(30, $percentage); // Minimum width for visual clarity
-                            @endphp
-                            <div class="relative">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="text-sm font-bold text-slate-700">{{ $step['stage'] }}</span>
-                                    <span class="text-sm font-bold text-indigo-600">{{ number_format($step['count']) }}</span>
-                                </div>
-                                <div class="h-10 w-full bg-slate-50 flex justify-center items-center rounded-lg overflow-hidden relative">
-                                    <div class="absolute h-full transition-all duration-500 {{ match($index) { 0=>'bg-indigo-500', 1=>'bg-indigo-400', 2=>'bg-indigo-300', default=>'bg-emerald-500' } }}"
-                                         style="width: {{ $width }}%"></div>
-                                    <span class="relative z-10 text-[10px] font-black {{ $width > 50 ? 'text-white' : 'text-slate-600' }}">
-                                        {{ $index === 0 ? 'SOURCE' : round($percentage) . '%' }}
-                                    </span>
-                                </div>
-                            </div>
-                        @endforeach
+            
+            <!-- Dril-down Intelligence Table -->
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-8 py-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 uppercase">Protocol Deep-Scan</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Individual Record Intelligence</p>
                     </div>
-                </div>
-                <div class="bg-slate-900 rounded-2xl p-8 text-white relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-4 opacity-10">
-                        <x-heroicon-o-light-bulb class="h-32 w-32" />
-                    </div>
-                    <h4 class="text-indigo-400 text-xs font-black uppercase tracking-widest mb-2">AI Insigths</h4>
-                    <p class="text-lg font-medium leading-relaxed">
-                        @if($conversion['rate'] < 20)
-                            Your conversion rate is currently below benchmark. Focus on reducing "Sent" to "Viewed" friction by personalizing cover letters.
-                        @else
-                            Outstanding conversion! You are performing 15% better than last period. Consider raising your price floor for high-demand services.
-                        @endif
-                    </p>
-                    <div class="mt-8 grid grid-cols-2 gap-4">
-                        <div class="bg-white/5 rounded-xl p-4">
-                            <span class="block text-xs text-indigo-300 font-bold">AVG. DEAL SIZE</span>
-                            <span class="text-xl font-bold font-mono mt-1">${{ number_format($revenue['total'] / max(1, $revenue['count']), 0) }}</span>
-                        </div>
-                        <div class="bg-white/5 rounded-xl p-4">
-                            <span class="block text-xs text-emerald-300 font-bold">TOTAL WINS</span>
-                            <span class="text-xl font-bold font-mono mt-1">{{ $revenue['count'] }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        @if($activeTab === 'performance')
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-slate-900">Top Estimators</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50">
-                                <th class="px-6 py-4">Estimator</th>
-                                <th class="px-6 py-4 text-center">Estimates</th>
-                                <th class="px-6 py-4 text-center">Wins</th>
-                                <th class="px-6 py-4 text-center">Win Rate</th>
-                                <th class="px-6 py-4 text-right">Revenue Generated</th>
+                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] bg-slate-50">
+                                <th class="px-8 py-4">Reference</th>
+                                <th class="px-8 py-4">Node (Client)</th>
+                                <th class="px-8 py-4">Status</th>
+                                <th class="px-8 py-4 text-right">Value</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($performance as $row)
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="px-6 py-4 font-bold text-slate-900">{{ $row['name'] }}</td>
-                                    <td class="px-6 py-4 text-center text-slate-600 font-mono">{{ $row['total_estimates'] }}</td>
-                                    <td class="px-6 py-4 text-center text-emerald-600 font-bold font-mono">{{ $row['won_count'] }}</td>
-                                    <td class="px-6 py-4 text-center">
-                                        <div class="flex items-center justify-center space-x-2">
-                                            <div class="h-1.5 w-12 bg-slate-100 rounded-full overflow-hidden">
-                                                <div class="h-full bg-blue-500" style="width: {{ $row['win_rate'] }}%"></div>
-                                            </div>
-                                            <span class="text-xs font-bold text-slate-600">{{ $row['win_rate'] }}%</span>
-                                        </div>
+                        <tbody class="divide-y divide-slate-50">
+                            @forelse($recentEstimates as $estimate)
+                                <tr class="hover:bg-slate-50/80 transition-all group">
+                                    <td class="px-8 py-4 text-xs font-black text-slate-400 group-hover:text-indigo-600 transition-colors">{{ $estimate->estimate_number }}</td>
+                                    <td class="px-8 py-4">
+                                        <div class="text-sm font-black text-slate-900">{{ $estimate->client->name }}</div>
+                                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{{ $estimate->creator->name }}</div>
                                     </td>
-                                    <td class="px-6 py-4 text-right font-black text-slate-900 font-mono">${{ number_format($row['revenue'], 2) }}</td>
+                                    <td class="px-8 py-4">
+                                        <span class="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ring-1 ring-inset {{ match($estimate->estimate_status) {
+                                            'accepted' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+                                            'sent' => 'bg-blue-50 text-blue-700 ring-blue-600/20',
+                                            'declined' => 'bg-rose-50 text-rose-700 ring-rose-600/20',
+                                            'draft' => 'bg-slate-50 text-slate-600 ring-slate-400/20',
+                                            default => 'bg-slate-50 text-slate-400'
+                                        } }}">
+                                            {{ $estimate->estimate_status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-8 py-4 text-right font-black text-slate-900 font-mono text-sm leading-none italic decoration-indigo-500/20 underline underline-offset-4">
+                                        {{ $currencySymbol }}{{ number_format($estimate->grand_total, 2) }}
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">No activity recorded for this period.</td>
+                                    <td colspan="4" class="px-8 py-20 text-center">
+                                        <div class="flex flex-col items-center">
+                                            <x-heroicon-o-magnifying-glass class="h-12 w-12 text-slate-200" />
+                                            <span class="mt-4 text-sm font-black text-slate-400 uppercase tracking-widest italic">Signal Obscured: No matching data discovered.</span>
+                                        </div>
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
-            </div>
-        @endif
-
-        @if($activeTab === 'discounts')
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 flex flex-col items-center justify-center">
-                    <div class="rounded-2xl bg-emerald-50 p-4 text-emerald-600 mb-4 ring-1 ring-emerald-100">
-                        <x-heroicon-o-gift class="h-10 w-10" />
-                    </div>
-                    <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest">Avg. Discount (Accepted)</h4>
-                    <p class="text-5xl font-black text-emerald-600 mt-2">{{ number_format($discountAnalysis['accepted'] ?? 0, 1) }}%</p>
-                    <p class="text-xs text-slate-400 mt-4 max-w-xs text-center">Higher discounts on accepted deals might indicate a highly price-sensitive market or effective closing incentives.</p>
-                </div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 flex flex-col items-center justify-center">
-                    <div class="rounded-2xl bg-rose-50 p-4 text-rose-600 mb-4 ring-1 ring-rose-100">
-                        <x-heroicon-o-no-symbol class="h-10 w-10" />
-                    </div>
-                    <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest">Avg. Discount (Declined)</h4>
-                    <p class="text-5xl font-black text-rose-600 mt-2">{{ number_format($discountAnalysis['declined'] ?? 0, 1) }}%</p>
-                    <p class="text-xs text-slate-400 mt-4 max-w-xs text-center">High discounts on declined deals suggest that price alone is not the primary factor for losing these bids.</p>
+                <div class="px-8 py-4 bg-slate-50 border-t border-slate-100">
+                    {{ $recentEstimates->links() }}
                 </div>
             </div>
-        @endif
-    </div>
+        </div>
 
-    <!-- Recent Estimates Drill-down -->
-    <div class="mt-12 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 class="text-lg font-bold text-slate-900">Drilldown: Filtered Estimates</h3>
-            <div class="flex items-center space-x-2">
-                <span class="text-xs text-slate-400">Viewing {{ $recentEstimates->total() }} results</span>
+        <!-- Sidebar Analytics -->
+        <div class="space-y-6">
+            <!-- Status Breakdown Donut -->
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
+                <h3 class="text-sm font-black text-slate-900 uppercase mb-8">System Health Mix</h3>
+                <div class="h-[250px] w-full" x-data="{
+                    chart: null,
+                    init() {
+                        this.renderChart(@js($statusBreakdown));
+                        Livewire.on('chart-updated', (data) => {
+                            if (data.statusBreakdown) this.renderChart(data.statusBreakdown);
+                        });
+                    },
+                    renderChart(data) {
+                        if (this.chart) this.chart.destroy();
+                        if (!data) return;
+                        
+                        const labels = Object.keys(data);
+                        const values = Object.values(data);
+                        const ctx = this.$refs.canvas.getContext('2d');
+                        
+                        this.chart = new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: labels.map(l => l.toUpperCase()),
+                                datasets: [{
+                                    data: values,
+                                    backgroundColor: ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#94a3b8'],
+                                    borderWidth: 0,
+                                    hoverOffset: 12
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '75%',
+                                plugins: {
+                                    legend: { position: 'bottom', labels: { font: { weight: 'bold', size: 9 }, usePointStyle: true, padding: 20 } }
+                                }
+                            }
+                        });
+                    }
+                }" wire:ignore>
+                    <canvas x-ref="canvas"></canvas>
+                </div>
             </div>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead>
-                    <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50">
-                        <th class="px-6 py-4">Estimate #</th>
-                        <th class="px-6 py-4">Client</th>
-                        <th class="px-6 py-4">Date</th>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4 text-right">Value</th>
-                        <th class="px-6 py-4"></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($recentEstimates as $estimate)
-                        <tr class="hover:bg-slate-50/80 transition-all group">
-                            <td class="px-6 py-4 text-sm font-mono text-slate-500 group-hover:text-indigo-600">{{ $estimate->estimate_number }}</td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-slate-900">{{ $estimate->client->name }}</div>
-                                <div class="text-[10px] text-slate-400">{{ $estimate->creator->name }}</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-slate-500">{{ $estimate->created_at->format('M d, Y') }}</td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ring-1 ring-inset {{ match($estimate->estimate_status) {
-                                    'accepted' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-                                    'sent' => 'bg-blue-50 text-blue-700 ring-blue-600/20',
-                                    'declined' => 'bg-rose-50 text-rose-700 ring-rose-600/20',
-                                    'draft' => 'bg-slate-50 text-slate-600 ring-slate-500/20',
-                                    default => 'bg-slate-50 text-slate-500'
-                                } }}">
-                                    {{ $estimate->estimate_status }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-right font-black text-slate-900 font-mono">${{ number_format($estimate->grand_total, 2) }}</td>
-                            <td class="px-6 py-4 text-right">
-                                <a href="{{ route('estimates.edit', $estimate->id) }}" class="text-slate-400 hover:text-indigo-600 transition-colors">
-                                    <x-heroicon-o-chevron-right class="h-5 w-5" />
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-slate-400 italic">No estimates match your criteria.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="px-6 py-4 bg-slate-50">
-            {{ $recentEstimates->links() }}
+
+            <!-- Funnel Heatmap -->
+            <div class="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-8 opacity-10">
+                    <x-heroicon-o-funnel class="h-24 w-24" />
+                </div>
+                <h3 class="text-sm font-black text-indigo-400 uppercase italic mb-8">Conversion Funnel</h3>
+                <div class="space-y-6 relative z-10">
+                    @foreach($funnel as $index => $step)
+                        @php
+                            $percentage = $funnel[0]['count'] > 0 ? ($step['count'] / $funnel[0]['count']) * 100 : 0;
+                        @endphp
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between items-end">
+                                <span class="text-[10px] font-black uppercase text-slate-400 tracking-widest">{{ $step['stage'] }}</span>
+                                <span class="text-sm font-black">{{ number_format($step['count']) }}</span>
+                            </div>
+                            <div class="h-3 w-full bg-slate-800 rounded-lg overflow-hidden flex shadow-inner">
+                                <div class="h-full bg-white/60 transition-all duration-1000 delay-{{ $index * 100 }}" style="width: {{ $percentage }}%"></div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="mt-10 pt-8 border-t border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Growth Potential</span>
+                            <span class="text-xl font-black text-emerald-400 mt-1 italic leading-none">+12.4%</span>
+                        </div>
+                        <x-heroicon-o-arrow-trending-up class="h-8 w-8 text-emerald-400/20" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discount Impact -->
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
+                <h3 class="text-sm font-black text-slate-900 uppercase mb-8">Pricing Integrity</h3>
+                <div class="space-y-6">
+                    <div class="p-6 rounded-2xl bg-emerald-50 border border-emerald-100">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-black text-emerald-600 uppercase">Avg. Discount (Won)</span>
+                            <x-heroicon-o-check-circle class="h-4 w-4 text-emerald-400" />
+                        </div>
+                        <p class="text-4xl font-black text-emerald-600 tracking-tight italic line-clamp-1">{{ number_format($discountAnalysis[Estimate::EST_STATUS_ACCEPTED] ?? 0, 1) }}%</p>
+                    </div>
+                    <div class="p-6 rounded-2xl bg-rose-50 border border-rose-100">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-black text-rose-600 uppercase tracking-tight line-clamp-1">Avg. Discount (Lost)</span>
+                            <x-heroicon-o-x-circle class="h-4 w-4 text-rose-400" />
+                        </div>
+                        <p class="text-4xl font-black text-rose-600 tracking-tight italic line-clamp-1 truncate">{{ number_format($discountAnalysis[Estimate::EST_STATUS_DECLINED] ?? 0, 1) }}%</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

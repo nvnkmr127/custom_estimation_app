@@ -55,8 +55,13 @@ class Index extends Component
                 $this->updateDateRange($this->filter);
             }
             $this->resetPage();
+            
+            $service = $this->getReportService();
             $this->dispatch('chart-updated', [
-                'revenueTrend' => $this->getReportService()->getRevenueTrends()
+                'revenueTrend' => $service->getRevenueTrends(),
+                'statusBreakdown' => $service->getStatusBreakdown(),
+                'funnel' => $service->getSalesFunnel(),
+                'discountAnalysis' => $service->getDiscountAnalysis(),
             ]);
         }
     }
@@ -104,9 +109,6 @@ class Index extends Component
         $startDate = Carbon::parse($this->customStartDate)->startOfDay();
         $endDate = Carbon::parse($this->customEndDate)->endOfDay();
 
-        // Get the base query from service and apply date range specifically for the drill-down list
-        // Note: ReportService methods handle their own date ranges internally (e.g. accepted_at for revenue)
-        // For the general list, we'll use created_at within the filtered range.
         $drilldownQuery = $service->getDrilldownQuery()
             ->whereBetween('created_at', [$startDate, $endDate])
             ->with(['client', 'creator'])
@@ -119,6 +121,7 @@ class Index extends Component
             'approval' => $service->getApprovalMetrics(),
             'funnel' => $service->getSalesFunnel(),
             'revenueTrend' => $service->getRevenueTrends(),
+            'statusBreakdown' => $service->getStatusBreakdown(),
             'performance' => $service->getSalesPerformance(),
             'discountAnalysis' => $service->getDiscountAnalysis(),
             'users' => User::orderBy('name')->get(),
@@ -126,6 +129,7 @@ class Index extends Component
             'recentEstimates' => $drilldownQuery->paginate(10),
             'revenueTarget' => $this->revenueTarget,
             'goalProgress' => $this->revenueTarget > 0 ? min(round(($service->getRevenueMetrics()['total'] / $this->revenueTarget) * 100, 1), 100) : 0,
+            'currencySymbol' => \App\Models\Setting::getCurrencySymbol(),
         ])->layout('layouts.app');
     }
 
