@@ -72,6 +72,16 @@ class Dashboard extends Component
             ->take(10)
             ->get();
 
+        $expiring_estimates = Estimate::query()
+            ->with(['client', 'creator'])
+            ->where('estimate_status', Estimate::EST_STATUS_SENT)
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->orderBy('expires_at')
+            ->take(5)
+            ->get();
+
         return view('livewire.dashboard', [
             'roles' => $roles,
             'nextActions' => $nextActions,
@@ -83,6 +93,7 @@ class Dashboard extends Component
             'hot_leads' => $hot_leads,
             'recent_tasks' => $recent_tasks,
             'recent_activities' => $recent_activities,
+            'expiring_estimates' => $expiring_estimates,
         ]);
     }
 
@@ -133,6 +144,23 @@ class Dashboard extends Component
             ];
         }
 
+        // 4. Smart Nudge: Impending Expirations (Expiring within 48 hours)
+        $expiringSoon = Estimate::where('created_by', $user->id)
+            ->where('estimate_status', Estimate::EST_STATUS_SENT)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->where('expires_at', '<', now()->addHours(48))
+            ->count();
+        if ($expiringSoon > 0) {
+            $actions[] = [
+                'id' => 'expiring',
+                'label' => "{$expiringSoon} estimates expiring soon – send reminder",
+                'count' => $expiringSoon,
+                'color' => 'orange',
+                'url' => route('estimates.index', ['status' => 'sent', 'expiring' => 1]),
+            ];
+        }
+
         return $actions;
     }
 
@@ -144,6 +172,8 @@ class Dashboard extends Component
             Estimate::EST_STATUS_APPROVED => 'Approved',
             Estimate::EST_STATUS_SENT => 'Sent',
             Estimate::EST_STATUS_ACCEPTED => 'Accepted',
+            Estimate::EST_STATUS_DECLINED => 'Declined',
+            Estimate::EST_STATUS_EXPIRED => 'Expired',
         ];
 
         $stats = [];
@@ -210,6 +240,21 @@ class Dashboard extends Component
             ];
         }
 
+        // 4. Expiring Soon (Next 7 days)
+        $expiringNextSeven = Estimate::where('estimate_status', Estimate::EST_STATUS_SENT)
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->where('expires_at', '<', now()->addDays(7))
+            ->count();
+        if ($expiringNextSeven > 0) {
+            $alerts[] = [
+                'label' => 'Estimates expiring in 7 days',
+                'count' => $expiringNextSeven,
+                'type' => 'warning',
+            ];
+        }
+
         return $alerts;
     }
 
@@ -236,11 +281,82 @@ class Dashboard extends Component
         // Avg Approval Time - Placeholder: In a real system we would calculate the difference between creation and approval
         $avgApprovalTime = "1.4 days"; 
 
+        // New Logic: Revenue Forecast (Sent Value * Win Rate)
+        $sentValue = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->sum('grand_total');
+        $forecastValue = $sentValue * ($winRate / 100);
+
+        // 1. Team Leaderboard (For Admins/Managers)
+        $leaderboard = [];
+        if ($user->isAdmin() || $user->hasRole('estimator_manager')) {
+            $leaderboard = \App\Models\User::query()
+                ->select('users.id', 'users.name')
+                ->withCount(['estimates as won_count' => function($q) {
+                    $q->where('estimate_status', Estimate::EST_STATUS_ACCEPTED);
+                }])
+                ->withSum(['estimates as total_revenue' => function($q) {
+                    $q->where('estimate_status', Estimate::EST_STATUS_ACCEPTED);
+                }], 'grand_total')
+                ->orderByDesc('total_revenue')
+                ->take(3)
+                ->get();
+        }
+
+        // 2. Operational Bottlenecks (For Admins)
+        $bottlenecks = [];
+        if ($user->isAdmin() || $user->hasRole('estimator_manager')) {
+            $bottlenecks = EstimateApproval::where('status', 'pending')
+                ->where('created_at', '<', now()->subHours(24))
+                ->join('users', 'estimate_approvals.user_id', '=', 'users.id')
+                ->select('users.name', DB::raw('count(*) as pending_count'))
+                ->groupBy('users.name')
+                ->orderByDesc('pending_count')
+                ->take(3)
+                ->get();
+        }
+
+        // New Logic: Engagement Heatmap (Clients with highest view velocity)
+        $clientEngagement = Estimate::current()
+            ->with('client')
+            ->where('view_count', '>', 0)
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->select('client_id', DB::raw('SUM(view_count) as total_views'))
+            ->groupBy('client_id')
+            ->orderByDesc('total_views')
+            ->take(5)
+            ->get();
+
+        // 3. Personal Achievement (Current Month vs. Dynamic Target)
+        $thisMonthRange = [now()->startOfMonth(), now()->endOfMonth()];
+        $lastMonthRange = [now()->subMonth()->startOfMonth(), now()->subMonth()->endOfMonth()];
+
+        $currentProgress = (clone $baseQuery)
+            ->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
+            ->whereBetween('updated_at', $thisMonthRange)
+            ->sum('grand_total');
+
+        $lastMonthRevenue = (clone $baseQuery)
+            ->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)
+            ->whereBetween('updated_at', $lastMonthRange)
+            ->sum('grand_total');
+
+        // Target: 15% growth over last month, min 10k
+        $targetRevenue = max(10000, $lastMonthRevenue * 1.15);
+        $progressPercent = $targetRevenue > 0 ? (min($currentProgress, $targetRevenue) / $targetRevenue) * 100 : 0;
+
         return [
             'total_value' => $totalVal,
             'win_rate' => $winRate,
             'avg_deal_size' => $avgDealSize,
             'avg_approval_time' => $avgApprovalTime,
+            'forecast_value' => $forecastValue,
+            'leaderboard' => $leaderboard,
+            'bottlenecks' => $bottlenecks,
+            'client_engagement' => $clientEngagement,
+            'personal_achievement' => [
+                'current' => $currentProgress,
+                'target' => $targetRevenue,
+                'percent' => $progressPercent,
+            ],
         ];
     }
 }

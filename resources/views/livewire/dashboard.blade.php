@@ -12,6 +12,20 @@
                 <p class="mt-2 text-slate-400 font-medium max-w-xl">
                     Here's a snapshot of your sales performance and pending workflows for today.
                 </p>
+
+                {{-- Global Search Bar --}}
+                <div class="mt-6 relative max-w-lg">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                    <input type="text" 
+                           placeholder="Command: Search estimates, clients or nodes..." 
+                           class="block w-full rounded-2xl bg-white/5 border border-white/10 pl-11 pr-4 py-3.5 text-sm font-bold text-white placeholder-slate-500 backdrop-blur-md focus:ring-2 focus:ring-indigo-500 focus:bg-white/10 transition-all shadow-inner"
+                           onclick="window.location.href='{{ route('estimates.index') }}'">
+                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center">
+                        <span class="text-[10px] font-black text-slate-500 bg-white/5 px-2 py-1 rounded-md border border-white/10">⌘ K</span>
+                    </div>
+                </div>
             </div>
             
             {{-- Quick Actions --}}
@@ -52,6 +66,8 @@
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         @elseif($action['id'] === 'ready_to_send')
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        @elseif($action['id'] === 'expiring')
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         @else
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                         @endif
@@ -87,7 +103,7 @@
             </div>
         </div>
 
-        <div class="relative z-10 grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="relative z-10 grid grid-cols-2 lg:grid-cols-7 gap-4">
             @foreach($pipeline as $status => $data)
             <div class="relative group">
                 <div class="mb-4 flex flex-col items-center">
@@ -109,9 +125,49 @@
         </div>
     </section>
 
-    {{-- Row 3: Metrics & Alerts --}}
+    {{-- Row 3: Personal Achievement & Metrics --}}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
+        {{-- Personal Achievement Tracker (NEW) --}}
+        <div class="lg:col-span-12 rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-slate-100 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
+            <div class="absolute -right-20 -bottom-20 h-64 w-64 bg-indigo-50/50 rounded-full blur-3xl group-hover:bg-indigo-100/50 transition-colors"></div>
+            
+            <div class="relative z-10 flex-1">
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest">Monthly Growth Target</span>
+                    <span class="text-xs font-bold text-slate-400">Target: {{ $currencySymbol }}{{ number_format($metrics['personal_achievement']['target'] / 1000, 1) }}k</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight">You've reached <span class="text-indigo-600">{{ round($metrics['personal_achievement']['percent']) }}%</span> of your monthly goal!</h3>
+                
+                {{-- Progress Bar --}}
+                <div class="mt-6">
+                    <div class="h-4 w-full bg-slate-100 rounded-full overflow-hidden p-1 shadow-inner">
+                        <div class="h-full bg-indigo-500 rounded-full transition-all duration-1000 flex items-center justify-end px-2" style="width: {{ $metrics['personal_achievement']['percent'] }}%">
+                            @if($metrics['personal_achievement']['percent'] > 20)
+                            <div class="h-1 w-1 rounded-full bg-white animate-pulse"></div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="mt-2 flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <span>Started</span>
+                        <span class="text-indigo-600">Goal: {{ $currencySymbol }}{{ number_format($metrics['personal_achievement']['target'], 0) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative z-10 flex-shrink-0 text-right">
+                <span class="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">Generated Revenue</span>
+                <p class="text-5xl font-black text-slate-900 tracking-tighter italic">
+                    {{ $currencySymbol }}{{ number_format($metrics['personal_achievement']['current'], 0) }}
+                </p>
+                @if($metrics['personal_achievement']['percent'] >= 100)
+                    <div class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-2xl font-black text-xs uppercase tracking-widest animate-bounce">
+                        Target Achieved! 🏆
+                    </div>
+                @endif
+            </div>
+        </div>
+
         {{-- Performance Metrics Card --}}
         <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div class="rounded-3xl bg-slate-950 p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden group">
@@ -136,15 +192,89 @@
                 <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">Cycles</div>
             </div>
 
-            <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 group">
-                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Deal Size</dt>
-                <dd class="text-2xl font-black text-slate-900 tracking-tighter">{{ $currencySymbol }}{{ number_format($metrics['avg_deal_size'], 0) }}</dd>
-                <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">Average</div>
+            <div class="rounded-3xl bg-indigo-50 p-6 shadow-sm ring-1 ring-indigo-200 group relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 opacity-10">
+                    <x-heroicon-o-presentation-chart-line class="h-16 w-16" />
+                </div>
+                <dt class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-4">Revenue Forecast</dt>
+                <dd class="text-2xl font-black text-indigo-900 tracking-tighter">{{ $currencySymbol }}{{ number_format($metrics['forecast_value'] / 1000, 1) }}k</dd>
+                <div class="mt-2 text-[10px] font-bold text-indigo-600 flex items-center gap-1 uppercase">Proj. Wins</div>
             </div>
         </div>
 
-        {{-- Smart Alerts Card --}}
-        <div class="lg:col-span-4 rounded-[2.5rem] bg-slate-50 p-6 shadow-inner ring-1 ring-slate-200/50">
+        {{-- Smart Alerts & Leaderboard Column --}}
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            {{-- Team Leaderboard (Admin Only) --}}
+            @if(count($metrics['leaderboard']) > 0)
+            <div class="rounded-[2.5rem] bg-indigo-900 p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <x-heroicon-o-trophy class="h-12 w-12 text-white" />
+                </div>
+                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-300 mb-4 flex items-center gap-2">
+                    Top Performers
+                </h3>
+                <div class="space-y-3">
+                    @foreach($metrics['leaderboard'] as $index => $performer)
+                    <div class="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg font-black {{ $index === 0 ? 'text-amber-400' : 'text-slate-400' }}">#{{ $index + 1 }}</span>
+                            <div class="min-w-0">
+                                <p class="text-xs font-bold text-white truncate">{{ $performer->name }}</p>
+                                <p class="text-[9px] font-bold text-indigo-300 uppercase">{{ $performer->won_count }} Wins</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs font-black text-white">{{ $currencySymbol }}{{ number_format($performer->total_revenue / 1000, 0) }}k</p>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- Bottleneck Radar (Admin Only) --}}
+            @if(count($metrics['bottlenecks']) > 0)
+            <div class="rounded-[2.5rem] bg-rose-50 border border-rose-100 p-6">
+                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-rose-600 mb-4 flex items-center gap-2">
+                    <x-heroicon-o-exclamation-triangle class="h-4 w-4" />
+                    Approval Bottlenecks
+                </h3>
+                <div class="space-y-4">
+                    @foreach($metrics['bottlenecks'] as $bottleneck)
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700">{{ $bottleneck->name }}</span>
+                        <span class="px-2 py-0.5 rounded-lg bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest">{{ $bottleneck->pending_count }} STUCK</span>
+                    </div>
+                    @endforeach
+                </div>
+                <p class="mt-4 text-[10px] text-rose-400 font-bold uppercase tracking-widest italic">* Delayed > 24 hours</p>
+            </div>
+            @endif
+
+            {{-- Client Engagement Radar --}}
+            @if(count($metrics['client_engagement']) > 0)
+            <div class="rounded-[2.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-100">
+                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
+                    Client Engagement Radar
+                </h3>
+                <div class="space-y-4">
+                    @foreach($metrics['client_engagement'] as $engagement)
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-bold text-slate-900 truncate max-w-[150px]">{{ $engagement->client->name ?? 'Unknown' }}</span>
+                            <span class="text-[10px] font-black text-indigo-600 uppercase">{{ $engagement->total_views }} Views</span>
+                        </div>
+                        <div class="h-1 w-full bg-slate-50 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-500 rounded-full" style="width: {{ min(100, $engagement->total_views * 10) }}%"></div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- Smart Alerts Card --}}
+            <div class="rounded-[2.5rem] bg-slate-50 p-6 shadow-inner ring-1 ring-slate-200/50 flex-1">
             <h3 class="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                 Smart Alerts
@@ -171,62 +301,131 @@
     {{-- Row 4: Lists & Feed --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {{-- Recent Estimates --}}
-        <div class="lg:col-span-2 rounded-[2.5rem] bg-white shadow-sm ring-1 ring-slate-100 overflow-hidden">
+        {{-- Recent Estimates & Expiring Tabbed View --}}
+        <div class="lg:col-span-2 rounded-[2.5rem] bg-white shadow-sm ring-1 ring-slate-100 overflow-hidden" x-data="{ activeTab: 'recent' }">
             <div class="px-8 py-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
-                <h3 class="font-black text-slate-900 tracking-tight">Recent Activity Feed</h3>
-                <a href="{{ route('estimates.index') }}" class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-full">View History</a>
+                <div class="flex gap-6">
+                    <button @click="activeTab = 'recent'" :class="activeTab === 'recent' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400'" class="font-black text-sm tracking-tight pb-1 transition-all">Recent Activity</button>
+                    <button @click="activeTab = 'expiring'" :class="activeTab === 'expiring' ? 'text-rose-600 border-b-2 border-rose-600' : 'text-slate-400'" class="font-black text-sm tracking-tight pb-1 transition-all flex items-center gap-2">
+                        Next Expiring
+                        @if(count($expiring_estimates) > 0)
+                            <span class="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+                        @endif
+                    </button>
+                </div>
+                <a href="{{ route('estimates.index') }}" class="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-500 bg-indigo-50 px-3 py-1.5 rounded-full">Explore All</a>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-50/50">
-                        <tr>
-                            <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Estimate</th>
-                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Total</th>
-                            <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Activity</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @foreach($recent_estimates as $estimate)
-                        <tr class="group hover:bg-slate-50/80 transition-colors">
-                            <td class="px-8 py-5">
-                                <div class="flex items-center gap-3">
-                                    <div class="h-10 w-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                                        #{{ substr($estimate->estimate_number, -4) }}
+            
+            <div x-show="activeTab === 'recent'" x-transition:enter="duration-300 ease-out" x-transition:enter-start="opacity-0 translate-y-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50/50">
+                            <tr>
+                                <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Estimate</th>
+                                <th class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                                <th class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Total</th>
+                                <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Activity</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach($recent_estimates as $estimate)
+                            <tr class="group hover:bg-slate-50/80 transition-colors">
+                                <td class="px-8 py-5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-10 w-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                            #{{ substr($estimate->estimate_number, -4) }}
+                                        </div>
+                                        <div>
+                                            <a href="{{ route('estimates.show', $estimate) }}" class="text-sm font-black text-slate-900 hover:text-indigo-600 block">
+                                                {{ $estimate->title }}
+                                            </a>
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase">{{ $estimate->client->name ?? 'Unknown Client' }}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <a href="{{ route('estimates.show', $estimate) }}" class="text-sm font-black text-slate-900 hover:text-indigo-600 block">
-                                            {{ $estimate->title }}
-                                        </a>
-                                        <p class="text-[10px] font-bold text-slate-400 uppercase">{{ $estimate->client->name ?? 'Unknown Client' }}</p>
+                                </td>
+                                <td class="px-4 py-5">
+                                    @php
+                                        $statusStyles = match($estimate->estimate_status) {
+                                            'accepted' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+                                            'sent' => 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
+                                            'declined' => 'bg-rose-50 text-rose-700 ring-rose-600/20',
+                                            'pending_approval' => 'bg-amber-50 text-amber-700 ring-amber-600/20',
+                                            default => 'bg-slate-100 text-slate-600 ring-slate-500/20',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ring-1 ring-inset {{ $statusStyles }}">
+                                        {{ str_replace('_', ' ', $estimate->estimate_status) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-5">
+                                    <span class="text-sm font-black text-slate-900">{{ $currencySymbol }}{{ number_format($estimate->grand_total, 2) }}</span>
+                                </td>
+                                <td class="px-8 py-5 text-right">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">{{ $estimate->updated_at->diffForHumans() }}</span>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div x-show="activeTab === 'expiring'" x-transition:enter="duration-300 ease-out" x-transition:enter-start="opacity-0 translate-y-4" style="display: none;">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-rose-50/50">
+                            <tr>
+                                <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-rose-600">At Risk Protocol</th>
+                                <th class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-rose-600 text-center">Expires In</th>
+                                <th class="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-rose-600">Value</th>
+                                <th class="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-rose-600 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($expiring_estimates as $estimate)
+                            <tr class="group hover:bg-rose-50/30 transition-colors">
+                                <td class="px-8 py-5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-10 w-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-black text-xs">
+                                            ⌛️
+                                        </div>
+                                        <div>
+                                            <a href="{{ route('estimates.show', $estimate) }}" class="text-sm font-black text-slate-900 hover:text-rose-600 block">
+                                                {{ $estimate->title }}
+                                            </a>
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase">{{ $estimate->client->name ?? 'Unknown Client' }}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td class="px-4 py-5">
-                                @php
-                                    $statusStyles = match($estimate->estimate_status) {
-                                        'accepted' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-                                        'sent' => 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
-                                        'declined' => 'bg-rose-50 text-rose-700 ring-rose-600/20',
-                                        'pending_approval' => 'bg-amber-50 text-amber-700 ring-amber-600/20',
-                                        default => 'bg-slate-100 text-slate-600 ring-slate-500/20',
-                                    };
-                                @endphp
-                                <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ring-1 ring-inset {{ $statusStyles }}">
-                                    {{ str_replace('_', ' ', $estimate->estimate_status) }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-5">
-                                <span class="text-sm font-black text-slate-900">{{ $currencySymbol }}{{ number_format($estimate->grand_total, 2) }}</span>
-                            </td>
-                            <td class="px-8 py-5 text-right">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase whitespace-nowrap">{{ $estimate->updated_at->diffForHumans() }}</span>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                </td>
+                                <td class="px-4 py-5 text-center">
+                                    <span class="text-[10px] font-black uppercase tracking-widest {{ $estimate->expires_at->diffInHours() < 24 ? 'text-rose-600 animate-pulse' : 'text-slate-600' }}">
+                                        {{ $estimate->expires_at->diffForHumans(null, true) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-5">
+                                    <span class="text-sm font-black text-slate-900">{{ $currencySymbol }}{{ number_format($estimate->grand_total, 2) }}</span>
+                                </td>
+                                <td class="px-8 py-5 text-right">
+                                    <a href="{{ route('estimates.show', $estimate) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-rose-600 text-white shadow-lg shadow-rose-200 hover:scale-110 transition-transform">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                    </a>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="4" class="px-8 py-20 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="h-16 w-16 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-4">
+                                            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        </div>
+                                        <p class="text-sm font-black text-slate-400 uppercase tracking-widest">Pipeline Healthy: No At-Risk Protocols</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 

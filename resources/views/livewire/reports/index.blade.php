@@ -428,14 +428,14 @@
                             <span class="text-[10px] font-black text-emerald-600 uppercase">Avg. Discount (Won)</span>
                             <x-heroicon-o-check-circle class="h-4 w-4 text-emerald-400" />
                         </div>
-                        <p class="text-4xl font-black text-emerald-600 tracking-tight italic line-clamp-1">{{ number_format($discountAnalysis[Estimate::EST_STATUS_ACCEPTED] ?? 0, 1) }}%</p>
+                        <p class="text-4xl font-black text-emerald-600 tracking-tight italic line-clamp-1">{{ number_format($discountAnalysis[\App\Models\Estimate::EST_STATUS_ACCEPTED] ?? 0, 1) }}%</p>
                     </div>
                     <div class="p-6 rounded-2xl bg-rose-50 border border-rose-100">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-[10px] font-black text-rose-600 uppercase tracking-tight line-clamp-1">Avg. Discount (Lost)</span>
                             <x-heroicon-o-x-circle class="h-4 w-4 text-rose-400" />
                         </div>
-                        <p class="text-4xl font-black text-rose-600 tracking-tight italic line-clamp-1 truncate">{{ number_format($discountAnalysis[Estimate::EST_STATUS_DECLINED] ?? 0, 1) }}%</p>
+                        <p class="text-4xl font-black text-rose-600 tracking-tight italic line-clamp-1 truncate">{{ number_format($discountAnalysis[\App\Models\Estimate::EST_STATUS_DECLINED] ?? 0, 1) }}%</p>
                     </div>
                 </div>
             </div>
