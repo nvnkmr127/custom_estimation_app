@@ -191,15 +191,15 @@
                              </svg>
                          </div>
                          <div>
-                             <h2 class="text-lg font-bold text-slate-900 leading-tight">Workflow Intelligence</h2>
-                             <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-0.5">Real-time Approval Chain Status</p>
+                             <h2 class="text-lg font-bold text-slate-900 leading-tight">Approval Progress</h2>
+                             <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-0.5">Track your estimate's approval steps</p>
                          </div>
                      </div>
                      <div class="hidden md:flex items-center gap-6">
                          <div class="flex flex-col items-end">
                              <span class="text-[10px] font-bold text-slate-400 uppercase">Current Stage</span>
                              <span class="text-sm font-bold text-indigo-600">
-                                 {{ $currentStatus === 'draft' ? 'Drafting & Preparation' : ($currentStatus === 'pending_approval' ? 'Strategic Internal Review' : 'Finalized & Authorized') }}
+                                 {{ $currentStatus === 'draft' ? 'Drafting' : ($currentStatus === 'pending_approval' ? 'Pending Approval' : 'Approved & Ready') }}
                              </span>
                          </div>
                      </div>
@@ -241,8 +241,8 @@
                                 </div>
                             </div>
                             <div class="mt-4 text-center md:text-left transition-all duration-300">
-                                <span class="block text-xs font-black uppercase tracking-widest leading-none {{ $activeIndex >= 0 ? 'text-indigo-950' : 'text-slate-400' }}">Establishment</span>
-                                <span class="block text-[10px] text-slate-500 font-bold mt-1">Estimate Drafted</span>
+                                <span class="block text-xs font-black uppercase tracking-widest leading-none {{ $activeIndex >= 0 ? 'text-indigo-950' : 'text-slate-400' }}">Start</span>
+                                <span class="block text-[10px] text-slate-500 font-bold mt-1">Draft Created</span>
                             </div>
                         </div>
 
@@ -279,7 +279,7 @@
                                         <div class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
                                             <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm
                                                 {{ $isStepActive ? 'bg-indigo-600 text-white animate-bounce' : ($isStepDone ? 'bg-indigo-50 text-indigo-400' : ($isStepRejected ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-300')) }}">
-                                                {{ $isStepActive ? 'Current Action' : ($isStepDone ? 'Verified' : ($isStepRejected ? 'Stopped' : 'Upcoming')) }}
+                                                {{ $isStepActive ? 'Current Step' : ($isStepDone ? 'Approved' : ($isStepRejected ? 'Rejected' : 'Waiting')) }}
                                             </span>
                                         </div>
                                     </div>
@@ -289,7 +289,7 @@
                                         {{ $step->name }}
                                     </span>
                                     <span class="block text-[10px] text-slate-500 font-bold mt-1">
-                                        {{ $isStepRejected ? 'Rejected by ' . $approval->user->name : 'Authorization Review' }}
+                                        {{ $isStepRejected ? 'Rejected by ' . $approval->user->name : 'Internal Check' }}
                                     </span>
                                 </div>
 
@@ -332,14 +332,14 @@
                                     <div class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
                                         <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm
                                             {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'bg-green-600 text-white' : ($isTerminalFailure && $activeIndex === $totalPoints - 1 ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-300') }}">
-                                            {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'Active Content' : ($isTerminalFailure ? 'Revoked' : 'Locked') }}
+                                            {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'Approved' : ($isTerminalFailure ? 'Cancelled' : 'Waiting') }}
                                         </span>
                                     </div>
                                 </div>
                             </div>
                             <div class="mt-4 text-center md:text-right">
-                                <span class="block text-xs font-black uppercase tracking-widest leading-none {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'text-green-950' : 'text-slate-400' }}">Authorization</span>
-                                <span class="block text-[10px] text-slate-500 font-bold mt-1">Market Launch Status</span>
+                                <span class="block text-xs font-black uppercase tracking-widest leading-none {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'text-green-950' : 'text-slate-400' }}">Finish</span>
+                                <span class="block text-[10px] text-slate-500 font-bold mt-1">Final Status</span>
                             </div>
                         </div>
 
