@@ -13,7 +13,7 @@ class ProductionService
      */
     public function getCapacityLoad()
     {
-        $maxCapacity = (int) Setting::get('daily_production_capacity', 10); // Default 10 units/tasks
+        $maxCapacity = (int) Setting::getCached('daily_production_capacity', 10); // Default 10 units/tasks
         $activeTasks = Task::whereIn('status', ['pending', 'in_progress'])->count();
 
         if ($maxCapacity <= 0) return 0;
