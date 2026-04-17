@@ -167,7 +167,9 @@
                     @endif
                 </div>
             </div>
-               {{-- Performance Metrics Card --}}
+        </div>
+
+           {{-- Performance Metrics Card --}}
         <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div class="rounded-3xl bg-slate-950 p-6 shadow-xl ring-1 ring-white/10 relative overflow-hidden group">
                 <div class="absolute -top-10 -right-10 h-24 w-24 bg-indigo-500/20 blur-2xl rounded-full"></div>
