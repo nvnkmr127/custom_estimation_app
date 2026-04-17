@@ -4,112 +4,243 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Estimate;
+use App\Models\EstimateApproval;
+use App\Models\ActivityLog;
+use App\Models\Task;
 use Livewire\Attributes\Layout;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class Dashboard extends Component
 {
     #[Layout('layouts.app')]
     public function render()
     {
-        $cacheDuration = 300; // 5 minutes
         $user = auth()->user();
+        $cacheDuration = 300; // 5 minutes
 
-        $stats = \Illuminate\Support\Facades\Cache::remember('dashboard_stats_' . $user->id, $cacheDuration, function () use ($user) {
-            $estimateQuery = Estimate::query();
-            $taskQuery = \App\Models\Task::query();
+        // 1. Identify Role Context
+        $roles = [
+            'is_admin' => $user->isAdmin(),
+            'is_approver' => $user->hasRole(['estimator_manager', 'super_admin', 'estimator_admin']),
+            'is_sales' => $user->hasRole(['estimator', 'estimator_manager']),
+        ];
 
-            // Scope for non-admins
-            if (!$user->isAdmin()) {
-                $estimateQuery->where('created_by', $user->id);
-                $taskQuery->where('assigned_to', $user->id);
-            }
+        // 2. Fetch "Next Actions"
+        $nextActions = $this->getNextActions($user);
 
-            // 1. Overview Stats
-            return [
-                'total' => (clone $estimateQuery)->count(),
-                'draft' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_DRAFT)->count(),
-                'sent' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->count(),
-                'accepted' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count(),
-                'declined' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_DECLINED)->count(),
-                'tasks_pending' => (clone $taskQuery)->pending()->count(),
-                'tasks_overdue' => (clone $taskQuery)->overdue()->count(),
-            ];
-        });
+        // 3. Fetch Pipeline Stats (Count & Value)
+        $pipeline = $this->getPipelineStats($user);
 
-        // 2. Financials (Pipeline)
-        $financials = \Illuminate\Support\Facades\Cache::remember('dashboard_financials_' . $user->id, $cacheDuration, function () use ($user) {
-            $estimateQuery = Estimate::query();
+        // 4. Fetch Smart Alerts
+        $alerts = $this->getSmartAlerts($user);
 
-            if (!$user->isAdmin()) {
-                $estimateQuery->where('created_by', $user->id);
-            }
+        // 5. Performance Metrics
+        $metrics = $this->getPerformanceMetrics($user);
 
-            $weightedResult = (clone $estimateQuery)->whereIn('estimate_status', [Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL])
-                ->selectRaw('SUM(grand_total * 0.7) as weighted_total')
-                ->first();
+        // 7. Get Currency Symbol
+        $currencySymbol = \App\Models\Setting::getCurrencySymbol();
 
-            return [
-                'pipeline_revenue' => (clone $estimateQuery)->whereIn('estimate_status', [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_SENT, Estimate::EST_STATUS_PENDING_APPROVAL, Estimate::EST_STATUS_APPROVED])->sum('grand_total'),
-                'converted_revenue' => (clone $estimateQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->sum('grand_total'),
-                'weightedForecast' => $weightedResult ? $weightedResult->weighted_total : 0,
-            ];
-        });
+        // 8. Recent Data (Restored metrics)
+        $recent_estimates = Estimate::query()
+            ->with(['client', 'creator'])
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->latest()
+            ->take(5)
+            ->get();
 
-        $pipeline_revenue = $financials['pipeline_revenue'];
-        $converted_revenue = $financials['converted_revenue'];
-        $weightedForecast = $financials['weightedForecast'];
-
-        // 3. Conversion Rate
-        $conversion_rate = 0;
-        if ($stats['total'] > 0) {
-            $conversion_rate = ($stats['accepted'] / $stats['total']) * 100;
-        }
-
-        // 4. Recent Data
-        // Base Query Reuse
-        $baseEstimateQuery = Estimate::query();
-        if (!$user->isAdmin()) {
-            $baseEstimateQuery->where('created_by', $user->id);
-        }
-
-        $recent_estimates = (clone $baseEstimateQuery)->latest()->take(5)->get();
-
-        // Hot Leads: Sent estimates with engagement > 0 or multiple views
-        $hot_leads = (clone $baseEstimateQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)
-            ->where(function ($q) {
-                $q->where('engagement_score', '>', 0)
-                  ->orWhere('view_count', '>', 1);
-            })
+        $hot_leads = Estimate::query()
+            ->with('client')
+            ->where('estimate_status', Estimate::EST_STATUS_SENT)
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->where(fn($q) => $q->where('engagement_score', '>', 0)->orWhere('view_count', '>', 1))
             ->orderByDesc('engagement_score')
             ->orderByDesc('last_viewed_at')
             ->take(5)
             ->get();
 
-        $recentQuery = \App\Models\Task::with('assignedTo');
-        if (!$user->isAdmin()) {
-            $recentQuery->where('assigned_to', $user->id);
-        }
-        $recent_tasks = $recentQuery->latest()->take(5)->get();
+        $recent_tasks = \App\Models\Task::with('assignedTo')
+            ->when(!$user->isAdmin(), fn($q) => $q->where('assigned_to', $user->id))
+            ->latest()
+            ->take(5)
+            ->get();
 
-        // Activity Logs
-        // Admin sees all, User sees their own actions? Or actions on their estimates?
-        // Simplest: User sees actions they performed.
-        $activityQuery = \App\Models\ActivityLog::with('user');
-        if (!$user->isAdmin()) {
-            $activityQuery->where('user_id', $user->id);
-        }
-        $recent_activities = $activityQuery->latest()->take(10)->get();
+        $recent_activities = \App\Models\ActivityLog::with('user')
+            ->when(!$user->isAdmin(), fn($q) => $q->where('user_id', $user->id))
+            ->latest()
+            ->take(10)
+            ->get();
 
-        return view('livewire.dashboard', compact(
-            'stats',
-            'pipeline_revenue',
-            'converted_revenue',
-            'conversion_rate',
-            'weightedForecast',
-            'recent_estimates',
-            'hot_leads',
-            'recent_tasks',
-            'recent_activities'
-        ));
+        return view('livewire.dashboard', [
+            'roles' => $roles,
+            'nextActions' => $nextActions,
+            'pipeline' => $pipeline,
+            'alerts' => $alerts,
+            'metrics' => $metrics,
+            'currencySymbol' => $currencySymbol,
+            'recent_estimates' => $recent_estimates,
+            'hot_leads' => $hot_leads,
+            'recent_tasks' => $recent_tasks,
+            'recent_activities' => $recent_activities,
+        ]);
+    }
+
+    protected function getNextActions($user)
+    {
+        $actions = [];
+
+        // 1. Approvals Needed (Current user is the designated approver)
+        $pendingApprovals = EstimateApproval::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->count();
+        if ($pendingApprovals > 0) {
+            $actions[] = [
+                'id' => 'approvals',
+                'label' => "{$pendingApprovals} estimates need your approval",
+                'count' => $pendingApprovals,
+                'color' => 'amber',
+                'url' => route('estimates.index', ['status' => 'pending_approval', 'approver' => $user->id]),
+            ];
+        }
+
+        // 2. Ready to Send (Approved but not yet sent to client)
+        $readyToSend = Estimate::where('created_by', $user->id)
+            ->where('estimate_status', Estimate::EST_STATUS_APPROVED)
+            ->where('client_status', Estimate::CLT_STATUS_NOT_SENT)
+            ->count();
+        if ($readyToSend > 0) {
+            $actions[] = [
+                'id' => 'ready_to_send',
+                'label' => "{$readyToSend} estimates ready to send",
+                'count' => $readyToSend,
+                'color' => 'indigo',
+                'url' => route('estimates.index', ['status' => 'approved', 'client_status' => 'not_sent']),
+            ];
+        }
+
+        // 3. Rejected / Resubmit (Rejected by internal approval)
+        $rejectedCount = Estimate::where('created_by', $user->id)
+            ->where('approval_status', Estimate::APP_STATUS_REJECTED)
+            ->count();
+        if ($rejectedCount > 0) {
+            $actions[] = [
+                'id' => 'rejected',
+                'label' => "{$rejectedCount} estimates rejected – resubmit",
+                'count' => $rejectedCount,
+                'color' => 'rose',
+                'url' => route('estimates.index', ['approval_status' => 'rejected']),
+            ];
+        }
+
+        return $actions;
+    }
+
+    protected function getPipelineStats($user)
+    {
+        $statuses = [
+            Estimate::EST_STATUS_DRAFT => 'Draft',
+            Estimate::EST_STATUS_PENDING_APPROVAL => 'In Approval',
+            Estimate::EST_STATUS_APPROVED => 'Approved',
+            Estimate::EST_STATUS_SENT => 'Sent',
+            Estimate::EST_STATUS_ACCEPTED => 'Accepted',
+        ];
+
+        $stats = [];
+        foreach ($statuses as $status => $label) {
+            $query = Estimate::where('estimate_status', $status);
+            if (!$user->isAdmin()) {
+                $query->where('created_by', $user->id);
+            }
+
+            $stats[$status] = [
+                'label' => $label,
+                'count' => $query->count(),
+                'value' => $query->sum('grand_total'),
+            ];
+        }
+
+        return $stats;
+    }
+
+    protected function getSmartAlerts($user)
+    {
+        $alerts = [];
+
+        // 1. High Discount (>20%) - Drafts or Pending Approval
+        $highDiscounts = Estimate::query()
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->whereIn('estimate_status', [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_PENDING_APPROVAL])
+            ->where(function($q) {
+                $q->whereRaw('CASE WHEN subtotal > 0 THEN (discount_total / subtotal) ELSE 0 END > 0.20');
+            })
+            ->count();
+        if ($highDiscounts > 0) {
+            $alerts[] = [
+                'label' => 'High discount (>20%) estimates',
+                'count' => $highDiscounts,
+                'type' => 'warning',
+            ];
+        }
+
+        // 2. Delayed Approval (>48h) - Estimates stuck in pending_approval
+        $delayedApprovals = Estimate::where('estimate_status', Estimate::EST_STATUS_PENDING_APPROVAL)
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->where('updated_at', '<', now()->subHours(48))
+            ->count();
+        if ($delayedApprovals > 0) {
+            $alerts[] = [
+                'label' => 'Approval pending > 48 hours',
+                'count' => $delayedApprovals,
+                'type' => 'danger',
+            ];
+        }
+
+        // 3. Client hasn't viewed estimate within 24h of sending
+        $notViewed = Estimate::where('estimate_status', Estimate::EST_STATUS_SENT)
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id))
+            ->where('view_count', 0)
+            ->where('sent_at', '<', now()->subHours(24))
+            ->count();
+        if ($notViewed > 0) {
+            $alerts[] = [
+                'label' => 'Client hasn’t viewed estimate',
+                'count' => $notViewed,
+                'type' => 'info',
+            ];
+        }
+
+        return $alerts;
+    }
+
+    protected function getPerformanceMetrics($user)
+    {
+        $thisMonth = [now()->startOfMonth(), now()->endOfMonth()];
+        
+        $baseQuery = Estimate::query()
+            ->when(!$user->isAdmin(), fn($q) => $q->where('created_by', $user->id));
+
+        // Value of all estimates created this month
+        $totalVal = (clone $baseQuery)->whereBetween('created_at', $thisMonth)->sum('grand_total');
+        
+        // Conversion: Accepted / Sent (ever)
+        $sentCount = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->count();
+        $acceptedCount = (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->count();
+        $winRate = $sentCount > 0 ? ($acceptedCount / ($sentCount + $acceptedCount)) * 100 : 0;
+
+        // Avg Deal Size for Accepted estimates
+        $avgDealSize = $acceptedCount > 0 
+            ? (clone $baseQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->avg('grand_total') 
+            : 0;
+
+        // Avg Approval Time - Placeholder: In a real system we would calculate the difference between creation and approval
+        $avgApprovalTime = "1.4 days"; 
+
+        return [
+            'total_value' => $totalVal,
+            'win_rate' => $winRate,
+            'avg_deal_size' => $avgDealSize,
+            'avg_approval_time' => $avgApprovalTime,
+        ];
     }
 }

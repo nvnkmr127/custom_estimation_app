@@ -70,9 +70,25 @@ class EstimateController extends Controller
             $status = $request->status;
             $dbStatus = match ($status) {
                 'waiting_approval' => Estimate::EST_STATUS_PENDING_APPROVAL,
+                'pending_approval' => Estimate::EST_STATUS_PENDING_APPROVAL,
                 default => $status
             };
             $query->where('estimate_status', $dbStatus);
+        }
+
+        if ($request->filled('approver')) {
+            $query->whereHas('approvals', function ($q) use ($request) {
+                $q->where('user_id', $request->approver)
+                  ->where('status', 'pending');
+            });
+        }
+
+        if ($request->filled('client_status')) {
+            $query->where('client_status', $request->client_status);
+        }
+
+        if ($request->filled('approval_status')) {
+            $query->where('approval_status', $request->approval_status);
         }
 
         if ($request->filled('client_id')) {
