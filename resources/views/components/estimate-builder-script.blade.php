@@ -1395,9 +1395,34 @@
                         body: JSON.stringify(data)
                     });
 
+                    if (!response.ok) {
+                        const status = response.status;
+                        const text = await response.text();
+                        let errorMessage = `Server error (${status})`;
+                        
+                        try {
+                            const errorJson = JSON.parse(text);
+                            errorMessage = errorJson.message || errorMessage;
+                            if (errorJson.errors) {
+                                errorMessage += "\n\n" + Object.values(errorJson.errors).flat().join("\n");
+                            }
+                        } catch (e) {
+                            // Not JSON, show snippet of HTML if it looks like an error page
+                            if (text.includes('Page Expired') || status === 419) {
+                                errorMessage = "Your session has expired. Please refresh the page and try again.";
+                            } else if (text.includes('<!DOCTYPE html>') || text.includes('<html>')) {
+                                // Extract title or h1 if possible
+                                const match = text.match(/<title>(.*?)<\/title>/i) || text.match(/<h1>(.*?)<\/h1>/i);
+                                if (match) errorMessage += ": " + match[1];
+                            }
+                        }
+                        
+                        throw new Error(errorMessage);
+                    }
+
                     const result = await response.json();
 
-                    if (response.ok && result.success) {
+                    if (result.success) {
                         if (redirectAfterSuccess) {
                             window.location.href = result.redirect_url;
                             return; 
@@ -1442,7 +1467,7 @@
                 } catch (e) {
                     this.isSubmitting = false;
                     console.error('Save failed:', e);
-                    alert('Submission failed: ' + e.message);
+                    alert(e.message.startsWith('Server error') || e.message.startsWith('Your session') ? e.message : 'Submission failed: ' + e.message);
                 }
             },
 

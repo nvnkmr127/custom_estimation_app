@@ -19,7 +19,7 @@ class UpdateEstimateRequest extends FormRequest
         // Allowed statuses for Update
         $statusRules = [Estimate::EST_STATUS_DRAFT];
 
-        if ($this->user()->hasRole(['super_admin', 'admin'])) {
+        if ($this->user()->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
             $statusRules = [
                 Estimate::EST_STATUS_DRAFT,
                 Estimate::EST_STATUS_SENT,

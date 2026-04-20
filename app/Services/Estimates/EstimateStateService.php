@@ -185,7 +185,7 @@ class EstimateStateService
         
         // Admin Override for safety
         $isAdmin = Auth::id()
-            ? \App\Models\User::find(Auth::id())?->hasRole(['super_admin', 'admin'])
+            ? \App\Models\User::find(Auth::id())?->hasRole(['super_admin', 'admin', 'estimator_admin'])
             : false;
 
         if (!($policy[$action] ?? false) && !$isAdmin) {

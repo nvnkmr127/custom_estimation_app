@@ -508,6 +508,13 @@ class EstimateController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422); // Use 422 Unprocessable Entity for validation/business rule errors
+            }
+
             return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
     }

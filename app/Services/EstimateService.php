@@ -141,12 +141,8 @@ class EstimateService
         try {
             $this->stateService->validateAction($estimate, 'can_edit');
         } catch (\InvalidArgumentException $e) {
-            // Check if we can branch instead (Soft Lock)
-            $isFinalized = !in_array($estimate->estimate_status, [Estimate::EST_STATUS_DRAFT, Estimate::EST_STATUS_PENDING_APPROVAL]);
-            if (!$isFinalized && !$forceBranch) {
-                throw $e;
-            }
-            // If finalized or forceBranch is true, the code below will handle branching.
+            // If direct edit is blocked by policy (e.g., finalized state or non-owner draft),
+            // we will proceed and allow the branching logic below to handle it by creating a new version.
         }
 
         DB::beginTransaction();
@@ -168,7 +164,7 @@ class EstimateService
             $needsBranching = $forceBranch || $isFinalized || !$estimate->is_current_version;
 
             // Also apply existing collaborator logic
-            if ($estimate->is_current_version && auth()->id() !== $estimate->created_by && !auth()->user()->hasRole(['admin', 'super_admin', 'super-admin'])) {
+            if ($estimate->is_current_version && auth()->id() !== $estimate->created_by && !auth()->user()->hasRole(['admin', 'super_admin', 'super-admin', 'estimator_admin'])) {
                 $needsBranching = true;
             }
 
@@ -191,6 +187,12 @@ class EstimateService
             // (If finalized, it branched above, so this handles in-place edits like submitted/pending)
             if (!$isBranched && $estimate->approval_status !== Estimate::APP_STATUS_NOT_REQUIRED) {
                 $this->stateService->resetSafetyWorkflow($estimate);
+            }
+
+            // Force Status Reset for Branched Versions (Force re-approval)
+            if ($isBranched && !auth()->user()->hasRole(['admin', 'super_admin', 'estimator_admin'])) {
+                $data['estimate_status'] = Estimate::EST_STATUS_DRAFT;
+                $data['status'] = Estimate::EST_STATUS_DRAFT;
             }
 
             $estimate->update($data);

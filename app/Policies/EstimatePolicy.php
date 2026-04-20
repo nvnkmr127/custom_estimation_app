@@ -73,7 +73,7 @@ class EstimatePolicy
             return true;
         }
 
-        if ($user->hasRole(['super_admin', 'admin'])) {
+        if ($user->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
             return true;
         }
 
@@ -95,7 +95,7 @@ class EstimatePolicy
 
     public function delete(User $user, Estimate $estimate)
     {
-        return $user->id === $estimate->created_by || $user->hasRole(['super_admin', 'admin']);
+        return $user->id === $estimate->created_by || $user->hasRole(['super_admin', 'admin', 'estimator_admin']);
     }
 
     public function restore(User $user, Estimate $estimate)

@@ -628,7 +628,7 @@ class Estimate extends Model
         }
 
         // Admin check is usually in Policy, but helper here is useful
-        if ($user->hasRole(['super_admin', 'admin'])) {
+        if ($user->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
             return true;
         }
 
@@ -668,7 +668,7 @@ class Estimate extends Model
         $user = $user ?? auth()->user();
 
         // Admin override
-        if ($user && $user->hasRole(['super_admin', 'admin'])) {
+        if ($user && $user->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
             return true;
         }
 
