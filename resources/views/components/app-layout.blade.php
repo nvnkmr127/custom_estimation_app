@@ -102,6 +102,17 @@
                 </ul>
             </nav>
 
+            <!-- All Apps Button -->
+            <div class="px-6 mb-4">
+                <a href="https://login.onestudio.co.in/apps" 
+                   class="flex items-center justify-center gap-x-2 w-full px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-md transition-all duration-200 group">
+                    <svg class="h-5 w-5 text-indigo-100 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H18a2.25 2.25 0 01-2.25-2.25v-2.25z" />
+                    </svg>
+                    All Apps
+                </a>
+            </div>
+
             <!-- User Profile (Bottom Sidebar) -->
             <div class="flex items-center gap-x-4 px-6 py-6 border-t border-slate-800">
                 <a href="{{ route('profile.edit') }}" class="flex items-center gap-x-4 flex-1 min-w-0 group">
