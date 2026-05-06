@@ -5,6 +5,7 @@
 
     <script>
         window.estimateData = {!! json_encode($estimate) !!};
+        window.estimateData.isSuperAdmin = @json(auth()->user()->hasRole('super_admin'));
     </script>
     <div x-data="estimateBuilder(window.estimateData)" x-init="init()" class="pb-20">
         <div class="sm:flex sm:items-center mb-8">

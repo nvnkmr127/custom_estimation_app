@@ -86,6 +86,7 @@
             },
             showDeletedModal: false,
             isDirty: false,
+            isSuperAdmin: initialData.isSuperAdmin || false,
 
             init() {
                 // Track changes to trigger unsaved changes warning
@@ -379,8 +380,12 @@
             },
 
             isItemLocked(item) {
-                // An item is considered locked if it came from a product or is explicitly a package item
-                return !!item.product_id || !!item.is_package || !!item.is_locked;
+                // Super admins can edit everything
+                if (this.isSuperAdmin) return false;
+
+                // An item is considered locked if it came from a product, is a package item, or is explicitly marked as locked
+                // We also lock custom items (no product_id) for other roles if they are already saved (have an ID)
+                return !!item.product_id || !!item.is_package || !!item.is_locked || (!!item.id && !item.product_id);
             },
 
             initClientSearch() {
