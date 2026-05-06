@@ -46,23 +46,47 @@ class SendEmailJob implements ShouldQueue
     {
         $gateway = app(MailGatewayInterface::class);
 
-        $sent = $gateway->send($this->to, $this->subject, $this->body, $this->attachments);
+        try {
+            $gateway->send($this->to, $this->subject, $this->body, $this->attachments);
 
-        if ($this->emailLogId) {
-            \App\Models\EmailLog::where('id', $this->emailLogId)->update([
-                'status' => $sent ? 'sent' : 'failed',
-                'error_message' => $sent ? null : 'Gateway declined to send',
-            ]);
-        }
-
-        if (!$sent) {
+            if ($this->emailLogId) {
+                \App\Models\EmailLog::where('id', $this->emailLogId)->update([
+                    'status' => 'sent',
+                    'error_message' => null,
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log the specific attempt failure but re-throw for queue retry
             $attempt = $this->attempts();
-            Log::error("SendEmailJob Failed (Attempt $attempt): Gateway declined to send", [
+            Log::warning("SendEmailJob Attempt $attempt Failed: " . $e->getMessage(), [
                 'to' => $this->to,
                 'subject' => $this->subject
             ]);
-            throw new \Exception("Failed to send email to {$this->to}");
+            
+            throw $e;
         }
+    }
+
+    /**
+     * Handle a job failure.
+     *
+     * @param \Throwable $exception
+     * @return void
+     */
+    public function failed(\Throwable $exception)
+    {
+        if ($this->emailLogId) {
+            \App\Models\EmailLog::where('id', $this->emailLogId)->update([
+                'status' => 'failed',
+                'error_message' => $exception->getMessage(),
+            ]);
+        }
+        
+        Log::error("SendEmailJob Permanently Failed: " . $exception->getMessage(), [
+            'to' => $this->to,
+            'subject' => $this->subject,
+            'log_id' => $this->emailLogId
+        ]);
     }
 
     /**

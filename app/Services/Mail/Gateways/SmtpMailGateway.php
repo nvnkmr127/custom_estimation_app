@@ -23,6 +23,16 @@ class SmtpMailGateway implements MailGatewayInterface
         $fromAddress = \App\Models\Setting::getCached('smtp_from_address', config('mail.from.address'));
         $fromName = \App\Models\Setting::getCached('smtp_from_name', config('mail.from.name'));
 
+        $to = trim($to);
+        if (empty($to)) {
+            Log::error('SMTP Mail Gateway: Recipient address is empty');
+            return false;
+        }
+
+        if (empty($subject)) {
+            $subject = '(No Subject)';
+        }
+
         try {
             // override config from DB settings if available
             $host = \App\Models\Setting::getCached('smtp_host');
@@ -57,8 +67,13 @@ class SmtpMailGateway implements MailGatewayInterface
                     $message->from($fromAddress, $fromName);
                 }
                 
-                $message->subject($subject)
-                    ->html($body);
+                $message->subject($subject);
+                
+                if (!empty($body)) {
+                    $message->html($body);
+                } else {
+                    $message->text(' '); // Empty body fallback
+                }
 
                 foreach ($attachments as $path => $name) {
                     if (is_file($path)) {
@@ -79,7 +94,7 @@ class SmtpMailGateway implements MailGatewayInterface
                 'exception_class' => get_class($e),
                 'trace' => substr($e->getTraceAsString(), 0, 500)
             ]);
-            return false;
+            throw $e;
         }
     }
 }
