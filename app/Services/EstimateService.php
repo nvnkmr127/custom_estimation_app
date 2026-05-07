@@ -50,6 +50,8 @@ class EstimateService
         $data['tax_1'] = $data['tax_1'] ?? 0;
         $data['tax_2'] = $data['tax_2'] ?? 0;
         $data['discount_value'] = $data['discount_value'] ?? 0;
+        $data['coupon_discount'] = $data['coupon_discount'] ?? 0;
+        $data['transportation_charges'] = $data['transportation_charges'] ?? 0;
 
         while ($attempts < $maxAttempts) {
             $attempts++;
@@ -144,6 +146,13 @@ class EstimateService
             // If direct edit is blocked by policy (e.g., finalized state or non-owner draft),
             // we will proceed and allow the branching logic below to handle it by creating a new version.
         }
+
+        // Ensure defaults for required numeric fields to prevent NOT NULL violations
+        $data['tax_1'] = $data['tax_1'] ?? 0;
+        $data['tax_2'] = $data['tax_2'] ?? 0;
+        $data['discount_value'] = $data['discount_value'] ?? 0;
+        $data['coupon_discount'] = $data['coupon_discount'] ?? 0;
+        $data['transportation_charges'] = $data['transportation_charges'] ?? 0;
 
         DB::beginTransaction();
         try {
