@@ -462,4 +462,29 @@ class PortalController extends Controller
 
         return response()->download($path, "Estimate-{$estimate->estimate_number}.pdf");
     }
+
+    /**
+     * Display a list of all estimates for internal preview.
+     * Restricted to authorized staff only.
+     */
+    public function previewList(Request $request)
+    {
+        // 1. Double check authentication (Middleware should handle this, but let's be explicit for security)
+        if (!auth()->check() || !auth()->user()->isAdmin() && !auth()->user()->hasRole(['sales_manager', 'sales'])) {
+            \App\Models\ActivityLog::log('security_breach_attempt', null, "Unauthorized attempt to access portal estimate list by user: " . (auth()->user()->email ?? 'Guest'));
+            abort(403, 'Unauthorized access.');
+        }
+
+        // 2. Audit Logging
+        \App\Models\ActivityLog::log('portal_preview_accessed', null, "Internal team member " . auth()->user()->name . " accessed the full estimate preview list.");
+
+        // 3. Fetch estimates with filtering        // Fetch paginated estimates with necessary relations
+        // We use current() to only show the latest active version of each estimate family to avoid clutter
+        $estimates = Estimate::with(['client', 'creator'])
+            ->current()
+            ->latest()
+            ->paginate(15);
+
+        return view('portal.estimates.index', compact('estimates'));
+    }
 }

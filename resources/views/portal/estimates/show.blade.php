@@ -34,6 +34,44 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+        @auth
+            @if(auth()->user()->isAdmin() || auth()->user()->hasRole(['sales_manager', 'sales']))
+                <!-- Internal Preview Mode Indicator -->
+                <div class="mb-6 bg-indigo-600 rounded-2xl p-4 shadow-lg shadow-indigo-500/20 border border-indigo-500 flex items-center justify-between overflow-hidden relative group">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity"></div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white backdrop-blur-md">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <div class="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em]">Staff View Only</div>
+                                <span class="w-1 h-1 rounded-full bg-indigo-300"></span>
+                                <div class="text-[10px] font-black text-indigo-100 uppercase tracking-[0.2em]">
+                                    Status: {{ strtoupper($estimate->client_status ?: $estimate->estimate_status) }}
+                                    @if($estimate->approval_status && $estimate->approval_status !== 'not_required')
+                                        ({{ strtoupper($estimate->approval_status) }})
+                                    @endif
+                                </div>
+                            </div>
+                            <h3 class="text-white font-black tracking-tight leading-none">Internal Preview Mode</h3>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 relative z-10">
+                        <a href="{{ route('portal.preview-list') }}" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md transition-all border border-white/10">
+                            Master List
+                        </a>
+                        <a href="{{ route('estimates.edit', $estimate) }}" class="px-4 py-2 bg-white text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-sm">
+                            Edit Estimate
+                        </a>
+                    </div>
+                </div>
+            @endif
+        @endauth
+
         <title>Estimate Preview | {{ $estimate->estimate_number }}</title>
         <meta name="description" content="View and accept your custom estimate from {{ config('app.name') }}. Professional estimate #{{ $estimate->estimate_number }} for {{ $estimate->client_name }}.">
     

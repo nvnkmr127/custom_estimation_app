@@ -64,4 +64,30 @@
             </x-primary-button>
         </div>
     </form>
+
+    @if(app()->environment('local'))
+        <div class="mt-8 pt-6 border-t border-gray-100">
+            <div class="text-center mb-4">
+                <span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-widest rounded-full border border-amber-200">
+                    Developer Quick Access
+                </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <a href="{{ route('dev.login') }}" class="flex flex-col items-center p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all group">
+                    <span class="text-xs font-black text-slate-700 uppercase tracking-widest">Super Admin</span>
+                    <span class="text-[9px] text-slate-400 font-medium">All Permissions</span>
+                </a>
+                
+                @php
+                    $salesUser = \App\Models\User::where('role', 'sales')->first();
+                @endphp
+                @if($salesUser)
+                    <a href="{{ route('dev.login', $salesUser->id) }}" class="flex flex-col items-center p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all group">
+                        <span class="text-xs font-black text-slate-700 uppercase tracking-widest">Sales Rep</span>
+                        <span class="text-[9px] text-slate-400 font-medium">Restricted Access</span>
+                    </a>
+                @endif
+            </div>
+        </div>
+    @endif
 </x-guest-layout>

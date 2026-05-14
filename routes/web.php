@@ -31,6 +31,11 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::post('/estimates/{estimate}/comments', [App\Http\Controllers\PortalController::class, 'comment'])->name('comment')->middleware('signed');
     Route::post('/estimates/{estimate}/request-changes', [App\Http\Controllers\PortalController::class, 'requestChanges'])->name('request-changes')->middleware('signed');
     Route::post('/estimates/{estimate}/request-call', [App\Http\Controllers\PortalController::class, 'requestCall'])->name('request-call')->middleware('signed');
+    
+    // Internal Team Preview (Restricted to logged-in staff)
+    Route::get('/preview/estimates', [App\Http\Controllers\PortalController::class, 'previewList'])
+        ->name('preview-list')
+        ->middleware(['auth', 'role:super_admin,estimator_admin,sales_manager,sales']);
 });
 
 // Tracking (Public)
