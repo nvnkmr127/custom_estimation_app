@@ -13,6 +13,72 @@ class EstimateCreationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_ajax_create_returns_estimate_object_so_subsequent_saves_can_update_in_place()
+    {
+        $user = User::factory()->create(['role' => 'super_admin']);
+        $client = Client::factory()->create();
+
+        $createPayload = [
+            'client_id' => $client->id,
+            'estimate_date' => now()->format('Y-m-d'),
+            'expiry_date' => now()->addDays(7)->format('Y-m-d'),
+            'status' => 'draft',
+            'currency' => 'USD',
+            'discount_type' => 'percentage',
+            'discount_value' => 0,
+            'type' => 'standard',
+            'items' => [
+                [
+                    'name' => 'Item 1',
+                    'quantity' => 1,
+                    'unit_price' => 100,
+                    'unit_type' => 'hrs',
+                    'tax_1' => 0,
+                    'tax_2' => 0,
+                    'order_index' => 0,
+                ],
+            ],
+        ];
+
+        $createResponse = $this->actingAs($user)->postJson(route('estimates.store'), $createPayload);
+
+        $createResponse->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'estimate_id',
+                'estimate_number',
+                'estimate' => [
+                    'id',
+                    'items',
+                ],
+                'redirect_url',
+                'last_update_timestamp',
+            ]);
+
+        $this->assertSame(1, Estimate::count());
+
+        $estimateId = $createResponse->json('estimate.id');
+        $this->assertNotNull($estimateId);
+        $this->assertSame($createResponse->json('estimate_id'), $estimateId);
+
+        $itemId = $createResponse->json('estimate.items.0.id');
+        $this->assertNotNull($itemId);
+
+        $updatePayload = $createPayload;
+        $updatePayload['items'][0]['id'] = $itemId;
+        $updatePayload['items'][0]['unit_price'] = 125;
+
+        $updateResponse = $this->actingAs($user)->putJson(route('estimates.update', $estimateId), $updatePayload);
+
+        $updateResponse->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertSame(1, Estimate::count());
+        $this->assertDatabaseHas('estimates', ['id' => $estimateId]);
+    }
+
     public function test_standard_estimate_creation_works_with_retry_logic()
     {
         $user = User::factory()->create(['role' => 'super_admin']);

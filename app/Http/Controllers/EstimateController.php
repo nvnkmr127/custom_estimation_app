@@ -303,6 +303,7 @@ class EstimateController extends Controller
             $estimateData = \Illuminate\Support\Arr::except($validated, ['items', 'sections']);
 
             $estimate = $this->estimateService->createEstimate($estimateData, $sections, $items, $request->type);
+            $estimate->load(['sections.items', 'items']);
 
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
@@ -310,6 +311,7 @@ class EstimateController extends Controller
                     'message' => 'Estimate created successfully.',
                     'estimate_id' => $estimate->id,
                     'estimate_number' => $estimate->estimate_number,
+                    'estimate' => $estimate,
                     'redirect_url' => route('estimates.show', $estimate),
                     'last_update_timestamp' => $estimate->updated_at->toDateTimeString()
                 ]);
