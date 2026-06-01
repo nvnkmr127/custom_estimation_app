@@ -537,16 +537,6 @@ class ShowEstimate extends Component
     public function toggleCommentStatus($commentId, $currentStatus)
     {
         try {
-<<<<<<< HEAD
-            $this->authorize('update', $this->estimate);
-
-            $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
-
-            $comment = \App\Models\EstimateComment::where('id', $commentId)
-                ->where('estimate_id', $this->estimate->id)
-                ->firstOrFail();
-
-=======
             $comment = \App\Models\EstimateComment::findOrFail($commentId);
 
             // Ensure the comment belongs to this estimate
@@ -558,16 +548,11 @@ class ShowEstimate extends Component
             $this->authorize('update', $this->estimate);
 
             $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
->>>>>>> origin/main
             $comment->update(['status' => $newStatus]);
 
             $this->refreshEstimate();
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-<<<<<<< HEAD
-            session()->flash('error', 'You are not authorized to update this estimate.');
-=======
             session()->flash('error', $e->getMessage());
->>>>>>> origin/main
         } catch (\Exception $e) {
             \Log::error("Failed to toggle comment status", ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to update comment status: ' . $e->getMessage());
