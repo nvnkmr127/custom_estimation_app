@@ -4,84 +4,92 @@ namespace App\Services;
 
 use App\Models\Estimate;
 use App\Models\EstimateAnalytic;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
 use Jenssegers\Agent\Agent;
 
 class AnalyticsService
 {
-    public function logAccess(Estimate $estimate, string $action)
+    public function logAccess(Estimate $estimate, string $action): void
     {
-        // Don't log if logged in as admin/staff?
-        // Requirement: "Track online PDF views... Estimate user location..."
-        // Often we want to exclude internal views, but for now let's log everything OR check current user role.
-        // Let's assume we log all accesses for now to be safe, or maybe filter out 'staff' if needed.
-        // For MVP, log everything.
-
         $agent = new Agent;
-        $userAgent = Request::header('User-Agent');
+        $userAgent = Request::header('User-Agent', '');
         $agent->setUserAgent($userAgent);
-        
-        // Security/Compliance: Filter out bots to prevent data inflation
+
         if ($agent->isRobot()) {
             return;
         }
 
         $ip = Request::ip();
-        
-        // Privacy: Anonymize IP and UserAgent for GDPR compliance
-        // We truncate the last octet and store a truncated/hashed version to prevent full PII storage
-        $anonymizedIp = preg_replace('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', '$1.$2.$3.0', $ip);
-        // If we can't change schema, we store the hash in the user_agent column
+
+        $anonymizedIp = $this->anonymizeIp($ip);
         $uaHash = hash('sha256', $userAgent);
 
-        // Check uniqueness: Same Anon-IP & UA Hash within last 24 hours
-        $existing = EstimateAnalytic::where('estimate_id', $estimate->id)
+        $isUnique = !EstimateAnalytic::where('estimate_id', $estimate->id)
             ->where('ip_address', $anonymizedIp)
             ->where('user_agent', $uaHash)
             ->where('created_at', '>=', now()->subHours(24))
             ->exists();
 
-        $isUnique = !$existing;
         $location = $this->resolveLocation($ip);
 
         EstimateAnalytic::create([
-            'estimate_id' => $estimate->id,
-            'action' => $action,
-            'ip_address' => $anonymizedIp,
-            'user_agent' => $uaHash,
-            'device' => $agent->device(),
-            'browser' => $agent->browser(),
-            'platform' => $agent->platform(),
+            'estimate_id'   => $estimate->id,
+            'action'        => $action,
+            'ip_address'    => $anonymizedIp,
+            'user_agent'    => $uaHash,
+            'device'        => $agent->device() ?: $this->detectDeviceType($agent),
+            'browser'       => $agent->browser() ?: 'Unknown',
+            'platform'      => $agent->platform() ?: 'Unknown',
             'location_json' => $location,
-            'is_unique' => $isUnique,
+            'is_unique'     => $isUnique,
         ]);
     }
 
-    protected function resolveLocation($ip)
+    protected function anonymizeIp(string $ip): string
     {
-        // For local development, mock
-        if ($ip === '127.0.0.1' || $ip === '::1') {
+        // IPv4: zero last octet
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return preg_replace('/(\d+\.\d+\.\d+)\.\d+/', '$1.0', $ip);
+        }
+
+        // IPv6: zero last 80 bits (keep first 48 bits)
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $parts = explode(':', inet_ntop(inet_pton($ip)));
+            return implode(':', array_slice($parts, 0, 3)) . '::';
+        }
+
+        return '0.0.0.0';
+    }
+
+    protected function detectDeviceType(Agent $agent): string
+    {
+        if ($agent->isMobile()) return 'Mobile';
+        if ($agent->isTablet()) return 'Tablet';
+        return 'Desktop';
+    }
+
+    protected function resolveLocation(string $ip): ?array
+    {
+        if (in_array($ip, ['127.0.0.1', '::1'])) {
             return ['city' => 'Localhost', 'country' => 'Devland'];
         }
 
-        // Use a free API like ip-api.com (Rate limited: 45 requests per minute)
-        // Warning: HTTP call adds latency. Should be queued in production.
-        // For this task, we'll do sync but handle errors gracefully.
-
         return \Illuminate\Support\Facades\Cache::remember("ip_loc_{$ip}", 86400, function () use ($ip) {
             try {
-                $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,city");
+                $ctx = stream_context_create(['http' => ['timeout' => 3]]);
+                $json = file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,city", false, $ctx);
                 if ($json) {
                     $data = json_decode($json, true);
                     if (isset($data['status']) && $data['status'] === 'success') {
                         return [
-                            'city' => $data['city'] ?? 'Unknown',
+                            'city'    => $data['city'] ?? 'Unknown',
                             'country' => $data['country'] ?? 'Unknown',
                         ];
                     }
                 }
             } catch (\Exception $e) {
-                // log error
+                Log::warning("IP geolocation failed for {$ip}: " . $e->getMessage());
             }
             return null;
         });
