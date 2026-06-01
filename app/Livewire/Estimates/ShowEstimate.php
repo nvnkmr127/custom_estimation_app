@@ -54,7 +54,9 @@ class ShowEstimate extends Component
             'approvals.user',
             'pdfTemplate',
             'approvalChain.approvers',
-            'checklistItems.checklist'
+            'checklistItems.checklist',
+            'comments.user',
+            'comments.replies.user'
         ])->findOrFail($estimateId);
 
         // Initialize stats
@@ -121,9 +123,20 @@ class ShowEstimate extends Component
             }
             
             // Version Awareness Logic
-            if ($this->userApproval && $this->userApproval !== true) {
-                if ($this->userApproval->snapshot_version !== (int)$this->estimate->lock_version) {
-                    $this->versionMismatch = true;
+            if ($this->userApproval) {
+                if ($this->userApproval !== true) {
+                    if ($this->userApproval->snapshot_version !== (int)$this->estimate->lock_version) {
+                        $this->versionMismatch = true;
+                    }
+                } else {
+                    // Admin override version awareness: warn if ANY pending approval for this estimate has a version mismatch
+                    $hasMismatch = EstimateApproval::where('estimate_id', $this->estimate->id)
+                        ->where('status', 'pending')
+                        ->where('snapshot_version', '!=', (int)$this->estimate->lock_version)
+                        ->exists();
+                    if ($hasMismatch) {
+                        $this->versionMismatch = true;
+                    }
                 }
             }
         }
@@ -424,7 +437,7 @@ class ShowEstimate extends Component
             $this->dispatch('estimateUpdated');
 
             session()->flash('success', 'Comment added.');
-        } catch (\App\Core\Exceptions\AuthorizationException $e) {
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
             DB::rollBack();
             session()->flash('error', 'You are not authorized to comment on this estimate.');
         } catch (\Exception $e) {
@@ -524,12 +537,22 @@ class ShowEstimate extends Component
     public function toggleCommentStatus($commentId, $currentStatus)
     {
         try {
-            $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
-            
             $comment = \App\Models\EstimateComment::findOrFail($commentId);
+
+            // Ensure the comment belongs to this estimate
+            if ((int)$comment->estimate_id !== (int)$this->estimate->id) {
+                throw new \Illuminate\Auth\Access\AuthorizationException("This comment does not belong to this estimate.");
+            }
+
+            // Check permission to update the estimate
+            $this->authorize('update', $this->estimate);
+
+            $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
             $comment->update(['status' => $newStatus]);
 
             $this->refreshEstimate();
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            session()->flash('error', $e->getMessage());
         } catch (\Exception $e) {
             \Log::error("Failed to toggle comment status", ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to update comment status: ' . $e->getMessage());

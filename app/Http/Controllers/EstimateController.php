@@ -386,7 +386,6 @@ class EstimateController extends Controller
             ->whereIn('subject_id', $familyIds)
             ->with('user')
             ->latest()
-            ->latest()
             ->get();
 
         $latestVersion = Estimate::where('parent_id', $estimate->parent_id ?? $estimate->id)
@@ -1080,7 +1079,7 @@ class EstimateController extends Controller
             Estimate::where('id', $parentId)->orWhere('parent_id', $parentId)->lockForUpdate()->get();
 
             // Refetch current estimate within lock
-            $estimate = Estimate::find($estimate->id);
+            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
             // 1. Mark this version as current
             $estimate->update(['is_current_version' => true]);

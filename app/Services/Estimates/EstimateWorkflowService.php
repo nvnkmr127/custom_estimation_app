@@ -128,8 +128,18 @@ class EstimateWorkflowService
                 ->first();
 
             // DATA INTEGRITY: Verify the approval is for the CURRENT version of the content
-            if ($approval && $approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
-                throw new \Exception("The estimate content has changed since this approval was requested. Please refresh and review the latest version.");
+            if ($approval) {
+                if ($approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
+                    throw new \Exception("The estimate content has changed since this approval was requested. Please refresh and review the latest version.");
+                }
+            } else {
+                $hasMismatch = $estimate->approvals()
+                    ->where('status', 'pending')
+                    ->where('snapshot_version', '!=', $estimate->lock_version)
+                    ->exists();
+                if ($hasMismatch) {
+                    throw new \Exception("The estimate content has changed since this approval was requested. Please refresh and review the latest version.");
+                }
             }
 
             $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
@@ -239,8 +249,18 @@ class EstimateWorkflowService
                 ->where('status', 'pending')
                 ->first();
 
-            if ($approval && $approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
-                throw new \Exception("The estimate content has changed. Review the latest version before rejecting.");
+            if ($approval) {
+                if ($approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
+                    throw new \Exception("The estimate content has changed. Review the latest version before rejecting.");
+                }
+            } else {
+                $hasMismatch = $estimate->approvals()
+                    ->where('status', 'pending')
+                    ->where('snapshot_version', '!=', $estimate->lock_version)
+                    ->exists();
+                if ($hasMismatch) {
+                    throw new \Exception("The estimate content has changed. Review the latest version before rejecting.");
+                }
             }
 
             $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
@@ -253,10 +273,23 @@ class EstimateWorkflowService
                 throw new \Exception("No pending approval found for you. You may not be the current approver.");
             }
 
-            $approval->update([
-                'status' => 'rejected',
-                'comments' => $comments,
-            ]);
+            if ($approval) {
+                $approval->update([
+                    'status' => 'rejected',
+                    'comments' => $comments,
+                ]);
+            } elseif ($isAdmin) {
+                // If it is admin reject, create a rejection record
+                $currentOrder = $estimate->approvals()->where('status', 'pending')->max('order')
+                    ?? ($estimate->approvalChain ? $estimate->approvalChain->steps()->min('order') : 0);
+
+                $approval = $estimate->approvals()->create([
+                    'user_id' => $userId,
+                    'status' => 'rejected',
+                    'order' => $currentOrder,
+                    'comments' => $comments . ' (Force Rejected by Admin)',
+                ]);
+            }
 
             // Clear all other pending approvals for this estimate
             $estimate->approvals()->where('status', 'pending')->delete();
@@ -285,8 +318,18 @@ class EstimateWorkflowService
                 ->where('status', 'pending')
                 ->first();
 
-            if ($approval && $approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
-                throw new \Exception("The estimate content has changed. Review the latest version before requesting changes.");
+            if ($approval) {
+                if ($approval->snapshot_version !== null && $approval->snapshot_version !== $estimate->lock_version) {
+                    throw new \Exception("The estimate content has changed. Review the latest version before requesting changes.");
+                }
+            } else {
+                $hasMismatch = $estimate->approvals()
+                    ->where('status', 'pending')
+                    ->where('snapshot_version', '!=', $estimate->lock_version)
+                    ->exists();
+                if ($hasMismatch) {
+                    throw new \Exception("The estimate content has changed. Review the latest version before requesting changes.");
+                }
             }
 
             $isAdmin = \App\Models\User::find($userId)?->hasPermission('approve_estimates');
