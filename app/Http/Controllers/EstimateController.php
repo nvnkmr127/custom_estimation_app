@@ -386,7 +386,6 @@ class EstimateController extends Controller
             ->whereIn('subject_id', $familyIds)
             ->with('user')
             ->latest()
-            ->latest()
             ->get();
 
         $latestVersion = Estimate::where('parent_id', $estimate->parent_id ?? $estimate->id)
