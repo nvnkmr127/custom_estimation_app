@@ -13,17 +13,16 @@ class PortalPreviewTest extends TestCase
     use RefreshDatabase;
 
     /** @test */
-    public function administrators_can_view_all_estimates_on_the_portal_preview_list()
+    public function administrators_are_also_filtered_to_only_view_estimates_they_are_associated_with()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $salesperson = User::factory()->create(['role' => 'sales']);
         $otherUser = User::factory()->create(['role' => 'sales']);
 
-        $clientA = Client::factory()->create(['name' => 'Sales Client']);
+        $clientA = Client::factory()->create(['name' => 'My Admin Client']);
         $clientB = Client::factory()->create(['name' => 'Other Client']);
 
         $estimateA = Estimate::factory()->create([
-            'created_by' => $salesperson->id,
+            'created_by' => $admin->id,
             'client_id' => $clientA->id,
             'is_current_version' => true,
         ]);
@@ -37,8 +36,8 @@ class PortalPreviewTest extends TestCase
         $response = $this->actingAs($admin)->get(route('portal.preview-list'));
 
         $response->assertStatus(200);
-        $response->assertSee('Sales Client');
-        $response->assertSee('Other Client');
+        $response->assertSee('My Admin Client');
+        $response->assertDontSee('Other Client');
     }
 
     /** @test */
