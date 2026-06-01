@@ -16,6 +16,7 @@ class EstimateApproval extends Model
         'approval_chain_step_id',
         'status',
         'comments',
+        'snapshot_version',
     ];
 
     protected $casts = [

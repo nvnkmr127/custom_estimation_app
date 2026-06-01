@@ -1080,7 +1080,7 @@ class EstimateController extends Controller
             Estimate::where('id', $parentId)->orWhere('parent_id', $parentId)->lockForUpdate()->get();
 
             // Refetch current estimate within lock
-            $estimate = Estimate::find($estimate->id);
+            $estimate = Estimate::where('id', $estimate->id)->lockForUpdate()->firstOrFail();
 
             // 1. Mark this version as current
             $estimate->update(['is_current_version' => true]);

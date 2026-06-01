@@ -28,6 +28,7 @@ class ShowEstimate extends Component
     public $activityLogs;
     public $policy;
     public $versionMismatch = false;
+    public $adminApprovalOverride = false;
     public $familyComments;
     public $unreadFamilyComments;
 
@@ -116,12 +117,13 @@ class ShowEstimate extends Component
                 ->first();
 
             // Handle Admin/Manager Override visibility
+            $this->adminApprovalOverride = false;
             if (!$this->userApproval && Auth::user()->hasPermission('approve_estimates')) {
-                $this->userApproval = true; 
+                $this->adminApprovalOverride = true;
             }
-            
-            // Version Awareness Logic
-            if ($this->userApproval && $this->userApproval !== true) {
+
+            // Version Awareness Logic — check for both regular approvers and admin overrides
+            if ($this->userApproval instanceof EstimateApproval) {
                 if ($this->userApproval->snapshot_version !== (int)$this->estimate->lock_version) {
                     $this->versionMismatch = true;
                 }
@@ -424,7 +426,7 @@ class ShowEstimate extends Component
             $this->dispatch('estimateUpdated');
 
             session()->flash('success', 'Comment added.');
-        } catch (\App\Core\Exceptions\AuthorizationException $e) {
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
             DB::rollBack();
             session()->flash('error', 'You are not authorized to comment on this estimate.');
         } catch (\Exception $e) {
@@ -524,12 +526,19 @@ class ShowEstimate extends Component
     public function toggleCommentStatus($commentId, $currentStatus)
     {
         try {
+            $this->authorize('update', $this->estimate);
+
             $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
-            
-            $comment = \App\Models\EstimateComment::findOrFail($commentId);
+
+            $comment = \App\Models\EstimateComment::where('id', $commentId)
+                ->where('estimate_id', $this->estimate->id)
+                ->firstOrFail();
+
             $comment->update(['status' => $newStatus]);
 
             $this->refreshEstimate();
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            session()->flash('error', 'You are not authorized to update this estimate.');
         } catch (\Exception $e) {
             \Log::error("Failed to toggle comment status", ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to update comment status: ' . $e->getMessage());
