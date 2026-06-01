@@ -55,6 +55,7 @@ class EmailDispatcher
         }
 
         // 2. Create Email Log for Tracking
+        $log = null;
         try {
             $log = \App\Models\EmailLog::create([
                 'recipient_email' => $to,
@@ -91,11 +92,10 @@ class EmailDispatcher
                 return 'href="' . $trackingUrl . '"';
             }, $body);
 
-        } catch (\Exception $e) {
-            // Log error but continue sending email without tracking if simple logging fails
-            \Illuminate\Support\Facades\Log::error('Email Tracking Setup Failed: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Email Tracking Setup Failed', ['exception' => $e]);
         }
 
-        \Illuminate\Support\Facades\Bus::dispatch(new SendEmailJob($to, $subject, $body, [], $log->id ?? null));
+        \Illuminate\Support\Facades\Bus::dispatch(new SendEmailJob($to, $subject, $body, [], $log?->id));
     }
 }

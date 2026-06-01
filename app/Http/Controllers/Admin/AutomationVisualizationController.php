@@ -155,10 +155,8 @@ class AutomationVisualizationController extends Controller
             $lines[] = '    Start --> GlobalConditions{Global Conditions}';
             $lines[] = '    GlobalConditions -->|Pass| Step1';
             $lines[] = '    GlobalConditions -->|Fail| End([End])';
-            $previousNode = 'Step1';
         } else {
             $lines[] = '    Start --> Step1';
-            $previousNode = 'Step1';
         }
 
         // Steps
@@ -179,96 +177,6 @@ class AutomationVisualizationController extends Controller
                 $lines[] = "    style {$stepId} fill:#f0f0f0,stroke:#999,stroke-dasharray: 5 5";
             }
 
-            // Delay indicator
-            if ($step->delay > 0) {
-                $delayLabel = $this->formatDelay($step->delay);
-                $lines[] = "    {$stepId} -->|Wait {$delayLabel}| Delay{$stepNum}((Wait))";
-                $previousNode = "Delay{$stepNum}";
-            }
-
-            // Step conditions
-            if ($step->conditions->isNotEmpty()) {
-                $conditionId = "Condition{$stepNum}";
-                $lines[] = "    {$previousNode} --> {$conditionId}{Step Conditions}";
-
-                if ($index < $stepCount - 1) {
-                    $lines[] = "    {$conditionId} -->|Pass| {$nextStepId}";
-                } else {
-                    $lines[] = "    {$conditionId} -->|Pass| End";
-                }
-
-                $lines[] = "    {$conditionId} -->|Fail| Skip{$stepNum}[Skip]";
-                $lines[] = "    Skip{$stepNum} --> " . ($index < $stepCount - 1 ? $nextStepId : 'End');
-
-                $previousNode = $nextStepId;
-            } else {
-                // If it was a delay, link Delay -> NextStep
-                // If it was just step, Step -> NextStep
-                // But we already output Step[...]
-                // The connection to current step was handled by previous iteration's end or global cond.
-                // We need to link Current Step (or its Delay) -> Next Step
-
-                // Wait... $previousNode is pointing to the *output* of the current flow, ready to connect to *next*.
-                // Let's refine logic:
-                // We just outputted Step Node. 
-                // Link Prev -> StepId? No, that was done by prev iteration.
-
-                // My logic in original file:
-                // $lines[] = "    {$stepId} -->|Wait...| Delay..." set $previousNode = Delay
-                // If no delay, $previousNode is still $stepId?
-                // Let's look closer at original:
-                // It was building connections *inside* the loop.
-
-                // Correct logic:
-                // 1. Link incoming ($previousNode) -> Current Step ($stepId)
-                //    Wait, the original code didn't link incoming->current explicitly inside the loop for standard steps?
-                //    Ah, lines 141: "{$previousNode} --> {$nextStepId}" -- this links CURRENT to NEXT.
-
-                // Let's re-verify the "Delay" part.
-                // Original: "{$stepId} --> Delay..." then $prev = Delay.
-                // So now $prev is the end of this step chain.
-
-                // So if no conditions:
-                // We need to link $previousNode (which is now Step or Delay) --> Next Step
-
-                // Let's redo the loop logic more carefully to match original
-                if (!isset($hasLinkedInput)) {
-                    // Initial link
-                    // Global/Start -> Step1 is already handled above loop.
-                }
-            }
-
-            // Re-evaluating the original loop logic for safely refactoring:
-            // Original:
-            // foreach...
-            //   Node def: "StepX[...]"
-            //   If delay: "StepX --> Delay", prev = Delay
-            //   If conditions: "prev --> Cond", "Cond --> Next/End", "Cond --> Skip --> Next/End". prev = NextStepId
-            //   Else (no cond): "prev --> Next/End". prev = NextStepId
-
-            // Wait, if no delay, prev is still what?
-            // "if ($step->delay > 0)"... prev = Delay.
-            // But if NO delay, prev is... undefined? 
-            // Ah, looking at original file lines 93/96: $previousNode = 'Step1' BEFORE loop.
-            // But inside loop, it uses $previousNode to link to *Next*?
-            // Line 127: "{$previousNode} --> {$conditionId}"
-            // Line 141: "{$previousNode} --> {$nextStepId}"
-
-            // Wait, $previousNode starts as Step1.
-            // If Step 1 has delay: Step1 --> Delay. prev = Delay.
-            // If Step 1 has cond: Delay --> Cond. 
-            // If Step 1 has NO delay: Step1 --> Cond?
-            // Yes.
-
-            // So I need to set $previousNode = $stepId at start of loop? 
-            // No, strictly speaking $stepId IS the start of the step.
-            // The connection TO $stepId was made by the PREVIOUS iteration (or Start).
-            // So inside the loop we assume connection TO $stepId exists.
-            // We are building connection FROM $stepId (or Delay) TO Next.
-
-            // So:
-            // 1. Define Step Node.
-            // 2. Current "tail" is $stepId.
             $currentTail = $stepId;
 
             // 3. If Delay: $stepId --> Delay. $currentTail = Delay.

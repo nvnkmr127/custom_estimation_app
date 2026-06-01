@@ -27,7 +27,7 @@ class ScheduleService
                     'weekday' => $expression->getExpression(CronExpression::WEEKDAY),
                 ],
             ];
-        } catch (\Exception $e) {
+        } catch (\InvalidArgumentException $e) {
             return [
                 'valid' => false,
                 'error' => $e->getMessage(),
@@ -43,7 +43,7 @@ class ScheduleService
         try {
             new CronExpression($cron);
             return true;
-        } catch (\Exception $e) {
+        } catch (\InvalidArgumentException $e) {
             return false;
         }
     }
@@ -115,7 +115,7 @@ class ScheduleService
             }
 
             return $description;
-        } catch (\Exception $e) {
+        } catch (\InvalidArgumentException $e) {
             return 'Invalid schedule';
         }
     }

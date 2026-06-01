@@ -39,6 +39,7 @@ class WebhookDeliveryJob implements ShouldQueue
             'request_headers' => null, // Will update later
         ]);
 
+        $response = null;
         try {
             // 1. Prepare Payload & Headers
             $rawPayload = $this->webhookEvent->payload;
@@ -102,7 +103,7 @@ class WebhookDeliveryJob implements ShouldQueue
             $this->updateDelivery($delivery, 'success', $startTime, $response);
 
         } catch (\Exception $e) {
-            $shouldRetry = $this->handleFailure($delivery, $e, $startTime, $response ?? null);
+            $shouldRetry = $this->handleFailure($delivery, $e, $startTime, $response);
             if ($shouldRetry) {
                 throw $e; // Trigger Laravel Retry
             }

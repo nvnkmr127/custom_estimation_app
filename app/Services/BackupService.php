@@ -309,8 +309,8 @@ class BackupService
             // but the files are in the zip for manual recovery.
 
             Log::info("[BackupService] Restore successful.");
-        } catch (\Exception $e) {
-            Log::error("[BackupService] Restore failed: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error("[BackupService] Restore failed", ['exception' => $e]);
             throw $e;
         } finally {
             $this->recursiveDelete($tempExtract);
@@ -400,8 +400,8 @@ class BackupService
                 $this->deleteLocal($log);
                 $log->delete();
                 $deleted++;
-            } catch (\Exception $e) {
-                Log::warning("[BackupService] Delete failed for {$log->filename}");
+            } catch (\Throwable $e) {
+                Log::warning("[BackupService] Delete failed for {$log->filename}", ['exception' => $e]);
             }
         }
 
