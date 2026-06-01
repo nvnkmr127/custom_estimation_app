@@ -483,6 +483,15 @@ class PortalController extends Controller
         // We use current() to only show the latest active version of each estimate family to avoid clutter
         $query = Estimate::with(['client', 'creator'])->current()->latest();
 
+        // Filter by client if client_id query param is provided
+        $client = null;
+        if ($request->filled('client_id')) {
+            $client = \App\Models\Client::find($request->client_id);
+            if ($client) {
+                $query->where('client_id', $client->id);
+            }
+        }
+
         if (!auth()->user()->isAdmin()) {
             $query->where(function ($q) {
                 $q->where('created_by', auth()->id())
@@ -501,8 +510,8 @@ class PortalController extends Controller
             });
         }
 
-        $estimates = $query->paginate(15);
+        $estimates = $query->paginate(15)->withQueryString();
 
-        return view('portal.estimates.index', compact('estimates'));
+        return view('portal.estimates.index', compact('estimates', 'client'));
     }
 }

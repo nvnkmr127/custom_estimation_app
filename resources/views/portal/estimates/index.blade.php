@@ -39,7 +39,16 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
                         <h1 class="text-3xl font-black text-white tracking-tight">Master Estimate List</h1>
-                        <p class="text-slate-400 mt-2 font-medium">Internal preview of all created estimates in the system.</p>
+                        @if(isset($client) && $client)
+                            <div class="flex items-center gap-2 mt-2">
+                                <p class="text-slate-400 font-medium">Internal preview of estimates for <span class="text-indigo-400 font-bold">{{ $client->name }}</span>.</p>
+                                <a href="{{ route('portal.preview-list') }}" class="inline-flex items-center px-2 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-[10px] font-black uppercase tracking-widest transition-all">
+                                    Clear Filter
+                                </a>
+                            </div>
+                        @else
+                            <p class="text-slate-400 mt-2 font-medium">Internal preview of all created estimates in the system.</p>
+                        @endif
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="bg-white/10 px-4 py-2 rounded-2xl backdrop-blur-sm border border-white/10">

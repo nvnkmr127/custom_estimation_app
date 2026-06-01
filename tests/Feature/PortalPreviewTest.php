@@ -68,4 +68,37 @@ class PortalPreviewTest extends TestCase
         $response->assertSee('My Sales Client');
         $response->assertDontSee('Not My Client');
     }
+
+    /** @test */
+    public function the_portal_preview_list_can_be_filtered_by_client()
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $clientA = Client::factory()->create(['name' => 'Client Alfa']);
+        $clientB = Client::factory()->create(['name' => 'Client Beta']);
+
+        Estimate::factory()->create([
+            'client_id' => $clientA->id,
+            'is_current_version' => true,
+        ]);
+
+        Estimate::factory()->create([
+            'client_id' => $clientB->id,
+            'is_current_version' => true,
+        ]);
+
+        // Access the preview-list filtering by clientA
+        $response = $this->actingAs($admin)->get(route('portal.preview-list', ['client_id' => $clientA->id]));
+
+        $response->assertStatus(200);
+        $response->assertSee('Client Alfa');
+        $response->assertDontSee('Client Beta');
+
+        // Access the preview-list filtering by clientB
+        $response2 = $this->actingAs($admin)->get(route('portal.preview-list', ['client_id' => $clientB->id]));
+
+        $response2->assertStatus(200);
+        $response2->assertSee('Client Beta');
+        $response2->assertDontSee('Client Alfa');
+    }
 }

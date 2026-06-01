@@ -61,7 +61,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 relative z-10">
-                        <a href="{{ route('portal.preview-list') }}" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md transition-all border border-white/10">
+                        <a href="{{ route('portal.preview-list', ['client_id' => $estimate->client_id]) }}" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md transition-all border border-white/10">
                             Master List
                         </a>
                         <a href="{{ route('estimates.edit', $estimate) }}" class="px-4 py-2 bg-white text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-sm">
