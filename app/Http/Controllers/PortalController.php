@@ -479,12 +479,29 @@ class PortalController extends Controller
         // 2. Audit Logging
         \App\Models\ActivityLog::log('portal_preview_accessed', null, "Internal team member " . auth()->user()->name . " accessed the full estimate preview list.");
 
-        // 3. Fetch estimates with filtering        // Fetch paginated estimates with necessary relations
+        // 3. Fetch estimates with filtering
         // We use current() to only show the latest active version of each estimate family to avoid clutter
-        $estimates = Estimate::with(['client', 'creator'])
-            ->current()
-            ->latest()
-            ->paginate(15);
+        $query = Estimate::with(['client', 'creator'])->current()->latest();
+
+        if (!auth()->user()->isAdmin()) {
+            $query->where(function ($q) {
+                $q->where('created_by', auth()->id())
+                    ->orWhereHas('manualFollowers', function ($f) {
+                        $f->where('user_id', auth()->id());
+                    })
+                    ->orWhereHas('approvals', function ($a) {
+                        $a->where('user_id', auth()->id());
+                    })
+                    ->orWhereIn('parent_id', function ($pq) {
+                        $pq->select('followable_id')
+                            ->from('followers')
+                            ->where('followable_type', Estimate::class)
+                            ->where('user_id', auth()->id());
+                    });
+            });
+        }
+
+        $estimates = $query->paginate(15);
 
         return view('portal.estimates.index', compact('estimates'));
     }
