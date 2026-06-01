@@ -28,6 +28,7 @@ class ShowEstimate extends Component
     public $activityLogs;
     public $policy;
     public $versionMismatch = false;
+    public $adminApprovalOverride = false;
     public $familyComments;
     public $unreadFamilyComments;
 
@@ -118,25 +119,24 @@ class ShowEstimate extends Component
                 ->first();
 
             // Handle Admin/Manager Override visibility
+            $this->adminApprovalOverride = false;
             if (!$this->userApproval && Auth::user()->hasPermission('approve_estimates')) {
-                $this->userApproval = true; 
+                $this->adminApprovalOverride = true;
             }
-            
-            // Version Awareness Logic
-            if ($this->userApproval) {
-                if ($this->userApproval !== true) {
-                    if ($this->userApproval->snapshot_version !== (int)$this->estimate->lock_version) {
-                        $this->versionMismatch = true;
-                    }
-                } else {
-                    // Admin override version awareness: warn if ANY pending approval for this estimate has a version mismatch
-                    $hasMismatch = EstimateApproval::where('estimate_id', $this->estimate->id)
-                        ->where('status', 'pending')
-                        ->where('snapshot_version', '!=', (int)$this->estimate->lock_version)
-                        ->exists();
-                    if ($hasMismatch) {
-                        $this->versionMismatch = true;
-                    }
+
+            // Version Awareness Logic — check for both regular approvers and admin overrides
+            if ($this->userApproval instanceof EstimateApproval) {
+                if ($this->userApproval->snapshot_version !== (int)$this->estimate->lock_version) {
+                    $this->versionMismatch = true;
+                }
+            } elseif ($this->adminApprovalOverride) {
+                // Admin override: warn if ANY pending approval for this estimate has a version mismatch
+                $hasMismatch = EstimateApproval::where('estimate_id', $this->estimate->id)
+                    ->where('status', 'pending')
+                    ->where('snapshot_version', '!=', (int)$this->estimate->lock_version)
+                    ->exists();
+                if ($hasMismatch) {
+                    $this->versionMismatch = true;
                 }
             }
         }
@@ -537,6 +537,16 @@ class ShowEstimate extends Component
     public function toggleCommentStatus($commentId, $currentStatus)
     {
         try {
+<<<<<<< HEAD
+            $this->authorize('update', $this->estimate);
+
+            $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
+
+            $comment = \App\Models\EstimateComment::where('id', $commentId)
+                ->where('estimate_id', $this->estimate->id)
+                ->firstOrFail();
+
+=======
             $comment = \App\Models\EstimateComment::findOrFail($commentId);
 
             // Ensure the comment belongs to this estimate
@@ -548,11 +558,16 @@ class ShowEstimate extends Component
             $this->authorize('update', $this->estimate);
 
             $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
+>>>>>>> origin/main
             $comment->update(['status' => $newStatus]);
 
             $this->refreshEstimate();
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+<<<<<<< HEAD
+            session()->flash('error', 'You are not authorized to update this estimate.');
+=======
             session()->flash('error', $e->getMessage());
+>>>>>>> origin/main
         } catch (\Exception $e) {
             \Log::error("Failed to toggle comment status", ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to update comment status: ' . $e->getMessage());
