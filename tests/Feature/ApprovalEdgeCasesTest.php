@@ -30,6 +30,15 @@ class ApprovalEdgeCasesTest extends TestCase
         ApprovalChainStep::create(['approval_chain_id' => $chain->id, 'user_id' => $user3->id, 'order' => 2, 'role' => 'approver']);
 
         $estimate = Estimate::factory()->create(['approval_chain_id' => $chain->id]);
+        \App\Models\EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
 
         // Submit
         $estimate->submitForApproval();
@@ -77,6 +86,15 @@ class ApprovalEdgeCasesTest extends TestCase
         ]);
 
         $estimate = Estimate::factory()->create(['approval_chain_id' => $chain->id]);
+        \App\Models\EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
         $estimate->submitForApproval();
 
         // Fast forward 2 hours
@@ -110,6 +128,15 @@ class ApprovalEdgeCasesTest extends TestCase
         ]);
 
         $estimate = Estimate::factory()->create(['approval_chain_id' => $chain->id]);
+        \App\Models\EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
         $estimate->submitForApproval();
 
         $this->travel(2)->hours();
@@ -147,6 +174,15 @@ class ApprovalEdgeCasesTest extends TestCase
         $user1->delete();
 
         $estimate = Estimate::factory()->create(['approval_chain_id' => $chain->id]);
+        \App\Models\EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
         $estimate->submitForApproval();
 
         // Approval should be assigned to fallback

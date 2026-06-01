@@ -676,4 +676,12 @@ class Estimate extends Model
         $valid = $this->validStatusTransitions();
         return in_array($newStatus, $valid);
     }
+
+    /**
+     * Submit this estimate for approval using the workflow service.
+     */
+    public function submitForApproval()
+    {
+        return app(\App\Services\Estimates\EstimateWorkflowService::class)->submitForApproval($this);
+    }
 }

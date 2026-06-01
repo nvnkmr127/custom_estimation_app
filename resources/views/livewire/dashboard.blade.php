@@ -602,7 +602,7 @@
              <div class="rounded-[2.5rem] bg-slate-900 p-8 shadow-xl relative overflow-hidden group">
                 <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-slate-950"></div>
                 <div class="relative z-10 flex items-center justify-between mb-8">
-                    <h3 class="font-black text-white tracking-tight">Hot Deals</h3>
+                    <h3 class="font-black text-white tracking-tight">Hot Leads</h3>
                     <div class="h-8 w-8 rounded-full bg-rose-500 flex items-center justify-center animate-pulse">
                         <svg class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M13.5 4.938a7 7 0 11-9.006 1.737c.202-.257.59-.218.793.08a5.002 5.002 0 002.502 8.01 5 5 0 005.15-1.928 2.5 2.5 0 013.9 1.156c.196.883-.559 1.543-1.42 1.492a2.503 2.503 0 01-1.72-.756.75.75 0 00-1.06 1.06 4.003 4.003 0 005.418-5.32c-.066-.192-.28-.307-.478-.266a2.5 2.5 0 01-2.91-4.225.75.75 0 00-.916-1.04z" clip-rule="evenodd" /></svg>
                     </div>

@@ -24,7 +24,7 @@ class ApprovalChecklistTest extends TestCase
 
         // Create Approval Chain
         $chain = ApprovalChain::create(['name' => 'Test Chain', 'is_active' => true]);
-        ApprovalChainStep::create(['approval_chain_id' => $chain->id, 'user_id' => $approver->id, 'role' => 'manager', 'order' => 1]);
+        $step = ApprovalChainStep::create(['approval_chain_id' => $chain->id, 'user_id' => $approver->id, 'role' => 'manager', 'order' => 1]);
 
         // Create Mandatory Checklist
         $checklist = ApprovalChecklist::create(['task' => 'Verify Price', 'is_required' => true]);
@@ -53,6 +53,8 @@ class ApprovalChecklistTest extends TestCase
             'estimate_id' => $estimate->id,
             'user_id' => $approver->id,
             'status' => 'pending',
+            'order' => 1,
+            'approval_chain_step_id' => $step->id,
         ]);
 
         $this->actingAs($approver);
@@ -72,7 +74,7 @@ class ApprovalChecklistTest extends TestCase
 
         // Setup similar to above
         $chain = ApprovalChain::create(['name' => 'Test Chain', 'is_active' => true]);
-        ApprovalChainStep::create(['approval_chain_id' => $chain->id, 'user_id' => $approver->id, 'role' => 'manager', 'order' => 1]);
+        $step = ApprovalChainStep::create(['approval_chain_id' => $chain->id, 'user_id' => $approver->id, 'role' => 'manager', 'order' => 1]);
         $checklist = ApprovalChecklist::create(['task' => 'Verify Price', 'is_required' => true]);
         $client = Client::factory()->create();
         $estimate = Estimate::factory()->create([
@@ -97,6 +99,8 @@ class ApprovalChecklistTest extends TestCase
             'estimate_id' => $estimate->id,
             'user_id' => $approver->id,
             'status' => 'pending',
+            'order' => 1,
+            'approval_chain_step_id' => $step->id,
         ]);
 
         $this->actingAs($approver);

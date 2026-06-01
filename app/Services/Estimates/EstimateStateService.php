@@ -109,9 +109,6 @@ class EstimateStateService
      */
     public function getPolicy(Estimate $estimate, ?\App\Models\User $user = null): array
     {
-        $user = $user ?? Auth::user();
-        if (!$user) return [];
-
         $status = $estimate->estimate_status;
         $rules = $this->statePolicy[$status] ?? [
             'can_edit' => false,
@@ -121,6 +118,16 @@ class EstimateStateService
             'can_send' => false,
             'next_states' => [],
         ];
+
+        $user = $user ?? Auth::user();
+        if (!$user) {
+            return array_merge($rules, [
+                'is_locked' => $status === Estimate::EST_STATUS_PENDING_APPROVAL,
+                'lock_reason' => ($status === Estimate::EST_STATUS_PENDING_APPROVAL) ? "This estimate is currently under internal approval." : null,
+                'guidance' => "No user logged in.",
+                'next_step_label' => null
+            ]);
+        }
 
         // Role-Based Overlays
         // 1. Super Admin / Admin can do almost anything (but still respects critical state locks like 'declined' if wanted)

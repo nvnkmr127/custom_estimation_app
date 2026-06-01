@@ -1,11 +1,10 @@
-@php
-$totalsPayload = [
+<?php($totalsPayload = [
     'subtotal' => $estimate->subtotal ?? 0,
     'totalTax' => $estimate->total_tax ?? 0,
     'discount' => $estimate->discount_total ?? 0,
     'grandTotal' => $estimate->grand_total ?? 0,
-];
-@endphp
+])
+
 
 @push('scripts')
     <script>
@@ -54,11 +53,13 @@ $totalsPayload = [
     internalNoteModal: { isOpen: false, activeItem: null },
     configModal: { isOpen: false, product: null, options: {}, basePrice: 0 }
 }" @create-version.window="$wire.createVersion()">
-    <div id="estimate-payload" hidden data-estimate='@json($estimate)' data-totals='@json($totalsPayload)'></div>
+    @php
+        $isApproved = in_array($estimate->estimate_status, ['approved', 'accepted']) || $estimate->approval_status === 'approved';
+    ?>
 
 
     <!-- Version Warning -->
-    @if(!$estimate->is_current_version)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$estimate->is_current_version): ?>
         <div class="mb-6 rounded-md bg-yellow-50 p-4 ring-1 ring-yellow-200">
             <div class="flex">
                 <div class="flex-shrink-0">
@@ -72,21 +73,19 @@ $totalsPayload = [
                     <h3 class="text-sm font-medium text-yellow-800">Archived Version</h3>
                     <div class="mt-2 text-sm text-yellow-700">
                         <p>You are viewing an older version of this estimate.
-                            @php
-                                $currentVer = $allVersions->firstWhere('is_current_version', true);
-                            @endphp
-                            @if($currentVer)
-                                The <a href="{{ route('estimates.show', $currentVer) }}"
+                            <?php $currentVer = $allVersions->firstWhere('is_current_version', true); ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($currentVer): ?>
+                                The <a href="<?php echo e(route('estimates.show', $currentVer)); ?>"
                                     class="font-medium underline hover:text-yellow-600">current version
-                                    (v{{ $currentVer->version }})</a> is
-                                <strong>{{ ucfirst($currentVer->status) }}</strong>.
-                            @endif
+                                    (v<?php echo e($currentVer->version); ?>)</a> is
+                                <strong><?php echo e(ucfirst($currentVer->status)); ?></strong>.
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </p>
                     </div>
                 </div>
             </div>
         </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     
     <!-- Guidance & Next Actions Panel -->
     <div class="mb-6 rounded-xl bg-indigo-50 border border-indigo-100 p-4 shadow-sm">
@@ -101,39 +100,41 @@ $totalsPayload = [
             <div class="flex-grow">
                 <h3 class="text-sm font-semibold text-indigo-900">System Guidance</h3>
                 <p class="mt-1 text-sm text-indigo-700 leading-relaxed">
-                    {{ $policy['guidance'] }}
+                    <?php echo e($policy['guidance']); ?>
+
                 </p>
                 <div class="mt-3 flex items-center gap-3">
-                    @if($policy['next_step_label'] ?? false)
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($policy['next_step_label'] ?? false): ?>
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-600 text-white">
                             <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
-                            Recommended Next Step: {{ $policy['next_step_label'] }}
+                            Recommended Next Step: <?php echo e($policy['next_step_label']); ?>
+
                         </span>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     
-                    @if($policy['is_locked'])
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($policy['is_locked']): ?>
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-100 text-amber-700">
                             <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                             </svg>
                             Editing Locked
                         </span>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
             </div>
-            @if($policy['can_submit'])
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($policy['can_submit']): ?>
                 <div class="flex-shrink-0 self-center">
                     <button wire:click="submitForApproval" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm transition-all active:scale-95">
                         Submit Now
                     </button>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
     </div>
 
-    @if($versionMismatch)
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($versionMismatch): ?>
         <div class="mb-6 rounded-xl bg-red-50 border border-red-200 p-5 shadow-sm">
             <div class="flex items-start gap-4">
                 <div class="flex-shrink-0">
@@ -157,11 +158,11 @@ $totalsPayload = [
                 </div>
             </div>
         </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <!-- Workflow Visibility (Premium Timeline) -->
-    @if($estimate->approvalChain || $estimate->approvals()->exists())
-        @php
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->approvalChain || $estimate->approvals()->exists()): ?>
+        <?php
             $steps = $estimate->approvalChain?->steps ?? collect();
             $totalPoints = 2 + $steps->count(); // Draft + Steps + Final
             $currentStatus = $estimate->estimate_status;
@@ -183,7 +184,7 @@ $totalsPayload = [
             
             // Percentage for the progress bar
             $progressPercent = ($totalPoints > 1) ? ($activeIndex / ($totalPoints - 1)) * 100 : 0;
-        @endphp
+        ?>
 
         <div class="mb-16 relative group" x-data="{ loaded: false }" x-init="setTimeout(() => loaded = true, 300)">
             <div class="bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-slate-200/60 p-10 shadow-xl shadow-slate-200/40 overflow-hidden relative">
@@ -205,7 +206,8 @@ $totalsPayload = [
                          <div class="flex flex-col items-end">
                              <span class="text-[10px] font-bold text-slate-400 uppercase">Current Stage</span>
                              <span class="text-sm font-bold text-indigo-600">
-                                 {{ $currentStatus === 'draft' ? 'Drafting' : ($currentStatus === 'pending_approval' ? 'Pending Approval' : 'Approved & Ready') }}
+                                 <?php echo e($currentStatus === 'draft' ? 'Drafting' : ($currentStatus === 'pending_approval' ? 'Pending Approval' : 'Approved & Ready')); ?>
+
                              </span>
                          </div>
                      </div>
@@ -216,8 +218,8 @@ $totalsPayload = [
                     <div class="absolute top-[22px] left-12 right-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <!-- Dynamic Progress Fill -->
                         <div class="h-full transition-all duration-1000 ease-in-out relative
-                            {{ $isTerminalFailure ? 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]' : 'bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 shadow-[0_0_15px_rgba(79,70,229,0.5)]' }}"
-                            :style="loaded ? 'width: {{ $progressPercent }}%' : 'width: 0%'">
+                            <?php echo e($isTerminalFailure ? 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]' : 'bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 shadow-[0_0_15px_rgba(79,70,229,0.5)]'); ?>"
+                            :style="loaded ? 'width: <?php echo e($progressPercent); ?>%' : 'width: 0%'">
                             <!-- Moving Glow Streak -->
                             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full animate-[shimmer_3s_infinite] -skew-x-12"></div>
                         </div>
@@ -230,77 +232,81 @@ $totalsPayload = [
                             <div class="flex items-center justify-center w-full">
                                 <div class="relative flex-shrink-0">
                                     <div class="h-11 w-11 rounded-full border-4 flex items-center justify-center transition-all duration-500 shadow-md z-20 
-                                        {{ $activeIndex >= 0 ? 'bg-indigo-600 border-white ring-2 ring-indigo-600' : 'bg-white border-slate-200' }}">
-                                        @if($activeIndex > 0)
+                                        <?php echo e($activeIndex >= 0 ? 'bg-indigo-600 border-white ring-2 ring-indigo-600' : 'bg-white border-slate-200'); ?>">
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($activeIndex > 0): ?>
                                             <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
-                                        @else
+                                        <?php else: ?>
                                             <span class="text-indigo-600 font-bold">1</span>
-                                        @endif
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     </div>
                                     <!-- Dynamic Label above the circle -->
                                     <div class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap overflow-visible">
                                         <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm
-                                            {{ $activeIndex === 0 ? 'bg-indigo-600 text-white animate-bounce' : 'bg-slate-100 text-slate-400' }}">
-                                            {{ $activeIndex === 0 ? 'Current' : 'Done' }}
+                                            <?php echo e($activeIndex === 0 ? 'bg-indigo-600 text-white animate-bounce' : 'bg-slate-100 text-slate-400'); ?>">
+                                            <?php echo e($activeIndex === 0 ? 'Current' : 'Done'); ?>
+
                                         </span>
                                     </div>
                                 </div>
                             </div>
                             <div class="mt-4 text-center md:text-left transition-all duration-300">
-                                <span class="block text-xs font-black uppercase tracking-widest leading-none {{ $activeIndex >= 0 ? 'text-indigo-950' : 'text-slate-400' }}">Start</span>
+                                <span class="block text-xs font-black uppercase tracking-widest leading-none <?php echo e($activeIndex >= 0 ? 'text-indigo-950' : 'text-slate-400'); ?>">Start</span>
                                 <span class="block text-[10px] text-slate-500 font-bold mt-1">Draft Created</span>
                             </div>
                         </div>
 
                         <!-- 2. APPROVAL STEPS POINTS -->
-                        @foreach($steps as $idx => $step)
-                            @php
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $steps; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $idx => $step): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                            <?php
                                 $approval = $estimate->approvals()->where('approval_chain_step_id', $step->id)->first();
                                 $stepIdx = $idx + 1;
                                 $isStepDone = $approval && $approval->status === 'approved';
                                 $isStepActive = $activeIndex === $stepIdx && !$isTerminalFailure;
                                 $isStepRejected = $approval && $approval->status === 'rejected';
                                 $delay = ($idx + 1) * 150;
-                            @endphp
+                            ?>
                             
                             <div class="flex flex-col items-center group/step w-40 md:w-auto md:flex-1" 
-                                 x-transition:enter="transition ease-out duration-700 delay-{{ $delay }}"
+                                 x-transition:enter="transition ease-out duration-700 delay-<?php echo e($delay); ?>"
                                  x-transition:enter-start="opacity-0 translate-y-4"
                                  x-transition:enter-end="opacity-100 translate-y-0"
                                  x-show="loaded">
                                 <div class="flex items-center justify-center w-full">
                                     <div class="relative flex-shrink-0">
                                         <div class="h-11 w-11 rounded-full border-4 flex items-center justify-center transition-all duration-500 shadow-md z-20
-                                            {{ $isStepDone ? 'bg-indigo-600 border-white ring-2 ring-indigo-600' : 
+                                            <?php echo e($isStepDone ? 'bg-indigo-600 border-white ring-2 ring-indigo-600' : 
                                                ($isStepRejected ? 'bg-red-500 border-white ring-2 ring-red-500' : 
-                                               ($isStepActive ? 'bg-white border-white ring-4 ring-indigo-100 animate-pulse' : 'bg-white border-slate-200')) }}">
-                                            @if($isStepDone)
+                                               ($isStepActive ? 'bg-white border-white ring-4 ring-indigo-100 animate-pulse' : 'bg-white border-slate-200'))); ?>">
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isStepDone): ?>
                                                 <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
-                                            @elseif($isStepRejected)
+                                            <?php elseif($isStepRejected): ?>
                                                 <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                                            @else
-                                                <span class="font-black {{ $isStepActive ? 'text-indigo-600 scale-110' : 'text-slate-300' }}">{{ $idx + 2 }}</span>
-                                            @endif
+                                            <?php else: ?>
+                                                <span class="font-black <?php echo e($isStepActive ? 'text-indigo-600 scale-110' : 'text-slate-300'); ?>"><?php echo e($idx + 2); ?></span>
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </div>
                                         <div class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
                                             <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm
-                                                {{ $isStepActive ? 'bg-indigo-600 text-white animate-bounce' : ($isStepDone ? 'bg-indigo-50 text-indigo-400' : ($isStepRejected ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-300')) }}">
-                                                {{ $isStepActive ? 'Current Step' : ($isStepDone ? 'Approved' : ($isStepRejected ? 'Rejected' : 'Waiting')) }}
+                                                <?php echo e($isStepActive ? 'bg-indigo-600 text-white animate-bounce' : ($isStepDone ? 'bg-indigo-50 text-indigo-400' : ($isStepRejected ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-300'))); ?>">
+                                                <?php echo e($isStepActive ? 'Current Step' : ($isStepDone ? 'Approved' : ($isStepRejected ? 'Rejected' : 'Waiting'))); ?>
+
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="mt-4 text-center">
-                                    <span class="block text-xs font-black uppercase tracking-widest leading-none {{ ($isStepDone || $isStepActive) ? 'text-indigo-950' : ($isStepRejected ? 'text-red-600' : 'text-slate-400') }}">
-                                        {{ $step->name }}
+                                    <span class="block text-xs font-black uppercase tracking-widest leading-none <?php echo e(($isStepDone || $isStepActive) ? 'text-indigo-950' : ($isStepRejected ? 'text-red-600' : 'text-slate-400')); ?>">
+                                        <?php echo e($step->name); ?>
+
                                     </span>
                                     <span class="block text-[10px] text-slate-500 font-bold mt-1">
-                                        {{ $isStepRejected ? 'Rejected by ' . $approval->user->name : 'Internal Check' }}
+                                        <?php echo e($isStepRejected ? 'Rejected by ' . $approval->user->name : 'Internal Check'); ?>
+
                                     </span>
                                 </div>
 
                                 <!-- Tooltip Card for Completed Steps -->
-                                @if($isStepDone)
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isStepDone): ?>
                                     <div class="absolute -bottom-16 left-1/2 -translate-x-1/2 w-max opacity-0 group-hover/step:opacity-100 transition-all duration-300 transform group-hover/step:-translate-y-2 pointer-events-none z-50">
                                         <div class="bg-slate-900 rounded-xl px-4 py-3 shadow-2xl shadow-indigo-200 border border-slate-700">
                                             <div class="flex items-center gap-3">
@@ -309,42 +315,44 @@ $totalsPayload = [
                                                 </div>
                                                 <div class="flex flex-col">
                                                     <span class="text-[10px] text-slate-400 font-extrabold uppercase">Approved by</span>
-                                                    <span class="text-xs text-white font-bold leading-none">{{ $approval->user->name }}</span>
+                                                    <span class="text-xs text-white font-bold leading-none"><?php echo e($approval->user->name); ?></span>
                                                 </div>
                                             </div>
                                             <div class="mt-2 pt-2 border-t border-slate-800 text-[9px] text-slate-500 italic">
-                                                {{ $approval->updated_at->format('M j, Y • h:i A') }}
+                                                <?php echo e($approval->updated_at->format('M j, Y • h:i A')); ?>
+
                                             </div>
                                         </div>
                                         <div class="absolute -top-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900"></div>
                                     </div>
-                                @endif
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </div>
-                        @endforeach
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
 
                         <!-- 3. FINALIZED POINT -->
                         <div class="flex flex-col items-center group/step w-40 last:items-end md:w-auto md:flex-1">
                             <div class="flex items-center justify-center w-full">
                                 <div class="relative flex-shrink-0">
                                     <div class="h-11 w-11 rounded-full border-4 flex items-center justify-center transition-all duration-500 shadow-md z-20
-                                        {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'bg-green-600 border-white ring-2 ring-green-600' : 
-                                           ($isTerminalFailure && $activeIndex === $totalPoints - 1 ? 'bg-red-500 border-white ring-2 ring-red-500' : 'bg-white border-slate-200') }}">
-                                        @if(in_array($currentStatus, ['approved', 'sent', 'accepted']))
+                                        <?php echo e(in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'bg-green-600 border-white ring-2 ring-green-600' : 
+                                           ($isTerminalFailure && $activeIndex === $totalPoints - 1 ? 'bg-red-500 border-white ring-2 ring-red-500' : 'bg-white border-slate-200')); ?>">
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(in_array($currentStatus, ['approved', 'sent', 'accepted'])): ?>
                                             <svg class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.176a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
-                                        @else
+                                        <?php else: ?>
                                             <svg class="h-5 w-5 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                                        @endif
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     </div>
                                     <div class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
                                         <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm
-                                            {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'bg-green-600 text-white' : ($isTerminalFailure && $activeIndex === $totalPoints - 1 ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-300') }}">
-                                            {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'Approved' : ($isTerminalFailure ? 'Cancelled' : 'Waiting') }}
+                                            <?php echo e(in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'bg-green-600 text-white' : ($isTerminalFailure && $activeIndex === $totalPoints - 1 ? 'bg-red-500 text-white' : 'bg-slate-50 text-slate-300')); ?>">
+                                            <?php echo e(in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'Approved' : ($isTerminalFailure ? 'Cancelled' : 'Waiting')); ?>
+
                                         </span>
                                     </div>
                                 </div>
                             </div>
                             <div class="mt-4 text-center md:text-right">
-                                <span class="block text-xs font-black uppercase tracking-widest leading-none {{ in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'text-green-950' : 'text-slate-400' }}">Finish</span>
+                                <span class="block text-xs font-black uppercase tracking-widest leading-none <?php echo e(in_array($currentStatus, ['approved', 'sent', 'accepted']) ? 'text-green-950' : 'text-slate-400'); ?>">Finish</span>
                                 <span class="block text-[10px] text-slate-500 font-bold mt-1">Final Status</span>
                             </div>
                         </div>
@@ -356,69 +364,93 @@ $totalsPayload = [
             <!-- Global Status Alert Bar (Subtle) -->
             <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl flex items-center gap-3 transition-all duration-700"
                  :class="loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'">
-                 <div class="h-2 w-2 rounded-full {{ $isTerminalFailure ? 'bg-red-500 animate-pulse' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' }}"></div>
+                 <div class="h-2 w-2 rounded-full <?php echo e($isTerminalFailure ? 'bg-red-500 animate-pulse' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]'); ?>"></div>
                  <span class="text-[10px] text-white font-black uppercase tracking-widest">
-                     System Status: {{ str_replace('_', ' ', $currentStatus) }} 
-                     @if($estimate->approval_status)
-                        | Approval: {{ str_replace('_', ' ', $estimate->approval_status) }}
-                     @endif
+                     System Status: <?php echo e(str_replace('_', ' ', $currentStatus)); ?> 
+                     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->approval_status): ?>
+                        | Approval: <?php echo e(str_replace('_', ' ', $estimate->approval_status)); ?>
+
+                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                  </span>
             </div>
         </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
     <!-- Header & Toolbar -->
     <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="sm:flex-auto">
             <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Estimate {{ $estimate->estimate_number }}</h1>
-                <x-estimate-status-badge :status="$estimate->status" />
-                @if($estimate->approval_status && $estimate->approval_status !== 'not_required')
-                    @php
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Estimate <?php echo e($estimate->estimate_number); ?></h1>
+                <?php if (isset($component)) { $__componentOriginala9c58c3a40e929ade0656255e50e3912 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginala9c58c3a40e929ade0656255e50e3912 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.estimate-status-badge','data' => ['status' => $estimate->status]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('estimate-status-badge'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['status' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($estimate->status)]); ?>
+<?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::processComponentKey($component); ?>
+
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginala9c58c3a40e929ade0656255e50e3912)): ?>
+<?php $attributes = $__attributesOriginala9c58c3a40e929ade0656255e50e3912; ?>
+<?php unset($__attributesOriginala9c58c3a40e929ade0656255e50e3912); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginala9c58c3a40e929ade0656255e50e3912)): ?>
+<?php $component = $__componentOriginala9c58c3a40e929ade0656255e50e3912; ?>
+<?php unset($__componentOriginala9c58c3a40e929ade0656255e50e3912); ?>
+<?php endif; ?>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->approval_status && $estimate->approval_status !== 'not_required'): ?>
+                    <?php
                         $approvalLabels = [
                             'waiting' => 'Pending Approval',
                             'approved' => 'Internally Approved',
                             'rejected' => 'Rejected',
                             'changes_requested' => 'Changes Requested',
                         ];
-                    @endphp
+                    ?>
                     <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                                                            @if($estimate->approval_status === 'approved') bg-green-50 text-green-700 ring-green-600/20
-                                                                            @elseif($estimate->approval_status === 'rejected') bg-red-50 text-red-700 ring-red-600/10
-                                                                            @elseif($estimate->approval_status === 'waiting') bg-yellow-50 text-yellow-700 ring-yellow-700/10
-                                                                            @elseif($estimate->approval_status === 'changes_requested') bg-amber-50 text-amber-700 ring-amber-600/20
-                                                                            @else bg-gray-50 text-gray-600 ring-gray-500/10
-                                                                            @endif">
-                        {{ $approvalLabels[$estimate->approval_status] ?? ucfirst(str_replace('_', ' ', $estimate->approval_status)) }}
+                                                                            <?php if($estimate->approval_status === 'approved'): ?> bg-green-50 text-green-700 ring-green-600/20
+                                                                            <?php elseif($estimate->approval_status === 'rejected'): ?> bg-red-50 text-red-700 ring-red-600/10
+                                                                            <?php elseif($estimate->approval_status === 'waiting'): ?> bg-yellow-50 text-yellow-700 ring-yellow-700/10
+                                                                            <?php elseif($estimate->approval_status === 'changes_requested'): ?> bg-amber-50 text-amber-700 ring-amber-600/20
+                                                                            <?php else: ?> bg-gray-50 text-gray-600 ring-gray-500/10
+                                                                            <?php endif; ?>">
+                        <?php echo e($approvalLabels[$estimate->approval_status] ?? ucfirst(str_replace('_', ' ', $estimate->approval_status))); ?>
+
                     </span>
-                @endif
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </div>
         </div>
 
         <div class="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm ring-1 ring-slate-200">
             <!-- Primary Actions -->
-            @if($estimate->is_current_version)
-                @if($policy['can_edit'] ?? false)
-                    <a href="{{ route('estimates.edit', $estimate) }}"
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->is_current_version): ?>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($policy['can_edit'] ?? false): ?>
+                    <a href="<?php echo e(route('estimates.edit', $estimate)); ?>"
                         wire:loading.attr="disabled"
                         class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
                         Edit
                     </a>
-                @endif
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                @if($policy['can_submit'] ?? false)
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($policy['can_submit'] ?? false): ?>
                     <button type="button" 
                         wire:click="submitForApproval"
                         wire:loading.attr="disabled"
                         wire:target="submitForApproval"
                         class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50">
                         <span wire:loading.remove wire:target="submitForApproval">
-                            {{ $estimate->approval_status === \App\Models\Estimate::APP_STATUS_CHANGES_REQUESTED ? 'Resubmit for Approval' : 'Submit for Approval' }}
+                            <?php echo e($estimate->approval_status === \App\Models\Estimate::APP_STATUS_CHANGES_REQUESTED ? 'Resubmit for Approval' : 'Submit for Approval'); ?>
+
                         </span>
                         <span wire:loading wire:target="submitForApproval">Submitting...</span>
                     </button>
-                @endif
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                @if($policy['can_send'] ?? false)
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($policy['can_send'] ?? false): ?>
                     <button type="button" 
                         wire:click="sendToClient"
                         wire:loading.attr="disabled"
@@ -427,10 +459,10 @@ $totalsPayload = [
                         <span wire:loading.remove wire:target="sendToClient">Send to Client</span>
                         <span wire:loading wire:target="sendToClient">Sending...</span>
                     </button>
-                @endif
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                 <!-- Discard Draft -->
-                @if($policy['can_delete'] ?? false)
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($policy['can_delete'] ?? false): ?>
                     <button type="button"
                         wire:loading.attr="disabled"
                         wire:target="discard"
@@ -439,18 +471,18 @@ $totalsPayload = [
                         <span wire:loading.remove wire:target="discard">Discard</span>
                         <span wire:loading wire:target="discard">Discarding...</span>
                     </button>
-                @endif
-            @endif
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <!-- Pending Approval Actions (For Approver or Admin) -->
-            @if(($policy['can_approve'] ?? false) && $userApproval)
-                @if($policy['can_approve'] || auth()->user()->hasPermission('approve_estimates'))
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(($policy['can_approve'] ?? false) && $userApproval): ?>
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($policy['can_approve'] || auth()->user()->hasPermission('approve_estimates')): ?>
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->
                     <div x-data="{ 
-                                                                            checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')->values()) }}, 
-                                                                            requiredCount: {{ $checklists->where('is_required', true)->count() }},
-                                                                            requiredIds: {{ json_encode($checklists->where('is_required', true)->pluck('id')->values()) }},
+                                                                            checks: <?php echo e(json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')->values())); ?>, 
+                                                                            requiredCount: <?php echo e($checklists->where('is_required', true)->count()); ?>,
+                                                                            requiredIds: <?php echo e(json_encode($checklists->where('is_required', true)->pluck('id')->values())); ?>,
                                                                              toggleChecklist(id, checked) {
                                                                                  if (checked) this.checks.push(parseInt(id));
                                                                                  else this.checks = this.checks.filter(c => c !== parseInt(id));
@@ -468,16 +500,16 @@ $totalsPayload = [
                                 class="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 z-20 p-4 text-left">
                                  <h3 class="font-semibold text-gray-900 mb-3">Approval Checklist</h3>
                                 <div class="space-y-2 mb-4 max-h-48 overflow-y-auto">
-                                    @foreach($checklists as $item)
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $checklists; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                         <label class="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
-                                            <input type="checkbox" value="{{ $item->id }}"
+                                            <input type="checkbox" value="<?php echo e($item->id); ?>"
                                                 @change="toggleChecklist($el.value, $el.checked)"
-                                                :checked="checks.includes({{ $item->id }})"
+                                                :checked="checks.includes(<?php echo e($item->id); ?>)"
                                                 class="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600">
-                                            <span class="text-left leading-tight">{{ $item->task }} @if($item->is_required)
-                                            <span class="text-red-500">*</span> @endif</span>
+                                            <span class="text-left leading-tight"><?php echo e($item->task); ?> <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->is_required): ?>
+                                            <span class="text-red-500">*</span> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?></span>
                                         </label>
-                                    @endforeach
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                 </div>
                                 <div x-data="{ comments: '' }">
                                     <textarea x-model="comments" placeholder="Comments..."
@@ -495,7 +527,7 @@ $totalsPayload = [
                             </div>
                         </div>
                     </div>
-                @else
+                <?php else: ?>
                     <!-- Simple Approve -->
                     <div x-data="{ open: false }" class="relative">
                         <button @click="open = !open" type="button"
@@ -518,7 +550,7 @@ $totalsPayload = [
                             </div>
                         </div>
                     </div>
-                @endif
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                 <!-- Request Changes -->
                 <div x-data="{ open: false }" class="relative">
@@ -559,9 +591,9 @@ $totalsPayload = [
                                 <select x-model="reason_id" required
                                     class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-xs">
                                     <option value="">Select a reason...</option>
-                                    @foreach($declineReasons as $reason)
-                                        <option value="{{ $reason->id }}">{{ $reason->reason }}</option>
-                                    @endforeach
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $declineReasons; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $reason): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                                        <option value="<?php echo e($reason->id); ?>"><?php echo e($reason->reason); ?></option>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                     <option value="other">Other</option>
                                 </select>
                             </div>
@@ -578,12 +610,12 @@ $totalsPayload = [
                         </div>
                     </div>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <!-- Copy Link -->
             <div x-data="{ copied: false }">
                 <button
-                    @click="navigator.clipboard.writeText('{{ $estimate->public_url }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                    @click="navigator.clipboard.writeText('<?php echo e($estimate->public_url); ?>'); copied = true; setTimeout(() => copied = false, 2000)"
                     type="button"
                     class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors relative"
                     title="Copy Public Link">
@@ -603,7 +635,7 @@ $totalsPayload = [
 
             <div class="h-6 w-px bg-slate-200"></div>
 
-            <a href="{{ route('estimates.portal-preview', $estimate) }}" target="_blank"
+            <a href="<?php echo e(route('estimates.portal-preview', $estimate)); ?>" target="_blank"
                 class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors">
                 <div class="flex items-center gap-1">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -616,7 +648,7 @@ $totalsPayload = [
                 </div>
             </a>
 
-            <a href="{{ route('estimates.pdf', $estimate) }}"
+            <a href="<?php echo e(route('estimates.pdf', $estimate)); ?>"
                 class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors">
                 <div class="flex items-center gap-1">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -643,11 +675,11 @@ $totalsPayload = [
                     x-cloak>
 
                     <div class="py-1">
-                        <a href="{{ route('estimates.print', $estimate) }}" target="_blank"
+                        <a href="<?php echo e(route('estimates.print', $estimate)); ?>" target="_blank"
                             class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Print Estimate</a>
-                        <a href="{{ $estimate->public_url }}" target="_blank"
+                        <a href="<?php echo e($estimate->public_url); ?>" target="_blank"
                             class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Public View</a>
-                        <a href="{{ route('estimates.analytics', $estimate) }}"
+                        <a href="<?php echo e(route('estimates.analytics', $estimate)); ?>"
                             class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">View Analytics</a>
                     </div>
 
@@ -706,7 +738,7 @@ $totalsPayload = [
                                                     new
                                                     version of this estimate? This will create a new draft copy
                                                     (Version
-                                                    {{ $estimate->version + 1 }}) of the current estimate.
+                                                    <?php echo e($estimate->version + 1); ?>) of the current estimate.
                                                 </p>
                                             </div>
                                         </div>
@@ -741,20 +773,21 @@ $totalsPayload = [
                 <div x-show="open" @click.outside="open = false"
                     class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                     x-cloak>
-                    @if(!$isApproved)
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$isApproved): ?>
                         <div class="py-1">
                             <div class="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status
                                 Override</div>
-                            @foreach(['draft', 'sent', 'accepted', 'declined', 'expired'] as $status)
-                                @if($estimate->estimate_status !== $status)
-                                    <button type="button" wire:click="markAs('{{ $status }}')"
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = ['draft', 'sent', 'accepted', 'declined', 'expired']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $status): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->estimate_status !== $status): ?>
+                                    <button type="button" wire:click="markAs('<?php echo e($status); ?>')"
                                         class="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
-                                        Mark as {{ ucfirst($status) }}
+                                        Mark as <?php echo e(ucfirst($status)); ?>
+
                                     </button>
-                                @endif
-                            @endforeach
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                         </div>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                 </div>
             </div>
@@ -765,25 +798,29 @@ $totalsPayload = [
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" wire:poll.10s="refreshStats">
         <div class="bg-white p-4 rounded-xl shadow-sm ring-1 ring-slate-200">
             <dt class="text-xs font-semibold text-slate-500 uppercase">Grand Total</dt>
-            <dd class="mt-1 text-lg font-bold text-slate-900">{{ $estimate->currency }}
-                {{ number_format($estimate->grand_total, 2) }}
+            <dd class="mt-1 text-lg font-bold text-slate-900"><?php echo e($estimate->currency); ?>
+
+                <?php echo e(number_format($estimate->grand_total, 2)); ?>
+
             </dd>
         </div>
         <div class="bg-white p-4 rounded-xl shadow-sm ring-1 ring-slate-200">
             <dt class="text-xs font-semibold text-slate-500 uppercase">Expiry Date</dt>
             <dd
-                class="mt-1 text-lg font-bold {{ $estimate->expiry_date && $estimate->expiry_date < now() ? 'text-red-600' : 'text-slate-900' }}">
-                {{ $estimate->expiry_date ? $estimate->expiry_date->format('M d, Y') : 'No Date Set' }}
+                class="mt-1 text-lg font-bold <?php echo e($estimate->expiry_date && $estimate->expiry_date < now() ? 'text-red-600' : 'text-slate-900'); ?>">
+                <?php echo e($estimate->expiry_date ? $estimate->expiry_date->format('M d, Y') : 'No Date Set'); ?>
+
             </dd>
         </div>
         <div class="bg-white p-4 rounded-xl shadow-sm ring-1 ring-slate-200">
             <dt class="text-xs font-semibold text-slate-500 uppercase">Client Views</dt>
-            <dd class="mt-1 text-lg font-bold text-slate-900">{{ $viewCount }}</dd>
+            <dd class="mt-1 text-lg font-bold text-slate-900"><?php echo e($viewCount); ?></dd>
         </div>
         <div class="bg-white p-4 rounded-xl shadow-sm ring-1 ring-slate-200">
             <dt class="text-xs font-semibold text-slate-500 uppercase">Last Activity</dt>
             <dd class="mt-1 text-sm font-medium text-slate-700">
-                {{ $lastActivity->diffForHumans() }}
+                <?php echo e($lastActivity->diffForHumans()); ?>
+
             </dd>
         </div>
     </div>
@@ -797,64 +834,66 @@ $totalsPayload = [
             <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl overflow-hidden">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-base font-semibold leading-7 text-slate-900 mb-6">
-                        {{ $estimate->type === 'room_based' ? 'Rooms & Items' : 'Line Items' }}
+                        <?php echo e($estimate->type === 'room_based' ? 'Rooms & Items' : 'Line Items'); ?>
+
                     </h2>
 
-                    @if($estimate->type === 'room_based')
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->type === 'room_based'): ?>
                         <div class="space-y-6">
-                            @foreach($estimate->sections as $section)
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $estimate->sections; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $section): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                 <div class="border border-slate-200 rounded-lg overflow-hidden">
                                     <div
                                         class="bg-slate-50 px-4 py-2 border-b border-slate-200 font-medium text-sm text-slate-700">
-                                        {{ $section->name }}
+                                        <?php echo e($section->name); ?>
+
                                     </div>
                                     <div class="overflow-x-auto">
                                         <table class="min-w-[800px] w-full divide-y divide-slate-200">
                                             <thead class="bg-slate-50/50">
                                                 <tr>
-                                                    @if(!$section->is_package)
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$section->is_package): ?>
                                                         <th
                                                             class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-16">
                                                             Image
                                                         </th>
-                                                    @endif
-                                                    @if(!$section->is_package)
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$section->is_package): ?>
                                                         <th
                                                             class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-40">
                                                             Unit Configuration</th>
-                                                    @endif
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                     <th
                                                         class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                         Item Details</th>
-                                                    @if(!$section->is_package)
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$section->is_package): ?>
                                                         <th
                                                             class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                                             Size</th>
-                                                    @endif
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                     <th
                                                         class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
                                                         Price</th>
-                                                    @if(!$section->is_package)
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$section->is_package): ?>
                                                         <th
                                                             class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
                                                             Quantity</th>
-                                                    @endif
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                     <th
                                                         class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
                                                         Total</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-slate-200 bg-white">
-                                                @foreach($section->items as $item)
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $section->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                     <tr class="group hover:bg-slate-50/30 transition-colors">
-                                                        @if(!$section->is_package)
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$section->is_package): ?>
                                                             <td class="px-3 py-4 align-middle">
-                                                                @if($item->product && $item->product->primary_image_url)
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->product && $item->product->primary_image_url): ?>
                                                                     <div class="relative h-12 w-12 mx-auto">
-                                                                        <img src="{{ $item->product->primary_image_url }}"
+                                                                        <img src="<?php echo e($item->product->primary_image_url); ?>"
                                                                             class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
                                                                     </div>
-                                                                @else
+                                                                <?php else: ?>
                                                                     <div
                                                                         class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
                                                                         <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -864,41 +903,44 @@ $totalsPayload = [
                                                                                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                                         </svg>
                                                                     </div>
-                                                                @endif
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                             </td>
-                                                        @endif
-                                                        @if(!$section->is_package)
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$section->is_package): ?>
                                                             <td
                                                                 class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
                                                                 <div class="font-bold text-slate-900">
-                                                                    @if($item->unitType) {{ $item->unitType->name }} @endif
+                                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->unitType): ?> <?php echo e($item->unitType->name); ?> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                                 </div>
                                                                 <div
                                                                     class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                                    {{ $item->unit_type }}
+                                                                    <?php echo e($item->unit_type); ?>
+
                                                                 </div>
                                                             </td>
-                                                        @endif
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                         <td
                                                             class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
                                                             <div class="min-w-0">
-                                                                <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
-                                                                @if($item->description)
+                                                                <div class="font-bold text-slate-900 mb-0.5"><?php echo e($item->name); ?></div>
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->description): ?>
                                                                     <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
-                                                                        {{ $item->description }}
+                                                                        <?php echo e($item->description); ?>
+
                                                                     </div>
-                                                                @endif
-                                                                @if(!empty($item->options) && is_array($item->options))
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($item->options) && is_array($item->options)): ?>
                                                                     <div class="flex flex-wrap gap-1.5">
-                                                                        @foreach($item->options as $option)
+                                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $item->options; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $option): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                                             <span
                                                                                 class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-                                                                                {{ $option['name'] }}: {{ $option['value'] }}
+                                                                                <?php echo e($option['name']); ?>: <?php echo e($option['value']); ?>
+
                                                                             </span>
-                                                                        @endforeach
+                                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                                     </div>
-                                                                @endif
-                                                                @if($item->internal_note)
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->internal_note): ?>
                                                                     <div
                                                                         class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
                                                                         <svg class="h-3 w-3 text-amber-500" fill="none"
@@ -909,122 +951,132 @@ $totalsPayload = [
                                                                         </svg>
                                                                         <span
                                                                             class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
-                                                                            Note:</span> {{ $item->internal_note }}
+                                                                            Note:</span> <?php echo e($item->internal_note); ?>
+
                                                                     </div>
-                                                                @endif
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                                 <!-- Item Comment Button -->
-                                                                @php
+                                                                <?php
                                                                     $allComments = $item->comments->flatMap(function ($c) {
                                                                         return collect([$c])->merge($c->replies);
                                                                     })->unique('id')->sortBy('created_at')->values()->map(function ($c) {
                                                                         $c->formatted_date = $c->created_at->format('M j, g:i A');
                                                                         return $c;
                                                                     });
-                                                                @endphp
+                                                                ?>
                                                                 <button
-                                                                    @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($allComments) }})"
+                                                                    @click="openItemComments(<?php echo e($item->id); ?>, <?php echo e(Js::from($item->name)); ?>, <?php echo e(Js::from($allComments)); ?>)"
                                                                     type="button"
                                                                     class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                                                                                                                                                        {{ $allComments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                                                                                                                                                                                                                                                                                                                                                        <?php echo e($allComments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100'); ?>">
                                                                     <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                                                                         stroke="currentColor">
                                                                         <path stroke-linecap="round" stroke-linejoin="round"
                                                                             stroke-width="2"
                                                                             d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                                                                     </svg>
-                                                                    @if($allComments->isNotEmpty())
-                                                                        {{ $allComments->count() }}
-                                                                        {{ Str::plural('Comment', $allComments->count()) }}
-                                                                    @else
+                                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($allComments->isNotEmpty()): ?>
+                                                                        <?php echo e($allComments->count()); ?>
+
+                                                                        <?php echo e(Str::plural('Comment', $allComments->count())); ?>
+
+                                                                    <?php else: ?>
                                                                         Comment
-                                                                    @endif
+                                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                                 </button>
                                                             </div>
                                                         </td>
-                                                        @if(!$section->is_package)
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$section->is_package): ?>
                                                             <td
                                                                 class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                                @if($item->length || $item->width || $item->height)
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->length || $item->width || $item->height): ?>
                                                                     <div class="flex flex-col gap-1.5">
-                                                                        @if($item->length)
+                                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->length): ?>
                                                                             <div class="flex items-center gap-2">
                                                                                 <span
                                                                                     class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                                                                 <span
-                                                                                    class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
+                                                                                    class="text-xs font-medium text-slate-900"><?php echo e($item->length + 0); ?>
+
                                                                                     ft</span>
                                                                             </div>
-                                                                        @endif
-                                                                        @if($item->width)
+                                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->width): ?>
                                                                             <div class="flex items-center gap-2">
                                                                                 <span
                                                                                     class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                                                 <span
-                                                                                    class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
+                                                                                    class="text-xs font-medium text-slate-900"><?php echo e($item->width + 0); ?>
+
                                                                                     ft</span>
                                                                             </div>
-                                                                        @endif
-                                                                        @if($item->height)
+                                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->height): ?>
                                                                             <div class="flex items-center gap-2">
                                                                                 <span
                                                                                     class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                                                                 <span
-                                                                                    class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
+                                                                                    class="text-xs font-medium text-slate-900"><?php echo e($item->height + 0); ?>
+
                                                                                     ft</span>
                                                                             </div>
-                                                                        @endif
+                                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                                                                        @if($item->size > 0)
+                                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->size > 0): ?>
                                                                             <div class="mt-2 pt-2 border-t border-slate-100">
                                                                                 <div
                                                                                     class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
-                                                                                    {{ ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area'))) }}
+                                                                                    <?php echo e(ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area')))); ?>
+
                                                                                 </div>
                                                                                 <div class="text-xs font-bold text-slate-900">
-                                                                                    {{ number_format($item->size, 2) }} <span
-                                                                                        class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
+                                                                                    <?php echo e(number_format($item->size, 2)); ?> <span
+                                                                                        class="text-slate-500 font-medium"><?php echo e($item->unit_type); ?></span>
                                                                                 </div>
                                                                             </div>
-                                                                        @endif
+                                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                                     </div>
-                                                                @else
+                                                                <?php else: ?>
                                                                     <span class="text-xs text-slate-400">-</span>
-                                                                @endif
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                             </td>
-                                                        @endif
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                         <td
                                                             class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                                                            {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
+                                                            <?php echo e($estimate->currency); ?> <?php echo e(number_format($item->unit_price, 2)); ?>
+
                                                         </td>
-                                                        @if(!$section->is_package)
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$section->is_package): ?>
                                                             <td
                                                                 class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                                <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
+                                                                <div class="font-bold text-slate-900"><?php echo e($item->quantity); ?></div>
                                                             </td>
-                                                        @endif
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                         <td
                                                             class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                                                            {{ $estimate->currency }} {{ number_format($item->total, 2) }}
+                                                            <?php echo e($estimate->currency); ?> <?php echo e(number_format($item->total, 2)); ?>
+
                                                         </td>
                                                     </tr>
-                                                @endforeach
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                             </tbody>
                                             <tfoot class="bg-slate-50">
                                                 <tr>
-                                                    <td colspan="{{ $section->is_package ? '2' : '6' }}"
+                                                    <td colspan="<?php echo e($section->is_package ? '2' : '6'); ?>"
                                                         class="px-3 py-2 text-xs font-medium text-slate-500 text-right">
                                                         Room Total</td>
                                                     <td class="px-3 py-2 text-xs font-bold text-slate-900 text-right">
-                                                        {{ number_format($section->items->sum('total'), 2) }}
+                                                        <?php echo e(number_format($section->items->sum('total'), 2)); ?>
+
                                                     </td>
                                                 </tr>
                                             </tfoot>
                                         </table>
                                     </div>
                                 </div>
-                            @endforeach
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                         </div>
-                    @else
+                    <?php else: ?>
                         <!-- Standard Items Table -->
                         <div class="overflow-x-auto">
                             <table class="min-w-[800px] w-full divide-y divide-slate-200">
@@ -1055,15 +1107,15 @@ $totalsPayload = [
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-200 bg-white">
-                                    @foreach($estimate->items as $item)
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $estimate->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                         <tr class="group hover:bg-slate-50/30 transition-colors">
                                             <td class="px-3 py-4 align-middle">
-                                                @if($item->product && $item->product->primary_image_url)
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->product && $item->product->primary_image_url): ?>
                                                     <div class="relative h-12 w-12 mx-auto">
-                                                        <img src="{{ $item->product->primary_image_url }}"
+                                                        <img src="<?php echo e($item->product->primary_image_url); ?>"
                                                             class="h-full w-full object-cover rounded-lg shadow-sm ring-1 ring-slate-200">
                                                     </div>
-                                                @else
+                                                <?php else: ?>
                                                     <div
                                                         class="h-12 w-12 bg-slate-50 rounded-lg mx-auto flex items-center justify-center ring-1 ring-slate-200 border border-dashed border-slate-300">
                                                         <svg class="h-6 w-6 text-slate-300" fill="none" viewBox="0 0 24 24"
@@ -1072,38 +1124,41 @@ $totalsPayload = [
                                                                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                         </svg>
                                                     </div>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                             </td>
                                             <td
                                                 class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
                                                 <div class="font-bold text-slate-900">
-                                                    @if($item->unitType) {{ $item->unitType->name }} @endif
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->unitType): ?> <?php echo e($item->unitType->name); ?> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                 </div>
                                                 <div
                                                     class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                                    {{ $item->unit_type }}
+                                                    <?php echo e($item->unit_type); ?>
+
                                                 </div>
                                             </td>
                                             <td
                                                 class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
                                                 <div class="min-w-0">
-                                                    <div class="font-bold text-slate-900 mb-0.5">{{ $item->name }}</div>
-                                                    @if($item->description)
+                                                    <div class="font-bold text-slate-900 mb-0.5"><?php echo e($item->name); ?></div>
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->description): ?>
                                                         <div class="text-xs text-slate-500 leading-relaxed max-w-sm mb-1.5">
-                                                            {{ $item->description }}
+                                                            <?php echo e($item->description); ?>
+
                                                         </div>
-                                                    @endif
-                                                    @if(!empty($item->options) && is_array($item->options))
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($item->options) && is_array($item->options)): ?>
                                                         <div class="flex flex-wrap gap-1.5">
-                                                            @foreach($item->options as $option)
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $item->options; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $option): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                                 <span
                                                                     class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">
-                                                                    {{ $option['name'] }}: {{ $option['value'] }}
+                                                                    <?php echo e($option['name']); ?>: <?php echo e($option['value']); ?>
+
                                                                 </span>
-                                                            @endforeach
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                         </div>
-                                                    @endif
-                                                    @if($item->internal_note)
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->internal_note): ?>
                                                         <div
                                                             class="mt-2 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 inline-flex items-center gap-1.5 font-medium shadow-xs">
                                                             <svg class="h-3 w-3 text-amber-500" fill="none" viewBox="0 0 24 24"
@@ -1114,148 +1169,167 @@ $totalsPayload = [
                                                             </svg>
                                                             <span
                                                                 class="opacity-75 uppercase tracking-wider text-[9px] font-bold">Internal
-                                                                Note:</span> {{ $item->internal_note }}
+                                                                Note:</span> <?php echo e($item->internal_note); ?>
+
                                                         </div>
-                                                    @endif
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                     <!-- Item Comment Button -->
-                                                    @php
+                                                    <?php
                                                         $allComments = $item->comments->flatMap(function ($c) {
                                                             return collect([$c])->merge($c->replies);
                                                         })->unique('id')->sortBy('created_at')->values()->map(function ($c) {
                                                             $c->formatted_date = $c->created_at->format('M j, g:i A');
                                                             return $c;
                                                         });
-                                                    @endphp
+                                                    ?>
                                                     <button
-                                                        @click="openItemComments({{ $item->id }}, {{ Js::from($item->name) }}, {{ Js::from($allComments) }})"
+                                                        @click="openItemComments(<?php echo e($item->id); ?>, <?php echo e(Js::from($item->name)); ?>, <?php echo e(Js::from($allComments)); ?>)"
                                                         type="button"
                                                         class="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium transition-colors
-                                                                                                                                                                                                                                                                            {{ $allComments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100' }}">
+                                                                                                                                                                                                                                                                            <?php echo e($allComments->isNotEmpty() ? 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10' : 'text-slate-500 hover:bg-slate-100'); ?>">
                                                         <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                                                             stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                 stroke-width="2"
                                                                 d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                                                         </svg>
-                                                        @if($allComments->isNotEmpty())
-                                                            {{ $allComments->count() }}
-                                                            {{ Str::plural('Comment', $allComments->count()) }}
-                                                        @else
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($allComments->isNotEmpty()): ?>
+                                                            <?php echo e($allComments->count()); ?>
+
+                                                            <?php echo e(Str::plural('Comment', $allComments->count())); ?>
+
+                                                        <?php else: ?>
                                                             Comment
-                                                        @endif
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                     </button>
                                                 </div>
                                             </td>
                                             <td
                                                 class="px-3 py-4 text-sm text-slate-900 border-b border-slate-100 last:border-0">
-                                                @if($item->length || $item->width || $item->height)
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->length || $item->width || $item->height): ?>
                                                     <div class="flex flex-col gap-1.5">
-                                                        @if($item->length)
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->length): ?>
                                                             <div class="flex items-center gap-2">
                                                                 <span
                                                                     class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                                <span class="text-xs font-medium text-slate-900">{{ $item->length + 0 }}
+                                                                <span class="text-xs font-medium text-slate-900"><?php echo e($item->length + 0); ?>
+
                                                                     ft</span>
                                                             </div>
-                                                        @endif
-                                                        @if($item->width)
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->width): ?>
                                                             <div class="flex items-center gap-2">
                                                                 <span
                                                                     class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                                <span class="text-xs font-medium text-slate-900">{{ $item->width + 0 }}
+                                                                <span class="text-xs font-medium text-slate-900"><?php echo e($item->width + 0); ?>
+
                                                                     ft</span>
                                                             </div>
-                                                        @endif
-                                                        @if($item->height)
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->height): ?>
                                                             <div class="flex items-center gap-2">
                                                                 <span
                                                                     class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                                <span class="text-xs font-medium text-slate-900">{{ $item->height + 0 }}
+                                                                <span class="text-xs font-medium text-slate-900"><?php echo e($item->height + 0); ?>
+
                                                                     ft</span>
                                                             </div>
-                                                        @endif
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                                                        @if($item->size > 0)
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($item->size > 0): ?>
                                                             <div class="mt-2 pt-2 border-t border-slate-100">
                                                                 <div
                                                                     class="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-0.5">
-                                                                    {{ ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area'))) }}
+                                                                    <?php echo e(ucfirst(str_replace('_', ' ', $item->formula ?: ($item->height > 0 ? 'volume' : 'area')))); ?>
+
                                                                 </div>
                                                                 <div class="text-xs font-bold text-slate-900">
-                                                                    {{ number_format($item->size, 2) }} <span
-                                                                        class="text-slate-500 font-medium">{{ $item->unit_type }}</span>
+                                                                    <?php echo e(number_format($item->size, 2)); ?> <span
+                                                                        class="text-slate-500 font-medium"><?php echo e($item->unit_type); ?></span>
                                                                 </div>
                                                             </div>
-                                                        @endif
+                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                     </div>
-                                                @else
+                                                <?php else: ?>
                                                     <span class="text-xs text-slate-400">-</span>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                             </td>
                                             <td
                                                 class="px-3 py-4 text-sm text-right text-slate-600 font-medium align-middle border-b border-slate-100 last:border-0">
-                                                {{ $estimate->currency }} {{ number_format($item->unit_price, 2) }}
+                                                <?php echo e($estimate->currency); ?> <?php echo e(number_format($item->unit_price, 2)); ?>
+
                                             </td>
                                             <td
                                                 class="px-3 py-4 text-sm text-center align-middle border-b border-slate-100 last:border-0">
-                                                <div class="font-bold text-slate-900">{{ $item->quantity }}</div>
+                                                <div class="font-bold text-slate-900"><?php echo e($item->quantity); ?></div>
                                             </td>
                                             <td
                                                 class="px-3 py-4 text-sm text-right font-bold text-slate-900 align-middle border-b border-slate-100 last:border-0">
-                                                {{ $estimate->currency }} {{ number_format($item->total, 2) }}
+                                                <?php echo e($estimate->currency); ?> <?php echo e(number_format($item->total, 2)); ?>
+
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                     <!-- Totals -->
                     <div class="mt-8 border-t border-slate-200 pt-6">
                         <dl class="space-y-3 text-sm max-w-xs ml-auto">
                             <div class="flex justify-between text-slate-600">
                                 <dt>Subtotal</dt>
-                                <dd class="font-medium">{{ $estimate->currency }}
-                                    {{ number_format($estimate->subtotal, 2) }}
+                                <dd class="font-medium"><?php echo e($estimate->currency); ?>
+
+                                    <?php echo e(number_format($estimate->subtotal, 2)); ?>
+
                                 </dd>
                             </div>
-                            @if($estimate->total_tax > 0)
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->total_tax > 0): ?>
                                 <div class="flex justify-between text-slate-600">
                                     <dt>Tax</dt>
-                                    <dd class="font-medium">{{ $estimate->currency }}
-                                        {{ number_format($estimate->total_tax, 2) }}
+                                    <dd class="font-medium"><?php echo e($estimate->currency); ?>
+
+                                        <?php echo e(number_format($estimate->total_tax, 2)); ?>
+
                                     </dd>
                                 </div>
-                            @endif
-                            @if($estimate->discount_total > 0)
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->discount_total > 0): ?>
                                 <div class="flex justify-between text-red-600">
                                     <dt>Discount</dt>
-                                    <dd class="font-medium">- {{ $estimate->currency }}
-                                        {{ number_format($estimate->discount_total, 2) }}
+                                    <dd class="font-medium">- <?php echo e($estimate->currency); ?>
+
+                                        <?php echo e(number_format($estimate->discount_total, 2)); ?>
+
                                     </dd>
                                 </div>
-                            @endif
-                            @if($estimate->coupon_discount > 0)
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->coupon_discount > 0): ?>
                                 <div class="flex justify-between text-red-600">
                                     <dt>Coupon Discount</dt>
-                                    <dd class="font-medium">- {{ $estimate->currency }}
-                                        {{ number_format($estimate->coupon_discount, 2) }}
+                                    <dd class="font-medium">- <?php echo e($estimate->currency); ?>
+
+                                        <?php echo e(number_format($estimate->coupon_discount, 2)); ?>
+
                                     </dd>
                                 </div>
-                            @endif
-                            @if($estimate->transportation_charges > 0)
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->transportation_charges > 0): ?>
                                 <div class="flex justify-between text-slate-600">
                                     <dt>Transportation</dt>
-                                    <dd class="font-medium">{{ $estimate->currency }}
-                                        {{ number_format($estimate->transportation_charges, 2) }}
+                                    <dd class="font-medium"><?php echo e($estimate->currency); ?>
+
+                                        <?php echo e(number_format($estimate->transportation_charges, 2)); ?>
+
                                     </dd>
                                 </div>
-                            @endif
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             <div
                                 class="flex justify-between border-t border-slate-200 pt-3 text-base font-bold text-slate-900">
                                 <dt>Grand Total</dt>
-                                <dd>{{ $estimate->currency }} {{ number_format($estimate->grand_total, 2) }}</dd>
+                                <dd><?php echo e($estimate->currency); ?> <?php echo e(number_format($estimate->grand_total, 2)); ?></dd>
                             </div>
                         </dl>
                     </div>
@@ -1263,11 +1337,11 @@ $totalsPayload = [
             </div>
 
             <!-- Notes -->
-            @if($estimate->client_note || $estimate->has_final_terms)
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->client_note || $estimate->has_final_terms): ?>
                 <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 sm:p-6">
                     <h3 class="text-base font-semibold text-slate-900 mb-4">Terms & Notes</h3>
                     <div class="space-y-8">
-                        @if($estimate->client_note)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->client_note): ?>
                             <div class="prose prose-sm max-w-none" x-data="{ expanded: false, isLong: false }" x-init="isLong = $refs.noteContainer.scrollHeight > 100">
                                 <h4 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 mb-4">Client Note
                                 </h4>
@@ -1275,7 +1349,7 @@ $totalsPayload = [
                                      x-ref="noteContainer"
                                      :style="expanded ? 'max-height: none;' : 'max-height: 100px;'">
                                     <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                                        {{ $estimate->client_note }}</p>
+                                        <?php echo e($estimate->client_note); ?></p>
                                     
                                     <!-- Fade Overlay -->
                                     <div x-show="!expanded && isLong" 
@@ -1292,8 +1366,8 @@ $totalsPayload = [
                                     </button>
                                 </div>
                             </div>
-                        @endif
-                        @if($estimate->has_final_terms)
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->has_final_terms): ?>
                             <div class="prose prose-sm max-w-none" x-data="{ expanded: false, isLong: false }" x-init="isLong = $refs.termsContainer.scrollHeight > 200">
                                 <h4 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 mb-4">Terms &
                                     Conditions</h4>
@@ -1301,7 +1375,8 @@ $totalsPayload = [
                                      x-ref="termsContainer"
                                      :style="expanded ? 'max-height: none;' : 'max-height: 200px;'">
                                     <div class="text-sm text-slate-600 leading-relaxed">
-                                        {!! $estimate->final_terms_html !!}
+                                        <?php echo $estimate->final_terms_html; ?>
+
                                     </div>
                                     
                                     <!-- Fade Overlay -->
@@ -1320,10 +1395,10 @@ $totalsPayload = [
                                     </button>
                                 </div>
                             </div>
-                        @endif
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </div>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
 
         <!-- Right Column: Sidebar (1/3 width) -->
@@ -1331,101 +1406,106 @@ $totalsPayload = [
 
 
             <!-- Approval History -->
-            @if($estimate->approvals->isNotEmpty())
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->approvals->isNotEmpty()): ?>
                 <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mb-6">
                     <h3 class="text-sm font-semibold text-slate-900 mb-3">Approval History</h3>
                     <ul class="space-y-4">
-                        @foreach($estimate->approvals->sortBy('created_at') as $approval)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $estimate->approvals->sortBy('created_at'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $approval): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                             <li class="relative flex gap-x-4">
                                 <div class="absolute left-0 top-0 flex w-6 justify-center -bottom-4">
                                     <div class="w-px bg-gray-200"></div>
                                 </div>
                                 <div class="relative flex h-6 w-6 flex-none items-center justify-center bg-white">
-                                    @if($approval->status === 'approved')
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($approval->status === 'approved'): ?>
                                         <div class="h-1.5 w-1.5 rounded-full bg-green-500 ring-1 ring-green-500"></div>
-                                    @elseif($approval->status === 'rejected')
+                                    <?php elseif($approval->status === 'rejected'): ?>
                                         <div class="h-1.5 w-1.5 rounded-full bg-red-500 ring-1 ring-red-500"></div>
-                                    @elseif($approval->status === 'changes_requested')
+                                    <?php elseif($approval->status === 'changes_requested'): ?>
                                         <div class="h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-amber-500"></div>
-                                    @else
+                                    <?php else: ?>
                                         <div class="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300"></div>
-                                    @endif
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </div>
                                 <div class="flex-auto py-0.5 text-xs leading-5 text-gray-500">
-                                    <span class="font-medium text-gray-900">{{ $approval->user->name }}</span>
-                                    <span class="block">{{ ucfirst(str_replace('_', ' ', $approval->status)) }}</span>
-                                    <span class="block text-gray-400">{{ $approval->updated_at->format('M j, g:i A') }}</span>
-                                    @if($approval->comments)
+                                    <span class="font-medium text-gray-900"><?php echo e($approval->user->name); ?></span>
+                                    <span class="block"><?php echo e(ucfirst(str_replace('_', ' ', $approval->status))); ?></span>
+                                    <span class="block text-gray-400"><?php echo e($approval->updated_at->format('M j, g:i A')); ?></span>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($approval->comments): ?>
                                         <p class="mt-1 text-slate-600 bg-slate-50 p-2 rounded border border-slate-100 italic">
-                                            "{{ $approval->comments }}"</p>
-                                    @endif
+                                            "<?php echo e($approval->comments); ?>"</p>
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </div>
                             </li>
-                        @endforeach
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                     </ul>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <!-- Internal Note -->
-            @if($estimate->admin_note)
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->admin_note): ?>
                 <div class="bg-yellow-50 shadow-sm ring-1 ring-yellow-200 sm:rounded-xl px-4 py-5 mb-6">
                     <h3 class="text-sm font-semibold text-yellow-800 mb-2">Internal Note</h3>
-                    <div class="text-sm text-yellow-700 whitespace-pre-wrap">{{ $estimate->admin_note }}</div>
+                    <div class="text-sm text-yellow-700 whitespace-pre-wrap"><?php echo e($estimate->admin_note); ?></div>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
 
 
             <!-- Comments Section -->
-            <div x-data="{ showCommentsModal: {{ $unreadFamilyComments->isNotEmpty() ? 'true' : 'false' }} }"
+            <div x-data="{ showCommentsModal: <?php echo e($unreadFamilyComments->isNotEmpty() ? 'true' : 'false'); ?> }"
                 class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mb-6">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-sm font-semibold text-slate-900">Comments</h3>
-                    @if($familyComments->isNotEmpty())
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($familyComments->isNotEmpty()): ?>
                         <span
                             class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800">
-                            {{ $familyComments->count() }}
+                            <?php echo e($familyComments->count()); ?>
+
                         </span>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
-                @if($familyComments->isEmpty())
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($familyComments->isEmpty()): ?>
                     <p class="text-xs text-slate-500 italic mb-3">No comments yet.</p>
-                @else
+                <?php else: ?>
                     <div class="mb-3">
                         <div class="flex -space-x-1 overflow-hidden">
-                            @foreach($familyComments->unique('user_id')->take(3) as $comment)
-                                @if($comment->isClientComment())
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $familyComments->unique('user_id')->take(3); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $comment): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($comment->isClientComment()): ?>
                                     <div class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600"
-                                        title="{{ $comment->client_name }}">
-                                        {{ substr($comment->client_name ?: 'C', 0, 1) }}
+                                        title="<?php echo e($comment->client_name); ?>">
+                                        <?php echo e(substr($comment->client_name ?: 'C', 0, 1)); ?>
+
                                     </div>
-                                @else
-                                    @if($comment->user && $comment->user->avatar)
+                                <?php else: ?>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($comment->user && $comment->user->avatar): ?>
                                         <img class="inline-block h-6 w-6 rounded-full ring-2 ring-white"
-                                            src="{{ $comment->user->avatar }}" alt="{{ $comment->user->name }}">
-                                    @else
+                                            src="<?php echo e($comment->user->avatar); ?>" alt="<?php echo e($comment->user->name); ?>">
+                                    <?php else: ?>
                                         <div class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-600"
-                                            title="{{ $comment->user->name ?? 'Staff' }}">
-                                            {{ substr($comment->user->name ?? 'S', 0, 1) }}
+                                            title="<?php echo e($comment->user->name ?? 'Staff'); ?>">
+                                            <?php echo e(substr($comment->user->name ?? 'S', 0, 1)); ?>
+
                                         </div>
-                                    @endif
-                                @endif
-                            @endforeach
-                            @if($familyComments->unique('user_id')->count() > 3)
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($familyComments->unique('user_id')->count() > 3): ?>
                                 <div
                                     class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-slate-50 flex items-center justify-center text-[10px] font-medium text-slate-500">
-                                    +{{ $familyComments->unique('user_id')->count() - 3 }}
+                                    +<?php echo e($familyComments->unique('user_id')->count() - 3); ?>
+
                                 </div>
-                            @endif
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
                         <p class="text-xs text-slate-500 mt-2 line-clamp-2">
                             <span
-                                class="font-medium text-slate-700">{{ $familyComments->last()->isClientComment() ? ($familyComments->last()->client_name ?: 'Client') : 'Staff' }}:</span>
-                            {{ $familyComments->last()->comment }}
+                                class="font-medium text-slate-700"><?php echo e($familyComments->last()->isClientComment() ? ($familyComments->last()->client_name ?: 'Client') : 'Staff'); ?>:</span>
+                            <?php echo e($familyComments->last()->comment); ?>
+
                         </p>
                     </div>
-                @endif
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                 <button @click="showCommentsModal = true" type="button"
                     class="w-full rounded bg-white px-2 py-1.5 text-xs font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">
@@ -1477,7 +1557,7 @@ $totalsPayload = [
                                     <div class="px-5 py-5 overflow-y-auto flex-1 bg-white space-y-6 min-h-[40vh]"
                                         id="comments-thread-body"
                                         x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)">
-                                        @if($familyComments->isEmpty())
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($familyComments->isEmpty()): ?>
                                             <div class="text-center py-12">
                                                 <div
                                                     class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 mb-3">
@@ -1493,54 +1573,58 @@ $totalsPayload = [
                                                 <p class="mt-1 text-xs text-slate-500">Start the conversation with the
                                                     client.</p>
                                             </div>
-                                        @else
-                                            @foreach($familyComments as $comment)
+                                        <?php else: ?>
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $familyComments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $comment): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                 <div
-                                                    class="flex {{ $comment->isClientComment() ? 'justify-start' : 'justify-end' }}">
+                                                    class="flex <?php echo e($comment->isClientComment() ? 'justify-start' : 'justify-end'); ?>">
                                                     <div
-                                                        class="flex max-w-[85%] {{ $comment->isClientComment() ? 'flex-row' : 'flex-row-reverse' }} items-start gap-3">
+                                                        class="flex max-w-[85%] <?php echo e($comment->isClientComment() ? 'flex-row' : 'flex-row-reverse'); ?> items-start gap-3">
 
                                                         <!-- Avatar & Meta Column -->
                                                         <div class="flex flex-col items-center gap-1.5 pt-1 shrink-0">
-                                                            @if($comment->isClientComment())
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($comment->isClientComment()): ?>
                                                                 <div class="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-[10px] font-bold text-indigo-600 ring-2 ring-white shadow-sm"
-                                                                    title="{{ $comment->client_name }}">
-                                                                    {{ substr($comment->client_name ?: 'C', 0, 1) }}
+                                                                    title="<?php echo e($comment->client_name); ?>">
+                                                                    <?php echo e(substr($comment->client_name ?: 'C', 0, 1)); ?>
+
                                                                 </div>
-                                                            @else
-                                                                @if($comment->user && $comment->user->avatar)
+                                                            <?php else: ?>
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($comment->user && $comment->user->avatar): ?>
                                                                     <img class="h-8 w-8 rounded-full bg-slate-50 ring-2 ring-white shadow-sm"
-                                                                        src="{{ $comment->user->avatar }}" alt=""
-                                                                        title="{{ $comment->user->name }}">
-                                                                @else
+                                                                        src="<?php echo e($comment->user->avatar); ?>" alt=""
+                                                                        title="<?php echo e($comment->user->name); ?>">
+                                                                <?php else: ?>
                                                                     <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white ring-2 ring-white shadow-sm"
-                                                                        title="{{ $comment->user->name ?? 'Staff' }}">
-                                                                        {{ substr($comment->user->name ?? 'S', 0, 1) }}
+                                                                        title="<?php echo e($comment->user->name ?? 'Staff'); ?>">
+                                                                        <?php echo e(substr($comment->user->name ?? 'S', 0, 1)); ?>
+
                                                                     </div>
-                                                                @endif
-                                                            @endif
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                         </div>
 
                                                         <div
-                                                            class="flex flex-col {{ $comment->isClientComment() ? 'items-start' : 'items-end' }} min-w-0">
+                                                            class="flex flex-col <?php echo e($comment->isClientComment() ? 'items-start' : 'items-end'); ?> min-w-0">
                                                             <!-- Group Meta -->
                                                             <div class="flex items-center gap-2 mb-1.5 px-0.5">
                                                                 <span class="text-[10px] font-bold text-slate-900">
-                                                                    {{ $comment->isClientComment() ? ($comment->client_name ?: 'Client') : ($comment->user->name ?? 'Staff') }}
+                                                                    <?php echo e($comment->isClientComment() ? ($comment->client_name ?: 'Client') : ($comment->user->name ?? 'Staff')); ?>
+
                                                                 </span>
                                                                 <span
                                                                     class="text-[9px] text-slate-400 font-medium tracking-tight">
-                                                                    {{ $comment->created_at->format('M j, g:i A') }}
+                                                                    <?php echo e($comment->created_at->format('M j, g:i A')); ?>
+
                                                                 </span>
-                                                                @if(!$comment->isClientComment())
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$comment->isClientComment()): ?>
                                                                     <span
                                                                         class="text-[10px] font-extrabold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-1 rounded">You</span>
-                                                                @endif
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                             </div>
 
                                                             <!-- Item Context Badge (Above Bubble) -->
-                                                            @if($comment->commentable_type === 'App\Models\EstimateItem' && $comment->commentable)
-                                                                @php
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($comment->commentable_type === 'App\Models\EstimateItem' && $comment->commentable): ?>
+                                                                <?php
                                                                     $targetItem = $comment->commentable;
                                                                     $targetComments = $targetItem->comments->flatMap(function ($c) {
                                                                         return collect([$c])->merge($c->replies);
@@ -1548,54 +1632,56 @@ $totalsPayload = [
                                                                         $c->formatted_date = $c->created_at->format('M j, g:i A');
                                                                         return $c;
                                                                     });
-                                                                @endphp
+                                                                ?>
                                                                 <button type="button"
-                                                                    @click="showCommentsModal = false; $nextTick(() => openItemComments({{ $targetItem->id }}, {{ Js::from($targetItem->name) }}, {{ Js::from($targetComments) }}))"
+                                                                    @click="showCommentsModal = false; $nextTick(() => openItemComments(<?php echo e($targetItem->id); ?>, <?php echo e(Js::from($targetItem->name)); ?>, <?php echo e(Js::from($targetComments)); ?>))"
                                                                     class="mb-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest shadow-sm hover:bg-indigo-700 transition-colors">
-                                                                    <span>On Item: {{ $targetItem->name }}</span>
+                                                                    <span>On Item: <?php echo e($targetItem->name); ?></span>
                                                                     <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24"
                                                                         stroke="currentColor" stroke-width="4">
                                                                         <path stroke-linecap="round" stroke-linejoin="round"
                                                                             d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                                                     </svg>
                                                                 </button>
-                                                            @endif
+                                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                                                             <!-- Message Bubble -->
                                                             <div class="relative group/bubble max-w-full">
                                                                 <div
-                                                                    class="{{ $comment->isClientComment() ? 'bg-slate-50 border border-slate-100 text-slate-700 rounded-2xl rounded-tl-none' : 'bg-indigo-600 text-white rounded-2xl rounded-tr-none' }} px-4 py-3 shadow-sm text-[13px] leading-relaxed break-words">
-                                                                    <div class="whitespace-pre-wrap">{{ $comment->comment }}
+                                                                    class="<?php echo e($comment->isClientComment() ? 'bg-slate-50 border border-slate-100 text-slate-700 rounded-2xl rounded-tl-none' : 'bg-indigo-600 text-white rounded-2xl rounded-tr-none'); ?> px-4 py-3 shadow-sm text-[13px] leading-relaxed break-words">
+                                                                    <div class="whitespace-pre-wrap"><?php echo e($comment->comment); ?>
+
                                                                     </div>
                                                                 </div>
 
                                                                 <!-- Status Bubble Footer -->
-                                                                @if($comment->status === 'clarified' || ($comment->status === 'pending' && $comment->parent_id === null))
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($comment->status === 'clarified' || ($comment->status === 'pending' && $comment->parent_id === null)): ?>
                                                                     <div class="flex items-center gap-2 mt-1.5 px-1">
-                                                                        @if($comment->status === 'clarified')
+                                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($comment->status === 'clarified'): ?>
                                                                             <span
                                                                                 class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">Clarified</span>
-                                                                        @else
+                                                                        <?php else: ?>
                                                                             <span
                                                                                 class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">Pending</span>
-                                                                        @endif
+                                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-                                                                        @if(auth()->check())
+                                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->check()): ?>
                                                                             <button
-                                                                                @click="$wire.toggleCommentStatus({{ $comment->id }}, '{{ $comment->status }}')"
+                                                                                @click="$wire.toggleCommentStatus(<?php echo e($comment->id); ?>, '<?php echo e($comment->status); ?>')"
                                                                                 type="button"
                                                                                 class="text-[9px] font-bold text-slate-400 hover:text-indigo-600 transition-colors underline decoration-dotted underline-offset-2">
-                                                                                {{ $comment->status === 'pending' ? 'Mark Clarified' : 'Reopen' }}
+                                                                                <?php echo e($comment->status === 'pending' ? 'Mark Clarified' : 'Reopen'); ?>
+
                                                                             </button>
-                                                                        @endif
+                                                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                                     </div>
-                                                                @endif
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            @endforeach
-                                        @endif
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     </div>
 
                                     <!-- Footer / Reply Form -->
@@ -1633,21 +1719,25 @@ $totalsPayload = [
                 <div class="flex items-start gap-3">
                     <div
                         class="h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold shrink-0">
-                        {{ substr($estimate->client->name ?? 'C', 0, 1) }}
+                        <?php echo e(substr($estimate->client->name ?? 'C', 0, 1)); ?>
+
                     </div>
                     <div>
-                        <div class="font-medium text-slate-900">{{ $estimate->client->name ?? 'Unknown Client' }}
+                        <div class="font-medium text-slate-900"><?php echo e($estimate->client->name ?? 'Unknown Client'); ?>
+
                         </div>
-                        <div class="text-sm text-slate-500">{{ $estimate->client->email ?? '' }}</div>
-                        <div class="text-sm text-slate-500">{{ $estimate->client->phone ?? '' }}</div>
+                        <div class="text-sm text-slate-500"><?php echo e($estimate->client->email ?? ''); ?></div>
+                        <div class="text-sm text-slate-500"><?php echo e($estimate->client->phone ?? ''); ?></div>
                     </div>
                 </div>
                 <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between text-xs text-slate-500">
                     <div>
-                        <span class="font-semibold text-slate-600">Created:</span> {{ $estimate->created_at->format('M d, Y') }}
+                        <span class="font-semibold text-slate-600">Created:</span> <?php echo e($estimate->created_at->format('M d, Y')); ?>
+
                     </div>
                     <div>
-                        <span class="font-semibold text-slate-600">Estimate Date:</span> {{ $estimate->estimate_date->format('M d, Y') }}
+                        <span class="font-semibold text-slate-600">Estimate Date:</span> <?php echo e($estimate->estimate_date->format('M d, Y')); ?>
+
                     </div>
                 </div>
             </div>
@@ -1657,25 +1747,26 @@ $totalsPayload = [
 
             <!-- Notification: Newer Proposal Available -->
 
-            @if($latestVersion && $latestVersion->version > $estimate->version)
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($latestVersion && $latestVersion->version > $estimate->version): ?>
                 <div class="bg-blue-50 shadow-sm ring-1 ring-blue-200 sm:rounded-xl px-4 py-3 mb-6">
                     <h3 class="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2">Newer Version Available
                     </h3>
                     <p class="text-xs text-blue-700 mb-3">There is a newer draft/proposal
-                        (v{{ $latestVersion->version }})
+                        (v<?php echo e($latestVersion->version); ?>)
                         available.</p>
-                    <a href="{{ route('estimates.show', $latestVersion) }}"
+                    <a href="<?php echo e(route('estimates.show', $latestVersion)); ?>"
                         class="inline-block rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
-                        View v{{ $latestVersion->version }}
+                        View v<?php echo e($latestVersion->version); ?>
+
                     </a>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <!-- Approval / Make Current (For Creator/Admin) -->
-            @if(isset($estimate->parent) && $estimate->is_current_version === false && (auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin'])))
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(isset($estimate->parent) && $estimate->is_current_version === false && (auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin']))): ?>
                 <div class="bg-yellow-50 shadow-sm ring-1 ring-yellow-200 sm:rounded-xl px-4 py-3 mb-6">
                     <h3 class="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-2">Proposed Changes
-                        (v{{ $estimate->version }})</h3>
+                        (v<?php echo e($estimate->version); ?>)</h3>
                     <p class="text-xs text-yellow-700 mb-3">This is a proposed version. Approve it to make it the live
                         version.</p>
 
@@ -1684,50 +1775,51 @@ $totalsPayload = [
                         Approve and Publish this Version
                     </button>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <!-- Followers -->
             <div x-data="{ showFollowerModal: false }"
                 class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mb-6">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-sm font-semibold text-slate-900">Followers</h3>
-                    @if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin']))
+                    <?php if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin'])): ?>
                         <button @click="showFollowerModal = true"
                             class="text-xs font-medium text-indigo-600 hover:text-indigo-500">
                             + Add
                         </button>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div class="space-y-3">
-                    @foreach($estimate->followers as $follower)
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $estimate->followers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $follower): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                @if($follower->avatar)
-                                    <img src="{{ $follower->avatar }}" class="h-6 w-6 rounded-full" alt="">
-                                @else
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($follower->avatar): ?>
+                                    <img src="<?php echo e($follower->avatar); ?>" class="h-6 w-6 rounded-full" alt="">
+                                <?php else: ?>
                                     <div
                                         class="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                                        {{ substr($follower->name, 0, 1) }}
+                                        <?php echo e(substr($follower->name, 0, 1)); ?>
+
                                     </div>
-                                @endif
-                                <div class="text-sm text-slate-700">{{ $follower->name }}</div>
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                <div class="text-sm text-slate-700"><?php echo e($follower->name); ?></div>
                             </div>
 
-                            @if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin']))
-                                @if($estimate->created_by !== $follower->id) <!-- Don't remove creator -->
+                            <?php if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin'])): ?>
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->created_by !== $follower->id): ?> <!-- Don't remove creator -->
                                     <button type="button"
-                                        @click="if(confirm('Remove this follower?')) { $wire.removeFollower({{ $follower->id }}) }"
+                                        @click="if(confirm('Remove this follower?')) { $wire.removeFollower(<?php echo e($follower->id); ?>) }"
                                         class="text-slate-400 hover:text-red-500">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
-                                @endif
-                            @endif
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
-                    @endforeach
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                 </div>
 
                 <!-- Add Follower Modal (Simplified) -->
@@ -1746,9 +1838,9 @@ $totalsPayload = [
                                     <select id="follower_user_id" x-model="userId" required
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                                         <option value="">Select a user...</option>
-                                        @foreach(\App\Models\User::whereNotIn('id', $estimate->followers->pluck('id'))->get() as $user)
-                                            <option value="{{ $user->id }}">{{ $user->name }}</option>
-                                        @endforeach
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = \App\Models\User::whereNotIn('id', $estimate->followers->pluck('id'))->get(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                                            <option value="<?php echo e($user->id); ?>"><?php echo e($user->name); ?></option>
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                     </select>
                                 </div>
 
@@ -1782,142 +1874,142 @@ $totalsPayload = [
             </div>
 
             <!-- Approval Chain -->
-            @if($estimate->approval_chain_id && $estimate->approvalChain)
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->approval_chain_id && $estimate->approvalChain): ?>
                 <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-sm font-semibold text-slate-900">Approval Workflow</h3>
-                        @if(Auth::user()->hasRole('super_admin'))
-                            <a href="{{ route('approval-chains.show', $estimate->approvalChain) }}" title="{{ $estimate->approvalChain->name }}"
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(Auth::user()->hasRole('super_admin')): ?>
+                            <a href="<?php echo e(route('approval-chains.show', $estimate->approvalChain)); ?>" title="<?php echo e($estimate->approvalChain->name); ?>"
                                 class="text-xs text-indigo-600 hover:text-indigo-500">View Chain</a>
-                        @else
-                            <span class="text-xs text-slate-500" title="{{ $estimate->approvalChain->name }}">{{ $estimate->approvalChain->name }}</span>
-                        @endif
+                        <?php else: ?>
+                            <span class="text-xs text-slate-500" title="<?php echo e($estimate->approvalChain->name); ?>"><?php echo e($estimate->approvalChain->name); ?></span>
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </div>
 
                     <div class="relative pl-3 border-l-2 border-slate-100 space-y-6 my-2">
-                        @foreach($estimate->approvalChain->steps as $step)
-                            @php
-                                $stepApproval = $estimate->approvals()->where('user_id', $step->user_id)->first();
-                            @endphp
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $estimate->approvalChain->steps; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $step): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                            <?php $stepApproval = $estimate->approvals()->where('user_id', $step->user_id)->first(); ?>
                             <div class="relative">
                                 <!-- Status Dot -->
                                 <div
                                     class="absolute -left-[19px] top-1 h-3 w-3 rounded-full border-2 border-white
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @if($stepApproval && $stepApproval->status === 'approved') bg-green-500
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'rejected') bg-red-500
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @elseif($stepApproval && $stepApproval->status === 'pending') bg-yellow-400
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @else bg-slate-200
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @endif">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <?php if($stepApproval && $stepApproval->status === 'approved'): ?> bg-green-500
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <?php elseif($stepApproval && $stepApproval->status === 'rejected'): ?> bg-red-500
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <?php elseif($stepApproval && $stepApproval->status === 'pending'): ?> bg-yellow-400
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <?php else: ?> bg-slate-200
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <?php endif; ?>">
                                 </div>
 
                                 <div class="text-sm font-medium text-slate-900 leading-none">
-                                    {{ ucfirst(str_replace('_', ' ', $step->role)) }}
-                                </div>
-                                <div class="text-xs text-slate-500 mt-1">{{ optional($step->user)->name ?? 'Unassigned' }}</div>
+                                    <?php echo e(ucfirst(str_replace('_', ' ', $step->role))); ?>
 
-                                @if($stepApproval && $stepApproval->status !== 'pending')
+                                </div>
+                                <div class="text-xs text-slate-500 mt-1"><?php echo e(optional($step->user)->name ?? 'Unassigned'); ?></div>
+
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($stepApproval && $stepApproval->status !== 'pending'): ?>
                                     <div class="mt-1 text-xs px-2 py-1 bg-slate-50 rounded inline-block">
                                         <span
-                                            class="@if($stepApproval->status === 'approved') text-green-700 @else text-red-700 @endif font-medium">
-                                            {{ ucfirst($stepApproval->status) }}
+                                            class="<?php if($stepApproval->status === 'approved'): ?> text-green-700 <?php else: ?> text-red-700 <?php endif; ?> font-medium">
+                                            <?php echo e(ucfirst($stepApproval->status)); ?>
+
                                         </span>
-                                        <span class="text-slate-400"> - {{ $stepApproval->updated_at->format('M d') }}</span>
+                                        <span class="text-slate-400"> - <?php echo e($stepApproval->updated_at->format('M d')); ?></span>
                                     </div>
-                                    @if($stepApproval->comments)
-                                        <div class="mt-1 text-xs italic text-slate-500">"{{ $stepApproval->comments }}"</div>
-                                    @endif
-                                @endif
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($stepApproval->comments): ?>
+                                        <div class="mt-1 text-xs italic text-slate-500">"<?php echo e($stepApproval->comments); ?>"</div>
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </div>
-                        @endforeach
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                     </div>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <!-- Activity Log -->
             <div x-data="{ showActivityModal: false }"
                 class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mt-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-sm font-semibold text-slate-900">Activity Log</h3>
-                    @if($activityLogs->count() > 5)
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($activityLogs->count() > 5): ?>
                         <button @click="showActivityModal = true"
                             class="text-xs font-semibold text-indigo-600 hover:text-indigo-500">
-                            View All ({{ $activityLogs->count() }})
+                            View All (<?php echo e($activityLogs->count()); ?>)
                         </button>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
                 <div class="flow-root">
                     <ul role="list" class="-mb-8">
-                        @forelse($activityLogs->take(5) as $log)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $activityLogs->take(5); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $log): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                             <li>
                                 <div class="relative pb-8">
-                                    @if(!$loop->last)
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$loop->last): ?>
                                         <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-slate-200"
                                             aria-hidden="true"></span>
-                                    @endif
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                     <div class="relative flex space-x-3">
                                         <div>
                                             <span
                                                 class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center ring-8 ring-white">
                                                 <!-- Icon based on action -->
-                                                @if(str_contains($log->action, 'created'))
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(str_contains($log->action, 'created')): ?>
                                                     <svg class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fill-rule="evenodd"
                                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
                                                             clip-rule="evenodd" />
                                                     </svg>
-                                                @elseif(str_contains($log->action, 'updated') || str_contains($log->action, 'edited'))
+                                                <?php elseif(str_contains($log->action, 'updated') || str_contains($log->action, 'edited')): ?>
                                                     <svg class="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                                                         <path
                                                             d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                                     </svg>
-                                                @elseif(str_contains($log->action, 'deleted'))
+                                                <?php elseif(str_contains($log->action, 'deleted')): ?>
                                                     <svg class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fill-rule="evenodd"
                                                             d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
                                                             clip-rule="evenodd" />
                                                     </svg>
-                                                @elseif(str_contains($log->action, 'approved'))
+                                                <?php elseif(str_contains($log->action, 'approved')): ?>
                                                     <svg class="h-4 w-4 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fill-rule="evenodd"
                                                             d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                                             clip-rule="evenodd" />
                                                     </svg>
-                                                @else
+                                                <?php else: ?>
                                                     <svg class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fill-rule="evenodd"
                                                             d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                                             clip-rule="evenodd" />
                                                     </svg>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                             </span>
                                         </div>
                                         <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
                                             <div>
-                                                <p class="text-xs text-slate-500">{{ $log->description }} <span
+                                                <p class="text-xs text-slate-500"><?php echo e($log->description); ?> <span
                                                         class="font-medium text-slate-900">by
-                                                        {{ optional($log->user)->name ?? 'System' }}</span></p>
+                                                        <?php echo e(optional($log->user)->name ?? 'System'); ?></span></p>
                                             </div>
                                             <div class="whitespace-nowrap text-right text-xs text-slate-500">
                                                 <time
-                                                    datetime="{{ $log->created_at }}">{{ $log->created_at->format('M d, H:i') }}</time>
+                                                    datetime="<?php echo e($log->created_at); ?>"><?php echo e($log->created_at->format('M d, H:i')); ?></time>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </li>
-                        @empty
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                             <li class="py-4 text-center text-xs text-slate-400">No activity recorded.</li>
-                        @endforelse
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </ul>
 
-                    @if($activityLogs->count() > 5)
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($activityLogs->count() > 5): ?>
                         <div class="mt-4 text-center border-t border-slate-100 pt-3">
                             <button @click="showActivityModal = true"
                                 class="text-xs font-semibold text-indigo-600 hover:text-indigo-500">
                                 View Previous Activity
                             </button>
                         </div>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <!-- Activity Modal -->
@@ -1958,73 +2050,74 @@ $totalsPayload = [
 
                                 <div class="max-h-[60vh] overflow-y-auto pr-2">
                                     <ul role="list" class="-mb-8">
-                                        @foreach($activityLogs as $log)
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $activityLogs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $log): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                             <li>
                                                 <div class="relative pb-8">
-                                                    @if(!$loop->last)
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$loop->last): ?>
                                                         <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-slate-200"
                                                             aria-hidden="true"></span>
-                                                    @endif
+                                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                     <div class="relative flex space-x-3">
                                                         <div>
                                                             <span
                                                                 class="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center ring-8 ring-white">
                                                                 <!-- Icon based on action -->
-                                                                @if(str_contains($log->action, 'created'))
+                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(str_contains($log->action, 'created')): ?>
                                                                     <svg class="h-4 w-4 text-green-500" viewBox="0 0 20 20"
                                                                         fill="currentColor">
                                                                         <path fill-rule="evenodd"
                                                                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
                                                                             clip-rule="evenodd" />
                                                                     </svg>
-                                                                @elseif(str_contains($log->action, 'updated') || str_contains($log->action, 'edited'))
+                                                                <?php elseif(str_contains($log->action, 'updated') || str_contains($log->action, 'edited')): ?>
                                                                     <svg class="h-4 w-4 text-blue-500" viewBox="0 0 20 20"
                                                                         fill="currentColor">
                                                                         <path
                                                                             d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                                                     </svg>
-                                                                @elseif(str_contains($log->action, 'deleted'))
+                                                                <?php elseif(str_contains($log->action, 'deleted')): ?>
                                                                     <svg class="h-4 w-4 text-red-500" viewBox="0 0 20 20"
                                                                         fill="currentColor">
                                                                         <path fill-rule="evenodd"
                                                                             d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
                                                                             clip-rule="evenodd" />
                                                                     </svg>
-                                                                @elseif(str_contains($log->action, 'approved'))
+                                                                <?php elseif(str_contains($log->action, 'approved')): ?>
                                                                     <svg class="h-4 w-4 text-green-600" viewBox="0 0 20 20"
                                                                         fill="currentColor">
                                                                         <path fill-rule="evenodd"
                                                                             d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                                                             clip-rule="evenodd" />
                                                                     </svg>
-                                                                @else
+                                                                <?php else: ?>
                                                                     <svg class="h-4 w-4 text-slate-500" viewBox="0 0 20 20"
                                                                         fill="currentColor">
                                                                         <path fill-rule="evenodd"
                                                                             d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                                                             clip-rule="evenodd" />
                                                                     </svg>
-                                                                @endif
+                                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                             </span>
                                                         </div>
                                                         <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
                                                             <div>
                                                                 <p class="text-xs text-slate-500">
-                                                                    {{ $log->description }}
+                                                                    <?php echo e($log->description); ?>
+
                                                                     <span class="font-medium text-slate-900">by
-                                                                        {{ optional($log->user)->name ?? 'System' }}</span>
+                                                                        <?php echo e(optional($log->user)->name ?? 'System'); ?></span>
                                                                 </p>
                                                             </div>
                                                             <div
                                                                 class="whitespace-nowrap text-right text-xs text-slate-500">
                                                                 <time
-                                                                    datetime="{{ $log->created_at }}">{{ $log->created_at->format('M d, H:i') }}</time>
+                                                                    datetime="<?php echo e($log->created_at); ?>"><?php echo e($log->created_at->format('M d, H:i')); ?></time>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </li>
-                                        @endforeach
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                     </ul>
                                 </div>
 
@@ -2041,7 +2134,7 @@ $totalsPayload = [
 
 
             <!-- Changes vs Previous -->
-            @if(isset($diff) && (!empty($diff['overview']) || !empty($diff['items']['added']) || !empty($diff['items']['removed']) || !empty($diff['items']['modified'])))
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(isset($diff) && (!empty($diff['overview']) || !empty($diff['items']['added']) || !empty($diff['items']['removed']) || !empty($diff['items']['modified']))): ?>
                 <div x-data="{ showDiffModal: false }" class="mb-6">
                     <!-- Sidebar Summary Card -->
                     <div class="bg-indigo-50 shadow-sm ring-1 ring-indigo-200 sm:rounded-xl px-4 py-5">
@@ -2052,17 +2145,18 @@ $totalsPayload = [
                                 Details</button>
                         </div>
                         <p class="text-xs text-indigo-700 mb-3">
-                            Comparison with v{{ $estimate->version - 1 }}.
-                            @if(!empty($diff['overview'])) <span class="font-medium">{{ count($diff['overview']) }}
+                            Comparison with v<?php echo e($estimate->version - 1); ?>.
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($diff['overview'])): ?> <span class="font-medium"><?php echo e(count($diff['overview'])); ?>
+
                                 fields
-                            changed.</span> @endif
-                            @if(!empty($diff['items']['added'])) <span
-                            class="font-medium">{{ count($diff['items']['added']) }} items added.</span> @endif
-                            @if(!empty($diff['items']['removed'])) <span
-                            class="font-medium">{{ count($diff['items']['removed']) }} items removed.</span> @endif
-                            @if(!empty($diff['items']['modified'])) <span
-                                class="font-medium">{{ count($diff['items']['modified']) }} items modified.</span>
-                            @endif
+                            changed.</span> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($diff['items']['added'])): ?> <span
+                            class="font-medium"><?php echo e(count($diff['items']['added'])); ?> items added.</span> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($diff['items']['removed'])): ?> <span
+                            class="font-medium"><?php echo e(count($diff['items']['removed'])); ?> items removed.</span> <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($diff['items']['modified'])): ?> <span
+                                class="font-medium"><?php echo e(count($diff['items']['modified'])); ?> items modified.</span>
+                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </p>
                         <button @click="showDiffModal = true" type="button"
                             class="w-full rounded bg-indigo-600/10 px-2 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-600/20">
@@ -2117,10 +2211,10 @@ $totalsPayload = [
                                                         <p class="text-sm text-slate-500 mt-1">
                                                             Comparing
                                                             <span
-                                                                class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">v{{ $estimate->version }}</span>
+                                                                class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">v<?php echo e($estimate->version); ?></span>
                                                             &rarr;
                                                             <span
-                                                                class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">v{{ $estimate->version - 1 }}</span>
+                                                                class="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">v<?php echo e($estimate->version - 1); ?></span>
                                                         </p>
                                                     </div>
                                                 </div>
@@ -2129,7 +2223,7 @@ $totalsPayload = [
                                             <div class="w-full space-y-6 text-sm max-h-[70vh] overflow-y-auto pr-2 pb-6">
 
                                                 <!-- Net Financial Impact Card -->
-                                                @php
+                                                <?php
                                                     $oldTotal = $diff['overview']['grand_total']['old'] ?? (isset($previousVersion) ? $previousVersion->grand_total : 0);
                                                     $oldTotalVal = 0;
                                                     foreach ($diff['overview'] as $o) {
@@ -2144,10 +2238,10 @@ $totalsPayload = [
                                                     $percentChange = $oldTotalVal > 0 ? ($netChange / $oldTotalVal) * 100 : 0;
                                                     $isPositive = $netChange > 0;
                                                     $isNegative = $netChange < 0;
-                                                @endphp
+                                                ?>
 
                                                 <div
-                                                    class="relative overflow-hidden rounded-xl border {{ $isPositive ? 'border-red-200 bg-red-50' : ($isNegative ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-slate-50') }} p-4 shadow-sm">
+                                                    class="relative overflow-hidden rounded-xl border <?php echo e($isPositive ? 'border-red-200 bg-red-50' : ($isNegative ? 'border-green-200 bg-green-50' : 'border-slate-200 bg-slate-50')); ?> p-4 shadow-sm">
                                                     <div class="flex items-center justify-between">
                                                         <div>
                                                             <p
@@ -2155,49 +2249,51 @@ $totalsPayload = [
                                                                 Net Financial Impact</p>
                                                             <div class="mt-1 flex items-baseline gap-2">
                                                                 <span
-                                                                    class="text-3xl font-bold tracking-tight {{ $isPositive ? 'text-red-700' : ($isNegative ? 'text-green-700' : 'text-slate-900') }} font-mono">
-                                                                    {{ $netChange > 0 ? '+' : '' }}{{ number_format($netChange, 2) }}
+                                                                    class="text-3xl font-bold tracking-tight <?php echo e($isPositive ? 'text-red-700' : ($isNegative ? 'text-green-700' : 'text-slate-900')); ?> font-mono">
+                                                                    <?php echo e($netChange > 0 ? '+' : ''); ?><?php echo e(number_format($netChange, 2)); ?>
+
                                                                 </span>
                                                                 <span
-                                                                    class="rounded-full px-2 py-0.5 text-sm font-semibold {{ $isPositive ? 'bg-red-100 text-red-800' : ($isNegative ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-800') }}">
-                                                                    {{ number_format(abs($percentChange), 1) }}%
+                                                                    class="rounded-full px-2 py-0.5 text-sm font-semibold <?php echo e($isPositive ? 'bg-red-100 text-red-800' : ($isNegative ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-800')); ?>">
+                                                                    <?php echo e(number_format(abs($percentChange), 1)); ?>%
                                                                 </span>
                                                             </div>
                                                             <p class="text-xs text-slate-500 mt-1">From
-                                                                {{ number_format($oldTotalVal, 2) }} to
-                                                                {{ number_format($newTotal, 2) }}
+                                                                <?php echo e(number_format($oldTotalVal, 2)); ?> to
+                                                                <?php echo e(number_format($newTotal, 2)); ?>
+
                                                             </p>
                                                         </div>
                                                         <div
-                                                            class="rounded-full p-3 {{ $isPositive ? 'bg-red-100' : ($isNegative ? 'bg-green-100' : 'bg-slate-200') }}">
-                                                            @if($isPositive)
+                                                            class="rounded-full p-3 <?php echo e($isPositive ? 'bg-red-100' : ($isNegative ? 'bg-green-100' : 'bg-slate-200')); ?>">
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($isPositive): ?>
                                                                 <svg class="h-6 w-6 text-red-600" fill="none"
                                                                     viewBox="0 0 24 24" stroke-width="1.5"
                                                                     stroke="currentColor">
                                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                                         d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
                                                                 </svg>
-                                                            @elseif($isNegative)
+                                                            <?php elseif($isNegative): ?>
                                                                 <svg class="h-6 w-6 text-green-600" fill="none"
                                                                     viewBox="0 0 24 24" stroke-width="1.5"
                                                                     stroke="currentColor">
                                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                                         d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 0111.818 8.818" />
                                                                 </svg>
-                                                            @else
+                                                            <?php else: ?>
                                                                 <svg class="h-6 w-6 text-slate-600" fill="none"
                                                                     viewBox="0 0 24 24" stroke-width="1.5"
                                                                     stroke="currentColor">
                                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                                         d="M5 12h14" />
                                                                 </svg>
-                                                            @endif
+                                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <!-- Overview Changes -->
-                                                @if(!empty($diff['overview']))
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($diff['overview'])): ?>
                                                     <div>
                                                         <div
                                                             class="flex items-center gap-2 mb-3 pb-1 border-b border-slate-100">
@@ -2211,30 +2307,30 @@ $totalsPayload = [
                                                             <h4 class="font-semibold text-slate-900">General Updates</h4>
                                                         </div>
                                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                            @foreach($diff['overview'] as $change)
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $diff['overview']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $change): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                                 <div
                                                                     class="flex flex-col justify-between bg-white rounded-lg p-3 border border-slate-200 shadow-sm hover:border-indigo-300 transition-colors">
                                                                     <span
-                                                                        class="text-xs font-semibold text-slate-500 uppercase">{{ $change['label'] }}</span>
+                                                                        class="text-xs font-semibold text-slate-500 uppercase"><?php echo e($change['label']); ?></span>
                                                                     <div class="flex items-center gap-2 mt-2">
                                                                         <span
-                                                                            class="text-slate-400 line-through text-xs">{{ $change['is_currency'] ? number_format($change['old'], 2) : $change['old'] }}</span>
+                                                                            class="text-slate-400 line-through text-xs"><?php echo e($change['is_currency'] ? number_format($change['old'], 2) : $change['old']); ?></span>
                                                                         <svg class="h-3 w-3 text-slate-300" fill="none"
                                                                             viewBox="0 0 24 24" stroke="currentColor">
                                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                                 stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                                                         </svg>
                                                                         <span
-                                                                            class="font-bold text-slate-900 {{ $change['label'] === 'Grand Total' ? 'text-indigo-600' : '' }}">{{ $change['is_currency'] ? number_format($change['new'], 2) : $change['new'] }}</span>
+                                                                            class="font-bold text-slate-900 <?php echo e($change['label'] === 'Grand Total' ? 'text-indigo-600' : ''); ?>"><?php echo e($change['is_currency'] ? number_format($change['new'], 2) : $change['new']); ?></span>
                                                                     </div>
                                                                 </div>
-                                                            @endforeach
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                         </div>
                                                     </div>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                                                 <!-- Added Items -->
-                                                @if(!empty($diff['items']['added']))
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($diff['items']['added'])): ?>
                                                     <div>
                                                         <div
                                                             class="flex items-center gap-2 mb-3 pb-1 border-b border-green-100">
@@ -2249,43 +2345,46 @@ $totalsPayload = [
                                                             </div>
                                                             <h4 class="font-semibold text-slate-900">Added Items</h4>
                                                             <span
-                                                                class="ml-auto bg-green-100 text-green-700 py-0.5 px-2 rounded-full text-xs font-medium">{{ count($diff['items']['added'], COUNT_RECURSIVE) - count($diff['items']['added']) }}
+                                                                class="ml-auto bg-green-100 text-green-700 py-0.5 px-2 rounded-full text-xs font-medium"><?php echo e(count($diff['items']['added'], COUNT_RECURSIVE) - count($diff['items']['added'])); ?>
+
                                                                 items</span>
                                                         </div>
-                                                        @foreach($diff['items']['added'] as $section => $items)
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $diff['items']['added']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $section => $items): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                             <div class="mb-4 last:mb-0">
                                                                 <h5
                                                                     class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
-                                                                    {{ $section }}
+                                                                    <?php echo e($section); ?>
+
                                                                 </h5>
                                                                 <div class="space-y-2">
-                                                                    @foreach($items as $item)
+                                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                                         <div
                                                                             class="group flex items-start justify-between rounded-lg border border-green-100 bg-green-50/50 p-3 transition hover:bg-green-50">
                                                                             <div class="pr-4">
-                                                                                <p class="font-medium text-slate-900">{{ $item->name }}
+                                                                                <p class="font-medium text-slate-900"><?php echo e($item->name); ?>
+
                                                                                 </p>
                                                                                 <div class="mt-1 text-xs text-green-700">
                                                                                     <span
-                                                                                        class="font-mono font-medium">{{ $item->quantity }}</span>
+                                                                                        class="font-mono font-medium"><?php echo e($item->quantity); ?></span>
                                                                                     &times; <span
-                                                                                        class="font-mono">{{ number_format($item->unit_price, 2) }}</span>
+                                                                                        class="font-mono"><?php echo e(number_format($item->unit_price, 2)); ?></span>
                                                                                 </div>
                                                                             </div>
                                                                             <div class="text-right">
                                                                                 <p class="font-bold text-green-700 font-mono">
-                                                                                    +{{ number_format($item->total, 2) }}</p>
+                                                                                    +<?php echo e(number_format($item->total, 2)); ?></p>
                                                                             </div>
                                                                         </div>
-                                                                    @endforeach
+                                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                                 </div>
                                                             </div>
-                                                        @endforeach
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                     </div>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                                                 <!-- Modified Items -->
-                                                @if(!empty($diff['items']['modified']))
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($diff['items']['modified'])): ?>
                                                     <div>
                                                         <div
                                                             class="flex items-center gap-2 mb-3 pb-1 border-b border-amber-100">
@@ -2300,34 +2399,37 @@ $totalsPayload = [
                                                             </div>
                                                             <h4 class="font-semibold text-slate-900">Modified Items</h4>
                                                             <span
-                                                                class="ml-auto bg-amber-100 text-amber-700 py-0.5 px-2 rounded-full text-xs font-medium">{{ count($diff['items']['modified'], COUNT_RECURSIVE) - count($diff['items']['modified']) }}
+                                                                class="ml-auto bg-amber-100 text-amber-700 py-0.5 px-2 rounded-full text-xs font-medium"><?php echo e(count($diff['items']['modified'], COUNT_RECURSIVE) - count($diff['items']['modified'])); ?>
+
                                                                 items</span>
                                                         </div>
-                                                        @foreach($diff['items']['modified'] as $section => $modItems)
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $diff['items']['modified']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $section => $modItems): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                             <div class="mb-4 last:mb-0">
                                                                 <h5
                                                                     class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
-                                                                    {{ $section }}
+                                                                    <?php echo e($section); ?>
+
                                                                 </h5>
                                                                 <div class="space-y-3">
-                                                                    @foreach($modItems as $mod)
+                                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $modItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mod): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                                         <div
                                                                             class="rounded-lg border border-amber-200 bg-white p-3 shadow-sm">
                                                                             <div
                                                                                 class="font-medium text-slate-900 border-b border-slate-100 pb-2 mb-2 flex items-center justify-between">
-                                                                                {{ $mod['item']->name }}
+                                                                                <?php echo e($mod['item']->name); ?>
+
                                                                                 <span
                                                                                     class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">EDITED</span>
                                                                             </div>
                                                                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                                                @foreach($mod['changes'] as $change)
+                                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $mod['changes']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $change): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                                                     <div
                                                                                         class="rounded bg-slate-50 p-2 text-xs border border-slate-100">
                                                                                         <span
-                                                                                            class="block text-slate-500 font-medium mb-1">{{ $change['field'] }}</span>
+                                                                                            class="block text-slate-500 font-medium mb-1"><?php echo e($change['field']); ?></span>
                                                                                         <div class="flex items-center gap-1.5 font-mono">
                                                                                             <span
-                                                                                                class="line-through text-slate-400 decoration-slate-400/50">{{ is_numeric($change['old']) ? number_format($change['old'], 2) : $change['old'] }}</span>
+                                                                                                class="line-through text-slate-400 decoration-slate-400/50"><?php echo e(is_numeric($change['old']) ? number_format($change['old'], 2) : $change['old']); ?></span>
                                                                                             <svg class="h-3 w-3 text-slate-300" fill="none"
                                                                                                 viewBox="0 0 24 24" stroke="currentColor">
                                                                                                 <path stroke-linecap="round"
@@ -2335,21 +2437,21 @@ $totalsPayload = [
                                                                                                     d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                                                                             </svg>
                                                                                             <span
-                                                                                                class="font-bold text-amber-700">{{ is_numeric($change['new']) ? number_format($change['new'], 2) : $change['new'] }}</span>
+                                                                                                class="font-bold text-amber-700"><?php echo e(is_numeric($change['new']) ? number_format($change['new'], 2) : $change['new']); ?></span>
                                                                                         </div>
                                                                                     </div>
-                                                                                @endforeach
+                                                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                                             </div>
                                                                         </div>
-                                                                    @endforeach
+                                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                                 </div>
                                                             </div>
-                                                        @endforeach
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                     </div>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                                                 <!-- Removed Items -->
-                                                @if(!empty($diff['items']['removed']))
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!empty($diff['items']['removed'])): ?>
                                                     <div>
                                                         <div class="flex items-center gap-2 mb-3 pb-1 border-b border-red-100">
                                                             <div
@@ -2363,40 +2465,44 @@ $totalsPayload = [
                                                             </div>
                                                             <h4 class="font-semibold text-slate-900">Removed Items</h4>
                                                             <span
-                                                                class="ml-auto bg-red-100 text-red-700 py-0.5 px-2 rounded-full text-xs font-medium">{{ count($diff['items']['removed'], COUNT_RECURSIVE) - count($diff['items']['removed']) }}
+                                                                class="ml-auto bg-red-100 text-red-700 py-0.5 px-2 rounded-full text-xs font-medium"><?php echo e(count($diff['items']['removed'], COUNT_RECURSIVE) - count($diff['items']['removed'])); ?>
+
                                                                 items</span>
                                                         </div>
-                                                        @foreach($diff['items']['removed'] as $section => $items)
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $diff['items']['removed']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $section => $items): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                             <div class="mb-4 last:mb-0">
                                                                 <h5
                                                                     class="text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">
-                                                                    {{ $section }}
+                                                                    <?php echo e($section); ?>
+
                                                                 </h5>
                                                                 <div class="space-y-2">
-                                                                    @foreach($items as $item)
+                                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
                                                                         <div
                                                                             class="flex items-center justify-between rounded-lg border border-red-100 bg-red-50/30 p-3 opacity-75 grayscale-[0.3]">
                                                                             <div class="pr-4">
                                                                                 <p
                                                                                     class="font-medium text-slate-900 line-through decoration-red-500/50">
-                                                                                    {{ $item->name }}
+                                                                                    <?php echo e($item->name); ?>
+
                                                                                 </p>
                                                                                 <div class="mt-1 text-xs text-slate-500">
-                                                                                    {{ $item->quantity }} &times;
-                                                                                    {{ number_format($item->unit_price, 2) }}
+                                                                                    <?php echo e($item->quantity); ?> &times;
+                                                                                    <?php echo e(number_format($item->unit_price, 2)); ?>
+
                                                                                 </div>
                                                                             </div>
                                                                             <div class="text-right">
                                                                                 <p class="font-bold text-red-700 font-mono">
-                                                                                    -{{ number_format($item->total, 2) }}</p>
+                                                                                    -<?php echo e(number_format($item->total, 2)); ?></p>
                                                                             </div>
                                                                         </div>
-                                                                    @endforeach
+                                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                                 </div>
                                                             </div>
-                                                        @endforeach
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                                                     </div>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
                                             </div>
                                         </div>
@@ -2413,46 +2519,46 @@ $totalsPayload = [
                         </div>
                     </template>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <!-- History / Versions -->
-            @if($allVersions->count() > 1)
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($allVersions->count() > 1): ?>
                 <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5">
                     <h3 class="text-sm font-semibold text-slate-900 mb-3">Version History</h3>
                     <div class="space-y-2">
-                        @foreach($allVersions as $ver)
-                            <a href="{{ route('estimates.show', $ver) }}"
-                                class="flex items-center justify-between p-2 rounded-md hover:bg-slate-50 {{ $ver->id === $estimate->id ? 'bg-indigo-50 ring-1 ring-indigo-200' : '' }}">
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::openLoop(); ?><?php endif; ?><?php $__currentLoopData = $allVersions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $ver): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::startLoop($loop->index); ?><?php endif; ?>
+                            <a href="<?php echo e(route('estimates.show', $ver)); ?>"
+                                class="flex items-center justify-between p-2 rounded-md hover:bg-slate-50 <?php echo e($ver->id === $estimate->id ? 'bg-indigo-50 ring-1 ring-indigo-200' : ''); ?>">
                                 <div class="text-sm">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-medium text-slate-900">v{{ $ver->version }}</span>
-                                        <span class="text-xs text-slate-500">by {{ $ver->creator->name ?? 'System' }}</span>
+                                        <span class="font-medium text-slate-900">v<?php echo e($ver->version); ?></span>
+                                        <span class="text-xs text-slate-500">by <?php echo e($ver->creator->name ?? 'System'); ?></span>
                                     </div>
                                     <span
-                                        class="text-slate-500 text-xs block">{{ $ver->created_at->format('M d, Y g:i A') }}</span>
+                                        class="text-slate-500 text-xs block"><?php echo e($ver->created_at->format('M d, Y g:i A')); ?></span>
                                 </div>
-                                @if($ver->is_current_version) <span
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($ver->is_current_version): ?> <span
                                     class="text-[10px] uppercase font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Current</span>
-                                @endif
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </a>
-                        @endforeach
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::endLoop(); ?><?php endif; ?><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php \Livewire\Features\SupportCompiledWireKeys\SupportCompiledWireKeys::closeLoop(); ?><?php endif; ?>
                     </div>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
             <!-- Signature -->
-            @if($estimate->signed_at)
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($estimate->signed_at): ?>
                 <div class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5">
                     <h3 class="text-sm font-semibold text-slate-900 mb-3">Signed by Client</h3>
                     <div class="p-4 bg-slate-50 border border-slate-100 rounded-lg">
-                        <img src="{{ $estimate->signature }}" alt="Signature" class="h-12 mb-2 mix-blend-multiply">
+                        <img src="<?php echo e($estimate->signature); ?>" alt="Signature" class="h-12 mb-2 mix-blend-multiply">
                         <div class="text-xs text-slate-500">
-                            <div>Signed: {{ $estimate->signed_at->format('M d, Y h:i A') }}</div>
-                            <div>IP: {{ $estimate->signer_ip }}</div>
+                            <div>Signed: <?php echo e($estimate->signed_at->format('M d, Y h:i A')); ?></div>
+                            <div>IP: <?php echo e($estimate->signer_ip); ?></div>
                         </div>
                     </div>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
         </div>
     </div>

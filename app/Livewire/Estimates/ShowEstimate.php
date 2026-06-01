@@ -541,7 +541,8 @@ class ShowEstimate extends Component
     public function render()
     {
         return view('livewire.estimates.show-estimate', [
-            'policy' => $this->policy
+            'policy' => $this->policy,
+            'isApproved' => in_array($this->estimate->estimate_status, ['approved', 'accepted']) || $this->estimate->approval_status === 'approved'
         ]);
     }
 }

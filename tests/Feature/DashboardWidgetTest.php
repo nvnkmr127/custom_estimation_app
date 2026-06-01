@@ -33,7 +33,7 @@ class DashboardWidgetTest extends TestCase
         // Cold Lead: Sent, No Engagement
         $coldClient = Client::factory()->create(['name' => 'Cold Client']);
         $coldEstimate = Estimate::factory()->create([
-            'created_by' => $user->id,
+            'created_by' => User::factory()->create()->id,
             'client_id' => $coldClient->id,
             'status' => 'sent',
             'estimate_status' => Estimate::EST_STATUS_SENT,
