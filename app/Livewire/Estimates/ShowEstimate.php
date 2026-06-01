@@ -126,13 +126,15 @@ class ShowEstimate extends Component
 
             // Version Awareness Logic — check for both regular approvers and admin overrides
             if ($this->userApproval instanceof EstimateApproval) {
-                if ($this->userApproval->snapshot_version !== (int)$this->estimate->lock_version) {
+                if ($this->userApproval->snapshot_version !== null &&
+                    $this->userApproval->snapshot_version !== (int)$this->estimate->lock_version) {
                     $this->versionMismatch = true;
                 }
             } elseif ($this->adminApprovalOverride) {
                 // Admin override: warn if ANY pending approval for this estimate has a version mismatch
                 $hasMismatch = EstimateApproval::where('estimate_id', $this->estimate->id)
                     ->where('status', 'pending')
+                    ->whereNotNull('snapshot_version')
                     ->where('snapshot_version', '!=', (int)$this->estimate->lock_version)
                     ->exists();
                 if ($hasMismatch) {
@@ -279,8 +281,7 @@ class ShowEstimate extends Component
 
             DB::commit();
 
-            return redirect()->route('estimates.edit', $newEstimate)
-                ->with('success', 'New version created! You are now editing version ' . $newEstimate->version);
+            $this->redirect(route('estimates.edit', $newEstimate));
         } catch (\Exception $e) {
             DB::rollBack();
             \Illuminate\Support\Facades\Log::error('Failed to create version: ' . $e->getMessage(), [
@@ -484,6 +485,11 @@ class ShowEstimate extends Component
             DB::commit();
             \Log::info("Livewire: addItemComment success");
             $this->refreshEstimate();
+            $this->dispatch('estimateUpdated');
+            session()->flash('success', 'Comment added.');
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            DB::rollBack();
+            session()->flash('error', 'You are not authorized to comment on this estimate.');
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error("Livewire: addItemComment failed", ['error' => $e->getMessage()]);
@@ -537,37 +543,24 @@ class ShowEstimate extends Component
     public function toggleCommentStatus($commentId, $currentStatus)
     {
         try {
-<<<<<<< HEAD
-            $this->authorize('update', $this->estimate);
-
-            $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
-
-            $comment = \App\Models\EstimateComment::where('id', $commentId)
-                ->where('estimate_id', $this->estimate->id)
-                ->firstOrFail();
-
-=======
-            $comment = \App\Models\EstimateComment::findOrFail($commentId);
-
-            // Ensure the comment belongs to this estimate
-            if ((int)$comment->estimate_id !== (int)$this->estimate->id) {
-                throw new \Illuminate\Auth\Access\AuthorizationException("This comment does not belong to this estimate.");
+            if (!in_array($currentStatus, ['pending', 'clarified'])) {
+                throw new \InvalidArgumentException('Invalid comment status.');
             }
 
-            // Check permission to update the estimate
+            $comment = \App\Models\EstimateComment::findOrFail($commentId);
+
+            if ((int)$comment->estimate_id !== (int)$this->estimate->id) {
+                throw new \Illuminate\Auth\Access\AuthorizationException('This comment does not belong to this estimate.');
+            }
+
             $this->authorize('update', $this->estimate);
 
             $newStatus = $currentStatus === 'pending' ? 'clarified' : 'pending';
->>>>>>> origin/main
             $comment->update(['status' => $newStatus]);
 
             $this->refreshEstimate();
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-<<<<<<< HEAD
-            session()->flash('error', 'You are not authorized to update this estimate.');
-=======
             session()->flash('error', $e->getMessage());
->>>>>>> origin/main
         } catch (\Exception $e) {
             \Log::error("Failed to toggle comment status", ['error' => $e->getMessage()]);
             session()->flash('error', 'Failed to update comment status: ' . $e->getMessage());

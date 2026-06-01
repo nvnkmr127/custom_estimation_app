@@ -153,7 +153,7 @@ class EstimateStateService
             Estimate::EST_STATUS_PENDING_APPROVAL => "This estimate is awaiting internal authorization. You can track progress in the timeline below.",
             Estimate::EST_STATUS_APPROVED => "Internal approval complete. You can now send this estimate to the client.",
             Estimate::EST_STATUS_SENT => "The estimate has been sent to the client. Keep an eye on the analytics for views.",
-            Estimate::EST_STATUS_ACCEPTED => "Client has accepted! You can now proceed with fulfillent.",
+            Estimate::EST_STATUS_ACCEPTED => "Client has accepted! You can now proceed with fulfillment.",
             Estimate::EST_STATUS_DECLINED => "The estimate was declined. You may want to create a new version to address feedback.",
             Estimate::EST_STATUS_EXPIRED => "This estimate has expired. You can extend the expiry or create a new version.",
             default => "Unknown state."
