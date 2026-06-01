@@ -483,21 +483,23 @@ class PortalController extends Controller
         // We use current() to only show the latest active version of each estimate family to avoid clutter
         $query = Estimate::with(['client', 'creator'])->current()->latest();
 
-        $query->where(function ($q) {
-            $q->where('created_by', auth()->id())
-                ->orWhereHas('manualFollowers', function ($f) {
-                    $f->where('user_id', auth()->id());
-                })
-                ->orWhereHas('approvals', function ($a) {
-                    $a->where('user_id', auth()->id());
-                })
-                ->orWhereIn('parent_id', function ($pq) {
-                    $pq->select('followable_id')
-                        ->from('followers')
-                        ->where('followable_type', Estimate::class)
-                        ->where('user_id', auth()->id());
-                });
-        });
+        if (!auth()->user()->isAdmin()) {
+            $query->where(function ($q) {
+                $q->where('created_by', auth()->id())
+                    ->orWhereHas('manualFollowers', function ($f) {
+                        $f->where('user_id', auth()->id());
+                    })
+                    ->orWhereHas('approvals', function ($a) {
+                        $a->where('user_id', auth()->id());
+                    })
+                    ->orWhereIn('parent_id', function ($pq) {
+                        $pq->select('followable_id')
+                            ->from('followers')
+                            ->where('followable_type', Estimate::class)
+                            ->where('user_id', auth()->id());
+                    });
+            });
+        }
 
         $estimates = $query->paginate(15);
 
