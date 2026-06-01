@@ -3,9 +3,8 @@
 namespace App\Services\Estimates;
 
 use App\Models\Estimate;
-use App\Models\EstimateApproval;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class EstimateWorkflowService
 {
@@ -65,7 +64,7 @@ class EstimateWorkflowService
                 $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_APPROVED);
 
                 // Dispatch Domain Event
-                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, auth()->id() ?? 0, 'internal'));
+                $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateApproved($estimate, Auth::user()?->id ?? 0, 'internal'));
 
                 return $estimate;
             }
@@ -84,7 +83,7 @@ class EstimateWorkflowService
             }
 
             // 8. Dispatch Domain Event (Atomic via transaction)
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSubmittedForApproval($estimate, auth()->id()));
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateSubmittedForApproval($estimate, Auth::user()?->id));
 
             // Dispatch individual approval requests
             foreach ($estimate->approvals()->where('status', 'pending')->get() as $approval) {
@@ -165,13 +164,15 @@ class EstimateWorkflowService
                 $estimate->approvals()->where('status', 'pending')->delete();
             }
 
-            if ($approval) {
-                $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalApproved(
-                    $estimate->id,
-                    $approval,
-                    $userId
-                ));
+            if (!$approval) {
+                throw new \RuntimeException('Approval workflow error: approval record missing after approve().');
             }
+
+            $this->dispatcher->dispatch(new \App\Core\Events\Approvals\ApprovalApproved(
+                $estimate->id,
+                $approval,
+                $userId
+            ));
 
             // PARALLEL LOGIC: Determine if we should move to the next step
             $shouldAdvance = false;
@@ -294,19 +295,32 @@ class EstimateWorkflowService
                 throw new \Exception("No pending approval found for this user.");
             }
 
-            $approval->update([
-                'status' => 'changes_requested',
-                'comments' => $comments,
-            ]);
+            if ($approval) {
+                $approval->update([
+                    'status' => 'changes_requested',
+                    'comments' => $comments,
+                ]);
+            } else {
+                $currentOrder = $estimate->approvals()->where('status', 'pending')->min('order')
+                    ?? ($estimate->approvalChain ? $estimate->approvalChain->steps()->min('order') : null);
 
-            // Clear all approval history so the workflow starts fresh on re-submission
-            $estimate->approvals()->delete();
+                $approval = $estimate->approvals()->create([
+                    'user_id' => $userId,
+                    'status' => 'changes_requested',
+                    'order' => $currentOrder,
+                    'comments' => $comments,
+                ]);
+            }
+
+            $estimate->approvals()
+                ->where('id', '!=', $approval->id)
+                ->delete();
 
             $this->stateService->transitionApprovalStatus($estimate, Estimate::APP_STATUS_CHANGES_REQUESTED);
             $this->stateService->transitionEstimateStatus($estimate, Estimate::EST_STATUS_DRAFT);
 
             // Dispatch Domain Event
-            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateRejected($estimate, $userId, 'Changes Requested: ' . $comments));
+            $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateChangesRequested($estimate, $userId, $comments));
 
             return $estimate;
         });

@@ -100,6 +100,7 @@ class PortalController extends Controller
         $estimate->load([
             'sections.items.comments.user',
             'sections.items.comments.replies', // Load replies for item comments
+            'sections.items.unitType',
             'comments.user',
             'comments.replies' // Load replies for estimate comments
         ]);

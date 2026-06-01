@@ -28,6 +28,8 @@ class ShowEstimate extends Component
     public $activityLogs;
     public $policy;
     public $versionMismatch = false;
+    public $familyComments;
+    public $unreadFamilyComments;
 
     protected $listeners = [
         'estimateUpdated' => 'refreshEstimate',
@@ -134,6 +136,8 @@ class ShowEstimate extends Component
             ->with(['user', 'subject'])
             ->latest()
             ->get();
+
+        $this->loadFamilyComments();
     }
 
     public function refreshStats()
@@ -165,6 +169,12 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         $this->mount($this->estimate->id);
+    }
+
+    private function loadFamilyComments(): void
+    {
+        $this->familyComments = $this->estimate->allFamilyComments()->get()->sortBy('created_at')->values();
+        $this->unreadFamilyComments = $this->familyComments->where('is_read', false)->values();
     }
 
     private function ensureNotLocked($action = 'can_edit')

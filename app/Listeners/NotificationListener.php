@@ -26,7 +26,7 @@ class NotificationListener implements ShouldQueue
      */
     public $backoff = 30;
 
-    protected $decisionService;
+    protected \App\Services\Notifications\NotificationDecisionService $decisionService;
 
     /**
      * Create the event listener.
@@ -84,6 +84,7 @@ class NotificationListener implements ShouldQueue
             'approval.requested' => 'New Approval Request',
             'estimate.approved' => 'Estimate Approved',
             'estimate.rejected' => 'Estimate Rejected/Changes Requested',
+            'estimate.request_changes' => 'Changes Requested',
             'comment.added' => 'New Comment on Estimate',
             'estimate.viewed' => 'Estimate Viewed by Client',
             'user.registered' => 'Welcome to the Platform',

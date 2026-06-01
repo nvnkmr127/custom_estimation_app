@@ -1,13 +1,17 @@
+<div id="estimate-payload" hidden data-estimate='@json($estimate)' data-totals='@json([
+    "subtotal" => $estimate->subtotal ?? 0,
+    "totalTax" => $estimate->total_tax ?? 0,
+    "discount" => $estimate->discount_total ?? 0,
+    "grandTotal" => $estimate->grand_total ?? 0,
+])'></div>
+
 @push('scripts')
     <script>
-        // Defensive initialization to prevent ReferenceErrors - Moved to top
-        window.estimate = @json($estimate);
-        window.totals = {
-            subtotal: {{ $estimate->subtotal ?? 0 }},
-            totalTax: {{ $estimate->total_tax ?? 0 }},
-            discount: {{ $estimate->discount_total ?? 0 }},
-            grandTotal: {{ $estimate->grand_total ?? 0 }} 
-                                                        };
+        const payloadEl = document.getElementById('estimate-payload');
+        if (payloadEl) {
+            try { window.estimate = JSON.parse(payloadEl.dataset.estimate || 'null'); } catch (e) { window.estimate = null; }
+            try { window.totals = JSON.parse(payloadEl.dataset.totals || '{}'); } catch (e) { window.totals = {}; }
+        }
 
         const defaults = {
             hasCustomItems: () => false,
@@ -49,7 +53,7 @@
     configModal: { isOpen: false, product: null, options: {}, basePrice: 0 }
 }" @create-version.window="$wire.createVersion()">
     @php
-        $isApproved = in_array($estimate->status, ['approved', 'accepted']) || $estimate->approval_status === 'approved';
+        $isApproved = in_array($estimate->estimate_status, ['approved', 'accepted']) || $estimate->approval_status === 'approved';
     @endphp
 
 
@@ -158,7 +162,7 @@
         @php
             $steps = $estimate->approvalChain?->steps ?? collect();
             $totalPoints = 2 + $steps->count(); // Draft + Steps + Final
-            $currentStatus = $estimate->status;
+            $currentStatus = $estimate->estimate_status;
             
             // Calculate progress index
             $activeIndex = 0;
@@ -434,14 +438,6 @@
                         <span wire:loading wire:target="discard">Discarding...</span>
                     </button>
                 @endif
-            @endif
-
-            <!-- Approved Actions -->
-            @if($estimate->status === 'approved')
-                <button type="button" wire:click="sendToClient"
-                    class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                    Send to Client
-                </button>
             @endif
 
             <!-- Pending Approval Actions (For Approver or Admin) -->
@@ -748,7 +744,7 @@
                             <div class="px-4 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status
                                 Override</div>
                             @foreach(['draft', 'sent', 'accepted', 'declined', 'expired'] as $status)
-                                @if($estimate->status !== $status)
+                                @if($estimate->estimate_status !== $status)
                                     <button type="button" wire:click="markAs('{{ $status }}')"
                                         class="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
                                         Mark as {{ ucfirst($status) }}
@@ -1379,10 +1375,6 @@
 
 
             <!-- Comments Section -->
-            @php
-                $familyComments = $estimate->allFamilyComments()->get()->sortBy('created_at');
-                $unreadFamilyComments = $familyComments->where('is_read', false);
-            @endphp
             <div x-data="{ showCommentsModal: {{ $unreadFamilyComments->isNotEmpty() ? 'true' : 'false' }} }"
                 class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mb-6">
                 <div class="flex items-center justify-between mb-3">

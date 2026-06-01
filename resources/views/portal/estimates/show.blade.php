@@ -637,9 +637,24 @@
                                                 </div>
 
                                                 <!-- Unit Type Badge if exists -->
-                                                @if(!$section->is_package && $item->unit_type)
+                                                @php
+                                                    $unitBadge = null;
+                                                    if (!$section->is_package) {
+                                                        $mainType = $item->unitType?->name;
+                                                        $unit = $item->unit_type;
+
+                                                        if ($mainType && $unit) {
+                                                            $unitBadge = "{$mainType} / {$unit}";
+                                                        } elseif ($mainType) {
+                                                            $unitBadge = $mainType;
+                                                        } elseif ($unit) {
+                                                            $unitBadge = $unit;
+                                                        }
+                                                    }
+                                                @endphp
+                                                @if($unitBadge)
                                                     <span
-                                                        class="inline-flex mt-2 px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-500 rounded uppercase tracking-wide">{{ $item->unit_type }}</span>
+                                                        class="inline-flex mt-2 px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-500 rounded uppercase tracking-wide">{{ $unitBadge }}</span>
                                                 @endif
                                             </div>
 
