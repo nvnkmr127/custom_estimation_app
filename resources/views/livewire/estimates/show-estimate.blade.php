@@ -1,9 +1,10 @@
-<div id="estimate-payload" hidden data-estimate='@json($estimate)' data-totals='@json([
-    "subtotal" => $estimate->subtotal ?? 0,
-    "totalTax" => $estimate->total_tax ?? 0,
-    "discount" => $estimate->discount_total ?? 0,
-    "grandTotal" => $estimate->grand_total ?? 0,
-])'></div>
+@php($totalsPayload = [
+    'subtotal' => $estimate->subtotal ?? 0,
+    'totalTax' => $estimate->total_tax ?? 0,
+    'discount' => $estimate->discount_total ?? 0,
+    'grandTotal' => $estimate->grand_total ?? 0,
+])
+<div id="estimate-payload" hidden data-estimate='@json($estimate)' data-totals='@json($totalsPayload)'></div>
 
 @push('scripts')
     <script>
