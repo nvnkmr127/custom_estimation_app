@@ -18,13 +18,13 @@ class ApprovalWorkflowTest extends TestCase
     public function test_estimate_can_be_submitted_for_approval()
     {
         $user = User::factory()->create(['role' => 'estimator']);
-        $approver = User::factory()->create(['role' => 'sales_manager']);
+        $approver = User::factory()->create(['role' => 'estimator_manager']);
 
         $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD', 'is_active' => true]);
         ApprovalChainStep::create([
             'approval_chain_id' => $chain->id,
             'user_id' => $approver->id,
-            'role' => 'sales_manager',
+            'role' => 'estimator_manager',
             'order' => 1,
         ]);
 
@@ -63,12 +63,12 @@ class ApprovalWorkflowTest extends TestCase
 
     public function test_approver_can_request_changes()
     {
-        $approver = User::factory()->create(['role' => 'sales_manager']);
+        $approver = User::factory()->create(['role' => 'estimator_manager']);
         $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD', 'is_active' => true]);
         ApprovalChainStep::create([
             'approval_chain_id' => $chain->id,
             'user_id' => $approver->id,
-            'role' => 'sales_manager',
+            'role' => 'estimator_manager',
             'order' => 1,
         ]);
 
@@ -105,12 +105,12 @@ class ApprovalWorkflowTest extends TestCase
 
     public function test_approver_cannot_approve_mandatory_checklist_incomplete()
     {
-        $approver = User::factory()->create(['role' => 'sales_manager']);
+        $approver = User::factory()->create(['role' => 'estimator_manager']);
         $chain = ApprovalChain::create(['name' => 'Test Chain', 'currency' => 'USD', 'is_active' => true]);
         ApprovalChainStep::create([
             'approval_chain_id' => $chain->id,
             'user_id' => $approver->id,
-            'role' => 'sales_manager',
+            'role' => 'estimator_manager',
             'order' => 1,
         ]);
 

@@ -35,7 +35,7 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
         @auth
-            @if(auth()->user()->isAdmin() || auth()->user()->hasRole(['sales_manager', 'sales']))
+            @if(auth()->user()->isAdmin() || auth()->user()->hasRole(['estimator_manager', 'estimator']))
                 <!-- Internal Preview Mode Indicator -->
                 <div class="mb-6 bg-indigo-600 rounded-2xl p-4 shadow-lg shadow-indigo-500/20 border border-indigo-500 flex items-center justify-between overflow-hidden relative group">
                     <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity"></div>

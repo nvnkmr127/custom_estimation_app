@@ -443,7 +443,7 @@ $totalsPayload = [
             @endif
 
             <!-- Pending Approval Actions (For Approver or Admin) -->
-            @if(($policy['can_approve'] ?? false) && $userApproval)
+            @if(($policy['can_approve'] ?? false) && ($userApproval || $adminApprovalOverride))
                 @if($policy['can_approve'] || auth()->user()->hasPermission('approve_estimates'))
                     <!-- Checklist Logic embedded in Approve -->
                     <!-- Logic copied from original -->

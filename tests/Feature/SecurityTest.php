@@ -14,7 +14,7 @@ class SecurityTest extends TestCase
     /** @test */
     public function non_admin_cannot_access_settings()
     {
-        $user = User::factory()->create(['role' => 'sales']);
+        $user = User::factory()->create(['role' => 'estimator']);
         $this->actingAs($user);
 
         $response = $this->get(route('settings.edit'));

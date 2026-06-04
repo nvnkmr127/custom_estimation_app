@@ -62,4 +62,21 @@ class EstimateShowRefactorTest extends TestCase
         $response->assertSee('Preview Estimate');
         $response->assertSee('EST-PREVIEW');
     }
+
+    public function test_estimate_show_page_denies_unauthorized_user()
+    {
+        $creator = User::factory()->create(['role' => 'estimator']);
+        $otherUser = User::factory()->create(['role' => 'estimator']);
+
+        $estimate = Estimate::factory()->create([
+            'estimate_number' => 'EST-SECRET',
+            'title' => 'Secret Estimate',
+            'created_by' => $creator->id,
+            'client_id' => 1
+        ]);
+
+        $response = $this->actingAs($otherUser)->get(route('estimates.show', $estimate));
+
+        $response->assertStatus(403);
+    }
 }

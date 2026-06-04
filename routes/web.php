@@ -35,7 +35,7 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     // Internal Team Preview (Restricted to logged-in staff)
     Route::get('/preview/estimates', [App\Http\Controllers\PortalController::class, 'previewList'])
         ->name('preview-list')
-        ->middleware(['auth', 'role:super_admin,estimator_admin,sales_manager,sales']);
+        ->middleware(['auth', 'role:super_admin,estimator_admin,estimator_manager,estimator']);
 });
 
 // Tracking (Public)
@@ -171,14 +171,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 
-        // User Management (Super Admin Only)
-        Route::resource('users', App\Http\Controllers\UserController::class);
-        Route::get('/permissions', [App\Http\Controllers\PermissionController::class, 'index'])->name('permissions.index');
-        Route::get('/permissions/{role}/edit', [App\Http\Controllers\PermissionController::class, 'edit'])->name('permissions.edit');
-        Route::put('/permissions/{role}', [App\Http\Controllers\PermissionController::class, 'update'])->name('permissions.update');
-
-
-
         // Coupon Codes
         Route::resource('coupons', App\Http\Controllers\CouponCodeController::class);
         Route::post('coupons/validate-code', [App\Http\Controllers\CouponCodeController::class, 'verify'])->name('coupons.validate');
@@ -250,6 +242,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Approval Chains (Super Admin Only)
     Route::middleware(['role:super_admin'])->group(function () {
+        // User Management (Super Admin Only)
+        Route::get('users/trash', [App\Http\Controllers\UserController::class, 'trash'])->name('users.trash');
+        Route::post('users/{id}/restore', [App\Http\Controllers\UserController::class, 'restore'])->name('users.restore');
+        Route::resource('users', App\Http\Controllers\UserController::class);
+        Route::get('/permissions', [App\Http\Controllers\PermissionController::class, 'index'])->name('permissions.index');
+        Route::get('/permissions/{role}/edit', [App\Http\Controllers\PermissionController::class, 'edit'])->name('permissions.edit');
+        Route::put('/permissions/{role}', [App\Http\Controllers\PermissionController::class, 'update'])->name('permissions.update');
+
         Route::resource('approval-chains', App\Http\Controllers\ApprovalChainController::class);
         Route::post('approval-chains/{approvalChain}/set-default', [App\Http\Controllers\ApprovalChainController::class, 'setDefault'])->name('approval-chains.set-default');
 

@@ -321,7 +321,7 @@ class PortalController extends Controller
         $followers = $estimate->followers;
         
         // Also ensure all admins are notified of client comments
-        $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'sales_manager'])->get();
+        $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'estimator_manager'])->get();
         $followers = $followers->merge($admins)->unique('id');
 
         foreach ($followers as $follower) {
@@ -395,7 +395,7 @@ class PortalController extends Controller
 
         // Notify followers/admins
         $followers = $estimate->followers;
-        $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'sales_manager'])->get();
+        $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'estimator_manager'])->get();
         $followers = $followers->merge($admins)->unique('id');
 
         foreach ($followers as $follower) {
@@ -471,7 +471,7 @@ class PortalController extends Controller
     public function previewList(Request $request)
     {
         // 1. Double check authentication (Middleware should handle this, but let's be explicit for security)
-        if (!auth()->check() || !auth()->user()->isAdmin() && !auth()->user()->hasRole(['sales_manager', 'sales'])) {
+        if (!auth()->check() || !auth()->user()->isAdmin() && !auth()->user()->hasRole(['estimator_manager', 'estimator'])) {
             \App\Models\ActivityLog::log('security_breach_attempt', null, "Unauthorized attempt to access portal estimate list by user: " . (auth()->user()->email ?? 'Guest'));
             abort(403, 'Unauthorized access.');
         }

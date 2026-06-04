@@ -19,7 +19,7 @@ class CommentController extends Controller
      */
     public function store(Request $request, Estimate $estimate)
     {
-        $this->authorize('view', $estimate);
+        $this->authorize('update', $estimate);
 
         $validated = $request->validate([
             'commentable_type' => 'required|string',
@@ -198,7 +198,7 @@ class CommentController extends Controller
     private function notifyTeam($estimate, $comment)
     {
         $recipients = $estimate->followers
-            ->merge(\App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'sales_manager'])->get())
+            ->merge(\App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'estimator_manager'])->get())
             ->unique('id');
 
         $recipients->each(fn ($user) => $user->notify(new \App\Notifications\EstimateCommentNotification($comment, $estimate)));

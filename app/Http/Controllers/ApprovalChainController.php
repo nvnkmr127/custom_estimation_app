@@ -28,7 +28,7 @@ class ApprovalChainController extends Controller
      */
     public function create()
     {
-        $users = User::whereIn('role', ['super_admin', 'estimator_admin', 'sales_manager'])
+        $users = User::whereIn('role', ['super_admin', 'estimator_admin', 'estimator_manager'])
             ->orderBy('name')
             ->get();
 
@@ -93,7 +93,7 @@ class ApprovalChainController extends Controller
     public function edit(ApprovalChain $approvalChain)
     {
         $approvalChain->load('steps.user');
-        $users = User::whereIn('role', ['super_admin', 'estimator_admin', 'sales_manager'])
+        $users = User::whereIn('role', ['super_admin', 'estimator_admin', 'estimator_manager'])
             ->orderBy('name')
             ->get();
 

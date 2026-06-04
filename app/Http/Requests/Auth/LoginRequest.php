@@ -41,6 +41,13 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
+        $user = \App\Models\User::where('email', $this->input('email'))->first();
+        if ($user && $user->source === 'sso') {
+            throw ValidationException::withMessages([
+                'email' => __('Please log in using the SSO option.'),
+            ]);
+        }
+
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 

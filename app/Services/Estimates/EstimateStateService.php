@@ -134,7 +134,7 @@ class EstimateStateService
         $isPowerUser = $user->hasRole(['super_admin', 'admin', 'estimator_admin']);
 
         // 2. Draft Phase
-        $canEdit = $rules['can_edit'] && ($isPowerUser || $user->id === $estimate->created_by);
+        $canEdit = $rules['can_edit'] && $estimate->userCanEdit($user);
         
         // 3. Approval Phase
         // can_approve is true if state allows it AND user is either an admin OR explicitly assigned to a pending approval

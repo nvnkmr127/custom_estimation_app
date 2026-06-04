@@ -60,6 +60,8 @@ class ShowEstimate extends Component
             'comments.replies.user'
         ])->findOrFail($estimateId);
 
+        \Illuminate\Support\Facades\Gate::authorize('view', $this->estimate);
+
         // Initialize stats
         $this->viewCount = $this->estimate->view_count;
         $this->lastActivity = $this->estimate->updated_at;
@@ -166,6 +168,10 @@ class ShowEstimate extends Component
     public function toggleChecklist($checklistId, $completed)
     {
         try {
+            if (!($this->policy['can_approve'] ?? false)) {
+                throw new \Exception("You are not authorized to toggle checklist items for this estimate.");
+            }
+
             app(\App\Http\Controllers\ApprovalController::class)
                 ->toggleChecklistItem(request()->merge([
                     'checklist_id' => $checklistId,
@@ -272,7 +278,7 @@ class ShowEstimate extends Component
     {
         \Illuminate\Support\Facades\Log::info('createVersion triggered', ['estimate_id' => $this->estimate->id]);
         try {
-            $this->ensureNotLocked();
+            $this->authorize('update', $this->estimate);
             DB::beginTransaction();
 
             $newEstimate = $estimateService->createVersion($this->estimate);
@@ -294,7 +300,7 @@ class ShowEstimate extends Component
     public function markAs($status)
     {
         try {
-            $this->ensureNotLocked();
+            $this->authorize('update', $this->estimate);
             DB::beginTransaction();
 
             // Call the controller method for status change
@@ -374,7 +380,7 @@ class ShowEstimate extends Component
     public function revertToDraft()
     {
         try {
-            $this->ensureNotLocked();
+            $this->authorize('revertToDraft', $this->estimate);
             $response = app()->call([app(\App\Http\Controllers\EstimateController::class), 'revertToDraft'], ['estimate' => $this->estimate]);
             if ($response instanceof RedirectResponse)
                 return $response;

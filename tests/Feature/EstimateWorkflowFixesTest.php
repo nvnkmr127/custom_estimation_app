@@ -76,7 +76,7 @@ class EstimateWorkflowFixesTest extends TestCase
     public function wrong_exception_caught_fixed_in_add_comment()
     {
         $owner = User::factory()->create();
-        $otherUser = User::factory()->create();
+        $viewOnlyUser = User::factory()->create();
         $client = Client::factory()->create();
         
         $estimate = Estimate::factory()->create([
@@ -84,9 +84,15 @@ class EstimateWorkflowFixesTest extends TestCase
             'client_id' => $client->id,
         ]);
 
-        // When unauthorized user tries to add a comment, the exception is caught,
+        // Add view-only follower so they can mount, but cannot edit/comment
+        $estimate->manualFollowers()->create([
+            'user_id' => $viewOnlyUser->id,
+            'permissions' => ['view'],
+        ]);
+
+        // When view-only user tries to add a comment, the exception is caught,
         // session has 'error' flash message, and database does not get the comment.
-        Livewire::actingAs($otherUser)
+        Livewire::actingAs($viewOnlyUser)
             ->test(ShowEstimate::class, ['estimate' => $estimate])
             ->call('addComment', 'Some comment');
 

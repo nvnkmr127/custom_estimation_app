@@ -43,6 +43,8 @@ class ApprovalController extends Controller
      */
     public function submit(Estimate $estimate)
     {
+        $this->authorize('update', $estimate);
+
         try {
             \Log::info("ApprovalController@submit called for Estimate ID: {$estimate->id} by User ID: " . auth()->id());
 
@@ -66,6 +68,11 @@ class ApprovalController extends Controller
      */
     public function approve(Request $request, Estimate $estimate)
     {
+        $policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($estimate);
+        if (!($policy['can_approve'] ?? false)) {
+            abort(403, 'Unauthorized.');
+        }
+
         try {
             $user = auth()->user();
             $estimate = $this->workflowService->approve($estimate, $user->id, $request->input('comments'));
@@ -81,6 +88,11 @@ class ApprovalController extends Controller
      */
     public function reject(Request $request, Estimate $estimate)
     {
+        $policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($estimate);
+        if (!($policy['can_approve'] ?? false)) {
+            abort(403, 'Unauthorized.');
+        }
+
         try {
             $user = auth()->user();
 
@@ -103,6 +115,11 @@ class ApprovalController extends Controller
      */
     public function requestChanges(Request $request, Estimate $estimate)
     {
+        $policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($estimate);
+        if (!($policy['can_approve'] ?? false)) {
+            abort(403, 'Unauthorized.');
+        }
+
         try {
             $user = auth()->user();
             $validated = $request->validate([
@@ -123,6 +140,14 @@ class ApprovalController extends Controller
     public function toggleChecklistItem(Request $request, Estimate $estimate)
     {
         try {
+            $policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($estimate);
+            if (!($policy['can_approve'] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not authorized to toggle checklist items for this estimate.'
+                ], 403);
+            }
+
             $request->validate([
                 'checklist_id' => 'required|exists:approval_checklists,id',
                 'completed' => 'required|boolean',

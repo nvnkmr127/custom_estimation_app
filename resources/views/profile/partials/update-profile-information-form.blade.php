@@ -17,6 +17,12 @@
         @csrf
         @method('patch')
 
+        @if($user->source === 'sso')
+            <div class="p-4 text-sm text-amber-800 rounded-lg bg-amber-50" role="alert">
+                <span class="font-medium">{{ __('SSO Managed Account:') }}</span> {{ __('Your name and email address are managed by your Identity Provider (SSO) and cannot be updated locally.') }}
+            </div>
+        @endif
+
         <div class="flex items-center space-x-6">
             <div class="shrink-0">
                 @if($user->avatar)
@@ -44,13 +50,13 @@
         <div>
             <x-input-label for="name" :value="__('Name')" />
             <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)"
-                required autofocus autocomplete="name" />
+                required autofocus autocomplete="name" :disabled="$user->source === 'sso'" />
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
+            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" :disabled="$user->source === 'sso'" />
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && !$user->hasVerifiedEmail())

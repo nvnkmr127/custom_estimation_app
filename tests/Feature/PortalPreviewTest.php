@@ -16,8 +16,8 @@ class PortalPreviewTest extends TestCase
     public function administrators_can_view_all_estimates_on_the_portal_preview_list()
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $salesperson = User::factory()->create(['role' => 'sales']);
-        $otherUser = User::factory()->create(['role' => 'sales']);
+        $salesperson = User::factory()->create(['role' => 'estimator']);
+        $otherUser = User::factory()->create(['role' => 'estimator']);
 
         $clientA = Client::factory()->create(['name' => 'Sales Client']);
         $clientB = Client::factory()->create(['name' => 'Other Client']);
@@ -44,8 +44,8 @@ class PortalPreviewTest extends TestCase
     /** @test */
     public function salespersons_can_only_view_estimates_they_are_associated_with()
     {
-        $salesperson = User::factory()->create(['role' => 'sales']);
-        $otherUser = User::factory()->create(['role' => 'sales']);
+        $salesperson = User::factory()->create(['role' => 'estimator']);
+        $otherUser = User::factory()->create(['role' => 'estimator']);
 
         $clientA = Client::factory()->create(['name' => 'My Sales Client']);
         $clientB = Client::factory()->create(['name' => 'Not My Client']);

@@ -36,6 +36,13 @@ class NewPasswordController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $user = User::where('email', $request->email)->first();
+        if ($user && $user->source === 'sso') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'email' => __('Password reset is managed by your SSO provider.'),
+            ]);
+        }
+
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
         // database. Otherwise we will parse the error and return the response.

@@ -40,12 +40,12 @@ class ApprovalChainSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        $salesManager = User::where('role', 'sales_manager')->first();
+        $salesManager = User::where('role', 'estimator_manager')->first();
 
         if ($salesManager) {
             ApprovalChainStep::create([
                 'approval_chain_id' => $twoStepChain->id,
-                'role' => 'sales_manager',
+                'role' => 'estimator_manager',
                 'user_id' => $salesManager->id,
                 'order' => 1,
             ]);

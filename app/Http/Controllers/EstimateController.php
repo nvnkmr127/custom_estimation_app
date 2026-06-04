@@ -525,6 +525,8 @@ class EstimateController extends Controller
      */
     public function createVersion(Estimate $estimate)
     {
+        $this->authorize('update', $estimate);
+
         $newEstimate = $this->estimateService->createVersion($estimate);
 
         return redirect()->route('estimates.edit', $newEstimate)
@@ -1169,6 +1171,8 @@ class EstimateController extends Controller
      */
     public function restoreHistory(Estimate $estimate)
     {
+        $this->authorize('update', $estimate);
+
         $id = $estimate->id;
         
         $itemTimestamps = \App\Models\EstimateItem::onlyTrashed()
@@ -1221,6 +1225,8 @@ class EstimateController extends Controller
      */
     public function restoreSession(\Illuminate\Http\Request $request, Estimate $estimate)
     {
+        $this->authorize('update', $estimate);
+
         $timestamp = $request->input('timestamp');
         if (!$timestamp) return response()->json(['error' => 'Missing timestamp'], 400);
 

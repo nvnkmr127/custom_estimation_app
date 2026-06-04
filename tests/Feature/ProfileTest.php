@@ -97,4 +97,80 @@ class ProfileTest extends TestCase
 
         $this->assertNotNull($user->fresh());
     }
+
+    public function test_sso_user_email_and_name_cannot_be_updated_locally(): void
+    {
+        $user = User::factory()->create([
+            'source' => 'sso',
+            'name' => 'Original Name',
+            'email' => 'original@example.com',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/profile', [
+                'name' => 'New Name',
+                'email' => 'new@example.com',
+            ]);
+
+        $response->assertSessionHasNoErrors()->assertRedirect('/profile');
+
+        $user->refresh();
+        $this->assertSame('Original Name', $user->name);
+        $this->assertSame('original@example.com', $user->email);
+    }
+
+    public function test_sso_user_can_delete_their_account_without_password(): void
+    {
+        $user = User::factory()->create([
+            'source' => 'sso',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->delete('/profile');
+
+        $response->assertSessionHasNoErrors()->assertRedirect('/');
+
+        $this->assertGuest();
+        $this->assertTrue($user->fresh()->trashed());
+    }
+
+    public function test_sso_user_cannot_update_their_password(): void
+    {
+        $user = User::factory()->create([
+            'source' => 'sso',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->put('/password', [
+                'current_password' => 'password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_sso_user_deletion_creates_audit_log(): void
+    {
+        $user = User::factory()->create([
+            'source' => 'sso',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->delete('/profile');
+
+        $response->assertRedirect('/');
+
+        $this->assertDatabaseHas('activity_logs', [
+            'user_id' => $user->id,
+            'action' => 'user_self_deleted',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
+        ]);
+    }
 }

@@ -22,10 +22,10 @@
                             <div class="flex gap-1">
                                 <a href="{{ route('dev.login') }}" class="px-2 py-1 bg-amber-200/50 hover:bg-amber-200 text-amber-800 rounded text-[9px] font-black uppercase tracking-tighter transition-colors">Admin</a>
                                 @php
-                                    $salesUser = \App\Models\User::where('role', 'sales')->first();
+                                    $salesUser = \App\Models\User::where('role', 'estimator')->first();
                                 @endphp
                                 @if($salesUser)
-                                    <a href="{{ route('dev.login', $salesUser->id) }}" class="px-2 py-1 bg-amber-200/50 hover:bg-amber-200 text-amber-800 rounded text-[9px] font-black uppercase tracking-tighter transition-colors">Sales</a>
+                                    <a href="{{ route('dev.login', $salesUser->id) }}" class="px-2 py-1 bg-amber-200/50 hover:bg-amber-200 text-amber-800 rounded text-[9px] font-black uppercase tracking-tighter transition-colors">Estimator</a>
                                 @endif
                             </div>
                         </div>

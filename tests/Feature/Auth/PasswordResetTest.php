@@ -70,4 +70,34 @@ class PasswordResetTest extends TestCase
             return true;
         });
     }
+
+    public function test_sso_user_cannot_request_reset_password_link(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create([
+            'source' => 'sso',
+        ]);
+
+        $response = $this->post('/forgot-password', ['email' => $user->email]);
+
+        $response->assertSessionHasErrors('email');
+        Notification::assertNotSentTo($user, ResetPassword::class);
+    }
+
+    public function test_sso_user_cannot_reset_password_with_token(): void
+    {
+        $user = User::factory()->create([
+            'source' => 'sso',
+        ]);
+
+        $response = $this->post('/reset-password', [
+            'token' => 'some-valid-token',
+            'email' => $user->email,
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+    }
 }

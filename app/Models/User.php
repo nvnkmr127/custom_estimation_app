@@ -53,6 +53,20 @@ class User extends Authenticatable
     }
 
     /**
+     * Hook into model events.
+     */
+    protected static function booted()
+    {
+        static::deleting(function ($user) {
+            // Append timestamp to email if soft-deleting
+            if (method_exists($user, 'isForceDeleting') && !$user->isForceDeleting()) {
+                $user->email = $user->email . '.deleted.' . time();
+                $user->save();
+            }
+        });
+    }
+
+    /**
      * Helper to check role.
      */
     public function hasRole(string|array $role): bool
@@ -133,8 +147,8 @@ class User extends Authenticatable
         $styles = [
             'super_admin' => 'bg-purple-50 text-purple-700 ring-purple-700/10',
             'estimator_admin' => 'bg-indigo-50 text-indigo-700 ring-indigo-700/10',
-            'sales_manager' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
-            'sales' => 'bg-slate-100 text-slate-700 ring-slate-600/20',
+            'estimator_manager' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+            'estimator' => 'bg-slate-50 text-slate-700 ring-slate-600/20',
         ];
 
         return $styles[$this->role] ?? 'bg-slate-100 text-slate-600 ring-slate-500/10';

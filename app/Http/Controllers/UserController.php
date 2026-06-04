@@ -13,11 +13,26 @@ class UserController extends Controller
     /**
      * Display a listing of users.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::latest()->paginate(15);
+        $query = User::query();
 
-        return view('users.index', compact('users'));
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+
+        $users = $query->latest()->paginate(15)->withQueryString();
+        $roles = $this->getAvailableRoles();
+
+        return view('users.index', compact('users', 'roles'));
     }
 
     /**
@@ -44,10 +59,18 @@ class UserController extends Controller
             'max_discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
+        // Only Super Admin can assign a Super Admin role
+        if ($validated['role'] === 'super_admin' && !auth()->user()->hasRole('super_admin')) {
+            return back()->with('error', 'Only Super Admins can assign the Super Admin role.');
+        }
+
         $validated['password'] = Hash::make($validated['password']);
         $validated['max_discount_percentage'] = $validated['max_discount_percentage'] ?? 0;
 
-        User::create($validated);
+        $user = User::create($validated);
+
+        // Audit Log
+        \App\Models\ActivityLog::log('user_created', $user, "User {$user->name} ({$user->role}) was created by " . auth()->user()->name);
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
@@ -80,21 +103,27 @@ class UserController extends Controller
             return back()->with('error', 'You do not have permission to modify a Super Admin.');
         }
 
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'mobile_number' => ['nullable', 'string', 'max:20'],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in(array_keys(PermissionService::getRoles()))],
             'max_discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-        ]);
+        ];
+
+        // SSO users cannot change their email or password locally
+        if ($user->source !== 'sso') {
+            $rules['email'] = ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)];
+            $rules['password'] = ['nullable', 'string', 'min:8', 'confirmed'];
+        }
+
+        $validated = $request->validate($rules);
 
         // Only Super Admin can change someone to Super Admin or change a Super Admin's role
         if (($validated['role'] === 'super_admin' || $user->hasRole('super_admin')) && !auth()->user()->hasRole('super_admin')) {
             return back()->with('error', 'Only Super Admins can manage Super Admin roles.');
         }
 
-        if (!empty($validated['password'])) {
+        if ($user->source !== 'sso' && !empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);
@@ -103,6 +132,9 @@ class UserController extends Controller
         $validated['max_discount_percentage'] = $validated['max_discount_percentage'] ?? 0;
 
         $user->update($validated);
+
+        // Audit Log
+        \App\Models\ActivityLog::log('user_updated', $user, "User {$user->name} was updated by " . auth()->user()->name);
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
@@ -124,7 +156,45 @@ class UserController extends Controller
 
         $user->delete();
 
+        // Audit Log
+        \App\Models\ActivityLog::log('user_deleted', $user, "User {$user->name} was deleted by " . auth()->user()->name);
+
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Display a listing of soft-deleted users.
+     */
+    public function trash()
+    {
+        $users = User::onlyTrashed()->latest()->paginate(15);
+
+        return view('users.trash', compact('users'));
+    }
+
+    /**
+     * Restore a soft-deleted user.
+     */
+    public function restore(Request $request, $id)
+    {
+        $user = User::onlyTrashed()->findOrFail($id);
+
+        // Check if email is already taken by an active user
+        $emailClean = preg_replace('/\.deleted\.\d+$/', '', $user->email);
+        $duplicate = User::where('email', $emailClean)->first();
+
+        if ($duplicate) {
+            return back()->with('error', "Cannot restore user. The email {$emailClean} is already in use by another active user.");
+        }
+
+        // Restore email and restore user
+        $user->email = $emailClean;
+        $user->restore();
+
+        // Audit Log
+        \App\Models\ActivityLog::log('user_restored', $user, "User {$user->name} was restored by " . auth()->user()->name);
+
+        return redirect()->route('users.index')->with('success', 'User restored successfully.');
     }
 
     /**

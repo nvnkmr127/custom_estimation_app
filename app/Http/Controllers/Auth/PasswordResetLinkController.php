@@ -33,6 +33,13 @@ class PasswordResetLinkController extends Controller
             'email' => ['required', 'email'],
         ]);
 
+        $user = \App\Models\User::where('email', $request->email)->first();
+        if ($user && $user->source === 'sso') {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'email' => __('Password reset is managed by your SSO provider.'),
+            ]);
+        }
+
         // We will send the password reset link to this user. Once we have attempted
         // to send the link, we will examine the response then see the message we
         // need to show to the user. Finally, we'll send out a proper response.
