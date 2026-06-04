@@ -5,6 +5,10 @@
             <p class="mt-2 text-sm text-slate-500">Manage user accounts, roles, and permissions.</p>
         </div>
         <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex gap-3">
+            <a href="{{ route('permissions.index') }}"
+                class="block rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200">
+                Roles & Permissions
+            </a>
             <a href="{{ route('users.trash') }}"
                 class="block rounded-lg bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all duration-200">
                 View Trash

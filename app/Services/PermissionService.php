@@ -109,6 +109,8 @@ class PermissionService
                 'manage_categories',
                 'manage_templates',
                 'manage_packages',
+                'manage_pdf_templates',
+                'view_pdf_templates',
             ],
             'System' => [
                 'manage_settings',
