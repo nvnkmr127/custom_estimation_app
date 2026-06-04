@@ -43,6 +43,7 @@
                                 class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset {{ $badgeClasses[$roleInfo['color']] ?? 'bg-gray-100 text-gray-700' }}">
                                 {{ count($permissions) }} permissions
                             </span>
+                            @if($roleKey !== 'super_admin')
                             <a href="{{ route('permissions.edit', $roleKey) }}"
                                 class="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                                 <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -52,6 +53,9 @@
                                 </svg>
                                 Edit
                             </a>
+                            @else
+                            <span class="inline-flex items-center rounded-md bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-600 ring-1 ring-inset ring-gray-500/10">Read-Only</span>
+                            @endif
                         </div>
                     </div>
                 </div>

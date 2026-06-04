@@ -12,6 +12,10 @@ class PermissionController extends Controller
      */
     public function index()
     {
+        if (!auth()->user() || !auth()->user()->hasRole('super_admin')) {
+            abort(403, 'Unauthorized.');
+        }
+
         $roles = PermissionService::getRoles();
         $permissionsByCategory = PermissionService::getPermissionsByCategory();
         $permissionsForRoles = [];
@@ -28,6 +32,14 @@ class PermissionController extends Controller
      */
     public function edit($role)
     {
+        if (!auth()->user() || !auth()->user()->hasRole('super_admin')) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($role === 'super_admin') {
+            abort(403, 'Super Admin permissions are immutable.');
+        }
+
         $roles = PermissionService::getRoles();
 
         if (!isset($roles[$role])) {
@@ -50,6 +62,14 @@ class PermissionController extends Controller
      */
     public function update(Request $request, $role)
     {
+        if (!auth()->user() || !auth()->user()->hasRole('super_admin')) {
+            abort(403, 'Unauthorized.');
+        }
+
+        if ($role === 'super_admin') {
+            abort(403, 'Super Admin permissions are immutable.');
+        }
+
         $roles = PermissionService::getRoles();
 
         if (!isset($roles[$role])) {

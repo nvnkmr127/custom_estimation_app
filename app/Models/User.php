@@ -92,6 +92,9 @@ class User extends Authenticatable
      */
     public function hasPermission(string $permission): bool
     {
+        if ($this->hasRole('super_admin')) {
+            return true;
+        }
         return \App\Services\PermissionService::roleHasPermission($this->role, $permission);
     }
 

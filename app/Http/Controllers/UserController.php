@@ -10,6 +10,16 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if (!$request->user() || !$request->user()->hasRole('super_admin')) {
+                abort(403, 'Unauthorized.');
+            }
+            return $next($request);
+        });
+    }
+
     /**
      * Display a listing of users.
      */
@@ -117,6 +127,14 @@ class UserController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        // Prevent the last Super Admin from demoting themselves
+        if ($user->hasRole('super_admin') && $validated['role'] !== 'super_admin') {
+            $otherSuperAdmins = User::where('role', 'super_admin')->where('id', '!=', $user->id)->exists();
+            if (!$otherSuperAdmins) {
+                return back()->with('error', 'You cannot demote yourself because you are the only Super Admin in the system.');
+            }
+        }
 
         // Only Super Admin can change someone to Super Admin or change a Super Admin's role
         if (($validated['role'] === 'super_admin' || $user->hasRole('super_admin')) && !auth()->user()->hasRole('super_admin')) {
