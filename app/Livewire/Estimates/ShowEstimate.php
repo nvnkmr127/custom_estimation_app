@@ -209,8 +209,8 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         try {
-            $this->ensureNotLocked('can_approve');
             DB::beginTransaction();
+            $this->ensureNotLocked('can_approve');
 
             app(\App\Http\Controllers\ApprovalController::class)
                 ->approve(request()->merge(['comments' => $comments]), $this->estimate);
@@ -231,8 +231,8 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         try {
-            $this->ensureNotLocked('can_approve');
             DB::beginTransaction();
+            $this->ensureNotLocked('can_approve');
 
             app(\App\Http\Controllers\ApprovalController::class)
                 ->reject(request()->merge([
@@ -256,8 +256,8 @@ class ShowEstimate extends Component
     {
         $this->estimate->refresh();
         try {
-            $this->ensureNotLocked('can_approve');
             DB::beginTransaction();
+            $this->ensureNotLocked('can_approve');
 
             app(\App\Http\Controllers\ApprovalController::class)
                 ->requestChanges(request()->merge(['comments' => $comments]), $this->estimate);

@@ -17,7 +17,7 @@ class EstimatePolicy
 
     public function view(User $user, Estimate $estimate)
     {
-        if ($user->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
+        if ($user->hasRole(['super_admin', 'admin', 'estimator_admin']) || $user->hasPermission('approve_estimates')) {
             return true;
         }
 

@@ -61,8 +61,11 @@ class PermissionService
     /**
      * Get all permissions for a given role.
      */
-    public static function getPermissionsForRole(string $role): array
+    public static function getPermissionsForRole(?string $role): array
     {
+        if (!$role) {
+            return [];
+        }
         return \Illuminate\Support\Facades\Cache::remember("permissions_{$role}", 3600, function () use ($role) {
             return \App\Models\RolePermission::where('role', $role)->pluck('permission')->toArray();
         });
@@ -71,8 +74,11 @@ class PermissionService
     /**
      * Check if a role has a specific permission.
      */
-    public static function roleHasPermission(string $role, string $permission): bool
+    public static function roleHasPermission(?string $role, string $permission): bool
     {
+        if (!$role) {
+            return false;
+        }
         return in_array($permission, self::getPermissionsForRole($role));
     }
 

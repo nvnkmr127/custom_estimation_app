@@ -139,7 +139,7 @@ class EstimateStateService
         // 3. Approval Phase
         // can_approve is true if state allows it AND user is either an admin OR explicitly assigned to a pending approval
         $isAssigned = $estimate->approvals()->where('user_id', $user->id)->where('status', 'pending')->exists();
-        $canApprove = $rules['can_approve'] && ($isPowerUser || $isAssigned);
+        $canApprove = $rules['can_approve'] && ($isPowerUser || $user->hasPermission('approve_estimates') || $isAssigned);
 
         // 4. Send Phase
         $canSend = ($rules['can_send'] ?? false) && ($isPowerUser || $user->hasPermission('send_estimates'));
