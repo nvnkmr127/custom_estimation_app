@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('email_templates', function (Blueprint $blueprint) {
-            $blueprint->string('event_trigger')->nullable()->after('code');
-        });
+        if (!Schema::hasColumn('email_templates', 'event_trigger')) {
+            Schema::table('email_templates', function (Blueprint $blueprint) {
+                $blueprint->string('event_trigger')->nullable();
+            });
+        }
     }
 
     /**

@@ -153,6 +153,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('brands', App\Http\Controllers\BrandController::class)->except(['show']);
         Route::resource('packages', App\Http\Controllers\ItemPackageController::class);
 
+        // Plugins
+        Route::get('/admin/plugins', \App\Livewire\Admin\Plugins\Index::class)->name('admin.plugins.index');
+
         // Settings
         Route::get('/settings', [App\Http\Controllers\SettingsController::class, 'edit'])->name('settings.edit');
         Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
@@ -297,6 +300,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Unified Webhook Ingress
 Route::any('/catch/{uuid}', [App\Http\Controllers\WebhookController::class, 'catch'])->name('webhooks.catch');
+Route::any('/plugins/catch/{uuid}', [App\Http\Controllers\PluginController::class, 'catch'])->name('admin.plugins.catch');
 Route::post('/webhooks/{provider}', [App\Http\Controllers\WebhookController::class, 'handle'])->name('webhooks.handle');
 
 

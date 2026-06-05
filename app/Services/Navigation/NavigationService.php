@@ -262,6 +262,13 @@ class NavigationService
                         'active' => Request::routeIs('settings.nurture'),
                     ],
                     [
+                        'label' => 'Plugins Manager',
+                        'route' => 'admin.plugins.index',
+                        'icon' => 'heroicon-o-puzzle-piece',
+                        'active' => Request::routeIs('admin.plugins.*'),
+                        'role' => ['super_admin', 'estimator_admin'],
+                    ],
+                    [
                         'label' => 'Global Settings',
                         'route' => 'settings.edit',
                         'icon' => 'heroicon-o-cog-6-tooth',

@@ -35,6 +35,7 @@ class PermissionService
         // Settings
         'manage_settings' => 'Access and modify system settings',
         'view_settings' => 'View system settings',
+        'manage_plugins' => 'Create, edit, toggle, and manage plugins and modules',
 
         // Reports
         'view_reports' => 'Access reporting features',
@@ -123,6 +124,7 @@ class PermissionService
                 'view_settings',
                 'view_reports',
                 'export_reports',
+                'manage_plugins',
             ],
             'Pricing' => [
                 'apply_discounts',
