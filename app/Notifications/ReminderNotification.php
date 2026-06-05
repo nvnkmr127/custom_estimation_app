@@ -27,7 +27,17 @@ class ReminderNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        $channels = [];
+        $type = $this->reminder->type;
+
+        if ($type === 'email' || $type === 'both') {
+            $channels[] = 'mail';
+        }
+        if ($type === 'in_app' || $type === 'both') {
+            $channels[] = 'database';
+        }
+
+        return $channels;
     }
 
     /**

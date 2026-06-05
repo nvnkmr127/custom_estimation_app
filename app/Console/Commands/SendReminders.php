@@ -30,10 +30,8 @@ class SendReminders extends Command
         foreach ($reminders as $reminder) {
             $user = $reminder->user;
 
-            // Send notification based on type
-            if ($reminder->type === 'email' || $reminder->type === 'both') {
-                $user->notify(new \App\Notifications\ReminderNotification($reminder));
-            }
+            // Send notification (channels resolved dynamically inside notification)
+            $user->notify(new \App\Notifications\ReminderNotification($reminder));
 
             // Mark as sent
             $reminder->markAsSent();

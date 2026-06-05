@@ -134,6 +134,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('reminders/{reminder}', [App\Http\Controllers\ReminderController::class, 'destroy'])->name('reminders.destroy');
     Route::post('reminders/{reminder}/read', [App\Http\Controllers\ReminderController::class, 'markAsRead'])->name('reminders.read');
 
+    // Calendar
+    Route::get('calendar', \App\Livewire\Calendar\CalendarIndex::class)->name('calendar.index');
+
     // System Features
     Route::get('search', App\Http\Controllers\SearchController::class)->name('search');
 

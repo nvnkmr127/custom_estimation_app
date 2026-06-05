@@ -6,48 +6,155 @@
         </div>
     </div>
 
-    @php($defaultRemindAt = now()->addHour()->format('Y-m-d\\TH:i'))
-    <form method="POST" action="{{ route('reminders.store') }}" class="mb-6 bg-white shadow-sm overflow-hidden sm:rounded-lg p-6 space-y-4">
-        @csrf
-        <input type="hidden" name="remindable_type" value="{{ \App\Models\User::class }}">
-        <input type="hidden" name="remindable_id" value="{{ Auth::id() }}">
+    @php($defaultRemindAt = now()->addHour()->format('Y-m-d\TH:i'))
+    
+    @if($linkedEntityInfo)
+        <form method="POST" action="{{ route('reminders.store') }}" class="mb-6 bg-white shadow-sm overflow-hidden sm:rounded-lg p-6 space-y-4">
+            @csrf
+            <input type="hidden" name="remindable_type" value="{{ $remindableType }}">
+            <input type="hidden" name="remindable_id" value="{{ $remindableId }}">
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div class="sm:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Title</label>
-                <input name="title" required value="{{ old('title') }}"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+            <div class="rounded-xl bg-indigo-50 border border-indigo-200 p-4 text-xs text-indigo-800 flex items-center justify-between">
+                <span class="flex items-center gap-2 font-semibold">
+                    <svg class="h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    Linked Entity Context: <strong class="text-indigo-950">{{ $linkedEntityInfo }}</strong>
+                </span>
+                <a href="{{ route('reminders.index') }}" class="text-indigo-600 hover:text-indigo-900 font-bold hover:underline">Clear Context</a>
             </div>
 
-            <div class="sm:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Description</label>
-                <textarea name="description" rows="2"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{{ old('description') }}</textarea>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                    <input name="title" required value="{{ old('title') }}"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" rows="2"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{{ old('description') }}</textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Remind At</label>
+                    <input type="datetime-local" name="remind_at" required value="{{ old('remind_at', $defaultRemindAt) }}"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Delivery</label>
+                    <select name="type" required
+                        class="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="in_app" @selected(old('type') === 'in_app')>In-App</option>
+                        <option value="email" @selected(old('type') === 'email')>Email</option>
+                        <option value="both" @selected(old('type') === 'both')>Both</option>
+                    </select>
+                </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Remind At</label>
-                <input type="datetime-local" name="remind_at" required value="{{ old('remind_at', $defaultRemindAt) }}"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+            <div class="flex justify-end">
+                <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                    Add Reminder
+                </button>
+            </div>
+        </form>
+    @else
+        <form method="POST" action="{{ route('reminders.store') }}" class="mb-6 bg-white shadow-sm overflow-hidden sm:rounded-lg p-6 space-y-4" x-data="{ contextType: 'general' }">
+            @csrf
+            
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 items-end">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Link Reminder To</label>
+                    <select x-model="contextType" class="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="general">General (None)</option>
+                        <option value="estimate">Estimate</option>
+                        <option value="client">Client</option>
+                        <option value="task">Task</option>
+                    </select>
+                </div>
+
+                <!-- User Hidden Context -->
+                <div x-show="contextType === 'general'">
+                    <input type="hidden" name="remindable_type" value="{{ \App\Models\User::class }}">
+                    <input type="hidden" name="remindable_id" value="{{ Auth::id() }}">
+                </div>
+
+                <!-- Estimate Selector -->
+                <div x-show="contextType === 'estimate'" class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Select Estimate</label>
+                    <input type="hidden" name="remindable_type" value="{{ \App\Models\Estimate::class }}">
+                    <select name="remindable_id" :required="contextType === 'estimate'" class="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">-- Choose Estimate --</option>
+                        @foreach($estimates as $est)
+                            <option value="{{ $est->id }}">Estimate #{{ $est->estimate_number }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Client Selector -->
+                <div x-show="contextType === 'client'" class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Select Client</label>
+                    <input type="hidden" name="remindable_type" value="{{ \App\Models\Client::class }}">
+                    <select name="remindable_id" :required="contextType === 'client'" class="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">-- Choose Client --</option>
+                        @foreach($clients as $c)
+                            <option value="{{ $c->id }}">{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Task Selector -->
+                <div x-show="contextType === 'task'" class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Select Task</label>
+                    <input type="hidden" name="remindable_type" value="{{ \App\Models\Task::class }}">
+                    <select name="remindable_id" :required="contextType === 'task'" class="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">-- Choose Task --</option>
+                        @foreach($tasks as $t)
+                            <option value="{{ $t->id }}">{{ $t->title }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Delivery</label>
-                <select name="type" required
-                    class="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <option value="in_app" @selected(old('type') === 'in_app')>In-App</option>
-                    <option value="email" @selected(old('type') === 'email')>Email</option>
-                    <option value="both" @selected(old('type') === 'both')>Both</option>
-                </select>
-            </div>
-        </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                    <input name="title" required value="{{ old('title') }}"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                </div>
 
-        <div class="flex justify-end">
-            <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                Add Reminder
-            </button>
-        </div>
-    </form>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" rows="2"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{{ old('description') }}</textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Remind At</label>
+                    <input type="datetime-local" name="remind_at" required value="{{ old('remind_at', $defaultRemindAt) }}"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Delivery</label>
+                    <select name="type" required
+                        class="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="in_app" @selected(old('type') === 'in_app')>In-App</option>
+                        <option value="email" @selected(old('type') === 'email')>Email</option>
+                        <option value="both" @selected(old('type') === 'both')>Both</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                    Add Reminder
+                </button>
+            </div>
+        </form>
+    @endif
 
     <div class="bg-white shadow-sm overflow-hidden sm:rounded-lg">
         <ul role="list" class="divide-y divide-gray-200">
@@ -77,11 +184,19 @@
                                     {{ $reminder->remind_at->format('M d, Y H:i') }}
                                 </span>
                                 <span class="flex items-center gap-1">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                     </svg>
-                                    {{ class_basename($reminder->remindable_type) }}
+                                    @if ($reminder->remindable_type === \App\Models\Estimate::class && $reminder->remindable)
+                                        <a href="{{ route('estimates.show', $reminder->remindable_id) }}" class="font-semibold text-indigo-600 hover:text-indigo-900 hover:underline">Estimate #{{ $reminder->remindable->estimate_number }}</a>
+                                    @elseif ($reminder->remindable_type === \App\Models\Client::class && $reminder->remindable)
+                                        <a href="{{ route('clients.show', $reminder->remindable_id) }}" class="font-semibold text-indigo-600 hover:text-indigo-900 hover:underline">Client: {{ $reminder->remindable->name }}</a>
+                                    @elseif ($reminder->remindable_type === \App\Models\Task::class && $reminder->remindable)
+                                        <a href="{{ route('tasks.show', $reminder->remindable_id) }}" class="font-semibold text-indigo-600 hover:text-indigo-900 hover:underline">Task: {{ $reminder->remindable->title }}</a>
+                                    @else
+                                        {{ class_basename($reminder->remindable_type) }}
+                                    @endif
                                 </span>
                             </div>
                         </div>

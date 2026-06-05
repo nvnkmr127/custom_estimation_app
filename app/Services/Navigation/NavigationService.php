@@ -29,6 +29,12 @@ class NavigationService
                     'active' => Request::routeIs('dashboard'),
                 ],
                 [
+                    'label' => 'Calendar',
+                    'route' => 'calendar.index',
+                    'icon' => 'heroicon-o-calendar',
+                    'active' => Request::routeIs('calendar.*'),
+                ],
+                [
                     'label' => 'Approvals',
                     'route' => 'approvals.index',
                     'icon' => 'heroicon-o-check-badge',
