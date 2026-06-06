@@ -145,6 +145,11 @@ class User extends Authenticatable
         return $this->hasMany(NotificationPreference::class);
     }
 
+    public function deviceTokens()
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
     public function getRoleBadgeClassAttribute()
     {
         $styles = [

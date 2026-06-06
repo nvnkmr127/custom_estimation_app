@@ -29,6 +29,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register custom 'expo' notification channel
+        \Illuminate\Support\Facades\Notification::extend('expo', function () {
+            return new class {
+                public function send($notifiable, \Illuminate\Notifications\Notification $notification)
+                {
+                    if (method_exists($notification, 'toExpo')) {
+                        $notification->toExpo($notifiable);
+                    }
+                }
+            };
+        });
+
         // Force HTTPS in production to prevent Livewire from generating HTTP urls behind proxies
         if ($this->app->environment('production') || \Illuminate\Support\Str::contains(config('app.url'), 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');

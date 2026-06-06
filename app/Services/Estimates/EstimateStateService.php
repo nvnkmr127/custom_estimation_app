@@ -310,6 +310,16 @@ class EstimateStateService
             return $lockedEstimate;
         });
 
+        // Send status change notification to admins
+        if (($field === 'estimate_status' || $field === 'client_status') && $oldStatus !== $newStatus) {
+            try {
+                $admins = \App\Models\User::whereIn('role', ['super_admin', 'estimator_admin', 'admin'])->get();
+                \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\EstimateStatusChanged($estimate, $oldStatus));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send EstimateStatusChanged notification: " . $e->getMessage());
+            }
+        }
+
         // Refresh the original object from the database
         $estimate->refresh();
 
