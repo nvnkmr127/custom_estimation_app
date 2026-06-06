@@ -145,6 +145,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
 
+    // Device Tokens (Push Notifications)
+    Route::post('devices/register', [\App\Http\Controllers\DeviceTokenController::class, 'register'])->name('devices.register');
+    Route::post('devices/deregister', [\App\Http\Controllers\DeviceTokenController::class, 'deregister'])->name('devices.deregister');
+
     // Admin Only Routes
     Route::middleware(['role:super_admin,estimator_admin'])->group(function () {
         // Templates

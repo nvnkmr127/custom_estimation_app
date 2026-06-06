@@ -36,7 +36,7 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $request->authenticate();
 
@@ -45,19 +45,34 @@ class AuthenticatedSessionController extends Controller
         // Dispatch Event
         $this->dispatcher->dispatch(new \App\Core\Events\Users\UserLoggedIn(Auth::id(), $request->ip()));
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'user' => auth()->user(),
+                'token' => session()->getId(),
+            ]);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Logged out successfully.',
+            ]);
+        }
 
         if (config('sso.enabled') && config('sso.centralized_logout') && !$request->has('local')) {
             $logoutUrl = config('sso.auth_core_url') . config('sso.logout_path', '/logout') . '?redirect=' . urlencode(url('/'));

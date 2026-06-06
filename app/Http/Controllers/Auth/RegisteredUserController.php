@@ -40,7 +40,7 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -60,6 +60,14 @@ class RegisteredUserController extends Controller
 
         // Dispatch Event
         $this->dispatcher->dispatch(new \App\Core\Events\Users\UserRegistered($user->id, 'self_registration'));
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'user' => $user,
+                'token' => session()->getId(),
+            ]);
+        }
 
         // Send Welcome Email
         // Send Welcome Email (Removed, handled by Listener)
