@@ -2,16 +2,18 @@
 
 namespace App\Services\Navigation;
 
-use Illuminate\Support\Facades\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Request;
 
 class NavigationService
 {
     public function getSidebarMenu(): array
     {
         $user = User::query()->find(Auth::id());
-        if (!$user) return [];
+        if (! $user) {
+            return [];
+        }
 
         $isAdmin = $user->isAdmin();
         $isSuperAdmin = $user->hasRole('super_admin');
@@ -47,7 +49,7 @@ class NavigationService
                     'icon' => 'heroicon-o-chart-pie',
                     'active' => Request::routeIs('reports.*'),
                 ],
-            ]
+            ],
         ];
 
         // 2. Operations
@@ -83,7 +85,7 @@ class NavigationService
 
         $menu[] = [
             'group' => 'Operations',
-            'items' => $opsItems
+            'items' => $opsItems,
         ];
 
         // 3. Catalog (Admin Only)
@@ -147,7 +149,7 @@ class NavigationService
                         'icon' => 'heroicon-o-ticket',
                         'active' => Request::routeIs('coupons.*'),
                     ],
-                ]
+                ],
             ];
 
             // 4. Users & Access
@@ -157,7 +159,7 @@ class NavigationService
                     'route' => 'users.index',
                     'icon' => 'heroicon-o-user-group',
                     'active' => Request::routeIs('users.*'),
-                ]
+                ],
             ];
 
             if ($isSuperAdmin) {
@@ -189,7 +191,7 @@ class NavigationService
 
             $menu[] = [
                 'group' => 'Users & Access',
-                'items' => $accessItems
+                'items' => $accessItems,
             ];
 
             // 5. Audits & Webhooks
@@ -199,6 +201,12 @@ class NavigationService
                     'route' => 'event-logs.index',
                     'icon' => 'heroicon-o-clock',
                     'active' => Request::routeIs('event-logs.*'),
+                ],
+                [
+                    'label' => 'Developer Portal',
+                    'route' => 'admin.api-portal',
+                    'icon' => 'heroicon-o-code-bracket',
+                    'active' => Request::routeIs('admin.api-portal'),
                 ],
             ];
 
@@ -213,7 +221,7 @@ class NavigationService
                     'label' => 'Outbound Endpoints',
                     'route' => 'admin.webhooks.index',
                     'icon' => 'heroicon-o-cloud-arrow-up',
-                    'active' => Request::routeIs('admin.webhooks.index') && !Request::is('*/catchers*') && !Request::is('*/events*') && !Request::is('*/logs*') && !Request::is('*/dlq*'),
+                    'active' => Request::routeIs('admin.webhooks.index') && ! Request::is('*/catchers*') && ! Request::is('*/events*') && ! Request::is('*/logs*') && ! Request::is('*/dlq*'),
                 ];
                 $auditItems[] = [
                     'label' => 'Payload Explorer',
@@ -239,7 +247,7 @@ class NavigationService
 
             $menu[] = [
                 'group' => 'Audits & Webhooks',
-                'items' => $auditItems
+                'items' => $auditItems,
             ];
 
             // 6. System Logic
@@ -285,9 +293,9 @@ class NavigationService
                         'route' => 'backup.index',
                         'icon' => 'heroicon-o-shield-exclamation',
                         'active' => Request::routeIs('backup.*'),
-                        'role' => 'super_admin'
+                        'role' => 'super_admin',
                     ],
-                ]
+                ],
             ];
         }
 
@@ -302,7 +310,7 @@ class NavigationService
                     'active' => Request::routeIs('guide.*'),
                     'target' => '_blank',
                 ],
-            ]
+            ],
         ];
 
         return $menu;

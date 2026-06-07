@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\EstimateController;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,7 +30,7 @@ Route::group(['prefix' => 'portal', 'as' => 'portal.'], function () {
     Route::post('/estimates/{estimate}/comments', [App\Http\Controllers\PortalController::class, 'comment'])->name('comment')->middleware('signed');
     Route::post('/estimates/{estimate}/request-changes', [App\Http\Controllers\PortalController::class, 'requestChanges'])->name('request-changes')->middleware('signed');
     Route::post('/estimates/{estimate}/request-call', [App\Http\Controllers\PortalController::class, 'requestCall'])->name('request-call')->middleware('signed');
-    
+
     // Internal Team Preview (Restricted to logged-in staff)
     Route::get('/preview/estimates', [App\Http\Controllers\PortalController::class, 'previewList'])
         ->name('preview-list')
@@ -142,7 +141,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // System Features
     Route::get('search', App\Http\Controllers\SearchController::class)->name('search');
 
-
     Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
@@ -170,6 +168,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/settings', [App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
         Route::post('/settings/test-email', [App\Http\Controllers\SettingsController::class, 'testEmail'])->name('settings.test-email');
         Route::delete('/settings/gallery/{index}', [App\Http\Controllers\SettingsController::class, 'deleteGalleryImage'])->name('settings.gallery.destroy');
+        Route::get('/settings/api-portal', [App\Http\Controllers\Admin\ApiPortalController::class, 'index'])->name('admin.api-portal');
 
         // Nurture Settings
         Route::get('/settings/nurture', [App\Http\Controllers\Admin\NurtureSettingsController::class, 'index'])->name('settings.nurture');
@@ -181,15 +180,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Products & Categories
         Route::resource('categories', \App\Http\Controllers\ProductCategoryController::class);
 
-
-
         // Coupon Codes
         Route::resource('coupons', App\Http\Controllers\CouponCodeController::class);
         Route::post('coupons/validate-code', [App\Http\Controllers\CouponCodeController::class, 'verify'])->name('coupons.validate');
-
-
-
-
 
         // Activity Logs
         Route::get('activities', [App\Http\Controllers\ActivityLogController::class, 'index'])->name('activities.index');
@@ -197,9 +190,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Event Logs (System Events)
         Route::resource('event-logs', App\Http\Controllers\EventLogController::class)->only(['index', 'show']);
-
-
-
 
         // PDF Custom Templates
         Route::post('/pdf-templates/preview', [App\Http\Controllers\PdfTemplateController::class, 'preview'])->name('pdf-templates.preview');
@@ -312,7 +302,6 @@ Route::any('/catch/{uuid}', [App\Http\Controllers\WebhookController::class, 'cat
 Route::any('/plugins/catch/{uuid}', [App\Http\Controllers\PluginController::class, 'catch'])->name('admin.plugins.catch');
 Route::post('/webhooks/{provider}', [App\Http\Controllers\WebhookController::class, 'handle'])->name('webhooks.handle');
 
-
 // Local Development Autologin
 if (app()->environment('local')) {
     Route::get('/dev/login/{id?}', function ($id = null) {
@@ -320,13 +309,12 @@ if (app()->environment('local')) {
 
         if ($user) {
             auth()->login($user);
+
             return redirect()->route('dashboard')->with('success', "Logged in as {$user->name} ({$user->role})");
         }
-        return "No user found to autologin. Please run migrations/seeders.";
+
+        return 'No user found to autologin. Please run migrations/seeders.';
     })->name('dev.login');
 }
 
-require __DIR__ . '/auth.php';
-
-
-
+require __DIR__.'/auth.php';
