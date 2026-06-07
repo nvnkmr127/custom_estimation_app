@@ -45,7 +45,7 @@ class EstimateController extends Controller
     {
         $this->authorize('viewAny', Estimate::class);
 
-        $query = Estimate::with(['client', 'sections', 'creator'])->current()->latest();
+        $query = Estimate::with(['client', 'sections', 'creator', 'lead'])->current()->latest();
 
         if (!auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
             $query->where(function ($q) {
@@ -204,6 +204,9 @@ class EstimateController extends Controller
                     'total_amount' => (float)$est->grand_total,
                     'expiry_date' => $est->expiry_date ? $est->expiry_date->toDateString() : null,
                     'created_by' => $est->created_by,
+                    'lead_name' => $est->lead?->name ?? $est->client?->name ?? 'Unknown',
+                    'valid_until' => $est->expiry_date ? $est->expiry_date->toDateString() : null,
+                    'total' => (float)$est->grand_total,
                 ];
             });
 
@@ -420,6 +423,18 @@ class EstimateController extends Controller
             ->get();
 
         if (request()->wantsJson()) {
+            $allItems = collect();
+            foreach ($estimate->items as $item) {
+                if (!$item->estimate_section_id) {
+                    $allItems->push($item);
+                }
+            }
+            foreach ($estimate->sections as $section) {
+                foreach ($section->items as $item) {
+                    $allItems->push($item);
+                }
+            }
+
             return response()->json([
                 'id' => $estimate->id,
                 'estimate_number' => $estimate->estimate_number,
@@ -429,15 +444,30 @@ class EstimateController extends Controller
                 'expiry_date' => $estimate->expiry_date ? $estimate->expiry_date->toDateString() : null,
                 'created_by' => $estimate->created_by,
                 'created_at' => $estimate->created_at ? $estimate->created_at->toISOString() : null,
+                'lead_id' => $estimate->lead_id,
+                'lead_name' => $estimate->lead?->name ?? $estimate->client?->name ?? 'Unknown',
+                'valid_until' => $estimate->expiry_date ? $estimate->expiry_date->toDateString() : null,
+                'subtotal' => (float)$estimate->subtotal,
+                'total' => (float)$estimate->grand_total,
+                'pdf_url' => url("/estimates/{$estimate->id}/pdf"),
+                'items' => $allItems->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'description' => $item->description ?? $item->name,
+                        'qty' => (int)$item->quantity,
+                        'rate' => (float)$item->unit_price,
+                        'amount' => (float)$item->total,
+                    ];
+                })->toArray(),
                 'sections' => $estimate->sections->map(function ($section) {
                     return [
                         'name' => $section->name,
                         'items' => $section->items->map(function ($item) {
                             return [
                                 'product_id' => $item->product_id,
-                                'quantity' => (int)$item->qty,
-                                'unit_price' => (float)$item->rate,
-                                'discount_percentage' => (float)$item->discount_percent,
+                                'quantity' => (int)$item->quantity,
+                                'unit_price' => (float)$item->unit_price,
+                                'discount_percentage' => (float)($item->discount_percent ?? 0),
                             ];
                         }),
                     ];
