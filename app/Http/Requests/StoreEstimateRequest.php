@@ -13,6 +13,69 @@ class StoreEstimateRequest extends FormRequest
         return $this->user()->can('create', Estimate::class);
     }
 
+    protected function prepareForValidation()
+    {
+        if ($this->wantsJson()) {
+            $sectionsInput = $this->input('sections');
+            $itemsInput = $this->input('items');
+
+            $type = $this->input('type') ?? (is_array($sectionsInput) && count($sectionsInput) > 0 ? 'room_based' : 'standard');
+
+            $this->merge([
+                'type' => $type,
+                'status' => $this->input('status') ?? \App\Models\Estimate::EST_STATUS_DRAFT,
+                'estimate_date' => $this->input('estimate_date') ?? now()->toDateString(),
+                'currency' => $this->input('currency') ?? 'USD',
+                'discount_type' => $this->input('discount_type') ?? 'percentage',
+                'discount_value' => $this->input('discount_value') ?? 0,
+            ]);
+
+            if ($type === 'room_based' && is_array($sectionsInput)) {
+                foreach ($sectionsInput as $sIdx => $section) {
+                    if (isset($section['items']) && is_array($section['items'])) {
+                        foreach ($section['items'] as $iIdx => $item) {
+                            if (isset($item['product_id']) && !empty($item['product_id'])) {
+                                $product = \App\Models\Product::find($item['product_id']);
+                                if ($product) {
+                                    if (!isset($item['name']) || empty($item['name'])) {
+                                        $sectionsInput[$sIdx]['items'][$iIdx]['name'] = $product->name;
+                                    }
+                                    if (!isset($item['unit_price'])) {
+                                        $sectionsInput[$sIdx]['items'][$iIdx]['unit_price'] = $product->unit_price;
+                                    }
+                                }
+                            }
+                            if (isset($item['discount_percentage'])) {
+                                $sectionsInput[$sIdx]['items'][$iIdx]['discount_percent'] = $item['discount_percentage'];
+                            }
+                        }
+                    }
+                }
+                $this->merge(['sections' => $sectionsInput]);
+            }
+
+            if ($type === 'standard' && is_array($itemsInput)) {
+                foreach ($itemsInput as $iIdx => $item) {
+                    if (isset($item['product_id']) && !empty($item['product_id'])) {
+                        $product = \App\Models\Product::find($item['product_id']);
+                        if ($product) {
+                            if (!isset($item['name']) || empty($item['name'])) {
+                                $itemsInput[$iIdx]['name'] = $product->name;
+                            }
+                            if (!isset($item['unit_price'])) {
+                                $itemsInput[$iIdx]['unit_price'] = $product->unit_price;
+                            }
+                        }
+                    }
+                    if (isset($item['discount_percentage'])) {
+                        $itemsInput[$iIdx]['discount_percent'] = $item['discount_percentage'];
+                    }
+                }
+                $this->merge(['items' => $itemsInput]);
+            }
+        }
+    }
+
     public function rules()
     {
         $statusRules = [Estimate::EST_STATUS_DRAFT];
@@ -71,6 +134,7 @@ class StoreEstimateRequest extends FormRequest
             'items.*.options.*.value' => 'nullable|string',
             'items.*.options.*.price_adjustment' => 'nullable|numeric',
             'items.*.selected_options' => 'nullable|array',
+            'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
 
             // Section Validation
             'sections' => 'nullable|array|required_if:type,room_based',
@@ -98,6 +162,7 @@ class StoreEstimateRequest extends FormRequest
             'sections.*.items.*.options.*.value' => 'nullable|string',
             'sections.*.items.*.options.*.price_adjustment' => 'nullable|numeric',
             'sections.*.items.*.selected_options' => 'nullable|array',
+            'sections.*.items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
 
             'tax_1' => 'nullable|numeric|min:0',
             'tax_2' => 'nullable|numeric|min:0',

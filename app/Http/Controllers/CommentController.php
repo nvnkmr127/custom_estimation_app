@@ -127,6 +127,21 @@ class CommentController extends Controller
 
         $comments = $query->latest()->get();
 
+        if (request()->wantsJson()) {
+            return response()->json($comments->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'estimate_id' => $c->estimate_id,
+                    'user_id' => $c->user_id,
+                    'content' => $c->comment,
+                    'created_at' => $c->created_at ? $c->created_at->toISOString() : null,
+                    'user' => $c->user ? [
+                        'name' => $c->user->name
+                    ] : null,
+                ];
+            }));
+        }
+
         return response()->json($comments);
     }
 

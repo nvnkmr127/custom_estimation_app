@@ -331,6 +331,8 @@ class EstimateController extends Controller
             $estimate->load(['sections.items', 'items']);
 
             if ($request->wantsJson() || $request->ajax()) {
+                $estimate->setAttribute('total_amount', (float)$estimate->grand_total);
+                $estimate->setAttribute('status', $estimate->status);
                 return response()->json([
                     'success' => true,
                     'message' => 'Estimate created successfully.',

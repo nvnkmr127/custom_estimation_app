@@ -495,4 +495,124 @@ class MobileApiTest extends TestCase
             'message' => 'Estimate decline registered.',
         ]);
     }
+
+    public function test_create_estimate_successfully_via_api()
+    {
+        $user = User::factory()->create(['role' => 'estimator_admin']);
+        $client = Client::factory()->create();
+        $product = \App\Models\Product::factory()->create([
+            'name' => 'Teak Wood Desk',
+            'unit_price' => 250.00,
+            'status' => 'active',
+        ]);
+
+        $payload = [
+            'client_id' => $client->id,
+            'expiry_date' => now()->addDays(7)->toDateString(),
+            'sections' => [
+                [
+                    'name' => 'Home Office',
+                    'items' => [
+                        [
+                            'product_id' => $product->id,
+                            'quantity' => 2,
+                            'unit_price' => 250.00,
+                            'discount_percentage' => 10.0,
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $response = $this->actingAs($user)->postJson('/estimates', $payload);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'success',
+            'estimate' => [
+                'id',
+                'estimate_number',
+                'status',
+                'total_amount',
+            ]
+        ]);
+
+        $this->assertDatabaseHas('estimates', [
+            'client_id' => $client->id,
+            'estimate_status' => 'draft',
+        ]);
+    }
+
+    public function test_update_estimate_successfully_via_api()
+    {
+        $user = User::factory()->create(['role' => 'estimator_admin']);
+        $client = Client::factory()->create();
+        $estimate = Estimate::factory()->create([
+            'client_id' => $client->id,
+            'is_current_version' => true,
+            'created_by' => $user->id,
+            'estimate_status' => 'draft',
+        ]);
+
+        $product = \App\Models\Product::factory()->create([
+            'name' => 'Teak Wood Desk',
+            'unit_price' => 250.00,
+            'status' => 'active',
+        ]);
+
+        $payload = [
+            'client_id' => $client->id,
+            'sections' => [
+                [
+                    'name' => 'Office Room',
+                    'items' => [
+                        [
+                            'product_id' => $product->id,
+                            'quantity' => 3,
+                            'unit_price' => 220.00,
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $response = $this->actingAs($user)->putJson("/estimates/{$estimate->id}", $payload);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+    }
+
+    public function test_get_comments_list_via_api()
+    {
+        $user = User::factory()->create(['role' => 'estimator']);
+        $client = Client::factory()->create();
+        $estimate = Estimate::factory()->create([
+            'client_id' => $client->id,
+            'is_current_version' => true,
+            'created_by' => $user->id,
+        ]);
+
+        $comment = \App\Models\EstimateComment::create([
+            'estimate_id' => $estimate->id,
+            'commentable_type' => Estimate::class,
+            'commentable_id' => $estimate->id,
+            'user_id' => $user->id,
+            'comment' => 'Is the home office desk price verified?',
+            'type' => 'internal',
+        ]);
+
+        $response = $this->actingAs($user)->getJson("/estimates/{$estimate->id}/comments");
+
+        $response->assertStatus(200);
+        $response->assertJsonFragment([
+            'id' => $comment->id,
+            'estimate_id' => $estimate->id,
+            'content' => 'Is the home office desk price verified?',
+            'user' => [
+                'name' => $user->name,
+            ],
+        ]);
+    }
 }

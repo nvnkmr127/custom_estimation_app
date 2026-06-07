@@ -18,6 +18,7 @@ class WebhookServiceProvider extends ServiceProvider
             // Register Events
             $registry->register(new \App\Webhooks\Definitions\EstimateCreatedDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateUpdatedDefinition());
+            $registry->register(new \App\Webhooks\Definitions\EstimateDeletedDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateSentDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateApprovedDefinition());
             $registry->register(new \App\Webhooks\Definitions\EstimateAcceptedDefinition());

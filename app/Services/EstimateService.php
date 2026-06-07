@@ -790,5 +790,8 @@ class EstimateService
 
             ActivityLog::log('estimate_deleted', $estimate, "Estimate #{$estimateNumber} deleted by " . auth()->user()->name);
         });
+
+        // Dispatch Event
+        $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeleted($estimate, auth()->id()));
     }
 }

@@ -156,6 +156,43 @@ class WebhookSystemTest extends TestCase
             'attempt' => 1,
         ]);
     }
+
+    public function test_it_dispatches_deleted_outbound_webhook_to_subscribers()
+    {
+        Queue::fake();
+
+        $config = \App\Models\WebhookConfig::create([
+            'name' => 'Test Hook',
+            'url' => 'https://example.com/webhook',
+            'secret' => 'my-secret',
+            'events' => ['estimate.*'],
+            'status' => 'active',
+        ]);
+
+        $user = \App\Models\User::factory()->create(['role' => 'estimator_admin']);
+        $client = \App\Models\Client::factory()->create();
+        $estimate = \App\Models\Estimate::factory()->create([
+            'client_id' => $client->id,
+            'is_current_version' => true,
+            'created_by' => $user->id,
+        ]);
+
+        Event::listen(\App\Core\Events\DomainEvent::class, [\App\Listeners\WebhookDispatchListener::class, 'handle']);
+
+        // Delete estimate via service which dispatches EstimateDeleted event
+        $this->actingAs($user);
+        app(\App\Services\EstimateService::class)->deleteEstimate($estimate);
+
+        Queue::assertPushed(WebhookDeliveryJob::class, function ($job) use ($config, $estimate) {
+            return $job->webhookConfig->id === $config->id
+                && $job->webhookEvent->event_type === 'estimate.deleted'
+                && $job->webhookEvent->payload['data']['id'] === $estimate->id;
+        });
+
+        $this->assertDatabaseHas('webhook_events', [
+            'event_type' => 'estimate.deleted',
+        ]);
+    }
 }
 
 class TestWebhookEvent implements DomainEvent
