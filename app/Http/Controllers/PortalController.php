@@ -171,11 +171,23 @@ class PortalController extends Controller
     {
         $this->validateAccess($estimate, $request);
 
+        if ($request->wantsJson()) {
+            if ($request->has('signature_data') && !$request->has('signature')) {
+                $request->merge(['signature' => $request->input('signature_data')]);
+            }
+        }
+
         $request->validate([
             'signature' => 'required|string',
         ]);
 
         if (!$estimate->canBeAccepted()) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This estimate cannot be accepted. It may be expired, not yet sent, or already processed.',
+                ], 422);
+            }
             return redirect()->back()->with('error', 'This estimate cannot be accepted. It may be expired, not yet sent, or already processed.');
         }
 
@@ -219,16 +231,41 @@ class PortalController extends Controller
                 // Dispatch Event
                 $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateAccepted($estimate, 0, 'client'));
 
+                if (request()->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Estimate accepted successfully.',
+                    ]);
+                }
+
                 return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. Our team has been notified.');
             });
 
         } catch (\InvalidArgumentException $e) {
+            if (request()->wantsJson()) {
+                if ($estimate->client_status === Estimate::CLT_STATUS_ACCEPTED) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'This estimate has already been accepted.',
+                    ]);
+                }
+                return response()->json([
+                    'success' => false,
+                    'message' => "This estimate cannot be accepted: " . $e->getMessage(),
+                ], 422);
+            }
             if ($estimate->client_status === Estimate::CLT_STATUS_ACCEPTED) {
                 return redirect()->back()->with('info', 'This estimate has already been accepted.');
             }
             return redirect()->back()->with('error', "This estimate cannot be accepted: " . $e->getMessage());
         } catch (\Exception $e) {
             \Log::error("Failed to accept estimate #{$estimate->id}: " . $e->getMessage());
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An unexpected error occurred while processing your acceptance.',
+                ], 500);
+            }
             return redirect()->back()->with('error', 'An unexpected error occurred while processing your acceptance.');
         }
     }
@@ -239,6 +276,13 @@ class PortalController extends Controller
     public function decline(Request $request, Estimate $estimate)
     {
         $this->validateAccess($estimate, $request);
+
+        if ($request->wantsJson()) {
+            if (!$request->has('client_notes')) {
+                $notes = trim(($request->input('reason') ?? '') . "\n" . ($request->input('comments') ?? ''));
+                $request->merge(['client_notes' => $notes ?: 'Declined']);
+            }
+        }
 
         $request->validate([
             'client_notes' => 'required|string|max:1000',
@@ -257,15 +301,40 @@ class PortalController extends Controller
                 // Dispatch Event
                 $this->dispatcher->dispatch(new \App\Core\Events\Estimates\EstimateDeclined($estimate, 0, $request->client_notes));
 
+                if (request()->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Estimate decline registered.',
+                    ]);
+                }
+
                 return redirect()->back()->with('success', 'You have declined the estimate. Thank you for your feedback.');
             });
         } catch (\InvalidArgumentException $e) {
+            if (request()->wantsJson()) {
+                if ($estimate->client_status === Estimate::CLT_STATUS_DECLINED) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'This estimate has already been declined.',
+                    ]);
+                }
+                return response()->json([
+                    'success' => false,
+                    'message' => "This estimate cannot be declined: " . $e->getMessage(),
+                ], 422);
+            }
             if ($estimate->client_status === Estimate::CLT_STATUS_DECLINED) {
                 return redirect()->back()->with('info', 'This estimate has already been declined.');
             }
             return redirect()->back()->with('error', "This estimate cannot be declined: " . $e->getMessage());
         } catch (\Exception $e) {
             \Log::error("Failed to decline estimate #{$estimate->id}: " . $e->getMessage());
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An unexpected error occurred.',
+                ], 500);
+            }
             return redirect()->back()->with('error', 'An unexpected error occurred.');
         }
     }

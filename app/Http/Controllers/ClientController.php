@@ -60,6 +60,25 @@ class ClientController extends Controller
         // Get unique cities for filter dropdown
         $cities = Client::whereNotNull('city')->where('city', '!=', '')->distinct()->orderBy('city')->pluck('city');
 
+        if ($request->wantsJson()) {
+            $mappedData = collect($clients->items())->map(function ($client) {
+                return [
+                    'id' => $client->id,
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                ];
+            });
+
+            return response()->json([
+                'current_page' => $clients->currentPage(),
+                'data' => $mappedData,
+                'total' => $clients->total(),
+                'per_page' => $clients->perPage(),
+                'last_page' => $clients->lastPage(),
+            ]);
+        }
+
         if ($request->ajax()) {
             return view('clients._table', compact('clients'));
         }

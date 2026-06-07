@@ -21,6 +21,18 @@ class CommentController extends Controller
     {
         $this->authorize('update', $estimate);
 
+        if ($request->wantsJson()) {
+            if ($request->has('content') && !$request->has('comment')) {
+                $request->merge(['comment' => $request->input('content')]);
+            }
+            if (!$request->has('commentable_type')) {
+                $request->merge(['commentable_type' => Estimate::class]);
+            }
+            if (!$request->has('commentable_id')) {
+                $request->merge(['commentable_id' => $estimate->id]);
+            }
+        }
+
         $validated = $request->validate([
             'commentable_type' => 'required|string',
             'commentable_id' => 'nullable|integer',
@@ -62,12 +74,6 @@ class CommentController extends Controller
             $comment->id,
             $estimate->id,
             $comment->user_id, // This is null for client comments?
-            // In CommentController:store:
-            // 'user_id' => auth()->id(), for internal.
-            // But if it's client type, auth check fails or returns null?
-            // "Type = auth()->check() ? 'internal' : 'client'"
-            // So if client, user_id is null.
-            // CommentAdded event allows user_id to be nullable.
             substr($comment->comment, 0, 100)
         ));
 
@@ -80,6 +86,17 @@ class CommentController extends Controller
         }
 
         \Log::info("CommentController: Created comment ID {$comment->id} Type: {$type} On: {$comment->commentable_type} #{$comment->commentable_id}");
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'comment' => [
+                    'id' => $comment->id,
+                    'content' => $comment->comment,
+                    'created_at' => $comment->created_at ? $comment->created_at->toISOString() : null,
+                ]
+            ]);
+        }
 
         return response()->json([
             'success' => true,

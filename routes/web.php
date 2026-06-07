@@ -81,8 +81,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Estimates Show (Livewire Component)
     Route::resource('estimates', EstimateController::class)->except(['show'])->middleware('estimate.lock');
 
-    // Estimates Show (Livewire Component)
-    Route::get('/estimates/{estimate}', \App\Livewire\Estimates\ShowEstimate::class)->name('estimates.show');
+    // Estimates Show (Livewire Component or JSON API)
+    Route::get('/estimates/{estimate}', \App\Livewire\Estimates\ShowEstimate::class)
+        ->name('estimates.show')
+        ->middleware(\App\Http\Middleware\ApiSessionAuth::class);
 
     Route::get('/reports', \App\Livewire\Reports\Index::class)->name('reports.index');
 

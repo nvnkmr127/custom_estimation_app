@@ -52,6 +52,16 @@ class ApprovalController extends Controller
 
             \Log::info("ApprovalChain evaluation complete. Estimate status is now: {$estimate->approval_status}");
 
+            if (request()->wantsJson()) {
+                $msg = $estimate->approval_status === Estimate::APP_STATUS_APPROVED
+                    ? 'Estimate approved automatically as it does not require additional authorization.'
+                    : 'Submitted for approval successfully.';
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                ]);
+            }
+
             if ($estimate->approval_status === Estimate::APP_STATUS_APPROVED) {
                 return redirect()->back()->with('success', 'Estimate approved automatically as it does not require additional authorization.');
             }
@@ -59,6 +69,12 @@ class ApprovalController extends Controller
             return redirect()->back()->with('success', 'Estimate submitted for approval successfully.');
         } catch (\Exception $e) {
             \Log::error("ApprovalController@submit failed for Estimate ID: {$estimate->id} - Error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
@@ -70,6 +86,12 @@ class ApprovalController extends Controller
     {
         $policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($estimate);
         if (!($policy['can_approve'] ?? false)) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized.',
+                ], 403);
+            }
             abort(403, 'Unauthorized.');
         }
 
@@ -77,8 +99,21 @@ class ApprovalController extends Controller
             $user = auth()->user();
             $estimate = $this->workflowService->approve($estimate, $user->id, $request->input('comments'));
 
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Estimate approved successfully at current step.',
+                ]);
+            }
+
             return redirect()->back()->with('success', 'Estimate approved successfully.');
         } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
@@ -90,7 +125,17 @@ class ApprovalController extends Controller
     {
         $policy = app(\App\Services\Estimates\EstimateStateService::class)->getPolicy($estimate);
         if (!($policy['can_approve'] ?? false)) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized.',
+                ], 403);
+            }
             abort(403, 'Unauthorized.');
+        }
+
+        if (request()->wantsJson() && !$request->has('comments') && $request->has('reason')) {
+            $request->merge(['comments' => $request->input('reason')]);
         }
 
         try {
@@ -104,8 +149,21 @@ class ApprovalController extends Controller
 
             $estimate = $this->workflowService->reject($estimate, $user->id, $comments);
 
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Estimate rejected.',
+                ]);
+            }
+
             return redirect()->back()->with('success', 'Estimate rejected successfully.');
         } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rejection failed: ' . $e->getMessage(),
+                ], 422);
+            }
             return redirect()->back()->with('error', 'Rejection failed: ' . $e->getMessage());
         }
     }

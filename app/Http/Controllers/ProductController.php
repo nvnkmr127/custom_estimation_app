@@ -173,6 +173,18 @@ class ProductController extends Controller
         // Security: Explicitly authorize suggestion capability
         $this->authorize('suggest', Product::class);
 
+        if ($request->wantsJson()) {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'attributes' => 'nullable|array',
+            ]);
+
+            $aiService = app(\App\Services\AIService::class);
+            $suggestions = $aiService->suggestDetails($validated['name'], $validated['attributes'] ?? []);
+
+            return response()->json($suggestions);
+        }
+
         $validated = $request->validate([
             'category_id' => 'required|exists:product_categories,id',
             'name' => 'required|string|max:255',

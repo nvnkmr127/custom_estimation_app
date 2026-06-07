@@ -194,6 +194,28 @@ class EstimateController extends Controller
 
         $clients = Client::orderBy('name')->get(); // For filter dropdown
 
+        if ($request->wantsJson()) {
+            $mappedData = collect($estimates->items())->map(function ($est) {
+                return [
+                    'id' => $est->id,
+                    'estimate_number' => $est->estimate_number,
+                    'client_id' => $est->client_id,
+                    'status' => $est->status,
+                    'total_amount' => (float)$est->grand_total,
+                    'expiry_date' => $est->expiry_date ? $est->expiry_date->toDateString() : null,
+                    'created_by' => $est->created_by,
+                ];
+            });
+
+            return response()->json([
+                'current_page' => $estimates->currentPage(),
+                'data' => $mappedData,
+                'total' => $estimates->total(),
+                'per_page' => $estimates->perPage(),
+                'last_page' => $estimates->lastPage(),
+            ]);
+        }
+
         return view('estimates.index', compact('estimates', 'counts', 'stats', 'clients'));
     }
 
@@ -397,6 +419,32 @@ class EstimateController extends Controller
             ->orderBy('name')
             ->get();
 
+        if (request()->wantsJson()) {
+            return response()->json([
+                'id' => $estimate->id,
+                'estimate_number' => $estimate->estimate_number,
+                'client_id' => $estimate->client_id,
+                'status' => $estimate->status,
+                'total_amount' => (float)$estimate->grand_total,
+                'expiry_date' => $estimate->expiry_date ? $estimate->expiry_date->toDateString() : null,
+                'created_by' => $estimate->created_by,
+                'created_at' => $estimate->created_at ? $estimate->created_at->toISOString() : null,
+                'sections' => $estimate->sections->map(function ($section) {
+                    return [
+                        'name' => $section->name,
+                        'items' => $section->items->map(function ($item) {
+                            return [
+                                'product_id' => $item->product_id,
+                                'quantity' => (int)$item->qty,
+                                'unit_price' => (float)$item->rate,
+                                'discount_percentage' => (float)$item->discount_percent,
+                            ];
+                        }),
+                    ];
+                })->toArray(),
+            ]);
+        }
+
         return view('estimates.show', compact('estimate', 'checklists', 'declineReasons', 'allVersions', 'userApproval', 'diff', 'activityLogs', 'latestVersion', 'potentialFollowers'));
     }
 
@@ -540,9 +588,27 @@ class EstimateController extends Controller
     {
         $this->authorize('view', $estimate);
 
-        $newEstimate = $this->estimateService->copy($estimate);
+        try {
+            $newEstimate = $this->estimateService->copy($estimate);
 
-        return redirect()->route('estimates.edit', ['estimate' => $newEstimate->id, 'duplicate' => 1])->with('success', 'Estimate copied successfully.');
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'new_estimate_id' => $newEstimate->id,
+                    'message' => 'Estimate duplicated successfully.',
+                ]);
+            }
+
+            return redirect()->route('estimates.edit', ['estimate' => $newEstimate->id, 'duplicate' => 1])->with('success', 'Estimate copied successfully.');
+        } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     /**
@@ -589,11 +655,31 @@ class EstimateController extends Controller
                         break;
                 }
 
+                if (request()->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'new_status' => $status,
+                        'message' => 'Estimate marked as ' . $status . '.',
+                    ]);
+                }
+
                 return back()->with('success', 'Estimate marked as ' . ucfirst($status) . '.');
             });
         } catch (\InvalidArgumentException $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return back()->with('error', $e->getMessage());
         } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Failed to update estimate status: " . $e->getMessage(),
+                ], 500);
+            }
             return back()->with('error', "Failed to update estimate status: " . $e->getMessage());
         }
     }
@@ -646,10 +732,28 @@ class EstimateController extends Controller
 
         try {
             $this->estimateService->sendToClient($estimate);
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Estimate sent to client successfully.',
+                ]);
+            }
             return back()->with('success', 'Estimate sent to client successfully.');
         } catch (\InvalidArgumentException $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return back()->with('error', $e->getMessage());
         } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error sending email: ' . $e->getMessage(),
+                ], 500);
+            }
             return back()->with('error', 'Error sending email: ' . $e->getMessage());
         }
     }
@@ -1059,8 +1163,20 @@ class EstimateController extends Controller
 
         try {
             $this->estimateService->deleteEstimate($estimate);
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Estimate deleted successfully.',
+                ]);
+            }
             return redirect()->route('estimates.index')->with('success', 'Estimate deleted successfully.');
         } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
             return back()->with('error', $e->getMessage());
         }
     }

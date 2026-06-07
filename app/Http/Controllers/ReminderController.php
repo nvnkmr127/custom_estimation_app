@@ -61,6 +61,22 @@ class ReminderController extends Controller
             ->limit(50)
             ->get();
 
+        if ($request->wantsJson()) {
+            $mappedData = collect($reminders->items())->map(function ($reminder) {
+                return [
+                    'id' => $reminder->id,
+                    'title' => $reminder->title,
+                    'due_date' => $reminder->remind_at ? $reminder->remind_at->toDateString() : null,
+                    'is_read' => (bool)$reminder->is_sent,
+                ];
+            });
+            return response()->json($mappedData->values()->all());
+        }
+
+        if ($request->ajax()) {
+            return view('reminders._table', compact('reminders'));
+        }
+
         return view('reminders.index', compact(
             'reminders', 
             'remindableType', 
