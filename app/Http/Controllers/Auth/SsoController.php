@@ -121,6 +121,19 @@ class SsoController extends Controller
                 'jti' => $decoded->jti,
             ]);
 
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                    ],
+                    'token' => $request->session()->getId(),
+                ]);
+            }
+
             return redirect()->intended(route('dashboard'));
 
         } catch (\Exception $e) {
@@ -128,6 +141,13 @@ class SsoController extends Controller
 
             if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
                 throw $e;
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Authentication failed: ' . $e->getMessage()
+                ], 403);
             }
 
             return redirect()->route('login')->withErrors([
