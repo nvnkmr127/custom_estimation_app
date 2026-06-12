@@ -44,4 +44,8 @@ return [
         'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'), // optional
     ],
 
+    'perfex' => [
+        'webhook_secret' => env('PERFEX_WEBHOOK_SECRET', env('SSO_SYNC_TOKEN')),
+    ],
+
 ];
