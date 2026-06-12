@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->prepend(\App\Http\Middleware\ApiSessionAuth::class);
 
+        $middleware->web(replace: [
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class => \App\Http\Middleware\CustomValidateCsrfToken::class,
+        ]);
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'estimate.lock' => \App\Http\Middleware\CheckEstimateLock::class,
