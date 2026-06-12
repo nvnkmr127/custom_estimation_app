@@ -16,7 +16,7 @@ class CustomValidateCsrfToken extends Middleware
      */
     public function handle($request, Closure $next)
     {
-        if ($request->bearerToken()) {
+        if ($request->bearerToken() || ($request->wantsJson() && ($request->is('login') || $request->routeIs('login')))) {
             return $next($request);
         }
 
