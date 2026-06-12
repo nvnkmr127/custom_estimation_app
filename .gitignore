@@ -87,3 +87,4 @@ yarn-error.log
 
 # Large test directory (if not needed in repo)
 /test-exts-fil/
+mobile-app
