@@ -49,9 +49,13 @@ class SsoController extends Controller
                 abort(403, 'Invalid SSO token.');
             }
 
-            // 3. Claim Validation (Audience, Issuer, JTI)
             // Audience check
-            if (($decoded->aud ?? null) !== config('sso.jwt_audience')) {
+            $allowedAudiences = [
+                config('sso.jwt_audience'),
+                'https://crm.concept2designs.in',
+                'https://crm.concept2designs.in/',
+            ];
+            if (!in_array($decoded->aud ?? null, $allowedAudiences)) {
                 \Illuminate\Support\Facades\Log::warning('SSO Audience Mismatch', ['aud' => $decoded->aud ?? 'none']);
                 abort(403, 'Invalid token audience.');
             }
