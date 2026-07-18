@@ -338,8 +338,14 @@ class Dashboard extends Component
             ? (clone $filteredQuery)->where('estimate_status', Estimate::EST_STATUS_ACCEPTED)->avg('grand_total') 
             : 0;
 
-        // Avg Approval Time - Placeholder: In a real system we would calculate the difference between creation and approval
-        $avgApprovalTime = "1.4 days"; 
+        // Avg Approval Time: mean days between an approval being created and approved,
+        // for approved approvals on the estimates in scope. Computed in PHP for DB portability.
+        $approvedApprovals = \App\Models\EstimateApproval::where('status', 'approved')
+            ->whereIn('estimate_id', (clone $filteredQuery)->select('id'))
+            ->get(['created_at', 'updated_at']);
+        $avgApprovalTime = $approvedApprovals->isNotEmpty()
+            ? round($approvedApprovals->avg(fn ($a) => $a->created_at->diffInSeconds($a->updated_at)) / 86400, 1) . ' days'
+            : 'N/A';
 
         // New Logic: Revenue Forecast (Sent Value * Win Rate)
         $sentValue = (clone $filteredQuery)->where('estimate_status', Estimate::EST_STATUS_SENT)->sum('grand_total');

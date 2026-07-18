@@ -73,10 +73,6 @@ class ReminderController extends Controller
             return response()->json($mappedData->values()->all());
         }
 
-        if ($request->ajax()) {
-            return view('reminders._table', compact('reminders'));
-        }
-
         return view('reminders.index', compact(
             'reminders', 
             'remindableType', 

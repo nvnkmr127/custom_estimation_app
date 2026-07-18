@@ -166,8 +166,11 @@ class CheckApprovalTimeouts extends Command
 
     protected function notifyApprover($approval)
     {
-        // Placeholder for notification logic
-        // In a real app, send Mailable.
         Log::info("Sending timeout notification to user {$approval->user_id} for estimate {$approval->estimate_id}");
+
+        $approver = $approval->user;
+        if ($approver) {
+            $approver->notify(new \App\Notifications\ApprovalTimeoutNotification($approval));
+        }
     }
 }

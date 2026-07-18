@@ -135,35 +135,26 @@
                 automations: [],
 
                 fetchAutomations() {
-                    if (!this.selectedEvent) return;
+                    if (!this.selectedEvent) {
+                        this.automations = [];
+                        return;
+                    }
 
-                    // Simple fetch to existing endpoint that returns rules
-                    // We might need to adjust the controller to support filtering via API if not present
-                    // For now, let's assume we fetch all and filter client side or need a new endpoint.
-                    // Actually, the AutomationController has an index that returns JSON? No, it returns view.
-                    // We need a small API endpoint to list rules by trigger. 
-                    // Let's use the template browser logic or similar. 
-                    // To keep it simple, I'll assume we pass all automations to the view or fetch them.
-
-                    // Since we didn't build a dedicated JSON list endpoint, let's just fetch all via a new simple route or 
-                    // embed them in the page if the list isn't huge.
-                    // Given the constraints, I'll rely on a lightweight fetch to list.
-
-                    fetch('/admin/automation?format=json&trigger=' + this.selectedEvent)
-                        .then(res => res.json())
+                    // AutomationController@index returns JSON (id, name) filtered by trigger
+                    // when the request asks for JSON via the Accept header.
+                    fetch('/admin/automation?trigger=' + encodeURIComponent(this.selectedEvent), {
+                        headers: { 'Accept': 'application/json' }
+                    })
+                        .then(res => {
+                            if (!res.ok) throw new Error('Failed to load automations');
+                            return res.json();
+                        })
                         .then(data => {
-                            // This presupposes the index can return JSON. 
-                            // I should verify or make it so.
-                            // If not, I will add a tiny property to the data object manually for now.
+                            this.automations = data;
                         })
                         .catch(err => {
-                            console.log('Fetching rules not implemented yet, using placeholders');
-                            // Fallback for demo
-                            this.automations = [
-                                { id: 1, name: 'Standard Welcome Email' },
-                                { id: 2, name: 'Aggressive Follow-up' },
-                                { id: 3, name: 'Discount Offer' }
-                            ]; // filtering logic deferred
+                            console.error('Failed to fetch automations for trigger', err);
+                            this.automations = [];
                         });
                 }
             }
