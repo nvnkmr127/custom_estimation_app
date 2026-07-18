@@ -89,6 +89,8 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
+        $this->authorize('view', $task);
+
         $task->load(['assignedTo', 'createdBy', 'estimate', 'client']);
 
         return view('tasks.show', compact('task'));
@@ -99,6 +101,8 @@ class TaskController extends Controller
      */
     public function edit(Task $task)
     {
+        $this->authorize('update', $task);
+
         $users = User::all();
         $estimates = Estimate::latest()->take(50)->get();
         $clients = Client::orderBy('name')->get();
@@ -111,6 +115,8 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
+        $this->authorize('update', $task);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -134,6 +140,8 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
+        $this->authorize('delete', $task);
+
         ActivityLog::log('deleted', $task, "Task '{$task->title}' was deleted");
         $task->delete();
 
@@ -145,6 +153,8 @@ class TaskController extends Controller
      */
     public function complete(Task $task)
     {
+        $this->authorize('update', $task);
+
         $task->complete();
         ActivityLog::log('completed', $task, "Task '{$task->title}' was marked as completed");
 

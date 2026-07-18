@@ -28,9 +28,13 @@ class SearchController extends Controller
         // Security: Escape wildcards to prevent SQL Wildcard Injection
         $escapedQuery = str_replace(['%', '_'], ['\%', '\_'], $query);
 
-        // Search Estimates
-        $estimates = Estimate::where('estimate_number', 'like', "%{$escapedQuery}%")
-            ->orWhere('title', 'like', "%{$escapedQuery}%")
+        // Search Estimates (non-admins only see their own, matching the dashboard/tasks scoping)
+        $estimates = Estimate::query()
+            ->where(function ($q) use ($escapedQuery) {
+                $q->where('estimate_number', 'like', "%{$escapedQuery}%")
+                    ->orWhere('title', 'like', "%{$escapedQuery}%");
+            })
+            ->when(!auth()->user()->isAdmin(), fn ($q) => $q->where('created_by', auth()->id()))
             ->limit(5)
             ->get();
 

@@ -356,8 +356,10 @@ class Estimate extends Model
      */
     public function canBeAccepted(): bool
     {
+        // A client may accept whether they've merely received it (sent) or opened it (viewed);
+        // the state machine allows both SENT->ACCEPTED and VIEWED->ACCEPTED.
         return $this->estimate_status === self::EST_STATUS_SENT
-            && $this->client_status === self::CLT_STATUS_SENT
+            && in_array($this->client_status, [self::CLT_STATUS_SENT, self::CLT_STATUS_VIEWED], true)
             && is_null($this->accepted_at)
             && ($this->expires_at ? now()->lt($this->expires_at) : true);
     }

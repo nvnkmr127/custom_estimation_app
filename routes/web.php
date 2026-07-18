@@ -50,8 +50,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', App\Livewire\Dashboard::class)->name('dashboard');
 
     // Profile (Standard Breeze)
-    // AI Generation
-    Route::post('/ai/generate-description', [App\Http\Controllers\GenerativeAIController::class, 'generate'])->name('ai.generate');
+    // AI Generation — throttled: calls a paid external API, so cap per-user request rate.
+    Route::post('/ai/generate-description', [App\Http\Controllers\GenerativeAIController::class, 'generate'])
+        ->middleware('throttle:20,1')
+        ->name('ai.generate');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

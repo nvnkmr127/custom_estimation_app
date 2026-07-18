@@ -34,6 +34,10 @@ class Index extends Component
 
     public function mount()
     {
+        // Reports expose company-wide financials and allow editing the global revenue target,
+        // so restrict to admins. Guarding mount() protects every action on the component too.
+        abort_unless(auth()->check() && auth()->user()->isAdmin(), 403);
+
         $this->updateDateRange($this->filter);
         $this->revenueTarget = \App\Models\Setting::getCached('revenue_target', 50000);
     }

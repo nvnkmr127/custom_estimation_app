@@ -1675,7 +1675,7 @@ $totalsPayload = [
 
                 <div class="space-y-3">
                     {{-- Compute the composed followers list once per render (creator + approvers + manual) --}}
-                    @php($followersList = $estimate->followers)
+                    @php $followersList = $estimate->followers; @endphp
                     @foreach($followersList as $follower)
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
@@ -1723,7 +1723,7 @@ $totalsPayload = [
                                     <select id="follower_user_id" x-model="userId" required
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                                         <option value="">Select a user...</option>
-                                        @foreach(\App\Models\User::whereNotIn('id', $estimate->followers->pluck('id'))->get() as $user)
+                                        @foreach(\App\Models\User::whereNotIn('id', $followersList->pluck('id'))->get() as $user)
                                             <option value="{{ $user->id }}">{{ $user->name }}</option>
                                         @endforeach
                                     </select>

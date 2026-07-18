@@ -41,7 +41,10 @@ class DeviceTokenController extends Controller
             'token' => 'required|string|max:512',
         ]);
 
-        DeviceToken::where('token', $validated['token'])->delete();
+        // Scope to the current user so one account can't deregister another's device token.
+        DeviceToken::where('token', $validated['token'])
+            ->where('user_id', auth()->id())
+            ->delete();
 
         return response()->json([
             'success' => true,

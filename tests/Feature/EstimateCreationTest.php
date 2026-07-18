@@ -167,4 +167,46 @@ class EstimateCreationTest extends TestCase
                 'grand_total' => 164.0,
             ]);
     }
+
+    private function creationPayload(Client $client, string $status): array
+    {
+        return [
+            'client_id' => $client->id,
+            'estimate_date' => now()->format('Y-m-d'),
+            'expiry_date' => now()->addDays(7)->format('Y-m-d'),
+            'status' => $status,
+            'currency' => 'USD',
+            'discount_type' => 'percentage',
+            'discount_value' => 0,
+            'type' => 'standard',
+            'items' => [
+                ['name' => 'Item 1', 'quantity' => 1, 'unit_price' => 100, 'unit_type' => 'hrs', 'tax_1' => 0, 'tax_2' => 0, 'order_index' => 0],
+            ],
+        ];
+    }
+
+    /** @test */
+    public function estimator_admin_can_create_estimate_in_non_draft_status()
+    {
+        // Consistency with UpdateEstimateRequest: estimator_admin is an admin here too.
+        $admin = User::factory()->create(['role' => 'estimator_admin']);
+        $client = Client::factory()->create();
+
+        $this->actingAs($admin)
+            ->postJson(route('estimates.store'), $this->creationPayload($client, 'sent'))
+            ->assertOk()
+            ->assertJsonPath('success', true);
+    }
+
+    /** @test */
+    public function plain_estimator_cannot_create_estimate_in_non_draft_status()
+    {
+        $estimator = User::factory()->create(['role' => 'estimator']);
+        $client = Client::factory()->create();
+
+        $this->actingAs($estimator)
+            ->postJson(route('estimates.store'), $this->creationPayload($client, 'sent'))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('status');
+    }
 }
