@@ -62,6 +62,13 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
+        // Never let the only Super Admin delete themselves and lock everyone out of admin.
+        if ($user->hasRole('super_admin')
+            && !\App\Models\User::where('role', 'super_admin')->where('id', '!=', $user->id)->exists()) {
+            return Redirect::route('profile.edit')
+                ->with('error', 'You are the only Super Admin and cannot delete your account. Assign another Super Admin first.');
+        }
+
         if ($user->source !== 'sso') {
             $request->validateWithBag('userDeletion', [
                 'password' => ['required', 'current_password'],

@@ -90,6 +90,27 @@ class MobileApiTest extends TestCase
         ]);
     }
 
+    public function test_deregister_cannot_remove_another_users_token()
+    {
+        $owner = User::factory()->create(['role' => 'estimator']);
+        $attacker = User::factory()->create(['role' => 'estimator']);
+        DeviceToken::create([
+            'user_id' => $owner->id,
+            'token' => 'ExponentPushToken[owned-by-someone-else-000]',
+            'platform' => 'android',
+        ]);
+
+        $this->actingAs($attacker)->postJson('/devices/deregister', [
+            'token' => 'ExponentPushToken[owned-by-someone-else-000]',
+        ])->assertStatus(200);
+
+        // The owner's token must still exist — a stranger cannot deregister it.
+        $this->assertDatabaseHas('device_tokens', [
+            'user_id' => $owner->id,
+            'token' => 'ExponentPushToken[owned-by-someone-else-000]',
+        ]);
+    }
+
     public function test_list_estimates_successfully()
     {
         $user = User::factory()->create(['role' => 'estimator_admin']);

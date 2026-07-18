@@ -80,6 +80,30 @@ class ProfileTest extends TestCase
         $this->assertTrue($user->fresh()->trashed());
     }
 
+    public function test_last_super_admin_cannot_delete_their_own_account(): void
+    {
+        $onlySuperAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($onlySuperAdmin)
+            ->delete('/profile', ['password' => 'password'])
+            ->assertSessionHas('error');
+
+        $this->assertNotNull($onlySuperAdmin->fresh());
+        $this->assertFalse($onlySuperAdmin->fresh()->trashed());
+    }
+
+    public function test_super_admin_can_delete_own_account_when_another_exists(): void
+    {
+        User::factory()->create(['role' => 'super_admin']);
+        $self = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($self)
+            ->delete('/profile', ['password' => 'password'])
+            ->assertRedirect('/');
+
+        $this->assertTrue($self->fresh()->trashed());
+    }
+
     public function test_correct_password_must_be_provided_to_delete_account(): void
     {
         $user = User::factory()->create();

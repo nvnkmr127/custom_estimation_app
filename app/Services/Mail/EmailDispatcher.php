@@ -86,10 +86,14 @@ class EmailDispatcher
                     return $matches[0];
                 }
 
-                // Construct tracking URL
-                $trackingUrl = route('tracking.click', ['id' => $log->id, 'target' => $originalUrl]);
+                // Construct a SIGNED tracking URL so the click endpoint can trust the target
+                // and refuse attacker-forged off-site redirects (open-redirect protection).
+                $trackingUrl = \Illuminate\Support\Facades\URL::signedRoute(
+                    'tracking.click',
+                    ['id' => $log->id, 'target' => $originalUrl]
+                );
 
-                return 'href="' . $trackingUrl . '"';
+                return 'href="' . e($trackingUrl) . '"';
             }, $body);
 
         } catch (\Throwable $e) {

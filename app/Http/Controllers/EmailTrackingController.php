@@ -43,6 +43,13 @@ class EmailTrackingController extends Controller
             abort(404);
         }
 
+        // Open-redirect guard: same-origin targets are always safe; off-site targets
+        // must carry the signature we attach when generating the tracked link. This
+        // stops attacker-forged /tracking/click/x?target=https://evil.com phishing links.
+        if (!$this->isSafeRedirect($request, $targetUrl)) {
+            abort(403, 'Invalid redirect target.');
+        }
+
         try {
             $log = EmailLog::find($id);
             if ($log) {
@@ -67,5 +74,26 @@ class EmailTrackingController extends Controller
         }
 
         return redirect()->away($targetUrl);
+    }
+
+    /**
+     * A redirect target is safe if it stays on our own host (relative or same-origin URL),
+     * or if the tracked link carries a valid signature (attached at generation time).
+     */
+    private function isSafeRedirect(Request $request, string $targetUrl): bool
+    {
+        $targetHost = parse_url($targetUrl, PHP_URL_HOST);
+
+        // Relative URL, or absolute URL pointing at our own host → same-origin, safe.
+        if ($targetHost === null) {
+            return true;
+        }
+        $appHost = parse_url(config('app.url'), PHP_URL_HOST);
+        if ($appHost && strcasecmp($targetHost, $appHost) === 0) {
+            return true;
+        }
+
+        // Off-site: only follow it if we signed this link.
+        return $request->hasValidSignature();
     }
 }

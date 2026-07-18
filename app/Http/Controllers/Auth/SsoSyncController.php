@@ -13,9 +13,11 @@ class SsoSyncController extends Controller
      */
     public function index(Request $request)
     {
-        // Simple token-based security
+        // Token-based security. Use a constant-time comparison to avoid leaking the
+        // secret via timing, and require a configured token so an empty config can't be matched.
         $token = $request->header('X-SSO-Sync-Token');
-        if (!$token || $token !== config('sso.sync_token')) {
+        $expected = config('sso.sync_token');
+        if (!$token || !$expected || !hash_equals((string) $expected, (string) $token)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 

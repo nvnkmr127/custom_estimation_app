@@ -228,12 +228,19 @@ class SettingsController extends Controller
 
             // If any SMTP settings are provided in request, override them temporarily for this send
             if ($request->filled('smtp_host')) {
+                // The password field is shown masked ('********'). If the user didn't retype it,
+                // fall back to the stored password so the test doesn't fail against the mask.
+                $smtpPassword = $request->input('smtp_password');
+                if ($smtpPassword === '********' || $smtpPassword === null || $smtpPassword === '') {
+                    $smtpPassword = Setting::where('key', 'smtp_password')->value('value');
+                }
+
                 config([
                     'mail.mailers.smtp.host' => $request->input('smtp_host'),
                     'mail.mailers.smtp.port' => $request->input('smtp_port', 587),
                     'mail.mailers.smtp.encryption' => $request->input('smtp_encryption', 'tls'),
                     'mail.mailers.smtp.username' => $request->input('smtp_username'),
-                    'mail.mailers.smtp.password' => $request->input('smtp_password'),
+                    'mail.mailers.smtp.password' => $smtpPassword,
                     'mail.from.address' => $request->input('smtp_from_address', config('mail.from.address')),
                     'mail.from.name' => $request->input('smtp_from_name', config('mail.from.name')),
                 ]);
