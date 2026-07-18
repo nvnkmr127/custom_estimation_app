@@ -30,11 +30,10 @@
                     <select name="action"
                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         <option value="">All Actions</option>
-                        <option value="created" {{ request('action') == 'created' ? 'selected' : '' }}>Created</option>
-                        <option value="updated" {{ request('action') == 'updated' ? 'selected' : '' }}>Updated</option>
-                        <option value="deleted" {{ request('action') == 'deleted' ? 'selected' : '' }}>Deleted</option>
-                        <option value="approved" {{ request('action') == 'approved' ? 'selected' : '' }}>Approved</option>
-                        <option value="accepted" {{ request('action') == 'accepted' ? 'selected' : '' }}>Accepted</option>
+                        @foreach($actions as $act)
+                            <option value="{{ $act }}" {{ request('action') == $act ? 'selected' : '' }}>
+                                {{ ucfirst(str_replace(['_', '.'], ' ', $act)) }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -43,10 +42,10 @@
                     <select name="subject_type"
                         class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         <option value="">All Types</option>
-                        <option value="App\Models\Estimate" {{ request('subject_type') == 'App\Models\Estimate' ? 'selected' : '' }}>Estimate</option>
-                        <option value="App\Models\Task" {{ request('subject_type') == 'App\Models\Task' ? 'selected' : '' }}>Task</option>
-                        <option value="App\Models\Client" {{ request('subject_type') == 'App\Models\Client' ? 'selected' : '' }}>Client</option>
-                        <option value="App\Models\Product" {{ request('subject_type') == 'App\Models\Product' ? 'selected' : '' }}>Product</option>
+                        @foreach($subjectTypes as $type)
+                            <option value="{{ $type }}" {{ request('subject_type') == $type ? 'selected' : '' }}>
+                                {{ class_basename($type) }}</option>
+                        @endforeach
                     </select>
                 </div>
 

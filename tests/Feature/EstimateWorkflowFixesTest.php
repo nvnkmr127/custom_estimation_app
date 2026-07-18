@@ -120,6 +120,27 @@ class EstimateWorkflowFixesTest extends TestCase
     }
 
     /** @test */
+    public function estimator_admin_can_approve_a_version_they_did_not_create()
+    {
+        $owner = User::factory()->create(['role' => 'estimator']);
+        $estimatorAdmin = User::factory()->create(['role' => 'estimator_admin']);
+        $client = Client::factory()->create();
+
+        $estimate = Estimate::factory()->create([
+            'created_by' => $owner->id,
+            'client_id' => $client->id,
+            'version' => 2,
+            'is_current_version' => false,
+        ]);
+
+        $this->actingAs($estimatorAdmin)
+            ->post(route('estimates.approve-version', $estimate))
+            ->assertRedirect();
+
+        $this->assertEquals(1, $estimate->fresh()->is_current_version);
+    }
+
+    /** @test */
     public function admin_cannot_approve_mismatched_estimate()
     {
         $owner = User::factory()->create();

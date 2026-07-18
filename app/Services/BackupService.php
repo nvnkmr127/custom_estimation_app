@@ -73,27 +73,34 @@ class BackupService
             throw new \RuntimeException("Cannot create ZIP archive at: {$absolutePath}");
         }
 
-        // 1️⃣ Zero-Downtime Database Backup
-        $this->addDatabaseToZip($zip);
-
         $manifest = [];
         $parentId = null;
 
-        // 2️⃣ Storage Backup
-        if ($includeStorage) {
-            if ($incremental) {
-                $lastBackup = BackupLog::finals()->completed()->orderBy('created_at', 'desc')->first();
-                $lastManifest = $lastBackup?->manifest ?? [];
-                $parentId = $lastBackup?->id;
-                $manifest = $this->addIncrementalStorageToZip($zip, $lastManifest);
-            } else {
-                $manifest = $this->addStorageToZip($zip);
-            }
-        }
+        try {
+            // 1️⃣ Zero-Downtime Database Backup
+            $this->addDatabaseToZip($zip);
 
-        // 3️⃣ Code Backup (Recursive, avoiding binary bloat)
-        if ($includeCode) {
-            $this->addCodeToZip($zip);
+            // 2️⃣ Storage Backup
+            if ($includeStorage) {
+                if ($incremental) {
+                    $lastBackup = BackupLog::finals()->completed()->orderBy('created_at', 'desc')->first();
+                    $lastManifest = $lastBackup?->manifest ?? [];
+                    $parentId = $lastBackup?->id;
+                    $manifest = $this->addIncrementalStorageToZip($zip, $lastManifest);
+                } else {
+                    $manifest = $this->addStorageToZip($zip);
+                }
+            }
+
+            // 3️⃣ Code Backup (Recursive, avoiding binary bloat)
+            if ($includeCode) {
+                $this->addCodeToZip($zip);
+            }
+        } catch (\Throwable $e) {
+            // Don't leave a partial/corrupt archive behind (no BackupLog row => prune never cleans it).
+            $zip->close();
+            @unlink($absolutePath);
+            throw $e;
         }
 
         $zip->close();
@@ -128,13 +135,14 @@ class BackupService
 
         if ($connection === 'sqlite') {
             $dbPath = config('database.connections.sqlite.database');
-            if (file_exists($dbPath)) {
-                $tempDb = sys_get_temp_dir() . '/sqlite_backup_' . time() . '.sqlite';
-                copy($dbPath, $tempDb);
-                $zip->addFile($tempDb, 'database/database.sqlite');
-                Log::info("[BackupService] Added Zero-Downtime SQLite snapshot.");
-                register_shutdown_function(fn() => @unlink($tempDb));
+            if (!file_exists($dbPath)) {
+                throw new \RuntimeException("SQLite database not found at: {$dbPath}. Aborting backup to avoid a database-less archive.");
             }
+            $tempDb = sys_get_temp_dir() . '/sqlite_backup_' . time() . '.sqlite';
+            copy($dbPath, $tempDb);
+            $zip->addFile($tempDb, 'database/database.sqlite');
+            Log::info("[BackupService] Added Zero-Downtime SQLite snapshot.");
+            register_shutdown_function(fn() => @unlink($tempDb));
         } elseif (in_array($connection, ['mysql', 'mariadb'])) {
             $this->addMysqlDumpToZip($zip);
         }
@@ -168,11 +176,14 @@ class BackupService
         exec($cmd, $output, $exitCode);
         @unlink($cnfFile);
 
-        if ($exitCode === 0 && file_exists($tempFile)) {
+        if ($exitCode === 0 && file_exists($tempFile) && filesize($tempFile) > 0) {
             $zip->addFile($tempFile, 'database/database.sql');
             register_shutdown_function(fn() => @unlink($tempFile));
         } else {
+            @unlink($tempFile);
             Log::error("[BackupService] mysqldump failed: " . implode("\n", $output));
+            // Fail loudly: a backup without the database is worse than no backup.
+            throw new \RuntimeException('mysqldump failed (exit code ' . $exitCode . '); aborting backup to avoid a database-less archive.');
         }
     }
 

@@ -1217,7 +1217,7 @@ class EstimateController extends Controller
         $this->authorize('update', $estimate);
 
         // Strictly allow only Creator or Admins to approve (not followers with edit rights)
-        if (auth()->id() !== $estimate->created_by && !auth()->user()->hasRole(['super_admin', 'admin'])) {
+        if (auth()->id() !== $estimate->created_by && !auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin'])) {
             abort(403, 'Only the creator or an admin can approve changes.');
         }
 

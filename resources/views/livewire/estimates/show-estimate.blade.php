@@ -444,9 +444,7 @@ $totalsPayload = [
 
             <!-- Pending Approval Actions (For Approver or Admin) -->
             @if(($policy['can_approve'] ?? false) && ($userApproval || $adminApprovalOverride))
-                @if($policy['can_approve'] || auth()->user()->hasPermission('approve_estimates'))
-                    <!-- Checklist Logic embedded in Approve -->
-                    <!-- Logic copied from original -->
+                    <!-- Approve (with embedded approval checklist) -->
                     <div x-data="{ 
                                                                             checks: {{ json_encode($estimate->checklistItems->where('is_completed', true)->pluck('approval_checklist_id')->values()) }}, 
                                                                             requiredCount: {{ $checklists->where('is_required', true)->count() }},
@@ -495,30 +493,6 @@ $totalsPayload = [
                             </div>
                         </div>
                     </div>
-                @else
-                    <!-- Simple Approve -->
-                    <div x-data="{ open: false }" class="relative">
-                        <button @click="open = !open" type="button"
-                            class="rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">
-                            Approve
-                        </button>
-                        <div x-show="open" @click.outside="open = false"
-                            class="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 z-20 p-4 text-left">
-                            <div x-data="{ comments: '' }">
-                                <textarea x-model="comments" placeholder="Comments..."
-                                    class="w-full text-xs rounded border-gray-300 mb-2"></textarea>
-                                <button type="button" 
-                                     @click="$wire.approve(comments)"
-                                     wire:loading.attr="disabled"
-                                     wire:target="approve"
-                                     class="w-full rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50">
-                                     <span wire:loading.remove wire:target="approve">Confirm Approval</span>
-                                     <span wire:loading wire:target="approve">Processing...</span>
-                                 </button>
-                            </div>
-                        </div>
-                    </div>
-                @endif
 
                 <!-- Request Changes -->
                 <div x-data="{ open: false }" class="relative">
@@ -1672,7 +1646,7 @@ $totalsPayload = [
             @endif
 
             <!-- Approval / Make Current (For Creator/Admin) -->
-            @if(isset($estimate->parent) && $estimate->is_current_version === false && (auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin'])))
+            @if(isset($estimate->parent) && $estimate->is_current_version === false && (auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin'])))
                 <div class="bg-yellow-50 shadow-sm ring-1 ring-yellow-200 sm:rounded-xl px-4 py-3 mb-6">
                     <h3 class="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-2">Proposed Changes
                         (v{{ $estimate->version }})</h3>
@@ -1691,7 +1665,7 @@ $totalsPayload = [
                 class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl px-4 py-5 mb-6">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="text-sm font-semibold text-slate-900">Followers</h3>
-                    @if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin']))
+                    @if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin']))
                         <button @click="showFollowerModal = true"
                             class="text-xs font-medium text-indigo-600 hover:text-indigo-500">
                             + Add
@@ -1700,7 +1674,9 @@ $totalsPayload = [
                 </div>
 
                 <div class="space-y-3">
-                    @foreach($estimate->followers as $follower)
+                    {{-- Compute the composed followers list once per render (creator + approvers + manual) --}}
+                    @php($followersList = $estimate->followers)
+                    @foreach($followersList as $follower)
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 @if($follower->avatar)
@@ -1714,8 +1690,9 @@ $totalsPayload = [
                                 <div class="text-sm text-slate-700">{{ $follower->name }}</div>
                             </div>
 
-                            @if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin']))
-                                @if($estimate->created_by !== $follower->id) <!-- Don't remove creator -->
+                            @if(auth()->id() === $estimate->created_by || auth()->user()->hasRole(['super_admin', 'admin', 'estimator_admin']))
+                                {{-- Only manual followers can be removed; creator & approvers are implicit --}}
+                                @if($estimate->manualFollowers->contains('user_id', $follower->id))
                                     <button type="button"
                                         @click="if(confirm('Remove this follower?')) { $wire.removeFollower({{ $follower->id }}) }"
                                         class="text-slate-400 hover:text-red-500">

@@ -147,6 +147,15 @@ class ApprovalController extends Controller
 
             $comments = $request->input('comments');
 
+            // The internal reject UI requires a decline reason (reason_id). There is no
+            // dedicated column, so fold it into the stored comments — mirrors the portal convention.
+            if ($request->filled('reason_id')) {
+                $reason = \App\Models\DeclineReason::find($request->input('reason_id'));
+                if ($reason) {
+                    $comments = 'Reason: ' . $reason->reason . ' — ' . $comments;
+                }
+            }
+
             $estimate = $this->workflowService->reject($estimate, $user->id, $comments);
 
             if (request()->wantsJson()) {

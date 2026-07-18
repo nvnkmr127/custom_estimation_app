@@ -31,7 +31,12 @@ class ActivityLogController extends Controller
         $activities = $query->latest()->paginate(50);
         $users = User::orderBy('name')->get();
 
-        return view('activities.index', compact('activities', 'users'));
+        // Build filter options from actions/types that actually exist in the log,
+        // so the dropdowns always match reality (the vocabulary grows over time).
+        $actions = ActivityLog::query()->select('action')->distinct()->orderBy('action')->pluck('action');
+        $subjectTypes = ActivityLog::query()->select('subject_type')->distinct()->orderBy('subject_type')->pluck('subject_type');
+
+        return view('activities.index', compact('activities', 'users', 'actions', 'subjectTypes'));
     }
 
     /**

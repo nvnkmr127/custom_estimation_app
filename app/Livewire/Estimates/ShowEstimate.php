@@ -66,8 +66,9 @@ class ShowEstimate extends Component
         $this->viewCount = $this->estimate->view_count;
         $this->lastActivity = $this->estimate->updated_at;
 
-        // Load all versions
-        $this->allVersions = Estimate::where('parent_id', $this->estimate->parent_id ?? $this->estimate->id)
+        // Load all versions (eager-load creator; the version history list renders $ver->creator->name)
+        $this->allVersions = Estimate::with('creator')
+            ->where('parent_id', $this->estimate->parent_id ?? $this->estimate->id)
             ->orWhere('id', $this->estimate->parent_id ?? $this->estimate->id)
             ->orderBy('version', 'desc')
             ->get();
@@ -207,31 +208,28 @@ class ShowEstimate extends Component
 
     public function approve($comments = null)
     {
+        // The workflow service (via the controller) wraps this in its own DB::transaction.
         $this->estimate->refresh();
         try {
-            DB::beginTransaction();
             $this->ensureNotLocked('can_approve');
 
             app(\App\Http\Controllers\ApprovalController::class)
                 ->approve(request()->merge(['comments' => $comments]), $this->estimate);
 
-            DB::commit();
             $this->refreshEstimate();
             session()->flash('success', 'Estimate approved successfully.');
         } catch (\InvalidArgumentException $e) {
-            DB::rollBack();
             session()->flash('error', 'Action Denied: ' . $e->getMessage());
         } catch (\Exception $e) {
-            DB::rollBack();
             session()->flash('error', 'Workflow Error: ' . $e->getMessage());
         }
     }
 
     public function reject($reasonId, $comments)
     {
+        // The workflow service (via the controller) wraps this in its own DB::transaction.
         $this->estimate->refresh();
         try {
-            DB::beginTransaction();
             $this->ensureNotLocked('can_approve');
 
             app(\App\Http\Controllers\ApprovalController::class)
@@ -240,36 +238,30 @@ class ShowEstimate extends Component
                     'comments' => $comments
                 ]), $this->estimate);
 
-            DB::commit();
             $this->refreshEstimate();
             session()->flash('success', 'Estimate rejected.');
         } catch (\InvalidArgumentException $e) {
-            DB::rollBack();
             session()->flash('error', 'Action Denied: ' . $e->getMessage());
         } catch (\Exception $e) {
-            DB::rollBack();
             session()->flash('error', 'Workflow Error: ' . $e->getMessage());
         }
     }
 
     public function requestChanges($comments)
     {
+        // The workflow service (via the controller) wraps this in its own DB::transaction.
         $this->estimate->refresh();
         try {
-            DB::beginTransaction();
             $this->ensureNotLocked('can_approve');
 
             app(\App\Http\Controllers\ApprovalController::class)
                 ->requestChanges(request()->merge(['comments' => $comments]), $this->estimate);
 
-            DB::commit();
             $this->refreshEstimate();
             session()->flash('success', 'Changes requested successfully.');
         } catch (\InvalidArgumentException $e) {
-            DB::rollBack();
             session()->flash('error', 'Action Denied: ' . $e->getMessage());
         } catch (\Exception $e) {
-            DB::rollBack();
             session()->flash('error', 'Workflow Error: ' . $e->getMessage());
         }
     }
@@ -320,22 +312,19 @@ class ShowEstimate extends Component
     }
     public function submitForApproval()
     {
+        // EstimateWorkflowService::submitForApproval wraps this in its own DB::transaction.
         $this->estimate->refresh();
         try {
             $this->ensureNotLocked('can_submit');
-            DB::beginTransaction();
-            $workflowService = app(\App\Services\Estimates\EstimateWorkflowService::class);
 
-            $estimate = $workflowService->submitForApproval($this->estimate);
+            app(\App\Services\Estimates\EstimateWorkflowService::class)
+                ->submitForApproval($this->estimate);
 
-            DB::commit();
             $this->refreshEstimate();
             session()->flash('success', 'Estimate submitted for approval.');
         } catch (\InvalidArgumentException $e) {
-            DB::rollBack();
             session()->flash('error', 'Policy Restriction: ' . $e->getMessage());
         } catch (\Exception $e) {
-            DB::rollBack();
             session()->flash('error', 'Submission Failed: ' . $e->getMessage());
         }
     }

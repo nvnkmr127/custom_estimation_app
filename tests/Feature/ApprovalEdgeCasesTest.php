@@ -189,4 +189,38 @@ class ApprovalEdgeCasesTest extends TestCase
         $approval = $estimate->approvals()->first();
         $this->assertEquals($fallback->id, $approval->user_id);
     }
+
+    /** @test */
+    public function reject_folds_the_selected_decline_reason_into_the_stored_comments()
+    {
+        $approver = User::factory()->create();
+
+        $chain = ApprovalChain::create(['name' => 'Reason Chain', 'is_active' => true]);
+        ApprovalChainStep::create(['approval_chain_id' => $chain->id, 'user_id' => $approver->id, 'order' => 1, 'role' => 'approver']);
+
+        $estimate = Estimate::factory()->create(['approval_chain_id' => $chain->id]);
+        \App\Models\EstimateItem::create([
+            'estimate_id' => $estimate->id,
+            'name' => 'Line Item',
+            'unit_price' => 100,
+            'quantity' => 1,
+            'unit_type' => 'nos',
+            'total' => 100,
+            'order_index' => 0,
+        ]);
+        $estimate->submitForApproval();
+
+        $reason = \App\Models\DeclineReason::create(['reason' => 'Price too high', 'is_active' => true]);
+
+        $this->actingAs($approver)
+            ->post(route('estimates.reject', $estimate), [
+                'reason_id' => $reason->id,
+                'comments' => 'Client budget does not allow this.',
+            ]);
+
+        $rejected = $estimate->approvals()->where('user_id', $approver->id)->first();
+        $this->assertEquals('rejected', $rejected->status);
+        $this->assertStringContainsString('Price too high', $rejected->comments);
+        $this->assertStringContainsString('Client budget does not allow this.', $rejected->comments);
+    }
 }
