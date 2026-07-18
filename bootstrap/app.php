@@ -35,6 +35,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/*',
             'catch/*',
             'plugins/catch/*',
+            // Portal POST actions are authenticated by Laravel signed URLs, not sessions,
+            // so stateless (mobile/JSON) clients have no CSRF token. The signature is the guard.
+            'portal/*',
         ]);
     })
     ->withSchedule(function ($schedule) {

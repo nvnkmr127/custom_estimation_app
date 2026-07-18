@@ -70,6 +70,12 @@ class QueueLifecycleSubscriber
         try {
             $command = unserialize($payload['data']['command']);
 
+            // Corrupt/incompatible payloads unserialize to false — bail cleanly instead
+            // of tripping property_exists() on a non-object.
+            if (!is_object($command)) {
+                return;
+            }
+
             // Case 1: Standard Laravel Listener
             if (property_exists($command, 'data') && !empty($command->data)) {
                 $domainEvent = $command->data[0] ?? null;

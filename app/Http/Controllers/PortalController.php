@@ -105,8 +105,9 @@ class PortalController extends Controller
             'comments.replies' // Load replies for estimate comments
         ]);
 
-        // Render PDF Template HTML
-        $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first() ?? \App\Models\PdfTemplate::first();
+        // Render PDF Template HTML. Only fall back to the active default — never an
+        // arbitrary template, which could show the client the wrong brand's layout.
+        $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first();
 
         $htmlContent = '';
         if ($template) {
@@ -191,35 +192,15 @@ class PortalController extends Controller
             return redirect()->back()->with('error', 'This estimate cannot be accepted. It may be expired, not yet sent, or already processed.');
         }
 
-        // Capture Location (Simple Lookup)
-        $location = null;
         try {
-            $ip = $request->ip();
-            if ($ip !== '127.0.0.1' && $ip !== '::1') {
-                $response = \Illuminate\Support\Facades\Http::timeout(3)->get("https://ipapi.co/{$ip}/json/");
-                if ($response->successful()) {
-                    $data = $response->json();
-                    if ($data && !isset($data['error'])) {
-                        $location = ($data['city'] ?? '') . ', ' . ($data['region'] ?? '') . ', ' . ($data['country_name'] ?? '');
-                        $location = trim($location, ', ');
-                    }
-                }
-            } else {
-                $location = 'Localhost';
-            }
-        } catch (\Exception $e) {
-            // Ignore location errors
-        }
-
-        try {
-            return DB::transaction(function () use ($estimate, $request, $location) {
+            $result = DB::transaction(function () use ($estimate, $request) {
                 // Use State Service for Transition (Handles Lock, Concurrency, and Side Effects)
                 $this->stateService->transitionClientStatus($estimate, Estimate::CLT_STATUS_ACCEPTED, false, [
                     'signature' => $request->signature,
                     'signed_at' => now(),
                     'signer_ip' => $request->ip(),
                     'signer_agent' => $request->userAgent(),
-                    'signer_location' => $location,
+                    'signer_location' => null,
                 ]);
 
                 // Sync will now happen via PerfexSyncListener on the EstimateAccepted event below
@@ -240,6 +221,12 @@ class PortalController extends Controller
 
                 return redirect()->back()->with('success', 'Thank you! You have successfully signed and accepted the estimate. Our team has been notified.');
             });
+
+            // Geolocate the signer as a best-effort audit detail, deferred so the external
+            // lookup never blocks the client's response. Runs after the response is sent.
+            $this->deferSignerLocation($estimate, $request->ip());
+
+            return $result;
 
         } catch (\InvalidArgumentException $e) {
             if (request()->wantsJson()) {
@@ -268,6 +255,41 @@ class PortalController extends Controller
             }
             return redirect()->back()->with('error', 'An unexpected error occurred while processing your acceptance.');
         }
+    }
+
+    /**
+     * Resolve the signer's approximate location from their IP after the response is sent,
+     * so a slow/failing third-party lookup never delays acceptance. Best-effort only.
+     */
+    protected function deferSignerLocation(Estimate $estimate, ?string $ip): void
+    {
+        if (empty($ip)) {
+            return;
+        }
+
+        dispatch(function () use ($estimate, $ip) {
+            if (in_array($ip, ['127.0.0.1', '::1'], true)) {
+                $estimate->newQuery()->whereKey($estimate->getKey())->update(['signer_location' => 'Localhost']);
+                return;
+            }
+
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(3)->get("https://ipapi.co/{$ip}/json/");
+                if (!$response->successful()) {
+                    return;
+                }
+                $data = $response->json();
+                if (!$data || isset($data['error'])) {
+                    return;
+                }
+                $location = trim(($data['city'] ?? '') . ', ' . ($data['region'] ?? '') . ', ' . ($data['country_name'] ?? ''), ', ');
+                if ($location !== '') {
+                    $estimate->newQuery()->whereKey($estimate->getKey())->update(['signer_location' => $location]);
+                }
+            } catch (\Throwable $e) {
+                // Location is a nice-to-have; never surface failures.
+            }
+        })->afterResponse();
     }
 
     /**
@@ -508,13 +530,9 @@ class PortalController extends Controller
     {
         $this->validateAccess($estimate, $request);
 
-        // Reuse PDF Service
+        // Reuse PDF Service. Only fall back to the active default — never an arbitrary
+        // template, which could render the client's PDF with the wrong brand's layout.
         $template = $estimate->pdfTemplate ?? \App\Models\PdfTemplate::where('is_active', true)->where('is_default', true)->first();
-
-        if (!$template) {
-            // Fallback
-            $template = \App\Models\PdfTemplate::first();
-        }
 
         if (!$template) {
             abort(404, 'PDF Template not found.');
