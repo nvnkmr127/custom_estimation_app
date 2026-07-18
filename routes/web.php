@@ -157,7 +157,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('email-templates/preview', [App\Http\Controllers\EmailTemplateController::class, 'preview'])->name('email-templates.preview');
         Route::post('email-templates/{emailTemplate}/test', [App\Http\Controllers\EmailTemplateController::class, 'test'])->name('email-templates.test');
 
-        Route::resource('brands', App\Http\Controllers\BrandController::class)->except(['show']);
+        // Brand CRUD is handled by the Livewire BrandManager component; only index has a controller.
+        Route::resource('brands', App\Http\Controllers\BrandController::class)->only(['index']);
         Route::resource('packages', App\Http\Controllers\ItemPackageController::class);
 
         // Plugins

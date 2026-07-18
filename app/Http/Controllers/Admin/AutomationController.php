@@ -120,7 +120,13 @@ class AutomationController extends Controller
             })->toArray(),
         ];
 
-        return view('admin.automation.index', ['rules' => Automation::latest()->get(), 'events' => $this->getEvents(), 'editingRule' => $rule]);
+        // Same view as index(), whose rules-list partial paginates ($rules->links()).
+        $rules = Automation::current()
+            ->with(['triggers', 'steps.action', 'globalConditions'])
+            ->latest()
+            ->paginate(10);
+
+        return view('admin.automation.index', ['rules' => $rules, 'events' => $this->getEvents(), 'editingRule' => $rule]);
     }
 
     protected function getEvents()

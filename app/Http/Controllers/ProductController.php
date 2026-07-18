@@ -67,8 +67,9 @@ class ProductController extends Controller
         $this->authorize('create', Product::class);
 
         $categories = ProductCategory::all();
+        $unitTypes = \App\Models\UnitType::all();
 
-        return view('products.create', compact('categories'));
+        return view('products.create', compact('categories', 'unitTypes'));
     }
 
     /**

@@ -103,7 +103,8 @@ class CalendarTest extends TestCase
     /** @test */
     public function estimators_can_create_new_reminders_from_calendar_handler()
     {
-        $targetDate = now()->startOfMonth()->addDays(15)->toDateString();
+        // Must be a future date: saveReminder() correctly rejects reminders set in the past.
+        $targetDate = now()->addDays(15)->toDateString();
 
         Livewire::actingAs($this->estimatorUser)
             ->test(\App\Livewire\Calendar\CalendarIndex::class)
