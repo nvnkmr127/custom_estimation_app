@@ -4,6 +4,13 @@
             <h1 class="text-2xl font-bold text-gray-900">System Event Logs</h1>
             <p class="mt-1 text-sm text-gray-500">Immutable audit trail of all domain events.</p>
         </div>
+        <div class="mt-4 sm:ml-4 sm:mt-0 sm:flex-none">
+            <a href="{{ route('log-viewer.index') }}" target="_blank"
+                class="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                <x-heroicon-o-document-magnifying-glass class="h-5 w-5" />
+                Open Log Viewer
+            </a>
+        </div>
     </div>
 
     <!-- Quick Stats / Grouping -->

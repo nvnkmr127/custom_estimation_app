@@ -48,8 +48,10 @@ class StoreEstimateRequest extends FormRequest
                             if (isset($item['discount_percentage'])) {
                                 $sectionsInput[$sIdx]['items'][$iIdx]['discount_percent'] = $item['discount_percentage'];
                             }
+                            $sectionsInput[$sIdx]['items'][$iIdx]['is_package'] = filter_var($item['is_package'] ?? false, FILTER_VALIDATE_BOOLEAN);
                         }
                     }
+                    $sectionsInput[$sIdx]['is_package'] = filter_var($section['is_package'] ?? false, FILTER_VALIDATE_BOOLEAN);
                 }
                 $this->merge(['sections' => $sectionsInput]);
             }
@@ -70,6 +72,7 @@ class StoreEstimateRequest extends FormRequest
                     if (isset($item['discount_percentage'])) {
                         $itemsInput[$iIdx]['discount_percent'] = $item['discount_percentage'];
                     }
+                    $itemsInput[$iIdx]['is_package'] = filter_var($item['is_package'] ?? false, FILTER_VALIDATE_BOOLEAN);
                 }
                 $this->merge(['items' => $itemsInput]);
             }
@@ -126,7 +129,7 @@ class StoreEstimateRequest extends FormRequest
             'items.*.height' => 'nullable|numeric',
             'items.*.internal_note' => 'nullable|string',
             'items.*.description' => 'nullable|string',
-            'items.*.is_package' => 'boolean',
+            'items.*.is_package' => 'nullable|boolean',
             'items.*.tax_1' => 'nullable|numeric|min:0',
             'items.*.tax_2' => 'nullable|numeric|min:0',
             'items.*.options' => 'nullable|array',
@@ -140,7 +143,7 @@ class StoreEstimateRequest extends FormRequest
             'sections' => 'nullable|array|required_if:type,room_based',
             'sections.*.name' => 'required_with:sections|string',
             'sections.*.section_type' => 'nullable|string|in:room,package',
-            'sections.*.is_package' => 'boolean',
+            'sections.*.is_package' => 'nullable|boolean',
             'sections.*.items.*.product_id' => 'nullable|integer',
             'sections.*.items.*.name' => 'required_with:sections.*.items|string',
             'sections.*.items.*.unit_price' => 'required_with:sections.*.items|numeric|min:0',
@@ -148,7 +151,7 @@ class StoreEstimateRequest extends FormRequest
             'sections.*.items.*.size' => 'nullable|string',
             'sections.*.items.*.description' => 'nullable|string',
             'sections.*.items.*.internal_note' => 'nullable|string',
-            'sections.*.items.*.is_package' => 'boolean',
+            'sections.*.items.*.is_package' => 'nullable|boolean',
             'sections.*.items.*.formula' => 'nullable|string',
             'sections.*.items.*.length' => 'nullable|numeric',
             'sections.*.items.*.width' => 'nullable|numeric',

@@ -203,6 +203,13 @@ class NavigationService
                     'active' => Request::routeIs('event-logs.*'),
                 ],
                 [
+                    'label' => 'Log Viewer',
+                    'route' => 'log-viewer.index',
+                    'icon' => 'heroicon-o-document-magnifying-glass',
+                    'active' => Request::routeIs('log-viewer.*'),
+                    'target' => '_blank',
+                ],
+                [
                     'label' => 'Developer Portal',
                     'route' => 'admin.api-portal',
                     'icon' => 'heroicon-o-code-bracket',

@@ -24,7 +24,7 @@ class RouteSmokeTest extends TestCase
             'categories', 'categories/create', 'change-request-checklists',
             'change-request-checklists/create', 'clients', 'clients/create', 'coupons',
             'coupons/create', 'email-templates', 'email-templates/create', 'estimates',
-            'estimates/create', 'event-logs', 'notifications', 'packages', 'packages/create',
+            'estimates/create', 'event-logs', 'log-viewer', 'notifications', 'packages', 'packages/create',
             'pdf-templates', 'pdf-templates/create', 'permissions', 'products', 'products/create',
             'products/pending/list', 'profile', 'reminders', 'reports', 'search', 'settings',
             'settings/api-portal', 'settings/nurture', 'tasks', 'tasks/create', 'templates',

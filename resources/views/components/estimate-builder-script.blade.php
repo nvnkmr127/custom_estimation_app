@@ -286,6 +286,7 @@
                                 s.section_type = 'package';
                             }
                         }
+                        s.is_package = (s.section_type === 'package');
                         if (s.items) {
                             s.items.forEach(i => this.hydrateItem(i));
                         }
@@ -376,7 +377,7 @@
                 // Generate UID if missing
                 if (!item._uid) item._uid = item.id ? 'item-' + item.id : 'item-' + Math.random().toString(36).substr(2, 9);
 
-                item.is_package = item.is_package || (item.description && item.description.startsWith('Package:'));
+                item.is_package = !!(item.is_package || (item.description && item.description.startsWith('Package:')));
             },
 
             isItemLocked(item) {

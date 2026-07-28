@@ -41,6 +41,7 @@ class EstimateItem extends Model
     protected $casts = [
         'options' => 'array',
         'selected_options' => 'array',
+        'is_package' => 'boolean',
     ];
 
     /**
