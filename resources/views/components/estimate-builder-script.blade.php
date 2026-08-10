@@ -1127,6 +1127,13 @@
                 item.showCalculator = !item.showCalculator;
             },
 
+            inputWidth(val, minWidth = 75, maxPx = 180) {
+                const len = String(val ?? '').length;
+                if (len <= 4) return minWidth + 'px';
+                const dynamicPx = Math.max(minWidth, (len + 2.5) * 9.5);
+                return Math.min(dynamicPx, maxPx) + 'px';
+            },
+
             calculateSize(item) {
                 const l = parseFloat(item.length) || 0;
                 const w = parseFloat(item.width) || 0;
@@ -1259,13 +1266,171 @@
 
             // --- Validation ---
             hasItemError(item, sectionIndex = null) {
-                const location = sectionIndex !== null
-                    ? `${this.estimate.sections[sectionIndex].name} - Item #${this.estimate.sections[sectionIndex].items.indexOf(item) + 1}`
-                    : `Item #${this.estimate.items.indexOf(item) + 1}`;
+                if (!item) return false;
+                return this.validationErrors.some(err => {
+                    if (err.itemRef && err.itemRef === item) return true;
+                    if (sectionIndex !== null && err.sectionIndex === sectionIndex && err.itemIndex !== undefined) {
+                        return this.estimate.sections[sectionIndex]?.items[err.itemIndex] === item;
+                    }
+                    if (sectionIndex === null && err.sectionIndex === null && err.itemIndex !== undefined) {
+                        return this.estimate.items[err.itemIndex] === item;
+                    }
+                    return false;
+                });
+            },
 
-                return this.validationErrors.some(err =>
-                    err.location === location && err.itemName === (item.name || 'Unnamed Item')
-                );
+            getItemError(item, field = null) {
+                if (!item || !this.validationErrors.length) return null;
+                const found = this.validationErrors.find(err => {
+                    const matchesItem = (err.itemRef && err.itemRef === item) ||
+                        (err.sectionIndex !== undefined && err.itemIndex !== undefined &&
+                            (err.sectionIndex !== null
+                                ? this.estimate.sections[err.sectionIndex]?.items[err.itemIndex] === item
+                                : this.estimate.items[err.itemIndex] === item));
+                    if (matchesItem) {
+                        return field ? err.field === field : true;
+                    }
+                    return false;
+                });
+                return found ? found.message : null;
+            },
+
+            clearItemError(item, field = null) {
+                if (!item || !this.validationErrors.length) return;
+                this.validationErrors = this.validationErrors.filter(err => {
+                    const matchesItem = (err.itemRef && err.itemRef === item) ||
+                        (err.sectionIndex !== undefined && err.itemIndex !== undefined &&
+                            (err.sectionIndex !== null
+                                ? this.estimate.sections[err.sectionIndex]?.items[err.itemIndex] === item
+                                : this.estimate.items[err.itemIndex] === item));
+                    if (matchesItem) {
+                        return field ? err.field !== field : false;
+                    }
+                    return true;
+                });
+            },
+
+            showToast(message, type = 'error') {
+                window.dispatchEvent(new CustomEvent('notify', { detail: { type, message } }));
+            },
+
+            formatFieldName(field) {
+                if (!field) return 'Field';
+                return field
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, c => c.toUpperCase());
+            },
+
+            jumpToError(error) {
+                let el = null;
+                if (error.targetId) {
+                    el = document.getElementById(error.targetId);
+                }
+                if (!el && error.sectionIndex !== undefined && error.itemIndex !== undefined) {
+                    const targetId = error.sectionIndex !== null
+                        ? `item-row-s${error.sectionIndex}-i${error.itemIndex}`
+                        : `item-row-i${error.itemIndex}`;
+                    el = document.getElementById(targetId);
+                }
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('ring-4', 'ring-rose-400', 'bg-rose-100');
+                    setTimeout(() => {
+                        el.classList.remove('ring-4', 'ring-rose-400', 'bg-rose-100');
+                    }, 3000);
+                    const firstInput = el.querySelector('input:not([type=hidden]), select, textarea');
+                    if (firstInput) firstInput.focus();
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            },
+
+            scrollToFirstError() {
+                this.$nextTick(() => {
+                    const banner = document.getElementById('validation-errors-banner');
+                    if (banner) {
+                        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+            },
+
+            handleServerValidationErrors(errorsObject) {
+                const serverErrors = [];
+                if (!errorsObject || typeof errorsObject !== 'object') return serverErrors;
+
+                for (const [key, messages] of Object.entries(errorsObject)) {
+                    const msgList = Array.isArray(messages) ? messages.join(', ') : messages;
+
+                    const sectionMatch = key.match(/^sections\.(\d+)\.items\.(\d+)\.(.+)$/);
+                    const itemMatch = key.match(/^items\.(\d+)\.(.+)$/);
+                    const sectionNameMatch = key.match(/^sections\.(\d+)\.name$/);
+
+                    if (sectionMatch) {
+                        const sIdx = parseInt(sectionMatch[1], 10);
+                        const iIdx = parseInt(sectionMatch[2], 10);
+                        const field = sectionMatch[3];
+
+                        const section = this.estimate.sections ? this.estimate.sections[sIdx] : null;
+                        const item = section && section.items ? section.items[iIdx] : null;
+
+                        const sectionName = section?.name || `Room #${sIdx + 1}`;
+                        const itemName = item?.name ? item.name : `Custom Item #${iIdx + 1}`;
+
+                        serverErrors.push({
+                            location: sectionName,
+                            itemName: itemName,
+                            field: field,
+                            message: `${this.formatFieldName(field)}: ${msgList}`,
+                            sectionIndex: sIdx,
+                            itemIndex: iIdx,
+                            itemRef: item,
+                            targetId: `item-row-s${sIdx}-i${iIdx}`
+                        });
+                    } else if (itemMatch) {
+                        const iIdx = parseInt(itemMatch[1], 10);
+                        const field = itemMatch[2];
+
+                        const item = this.estimate.items ? this.estimate.items[iIdx] : null;
+                        const itemName = item?.name ? item.name : `Custom Item #${iIdx + 1}`;
+
+                        serverErrors.push({
+                            location: 'Line Items',
+                            itemName: itemName,
+                            field: field,
+                            message: `${this.formatFieldName(field)}: ${msgList}`,
+                            sectionIndex: null,
+                            itemIndex: iIdx,
+                            itemRef: item,
+                            targetId: `item-row-i${iIdx}`
+                        });
+                    } else if (sectionNameMatch) {
+                        const sIdx = parseInt(sectionNameMatch[1], 10);
+                        const section = this.estimate.sections ? this.estimate.sections[sIdx] : null;
+                        serverErrors.push({
+                            location: 'Rooms & Sections',
+                            itemName: section?.name || `Room #${sIdx + 1}`,
+                            message: msgList,
+                            sectionIndex: sIdx,
+                            itemIndex: undefined,
+                            targetId: `section-card-${sIdx}`
+                        });
+                    } else {
+                        serverErrors.push({
+                            location: 'Estimate Form',
+                            itemName: this.formatFieldName(key),
+                            message: msgList
+                        });
+                    }
+                }
+
+                if (serverErrors.length > 0) {
+                    this.validationErrors = serverErrors;
+                    this.scrollToFirstError();
+                    this.showToast(`Server returned ${serverErrors.length} validation error(s). Please review highlighted items.`, 'error');
+                }
+                return serverErrors;
             },
 
             validateForm() {
@@ -1310,38 +1475,147 @@
                     });
                 }
 
-                // Validate unit configurations
-                const validateItem = (item, location) => {
-                    // Only validate if a unit type has been selected or the picker was explicitly opened
-                    // This allows "pure" custom items (Manual unit type) to skip this check
-                    if (item.unit_type_id) {
-                        if (!item.unit_type || item.unit_type === '') {
-                            errors.push({
-                                location: location,
-                                itemName: item.name || 'Unnamed Item',
-                                message: 'Specific Unit is required for the selected Unit Type'
-                            });
-                        }
-                    } else if (item._showTypePicker) {
-                        // If they clicked "Unit" button but didn't pick anything
+                // Comprehensive item validator (handles custom & standard items)
+                const validateItem = (item, location, sectionIndex, itemIndex) => {
+                    const isCustom = !item.product_id;
+                    const itemNameDisplay = item.name && item.name.trim() !== ''
+                        ? item.name
+                        : (isCustom ? `Custom Item #${itemIndex + 1}` : `Item #${itemIndex + 1}`);
+
+                    const targetId = sectionIndex !== null
+                        ? `item-row-s${sectionIndex}-i${itemIndex}`
+                        : `item-row-i${itemIndex}`;
+
+                    // 1. Item Name (Required)
+                    if (!item.name || item.name.trim() === '') {
                         errors.push({
                             location: location,
-                            itemName: item.name || 'Unnamed Item',
-                            message: 'Please select a Unit Type or leave as Manual'
+                            itemName: itemNameDisplay,
+                            field: 'name',
+                            message: 'Item name is required',
+                            sectionIndex: sectionIndex,
+                            itemIndex: itemIndex,
+                            itemRef: item,
+                            targetId: targetId
                         });
+                    }
+
+                    // 2. Unit Price (Numeric >= 0)
+                    if (item.unit_price === null || item.unit_price === undefined || item.unit_price === '' || isNaN(item.unit_price) || Number(item.unit_price) < 0) {
+                        errors.push({
+                            location: location,
+                            itemName: itemNameDisplay,
+                            field: 'unit_price',
+                            message: 'Unit price must be a valid number (0 or greater)',
+                            sectionIndex: sectionIndex,
+                            itemIndex: itemIndex,
+                            itemRef: item,
+                            targetId: targetId
+                        });
+                    }
+
+                    // 3. Quantity (Numeric > 0)
+                    if (item.quantity === null || item.quantity === undefined || item.quantity === '' || isNaN(item.quantity) || Number(item.quantity) <= 0) {
+                        errors.push({
+                            location: location,
+                            itemName: itemNameDisplay,
+                            field: 'quantity',
+                            message: 'Quantity must be greater than 0',
+                            sectionIndex: sectionIndex,
+                            itemIndex: itemIndex,
+                            itemRef: item,
+                            targetId: targetId
+                        });
+                    }
+
+                    // 4. Discount Percentage (0 to 100)
+                    if (item.discount_percent !== null && item.discount_percent !== undefined && item.discount_percent !== '') {
+                        const disc = Number(item.discount_percent);
+                        if (isNaN(disc) || disc < 0 || disc > 100) {
+                            errors.push({
+                                location: location,
+                                itemName: itemNameDisplay,
+                                field: 'discount_percent',
+                                message: 'Discount must be between 0% and 100%',
+                                sectionIndex: sectionIndex,
+                                itemIndex: itemIndex,
+                                itemRef: item,
+                                targetId: targetId
+                            });
+                        }
+                    }
+
+                    // 5. Unit Type & Unit Selection
+                    if (item.unit_type_id) {
+                        if (!item.unit_type || item.unit_type.trim() === '') {
+                            errors.push({
+                                location: location,
+                                itemName: itemNameDisplay,
+                                field: 'unit_type',
+                                message: 'Specific Unit is required for the selected Unit Type',
+                                sectionIndex: sectionIndex,
+                                itemIndex: itemIndex,
+                                itemRef: item,
+                                targetId: targetId
+                            });
+                        }
+                    } else if (item._showTypePicker && (!item.unit_type || item.unit_type.trim() === '')) {
+                        errors.push({
+                            location: location,
+                            itemName: itemNameDisplay,
+                            field: 'unit_type',
+                            message: 'Please select a Unit Type or leave as Manual',
+                            sectionIndex: sectionIndex,
+                            itemIndex: itemIndex,
+                            itemRef: item,
+                            targetId: targetId
+                        });
+                    }
+
+                    // 6. Formula Dimensions Validation
+                    if (item.formula === 'area') {
+                        if (!item.length || Number(item.length) <= 0 || !item.width || Number(item.width) <= 0) {
+                            errors.push({
+                                location: location,
+                                itemName: itemNameDisplay,
+                                field: 'dimensions',
+                                message: 'Area formula requires valid positive Length and Width',
+                                sectionIndex: sectionIndex,
+                                itemIndex: itemIndex,
+                                itemRef: item,
+                                targetId: targetId
+                            });
+                        }
+                    } else if (item.formula === 'volume') {
+                        if (!item.length || Number(item.length) <= 0 || !item.width || Number(item.width) <= 0 || !item.height || Number(item.height) <= 0) {
+                            errors.push({
+                                location: location,
+                                itemName: itemNameDisplay,
+                                field: 'dimensions',
+                                message: 'Volume formula requires valid positive Length, Width, and Height',
+                                sectionIndex: sectionIndex,
+                                itemIndex: itemIndex,
+                                itemRef: item,
+                                targetId: targetId
+                            });
+                        }
                     }
                 };
 
                 if (this.estimate.type === 'room_based') {
                     this.estimate.sections.forEach((section, sIdx) => {
-                        section.items.forEach((item, iIdx) => {
-                            validateItem(item, `${section.name} - Item #${iIdx + 1}`);
-                        });
+                        if (section.items) {
+                            section.items.forEach((item, iIdx) => {
+                                validateItem(item, `${section.name || 'Room #' + (sIdx + 1)}`, sIdx, iIdx);
+                            });
+                        }
                     });
                 } else {
-                    this.estimate.items.forEach((item, iIdx) => {
-                        validateItem(item, `Item #${iIdx + 1}`);
-                    });
+                    if (this.estimate.items) {
+                        this.estimate.items.forEach((item, iIdx) => {
+                            validateItem(item, 'Line Items', null, iIdx);
+                        });
+                    }
                 }
 
                 this.validationErrors = errors;
@@ -1367,7 +1641,8 @@
                 if (this.isSubmitting) return;
 
                 if (!this.validateForm()) {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    this.scrollToFirstError();
+                    this.showToast(`Found ${this.validationErrors.length} validation error(s). Please check highlighted fields.`, 'error');
                     return;
                 }
 
@@ -1408,9 +1683,16 @@
                         
                         try {
                             const errorJson = JSON.parse(text);
-                            errorMessage = errorJson.message || errorMessage;
                             if (errorJson.errors) {
+                                const parsedErrors = this.handleServerValidationErrors(errorJson.errors);
+                                if (parsedErrors.length > 0) {
+                                    this.isSubmitting = false;
+                                    return;
+                                }
+                                errorMessage = errorJson.message || errorMessage;
                                 errorMessage += "\n\n" + Object.values(errorJson.errors).flat().join("\n");
+                            } else if (errorJson.message) {
+                                errorMessage = errorJson.message;
                             }
                         } catch (e) {
                             // Not JSON, show snippet of HTML if it looks like an error page
@@ -1466,6 +1748,13 @@
                         this.isSubmitting = false;
                         alert(result.message || 'Saved successfully!');
                     } else {
+                        if (result.errors) {
+                            const parsedErrors = this.handleServerValidationErrors(result.errors);
+                            if (parsedErrors.length > 0) {
+                                this.isSubmitting = false;
+                                return;
+                            }
+                        }
                         const errorMsg = result.message || 'Submission failed.';
                         this.isSubmitting = false;
                         alert(errorMsg + (result.errors ? "\n\n" + Object.values(result.errors).flat().join("\n") : ""));

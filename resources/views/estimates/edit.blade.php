@@ -45,7 +45,7 @@
             <input type="hidden" name="last_update_timestamp" value="{{ $estimate->updated_at }}">
 
             <!-- Validation Errors Alert -->
-            <div x-show="validationErrors.length > 0" x-cloak
+            <div x-show="validationErrors.length > 0" x-cloak id="validation-errors-banner"
                 class="rounded-xl border-2 border-rose-200 bg-rose-50 p-6 shadow-sm">
                 <div class="flex items-start gap-4">
                     <div class="flex-shrink-0">
@@ -56,27 +56,41 @@
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <h3 class="text-base font-bold text-rose-900 mb-2">Please Complete Required Fields</h3>
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-base font-bold text-rose-900">
+                                <span x-text="validationErrors.length"></span> Item & Validation Error<span x-show="validationErrors.length > 1">s</span> Found
+                            </h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-200 text-rose-800"
+                                x-text="validationErrors.length + ' issue(s)'"></span>
+                        </div>
                         <p class="text-sm text-rose-700 mb-4">
-                            The following fields are required or incomplete. Please review and complete them before
-                            saving:
+                            The following items or fields are incomplete or invalid. Click <strong>"Go to Item"</strong> to jump directly to the item:
                         </p>
                         <ul class="space-y-2">
                             <template x-for="(error, index) in validationErrors" :key="index">
-                                <li class="flex items-start gap-2 text-sm">
-                                    <svg class="h-5 w-5 text-rose-500 flex-shrink-0 mt-0.5" fill="currentColor"
-                                        viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd"
-                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    <div>
-                                        <span class="font-semibold text-rose-900" x-text="error.location"></span>
-                                        <span class="text-rose-700">-</span>
-                                        <span class="text-rose-800" x-text="error.itemName"></span>
-                                        <span class="text-rose-700">:</span>
-                                        <span class="text-rose-600" x-text="error.message"></span>
+                                <li class="flex items-center justify-between gap-3 text-sm p-2.5 rounded-lg bg-rose-100/60 border border-rose-200/80 hover:bg-rose-100 transition-all">
+                                    <div class="flex items-start gap-2.5 min-w-0">
+                                        <svg class="h-5 w-5 text-rose-500 flex-shrink-0 mt-0.5" fill="currentColor"
+                                            viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        <div class="truncate">
+                                            <span class="font-bold text-rose-950" x-text="error.location"></span>
+                                            <span class="text-rose-600 font-semibold">-</span>
+                                            <span class="font-bold text-rose-900" x-text="error.itemName"></span>
+                                            <span class="text-rose-600 font-semibold">:</span>
+                                            <span class="text-rose-700 font-medium" x-text="error.message"></span>
+                                        </div>
                                     </div>
+                                    <button type="button" @click="jumpToError(error)"
+                                        class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-rose-700 bg-white border border-rose-300 rounded-md shadow-sm hover:bg-rose-50 hover:text-rose-900 hover:border-rose-400 transition-all cursor-pointer">
+                                        <span>Go to Item</span>
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                        </svg>
+                                    </button>
                                 </li>
                             </template>
                         </ul>
@@ -348,10 +362,10 @@
                                                 class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-80">
                                                 Item Details</th>
                                             <th scope="col"
-                                                class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-36">
+                                                class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-48 min-w-[180px]">
                                                 Dimensions</th>
                                             <th scope="col"
-                                                class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
+                                                class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-36 min-w-[140px]">
                                                 Price</th>
                                             <th scope="col"
                                                 class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
@@ -367,7 +381,9 @@
                                         :data-section-index="sectionIndex">
                                         <template x-for="(item, itemIndex) in section.items"
                                             :key="item._uid || item.id || itemIndex">
-                                            <tr class="item-row group hover:bg-slate-50/50 transition-all duration-200">
+                                            <tr :id="'item-row-s' + sectionIndex + '-i' + itemIndex"
+                                                class="item-row group transition-all duration-200"
+                                                :class="hasItemError(item, sectionIndex) ? 'bg-rose-50/90 border-l-4 border-l-rose-500 ring-2 ring-rose-200 shadow-sm' : 'hover:bg-slate-50/50'">
                                                 <!-- Handle -->
                                                 <td
                                                     class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
@@ -437,13 +453,19 @@
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <!-- Unit Config -->
                                                 <!-- Column 4: Item Details -->
                                                 <td class="px-3 py-4">
                                                     <input type="text" x-model="item.name" placeholder="Item Name"
                                                         :readonly="isItemLocked(item)"
-                                                        :class="isItemLocked(item) ? 'cursor-default text-slate-500' : ''"
-                                                        class="block w-full border-0 p-0 text-sm font-bold text-slate-900 focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
+                                                        @input="clearItemError(item, 'name')"
+                                                        :class="getItemError(item, 'name') ? 'text-rose-900 font-bold placeholder:text-rose-400' : (isItemLocked(item) ? 'cursor-default text-slate-500' : 'text-slate-900')"
+                                                        class="block w-full border-0 p-0 text-sm font-bold focus:ring-0 placeholder:text-slate-400 bg-transparent mb-1">
+                                                    <template x-if="getItemError(item, 'name')">
+                                                        <p class="text-[11px] font-bold text-rose-600 mb-1 flex items-center gap-1">
+                                                            <svg class="w-3.5 h-3.5 text-rose-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                            <span x-text="getItemError(item, 'name')"></span>
+                                                        </p>
+                                                    </template>
                                                     <textarea x-model="item.description" placeholder="Description"
                                                         rows="2" :readonly="isItemLocked(item)"
                                                         :class="isItemLocked(item) ? 'cursor-default text-slate-500' : ''"
@@ -511,7 +533,7 @@
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.length" placeholder="0"
                                                                         @input="calculateSize(item)"
-                                                                        class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
                                                                 </div>
                                                                 <div class="flex items-center gap-2">
                                                                     <span
@@ -519,7 +541,7 @@
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.width" placeholder="0"
                                                                         @input="calculateSize(item)"
-                                                                        class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
                                                                 </div>
                                                                 <div class="flex items-center gap-2">
                                                                     <span
@@ -527,7 +549,7 @@
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.height" placeholder="0"
                                                                         @input="calculateSize(item)"
-                                                                        class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
                                                                 </div>
                                                             </div>
                                                             <div
@@ -544,32 +566,6 @@
                                                         </div>
 
                                                     </div>
-                            </div>
-                        </div>
-                        </td>
-                        <!-- Price -->
-                        <td class="px-3 py-4">
-                            <div class="relative">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
-                                    x-text="estimate.currency_symbol"></span>
-                                <input type="number" step="0.01" x-model="item.unit_price"
-                                    :readonly="isItemLocked(item)" @input="calculateTotals"
-                                    :class="isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600'"
-                                    class="block w-full rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-medium transition-all">
-                            </div>
-                        </td>
-                        <!-- Quantity -->
-                        <td class="px-3 py-4">
-                            <div class="flex items-center justify-center gap-1.5">
-                                <input type="number" step="0.01" x-model="item.quantity" @input="calculateTotals"
-                                    class="block w-20 rounded-lg border-slate-200 py-1.5 text-center text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 transition-all">
-                            </div>
-                        </td>
-                        <!-- Total -->
-                        <td class="px-3 py-4 text-right align-middle">
-                            <div class="flex flex-col">
-                                <span
                                     class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
                                 <span class="text-sm font-bold text-slate-900"
                                     x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
@@ -753,10 +749,10 @@
                         class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-80">
                         Item Details</th>
                     <th scope="col"
-                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-36">
+                        class="px-3 py-4 text-left text-[10px] font-bold text-slate-400 uppercase tracking-widest w-48 min-w-[180px]">
                         Dimensions</th>
                     <th scope="col"
-                        class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-28">
+                        class="px-3 py-4 text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest w-36 min-w-[140px]">
                         Price</th>
                     <th scope="col"
                         class="px-3 py-4 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest w-32">
@@ -770,7 +766,9 @@
             </thead>
             <tbody class="bg-white divide-y divide-slate-200 standard-items-sortable">
                 <template x-for="(item, itemIndex) in estimate.items" :key="item._uid || item.id || itemIndex">
-                    <tr class="item-row group hover:bg-slate-50/50 transition-all duration-200">
+                    <tr :id="'item-row-i' + itemIndex"
+                        class="item-row group transition-all duration-200"
+                        :class="hasItemError(item, null) ? 'bg-rose-50/90 border-l-4 border-l-rose-500 ring-2 ring-rose-200 shadow-sm' : 'hover:bg-slate-50/50'">
                         <td class="px-3 py-4 text-center text-slate-300 group-hover:text-slate-400 cursor-move handle">
                             <svg class="h-4 w-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -901,19 +899,19 @@
                                             <span class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                             <input type="number" step="0.01" x-model="item.length" placeholder="0"
                                                 @input="calculateSize(item)"
-                                                class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <span class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                             <input type="number" step="0.01" x-model="item.width" placeholder="0"
                                                 @input="calculateSize(item)"
-                                                class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <span class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                             <input type="number" step="0.01" x-model="item.height" placeholder="0"
                                                 @input="calculateSize(item)"
-                                                class="block w-14 rounded border-slate-200 py-1 px-1.5 text-center text-xs text-slate-900 focus:ring-indigo-600">
+                                                class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
                                         </div>
                                     </div>
                                     <div class="flex flex-col items-center flex-1 border-l border-slate-200 pl-2">
