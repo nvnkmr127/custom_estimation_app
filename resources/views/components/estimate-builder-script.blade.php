@@ -1127,10 +1127,10 @@
                 item.showCalculator = !item.showCalculator;
             },
 
-            inputWidth(val, minWidth = 75, maxPx = 180) {
+            inputWidth(val, minWidth = 96, maxPx = 200) {
                 const len = String(val ?? '').length;
-                if (len <= 4) return minWidth + 'px';
-                const dynamicPx = Math.max(minWidth, (len + 2.5) * 9.5);
+                if (len <= 3) return minWidth + 'px';
+                const dynamicPx = Math.max(minWidth, (len + 3) * 10);
                 return Math.min(dynamicPx, maxPx) + 'px';
             },
 

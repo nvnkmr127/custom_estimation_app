@@ -566,24 +566,30 @@
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.length" placeholder="0"
-                                                                        @input="calculateSize(item)"
-                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                        @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                                        :style="{ width: inputWidth(item.length, 96, 180) }"
+                                                                        :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                                        class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                                 </div>
                                                                 <div class="flex items-center gap-2">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.width" placeholder="0"
-                                                                        @input="calculateSize(item)"
-                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                        @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                                        :style="{ width: inputWidth(item.width, 96, 180) }"
+                                                                        :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                                        class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                                 </div>
                                                                 <div class="flex items-center gap-2">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                                                     <input type="number" step="0.01"
                                                                         x-model="item.height" placeholder="0"
-                                                                        @input="calculateSize(item)"
-                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                        @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                                        :style="{ width: inputWidth(item.height, 96, 180) }"
+                                                                        :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                                        class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                                 </div>
                                                             </div>
                                                             <div
@@ -985,25 +991,28 @@
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
                                                         <input type="number" step="0.01" x-model="item.length"
-                                                            placeholder="0" @input="calculateSize(item)"
-                                                            :style="{ width: inputWidth(item.length, 75, 160) }"
-                                                            class="block rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm transition-all">
+                                                            placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                            :style="{ width: inputWidth(item.length, 96, 180) }"
+                                                            :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                            class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                     </div>
                                                     <div class="flex items-center gap-2">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
                                                         <input type="number" step="0.01" x-model="item.width"
-                                                            placeholder="0" @input="calculateSize(item)"
-                                                            :style="{ width: inputWidth(item.width, 75, 160) }"
-                                                            class="block rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm transition-all">
+                                                            placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                            :style="{ width: inputWidth(item.width, 96, 180) }"
+                                                            :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                            class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                     </div>
                                                     <div class="flex items-center gap-2">
                                                         <span
                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
                                                         <input type="number" step="0.01" x-model="item.height"
-                                                            placeholder="0" @input="calculateSize(item)"
-                                                            :style="{ width: inputWidth(item.height, 75, 160) }"
-                                                            class="block rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm transition-all">
+                                                            placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                            :style="{ width: inputWidth(item.height, 96, 180) }"
+                                                            :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                            class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                     </div>
                                                 </div>
                                                 <div

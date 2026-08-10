@@ -493,24 +493,30 @@
                                                                 <div class="flex items-center gap-2"><span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span><input
                                                                         type="number" step="0.01" x-model="item.length"
-                                                                        placeholder="0" @input="calculateSize(item)"
-                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                        placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                                        :style="{ width: inputWidth(item.length, 96, 180) }"
+                                                                        :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                                        class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
                                                                 </div>
                                                                 <div class="flex items-center gap-2"><span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span><input
                                                                         type="number" step="0.01" x-model="item.width"
-                                                                        placeholder="0" @input="calculateSize(item)"
-                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                        placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                                        :style="{ width: inputWidth(item.width, 96, 180) }"
+                                                                        :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                                        class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
                                                                 </div>
                                                                 <div class="flex items-center gap-2"><span
                                                                         class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span><input
                                                                         type="number" step="0.01" x-model="item.height"
-                                                                        placeholder="0" @input="calculateSize(item)"
-                                                                        class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
+                                                                        placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                                        :style="{ width: inputWidth(item.height, 96, 180) }"
+                                                                        :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                                        class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
                                                                     <span
                                                                         class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
                                                                 </div>
@@ -862,34 +868,40 @@
                                                 class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"
                                                 style="display: none;">
                                                 <div class="flex flex-col gap-1.5">
-                                                    <div class="flex items-center gap-2">
-                                                        <span
-                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
-                                                        <input type="number" step="0.01" x-model="item.length"
-                                                            placeholder="0" @input="calculateSize(item)"
-                                                            class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
-                                                        <span
-                                                            class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
-                                                    </div>
-                                                    <div class="flex items-center gap-2">
-                                                        <span
-                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
-                                                        <input type="number" step="0.01" x-model="item.width"
-                                                            placeholder="0" @input="calculateSize(item)"
-                                                            class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
-                                                        <span
-                                                            class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
-                                                    </div>
-                                                    <div class="flex items-center gap-2">
-                                                        <span
-                                                            class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
-                                                        <input type="number" step="0.01" x-model="item.height"
-                                                            placeholder="0" @input="calculateSize(item)"
-                                                            class="block w-20 rounded-md border-slate-200 py-1 px-2 text-center text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-600 shadow-sm">
-                                                        <span
-                                                            class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
-                                                    </div>
-                                                </div>
+                                                     <div class="flex items-center gap-2">
+                                                         <span
+                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">L</span>
+                                                         <input type="number" step="0.01" x-model="item.length"
+                                                             placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                             :style="{ width: inputWidth(item.length, 96, 180) }"
+                                                             :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                             class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
+                                                         <span
+                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                     </div>
+                                                     <div class="flex items-center gap-2">
+                                                         <span
+                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">W</span>
+                                                         <input type="number" step="0.01" x-model="item.width"
+                                                             placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                             :style="{ width: inputWidth(item.width, 96, 180) }"
+                                                             :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                             class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
+                                                         <span
+                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                     </div>
+                                                     <div class="flex items-center gap-2">
+                                                         <span
+                                                             class="text-[10px] font-bold text-slate-600 uppercase w-3">H</span>
+                                                         <input type="number" step="0.01" x-model="item.height"
+                                                             placeholder="0" @input="calculateSize(item); clearItemError(item, 'dimensions')"
+                                                             :style="{ width: inputWidth(item.height, 96, 180) }"
+                                                             :class="getItemError(item, 'dimensions') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                             class="block rounded-md py-1 px-2.5 text-center text-xs font-bold text-slate-900 shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all">
+                                                         <span
+                                                             class="text-[10px] font-bold text-slate-400 uppercase">ft</span>
+                                                     </div>
+                                                 </div>
                                                 <div class="flex flex-col items-center">
                                                     <span class="text-[10px] font-bold text-slate-300 mb-0.5"
                                                         x-text="item.formula === 'volume' ? 'VOLUME' : (item.formula === 'area_lh' ? 'AREA (LxH)' : (item.formula === 'formula' ? 'CUSTOM' : ((item.formula === 'area') ? 'AREA (LxW)' : 'AREA')))"></span>
