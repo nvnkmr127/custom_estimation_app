@@ -780,25 +780,25 @@ $totalsPayload = [
                                 <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm"
                                     x-data="{ isOpen: false }">
                                     <div @click="isOpen = !isOpen"
-                                        class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-100/80 transition-colors">
-                                        <div class="flex items-center gap-3">
-                                            <div class="text-slate-400 transition-transform duration-200"
+                                        class="bg-slate-50 px-3 py-3 sm:px-4 border-b border-slate-200 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-3 cursor-pointer hover:bg-slate-100/80 transition-colors">
+                                        <div class="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0 flex-1">
+                                            <div class="text-slate-400 transition-transform duration-200 flex-shrink-0"
                                                 :class="isOpen ? 'rotate-90 text-indigo-600' : ''">
                                                 <svg class="h-5 w-5 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                                 </svg>
                                             </div>
-                                            <span class="font-bold text-slate-900 text-base">{{ $section->name }}</span>
+                                            <span class="font-bold text-slate-900 text-sm sm:text-base break-words">{{ $section->name }}</span>
                                             @if($section->is_package)
-                                                <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 uppercase tracking-widest leading-none">
+                                                <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 uppercase tracking-widest leading-none flex-shrink-0">
                                                     Package
                                                 </span>
                                             @endif
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-200/80 text-slate-700">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-200/80 text-slate-700 flex-shrink-0">
                                                 {{ $section->items->count() }} {{ Str::plural('item', $section->items->count()) }}
                                             </span>
                                         </div>
-                                        <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-2 flex-shrink-0 ml-auto sm:ml-0">
                                             <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
                                                 {{ $estimate->currency }} {{ number_format($section->items->sum('total'), 2) }}
                                             </span>
