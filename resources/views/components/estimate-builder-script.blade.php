@@ -500,6 +500,9 @@
             // --- Core Actions ---
             openProductPicker(sectionIndex) {
                 this.productPicker.sectionIndex = sectionIndex;
+                if (sectionIndex !== null && sectionIndex !== undefined && this.estimate.sections && this.estimate.sections[sectionIndex]) {
+                    this.estimate.sections[sectionIndex]._isOpen = true;
+                }
                 this.productPicker.search = '';
                 this.productPicker.categoryId = '';
                 this.productPicker.isOpen = true;
@@ -555,6 +558,32 @@
 
                 // Filter unit types based on section's allowed list
                 return this.unitTypes.filter(ut => section.allowed_unit_types.some(id => String(id) === String(ut.id)));
+            },
+
+            // --- Accordion Helpers for Room Sections ---
+            toggleSectionCollapse(sectionIndex) {
+                if (this.estimate.sections && this.estimate.sections[sectionIndex]) {
+                    const current = this.isSectionOpen(sectionIndex);
+                    this.estimate.sections[sectionIndex]._isOpen = !current;
+                }
+            },
+
+            isSectionOpen(sectionIndex) {
+                const s = this.estimate.sections ? this.estimate.sections[sectionIndex] : null;
+                if (!s) return false;
+                return s._isOpen !== undefined ? s._isOpen : false;
+            },
+
+            expandAllSections() {
+                if (this.estimate.sections) {
+                    this.estimate.sections.forEach(s => { s._isOpen = true; });
+                }
+            },
+
+            collapseAllSections() {
+                if (this.estimate.sections) {
+                    this.estimate.sections.forEach(s => { s._isOpen = false; });
+                }
             },
 
 
@@ -742,7 +771,8 @@
             },
 
             pushItem(item) {
-                if (typeof this.productPicker.sectionIndex !== 'undefined' && this.productPicker.sectionIndex !== null) {
+                if (typeof this.productPicker.sectionIndex !== 'undefined' && this.productPicker.sectionIndex !== null && this.estimate.sections && this.estimate.sections[this.productPicker.sectionIndex]) {
+                    this.estimate.sections[this.productPicker.sectionIndex]._isOpen = true;
                     this.estimate.sections[this.productPicker.sectionIndex].items.push(item);
                 } else {
                     this.estimate.items.push(item);
@@ -751,7 +781,7 @@
 
             addSection() {
                 const count = this.estimate.sections.length + 1;
-                this.estimate.sections.push({ name: 'Room ' + count, items: [], section_type: 'room' });
+                this.estimate.sections.push({ name: 'Room ' + count, items: [], section_type: 'room', _isOpen: true });
                 // Re-init sortable for new DOM elements
                 this.$nextTick(() => this.initSortable());
             },
@@ -786,7 +816,9 @@
 
                     this.estimate.sections.push({
                         name: roomName,
-                        items: []
+                        items: [],
+                        section_type: 'room',
+                        _isOpen: true
                     });
                     this.roomModal.isOpen = false;
                     this.$nextTick(() => this.initSortable());
@@ -1322,6 +1354,9 @@
             },
 
             jumpToError(error) {
+                if (error.sectionIndex !== null && error.sectionIndex !== undefined && this.estimate.sections && this.estimate.sections[error.sectionIndex]) {
+                    this.estimate.sections[error.sectionIndex]._isOpen = true;
+                }
                 let el = null;
                 if (error.targetId) {
                     el = document.getElementById(error.targetId);

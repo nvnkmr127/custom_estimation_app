@@ -92,19 +92,44 @@
                     </h2>
 
                     @if($estimate->type === 'room_based')
-                        <div class="space-y-6">
+                        <div class="space-y-4">
                             @foreach($estimate->sections as $section)
-                                <div class="border border-slate-200 rounded-lg overflow-hidden">
-                                    <div class="bg-slate-50 px-4 py-2 border-b border-slate-200 font-medium text-sm text-slate-700">
-                                        {{ $section->name }}
+                                <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm"
+                                    x-data="{ isOpen: false }">
+                                    <div @click="isOpen = !isOpen"
+                                        class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-100/80 transition-colors">
+                                        <div class="flex items-center gap-3">
+                                            <div class="text-slate-400 transition-transform duration-200"
+                                                :class="isOpen ? 'rotate-90 text-indigo-600' : ''">
+                                                <svg class="h-5 w-5 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </div>
+                                            <span class="font-bold text-slate-900 text-base">{{ $section->name }}</span>
+                                            @if($section->is_package)
+                                                <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 uppercase tracking-widest leading-none">
+                                                    Package
+                                                </span>
+                                            @endif
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-200/80 text-slate-700">
+                                                {{ $section->items->count() }} {{ Str::plural('item', $section->items->count()) }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                {{ $estimate->currency_symbol ?? $estimate->currency }} {{ number_format($section->total ?? $section->items->sum('total'), 2) }}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <x-estimates.items-table 
-                                        :estimate="$estimate" 
-                                        :items="$section->items" 
-                                        :is-package="$section->is_package" 
-                                        :show-room-total="true" 
-                                        :section-total="$section->total" 
-                                    />
+                                    <div x-show="isOpen" x-collapse>
+                                        <x-estimates.items-table 
+                                            :estimate="$estimate" 
+                                            :items="$section->items" 
+                                            :is-package="$section->is_package" 
+                                            :show-room-total="true" 
+                                            :section-total="$section->total" 
+                                        />
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
@@ -448,24 +473,29 @@
                                 class="text-xs font-semibold text-indigo-600 hover:text-indigo-500">View Details</button>
                         </div>
                         <p class="text-xs text-indigo-700 mb-3">
-                            Comparison with v{{ $estimate->version - 1 }}.
-                            @if(!empty($diff['overview'])) <span class="font-medium">{{ count($diff['overview']) }} fields
-                            changed.</span> @endif
-                            @if(!empty($diff['items']['added'])) <span
-                            class="font-medium">{{ count($diff['items']['added']) }} items added.</span> @endif
-                            @if(!empty($diff['items']['removed'])) <span
-                            class="font-medium">{{ count($diff['items']['removed']) }} items removed.</span> @endif
-                            @if(!empty($diff['items']['modified'])) <span
-                            class="font-medium">{{ count($diff['items']['modified']) }} items modified.</span> @endif
+                            Comparison with v{{ $diff['summary']['old_version'] ?? ($estimate->version - 1) }}.
+                            @if(!empty($diff['overview']))
+                                <span class="font-medium">{{ count($diff['overview']) }} fields changed.</span>
+                            @endif
+                            @if(!empty($diff['summary']['added_count']))
+                                <span class="font-medium">{{ $diff['summary']['added_count'] }} {{ Str::plural('item', $diff['summary']['added_count']) }} added.</span>
+                            @endif
+                            @if(!empty($diff['summary']['removed_count']))
+                                <span class="font-medium">{{ $diff['summary']['removed_count'] }} {{ Str::plural('item', $diff['summary']['removed_count']) }} removed.</span>
+                            @endif
+                            @if(!empty($diff['summary']['modified_count']))
+                                <span class="font-medium">{{ $diff['summary']['modified_count'] }} {{ Str::plural('item', $diff['summary']['modified_count']) }} modified.</span>
+                            @endif
                         </p>
                         <button @click="showDiffModal = true" type="button"
-                            class="w-full rounded bg-indigo-600/10 px-2 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-600/20">
-                            Show All Changes
+                            class="w-full rounded bg-indigo-600/10 px-2 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200 hover:bg-indigo-600/20 transition-all">
+                            Show Version Analysis
                         </button>
                     </div>
 
                     <!-- Diff Modal -->
-                    <x-estimates.diff-modal />
+                    <x-estimates.diff-modal :diff="$diff" :estimate="$estimate" />
+                </div>
             @endif
 
                 <!-- History / Versions -->

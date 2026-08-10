@@ -257,10 +257,24 @@
             <!-- Items/Sections Editor -->
             <div class="py-4">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold tracking-tight text-slate-900">
-                        <span x-show="estimate.type === 'room_based'">Rooms & Items</span>
-                        <span x-show="estimate.type === 'standard'">Line Items</span>
-                    </h2>
+                    <div class="flex items-center gap-4">
+                        <h2 class="text-xl font-bold tracking-tight text-slate-900">
+                            <span x-show="estimate.type === 'room_based'">Rooms & Items</span>
+                            <span x-show="estimate.type === 'standard'">Line Items</span>
+                        </h2>
+
+                        <!-- Expand / Collapse All Buttons -->
+                        <div class="flex items-center gap-2" x-show="estimate.type === 'room_based' && estimate.sections && estimate.sections.length > 0">
+                            <button type="button" @click="expandAllSections()"
+                                class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-200 shadow-sm hover:bg-indigo-100 transition-all">
+                                Expand All
+                            </button>
+                            <button type="button" @click="collapseAllSections()"
+                                class="text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 shadow-sm hover:bg-slate-200 transition-all">
+                                Collapse All
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="flex gap-3">
                         <button type="button" @click.stop="openProductPicker(null)"
@@ -311,42 +325,59 @@
                 <!-- Room-Based List -->
                 <div x-show="estimate.type === 'room_based'" class="space-y-6 sections-container">
                     <template x-for="(section, sectionIndex) in estimate.sections" :key="sectionIndex">
-                        <div class="section-card border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden"
+                        <div class="section-card border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden transition-all duration-200"
                             :data-section-index="sectionIndex">
                             <!-- Section Header -->
-                            <div
-                                class="bg-slate-50 border-b border-slate-200 px-4 py-3 sm:px-6 flex items-center justify-between gap-4">
-                                <div class="flex items-center gap-3 flex-1">
-                                    <div class="section-handle cursor-move text-slate-400 hover:text-slate-600">
+                            <div @click="toggleSectionCollapse(sectionIndex)"
+                                class="bg-slate-50 border-b border-slate-200 px-4 py-3 sm:px-6 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-100/70 transition-colors">
+                                <div class="flex items-center gap-3 flex-1 min-w-0">
+                                    <div @click.stop class="section-handle cursor-move text-slate-400 hover:text-slate-600">
                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M4 8h16M4 16h16" />
                                         </svg>
                                     </div>
-                                    <input type="text" x-model="section.name" placeholder="Section Name" readonly
-                                        class="block w-full text-lg font-bold bg-transparent border-0 p-0 text-slate-900 focus:ring-0 placeholder:text-slate-400 cursor-default">
+                                    <div class="text-slate-400 transition-transform duration-200"
+                                        :class="isSectionOpen(sectionIndex) ? 'rotate-90 text-indigo-600' : ''">
+                                        <svg class="h-5 w-5 transform transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                    <input type="text" x-model="section.name" placeholder="Section Name" readonly @click.stop
+                                        class="block w-full text-lg font-bold bg-transparent border-0 p-0 text-slate-900 focus:ring-0 placeholder:text-slate-400 cursor-default truncate">
                                     <template x-if="section.section_type === 'package'">
                                         <span
-                                            class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 uppercase tracking-widest leading-none">
+                                            class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 uppercase tracking-widest leading-none flex-shrink-0">
                                             Package
                                         </span>
                                     </template>
+                                    <!-- Summary Pills -->
+                                    <div class="flex items-center gap-2 ml-2 flex-shrink-0">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-200/80 text-slate-700"
+                                            x-text="(section.items ? section.items.length : 0) + ' item' + (section.items && section.items.length === 1 ? '' : 's')">
+                                        </span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                            x-text="estimate.currency + ' ' + calculateSectionTotal(section).toFixed(2)">
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 flex-shrink-0" @click.stop>
                                     <button type="button" @click.stop="openProductPicker(sectionIndex)"
                                         x-show="section.section_type === 'room'"
-                                        class="text-sm font-medium text-slate-600 hover:text-indigo-600">
+                                        class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors">
                                         + Add Item
                                     </button>
                                     <button type="button" @click="removeSection(sectionIndex)"
-                                        class="text-sm font-medium text-rose-600 hover:text-rose-900 ml-2">
+                                        class="text-sm font-medium text-rose-600 hover:text-rose-900 ml-2 transition-colors">
                                         Remove Section
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- ROOM LAYOUT TABLE -->
-                            <div class="overflow-x-auto min-h-[100px]" x-show="section.section_type === 'room'">
+                            <!-- COLLAPSIBLE SECTION BODY -->
+                            <div x-show="isSectionOpen(sectionIndex)" x-collapse>
+                                <!-- ROOM LAYOUT TABLE -->
+                                <div class="overflow-x-auto min-h-[100px]" x-show="section.section_type === 'room'">
                                 <table class="min-w-full divide-y divide-slate-200">
                                     <thead class="bg-slate-50/50">
                                         <tr>
@@ -725,6 +756,7 @@
                         Room Total: <span class="font-bold text-slate-900"
                             x-text="calculateSectionTotal(section).toFixed(2)"></span>
                     </div>
+                </div>
                 </div>
 
             </div>
