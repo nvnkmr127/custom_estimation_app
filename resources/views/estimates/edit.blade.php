@@ -603,11 +603,44 @@
                                                         </div>
 
                                                     </div>
-                                    class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
-                                <span class="text-sm font-bold text-slate-900"
-                                    x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
-                            </div>
-                        </td>
+                                                </td>
+                                                <!-- Column 6: Price -->
+                                                <td class="px-3 py-4">
+                                                    <div class="relative">
+                                                        <span
+                                                            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium"
+                                                            x-text="estimate.currency_symbol"></span>
+                                                        <input type="number" step="0.01" x-model="item.unit_price"
+                                                            :readonly="isItemLocked(item)" @input="calculateTotals(); clearItemError(item, 'unit_price')"
+                                                            :style="{ width: inputWidth(item.unit_price, 120, 220) }"
+                                                            :class="getItemError(item, 'unit_price') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50/80 text-rose-900 font-bold' : (isItemLocked(item) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-900 focus:ring-2 focus:ring-indigo-600')"
+                                                            class="block rounded-lg border-slate-200 py-1.5 pl-8 pr-3 text-sm text-right font-bold transition-all ml-auto">
+                                                    </div>
+                                                    <template x-if="getItemError(item, 'unit_price')">
+                                                        <p class="text-[10px] font-bold text-rose-600 mt-1 text-right" x-text="getItemError(item, 'unit_price')"></p>
+                                                    </template>
+                                                </td>
+                                                <!-- Column 7: Quantity -->
+                                                <td class="px-3 py-4" x-show="!section.is_package">
+                                                    <div class="flex flex-col items-center">
+                                                        <input type="number" step="0.01" x-model="item.quantity"
+                                                            @input="calculateTotals(); clearItemError(item, 'quantity')"
+                                                            :class="getItemError(item, 'quantity') ? 'border-rose-400 ring-2 ring-rose-300 bg-rose-50/80 text-rose-900' : 'border-slate-200 focus:ring-2 focus:ring-indigo-600'"
+                                                            class="block w-20 rounded-lg py-1.5 text-center text-sm font-bold text-slate-900 transition-all">
+                                                        <template x-if="getItemError(item, 'quantity')">
+                                                            <p class="text-[10px] font-bold text-rose-600 mt-1 text-center" x-text="getItemError(item, 'quantity')"></p>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <!-- Column 8: Total -->
+                                                <td class="px-3 py-4 text-right align-middle">
+                                                    <div class="flex flex-col">
+                                                        <span
+                                                            class="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</span>
+                                                        <span class="text-sm font-bold text-slate-900"
+                                                            x-text="estimate.currency_symbol + ' ' + calculateItemTotal(item).toFixed(2)"></span>
+                                                    </div>
+                                                </td>
                         <!-- Actions -->
                         <td class="px-3 py-4 text-right">
                             <div class="flex flex-col items-center gap-3">

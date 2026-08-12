@@ -332,6 +332,9 @@
 
                 // 3. Basic Field Hydration
                 item.name = item.name || '';
+                if (item.description && typeof item.description === 'string' && item.description.includes('<')) {
+                    item.description = item.description.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+                }
                 item.unit_price = parseFloat(item.unit_price || 0);
                 item.quantity = parseFloat(item.quantity || 1);
                 item.tax_1 = parseFloat(item.tax_1 || 0);
